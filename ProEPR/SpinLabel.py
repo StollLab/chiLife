@@ -89,7 +89,7 @@ class SpinLabel(RotamerLibrary):
 
         # Store the force field parameter set being used before creating the spin label
         curr_lj = ProEPR.using_lj_param
-        print(curr_lj)
+
         # Set MMM defaults or user defined overrides
         ProEPR.set_lj_params(kwargs.get('lj_params', 'uff'))
 

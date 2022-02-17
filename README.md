@@ -1,5 +1,5 @@
 # ProEPR
-ProEPR is a python module for the simulation and analysis of <u>Pro</u>tein <u>EPR</u> experiments. The primary purpose  
+ProEPR is a python module for the simulation and analysis of <ins>Pro</ins>tein <ins>EPR</ins> experiments. The primary purpose  
 of ProEPR is to perform *in silico* Site Directed Spin Labeling (SDSL) to simulate experimental results. Rapid, 
 accurate and scriptable experimental simulations are necessary for the conversion of experimental data into high quality 
 protein models. ProEPR aims to achieve this by combining standard side chain modeling methods with commonly used spin 

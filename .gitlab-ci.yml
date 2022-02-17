@@ -1,13 +1,12 @@
 before_script:
-  - python -V  # Print out python version for debugging
-  - python -m pip install -U pip
-  - pip install numpy==1.21.5
-  - pip install mdanalysis --no-binary mdanalysis
-  - pip install .
-
 
 .test_template: &test_definition
   script:
+    - python -V  # Print out python version for debugging
+    - python -m pip install -U pip
+    - pip install numpy==1.21.5
+    - pip install mdanalysis --no-binary mdanalysis
+    - pip install .
     - cd tests
     - pytest
   rules:
@@ -35,11 +34,11 @@ test:3.9:
     paths:
       - dist/*.whl
 
-run:3.8:
-  image: python:3.8
-  <<: *build_definition
+  #run:3.8:
+  #  image: python:3.8
+  #  <<: *build_definition
   
-run:3.9:
-  image: python:3.8
-  <<: *build_definition
-
+  #run:3.9:
+  #  image: python:3.8
+  #   <<: *build_definition
+  #  

@@ -58,7 +58,7 @@ ProEPR.save('MBP_L20R1_S238R1.pdb', SL1, SL2, protein=MBP)
 ```
 
 ### Mimicking MMM and MTSSLWizard
-In addition to its own features ProEPR offers spin label modeling methods that mimic the popular MMM and MTSSLWizard 
+In addition to its own features, ProEPR offers spin label modeling methods that mimic the popular MMM and MTSSLWizard 
 modeling applications.
 
 ```python
@@ -107,7 +107,7 @@ SL1 = ProEPR.SpinLabel.from_trajectory(traj, site=238)
 
 Off rotamer sampling can be controlled on a per dihedral basis when repacking with ProEPR by passing a list of bools to 
 the off_rotamer variable. For example, passing `off_rotamer = [False, False, False, True, True]` will allow for off 
-rotamer sampling of only $\chi_4$ and $\chi_5$.
+rotamer sampling of only &chi;<sub>4</sub> and &chi;<sub>5</sub>.
 
 
 ### Mutating protein structures

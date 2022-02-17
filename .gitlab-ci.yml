@@ -1,0 +1,40 @@
+before_script:
+  - python -V  # Print out python version for debugging
+  - python -m pip install -U pip
+  - pip install numpy==1.21.5
+  - pip install mdanalysis --no-binary mdanalysis
+  - pip install .
+
+
+.test_template: &test_definition
+  script:
+    - cd tests
+    - pytest
+
+
+test:3.8:
+  image: python:3.8
+  <<: *test_definition
+
+test:3.9:
+  image: python:3.9
+  <<: *test_definition
+
+.build_template: &build_definition
+  script:
+    - python setup.py bdist_wheel
+    # an alternative approach is to install and run:
+    - pip install dist/*
+    # run the command here
+  artifacts:
+    paths:
+      - dist/*.whl
+
+run:3.8:
+  image: python:3.8
+  <<: *build_definition
+  
+run:3.9:
+  image: python:3.8
+  <<: *build_definition
+

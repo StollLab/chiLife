@@ -1,0 +1,8 @@
+.idea/
+dist/
+build/
+__pycache__/
+ProEPR.egg-info/
+*/.ipynb_checkpoints/
+scripts/
+

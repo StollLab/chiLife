@@ -1,0 +1,5 @@
+1ubq_28TRT.pdb 9795992dee6519203892aefeed1a607c
+bbdep_test.pdb eb14ae5c0c627fab195c4a3c488720d3
+A28R1_rosetta_superimposition.pdb 4c7149625a8e734282cefd8bcfc3b846
+A28R1_bisect_superimposition.pdb 68797425bf6441f8750c96d1bb979c7c
+A28R1_mmm_superimposition.pdb 025a1681315f34fa44c21b99b29efe14

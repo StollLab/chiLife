@@ -125,6 +125,17 @@ def test_mutate3():
     labeled_protein = ProEPR.mutate(protein, SL1, SL2)
     assert len(labeled_protein.atoms) != len(protein.atoms)
 
+def test_mutate4():
+    protein = mda.Universe('test_data/1omp_H.pdb').select_atoms('protein')
+    D41G = ProEPR.RotamerLibrary('GLY', 41, protein=protein)
+    S238A = ProEPR.RotamerLibrary('ALA', 238, protein=protein)
+    mPro = ProEPR.mutate(protein, D41G, S238A, add_missing_atoms=False)
+    D41G_pos = mPro.select_atoms('resnum 41').positions
+    S238A_pos = mPro.select_atoms('resnum 238').positions
+    np.testing.assert_almost_equal(D41G.coords[0], D41G_pos, decimal=6)
+    np.testing.assert_almost_equal(S238A.coords[0], S238A_pos, decimal=6)
+
+
 
 @pytest.mark.parametrize(['inp', 'ans'], zip(gd_kwargs, gd_ans))
 def test_get_dihedral(inp, ans):

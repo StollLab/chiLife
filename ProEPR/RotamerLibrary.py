@@ -112,8 +112,9 @@ class RotamerLibrary:
             self.name += f'_{self.chain}'
 
         # Create arrays of  LJ potential params
-        self.rmin2 = ProEPR.get_lj_rmin(self.atom_types[self.side_chain_idx])
-        self.eps = ProEPR.get_lj_eps(self.atom_types[self.side_chain_idx])
+        if len(self.side_chain_idx) > 0:
+            self.rmin2 = ProEPR.get_lj_rmin(self.atom_types[self.side_chain_idx])
+            self.eps = ProEPR.get_lj_eps(self.atom_types[self.side_chain_idx])
 
         if hasattr(self.protein, 'atoms') and isinstance(self.protein.atoms, mda.AtomGroup):
             self.protein_setup()

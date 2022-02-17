@@ -1,5 +1,3 @@
-before_script:
-
 .test_template: &test_definition
   script:
     - python -V  # Print out python version for debugging

@@ -10,7 +10,7 @@ protein modeling tasks.
 ProEPR can be installed by downloading and unpacking the GitHub repository, or using `git clone` followed by a standard 
 python setuptools installation.
 ```bash
-git clone https://github.com/mtessmer/ProEPR
+git clone https://github.com/mtessmer/ProEPR.git
 cd ProEPR
 python setup.py install
 ```  

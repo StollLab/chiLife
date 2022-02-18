@@ -22,11 +22,6 @@ from .numba_utils import *
 from .scoring import *
 from .superimpositions import superimpositions
 
-# TODO: Implement all atom parameters from CHARMM
-#       -Requires implementation of all spin labels in CHARMM and atom renaming to match RTP --> Huge undertaking
-# TODO: Consider electrostatic energy evaluation
-# TODO: Consider solvation energy evaluation
-
 
 # Define useful global variables
 SUPPORTED_LABELS = ('R1M', 'R7M', 'V1M', 'I1M', 'M1M', 'R1C')

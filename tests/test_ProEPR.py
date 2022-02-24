@@ -63,7 +63,7 @@ def test_unfiltered_dd():
 def test_read_rotamer_library(label):
     data = ProEPR.read_sl_library(label)
     print(data.keys())
-    data = [data[key] for key in data if key not in ('internal_coords', 'sigmas')]
+    data = [data[key] for key in data if key not in ('internal_coords', 'sigmas', '_rdihedrals', '_rsigmas')]
     print(len(data))
     for i, array in enumerate(data):
         assert np.all(array == np.load(f'test_data/{label}_{i}.npy', allow_pickle=True))

@@ -107,6 +107,18 @@ def test_multisample():
     R1M = ProEPR.SpinLabel.from_wizard('R1M', site=48, protein=ubq, to_find=10000)
 
 
+@pytest.mark.parametrize('res', ProEPR.SUPPORTED_RESIDUES)
+def test_lib_distribution_persists(res):
+    if res in list(ProEPR.SUPPORTED_LABELS) + list(ProEPR.USER_LABELS):
+        L1 = ProEPR.SpinLabel(res)
+        L2 = ProEPR.SpinLabel(res, sample=100)
+    else:
+        L1 = ProEPR.RotamerLibrary(res)
+        L2 = ProEPR.RotamerLibrary(res, sample=100)
+
+    np.testing.assert_almost_equal(L1._rdihedrals, L2._rdihedrals)
+    np.testing.assert_almost_equal(L1._rsigmas, L2._rsigmas)
+
 methods = ['rosetta', 'bisect', 'mmm', 'fit']
 @pytest.mark.parametrize(('method'), methods)
 def test_superimposition_method(method):

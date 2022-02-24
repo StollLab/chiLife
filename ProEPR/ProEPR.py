@@ -35,8 +35,8 @@ with open(DATA_DIR + 'spin_atoms.txt', 'r') as f:
     SPIN_ATOMS = {x.split(':')[0]: eval(x.split(':')[1]) for x in lines}
 
 USER_LABELS = {key for key in SPIN_ATOMS if key not in SUPPORTED_LABELS}
-SUPPORTED_RESIDUES = set(list(SUPPORTED_LABELS) + list(USER_LABELS) + ['NHH'] + list(dihedral_defs.keys()))
-
+SUPPORTED_RESIDUES = set(list(SUPPORTED_LABELS) + list(USER_LABELS) + list(dihedral_defs.keys()))
+[SUPPORTED_RESIDUES.remove(lab) for lab in ('CYR1', 'MTN')]
 
 def read_distance_distribution(file_name: str) -> Tuple[ArrayLike, ArrayLike]:
     """
@@ -533,6 +533,10 @@ def read_sl_library(label: str, user: bool = False) -> Tuple[ArrayLike,...]:
 
     if 'sigmas' not in lib:
         lib['sigmas'] = np.array([])
+
+    lib['_rdihedrals'] = np.deg2rad(lib['dihedrals'])
+    lib['_rsigmas'] = np.deg2rad(lib['sigmas'])
+
     return lib
 
 
@@ -592,7 +596,7 @@ def read_bbdep(res: str, Phi: float, Psi: float) -> Tuple[ArrayLike,...]:
             internal_coords.append(ICn)
 
     else:
-        lib['weights'] = [1]
+        lib['weights'] = np.array([1])
         lib['dihedrals'], lib['sigmas'], dihedral_atoms = [], [], []
         coords = [ICs.to_cartesian()]
         internal_coords = [ICs.copy()]

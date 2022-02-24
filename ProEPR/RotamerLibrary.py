@@ -63,8 +63,8 @@ class RotamerLibrary:
         self.backbone_idx = np.argwhere(np.isin(self.atom_names, ['N', 'CA', 'C']))
         self.side_chain_idx = np.argwhere(np.isin(self.atom_names, RotamerLibrary.backbone_atoms, invert=True)).flatten()
 
-        if sample_size := kwargs.setdefault('sample', False):
-            # Get list of non-bonded atoms before overwriting
+        if (sample_size := kwargs.setdefault('sample', False)) and len(self.dihedral_atoms) > 0:
+            # Get list of non-bonded atoms before overwritig
             a, b = [list(x) for x in zip(*self.non_bonded)]
 
             # Perform sapling
@@ -257,11 +257,14 @@ class RotamerLibrary:
             idx = np.random.choice(len(self.weights), size=n, p=self.weights
                                    )
         if not hasattr(off_rotamer, '__len__'):
-            off_rotamer = [off_rotamer] * len(self.dihedral_atoms)
-        off_rotamer = off_rotamer[:len(self.dihedral_atoms)]
+            off_rotamer = [off_rotamer] * len(self.dihedral_atoms) if len(self.dihedral_atoms) > 0 else [True]
+        else:
+            off_rotamer = off_rotamer[:len(self.dihedral_atoms)]
 
         if not any(off_rotamer):
             return np.squeeze(self.coords[idx]), np.squeeze(self.weights[idx])
+        if len(self.dihedral_atoms) == 0:
+            return self.coords, self.weights, self.internal_coords
         elif hasattr(self, 'internal_coords'):
             returnables = zip(*[self._off_rotamer_sample(iidx, off_rotamer, **kwargs) for iidx in idx])
             return [np.squeeze(x) for x in returnables]

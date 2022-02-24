@@ -31,14 +31,14 @@ class RotamerLibrary:
         self.kwargs = kwargs
         self.selstr = f'resid {site} and segid {chain} and not altloc B'
         self.protein = protein
-        self.protein_tree = self.kwargs.get('protein_tree', None)
+        self.protein_tree = self.kwargs.setdefault('protein_tree', None)
         self.chain = chain
         self.site = site
-        self.forgive = kwargs.get('forgive', 1.)
-        self.clash_radius = kwargs.get('clash_radius', 14.)
-        self._clash_ori_inp = kwargs.get('clash_ori', 'cen')
-        self.superimposition_method = kwargs.get('superimposition_method', 'bisect').lower()
-        self.dihedral_sigma = kwargs.get('dihedral_sigma', 25)
+        self.forgive = kwargs.setdefault('forgive', 1.)
+        self.clash_radius = kwargs.setdefault('clash_radius', 14.)
+        self._clash_ori_inp = kwargs.setdefault('clash_ori', 'cen')
+        self.superimposition_method = kwargs.setdefault('superimposition_method', 'bisect').lower()
+        self.dihedral_sigma = kwargs.setdefault('dihedral_sigma', 25)
         if 'weighted_sampling' in kwargs:
             self.weighted_sampling = True
 
@@ -52,7 +52,7 @@ class RotamerLibrary:
         self.ic_mask = self.atom_names != 'Z'
 
         # Remove hydrogen atoms unless otherwise specified
-        if not self.kwargs.get('use_H', False):
+        if not self.kwargs.setdefault('use_H', False):
             self.H_mask = self.atom_types != 'H'
             self.ic_mask *= self.H_mask
             self.coords = self.coords[:, self.H_mask]
@@ -63,7 +63,7 @@ class RotamerLibrary:
         self.backbone_idx = np.argwhere(np.isin(self.atom_names, ['N', 'CA', 'C']))
         self.side_chain_idx = np.argwhere(np.isin(self.atom_names, RotamerLibrary.backbone_atoms, invert=True)).flatten()
 
-        if sample_size := kwargs.get('sample', False):
+        if sample_size := kwargs.setdefault('sample', False):
             # Get list of non-bonded atoms before overwriting
             a, b = [list(x) for x in zip(*self.non_bonded)]
 
@@ -90,7 +90,7 @@ class RotamerLibrary:
         self.partition = 1
 
         # Assign energy function if provided
-        self.energy_func = self.kwargs.get('energy_func', ProEPR.get_lj_rep)
+        self.energy_func = self.kwargs.setdefault('energy_func', ProEPR.get_lj_rep)
 
         # Assign a name to the label
         self.name = self.res
@@ -159,7 +159,7 @@ class RotamerLibrary:
         if energy is not None:
             energy = energy[burn_in:]  # - energy[burn_in]
             energy = np.array([energy[non_unique_idx == idx].mean() for idx in range(len(unique_idx))])
-            T = kwargs.get('T', 1)
+            T = kwargs.setdefault('T', 1)
             pi = np.exp(-energy / (ProEPR.GAS_CONST * T))
             pi /= pi.sum()
         else:
@@ -298,7 +298,7 @@ class RotamerLibrary:
         coords = (coords - self.ic_ori) @ self.ic_mx
         coords = coords @ self.mx + self.ori
 
-        if kwargs.get('return_dihedrals', False):
+        if kwargs.setdefault('return_dihedrals', False):
             return coords, new_weight, internal_coord
         else:
             return coords, new_weight

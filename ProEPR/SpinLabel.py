@@ -73,7 +73,7 @@ class SpinLabel(RotamerLibrary):
             if self.protein_tree is None:
                 self.protein_tree = cKDTree(self.protein.atoms.positions)
 
-            if self.kwargs.get('eval_clash', True):
+            if self.kwargs.setdefault('eval_clash', True):
                 self.evaluate()
 
     @classmethod
@@ -91,7 +91,7 @@ class SpinLabel(RotamerLibrary):
         curr_lj = ProEPR.using_lj_param
 
         # Set MMM defaults or user defined overrides
-        ProEPR.set_lj_params(kwargs.get('lj_params', 'uff'))
+        ProEPR.set_lj_params(kwargs.setdefault('lj_params', 'uff'))
 
         clash_radius = kwargs.pop('clash_radius', MMM_maxdist[label] + 4)
         superimposition_method = kwargs.pop('superimposition_method', 'mmm')
@@ -112,7 +112,7 @@ class SpinLabel(RotamerLibrary):
     @classmethod
     def from_wizard(cls, label, site=1, chain='A', protein=None, to_find=200, to_try=10000, vdw=2.5, clashes=5, **kwargs):
         prelib = cls(label, site, chain, protein, eval_clash=False, **kwargs)
-        if not kwargs.get('use_prior', False):
+        if not kwargs.setdefault('use_prior', False):
             prelib.sigmas = np.array([])
 
         coords = np.zeros((to_find, len(prelib.atom_names), 3))

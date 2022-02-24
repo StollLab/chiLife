@@ -9,7 +9,6 @@ from .RotamerLibrary import RotamerLibrary
 import chiLife
 
 
-
 class SpinLabel(RotamerLibrary):
     """
     Base object for spin labeling experiments.
@@ -166,3 +165,56 @@ class SpinLabel(RotamerLibrary):
         prelib.weights = np.ones(len(coords))
         prelib.weights /= prelib.weights.sum()
         return prelib
+
+
+    class dSpinLabel:
+
+        def __init__(self, label, site, chain='A', protein=None, protein_tree=None, **kwargs):
+            """
+
+            """
+            self.label = label
+            self.res = label
+            self.site = site
+            self.chain = chain
+            self.protein = protein
+            self.protein_tree = self.kwargs.get('protein_tree', None)
+
+            lib = self.get_lib()
+            self.coords, self.internal_coords, self.weights, self.atom_types, \
+            self.atom_names, self.dihedrals, self.dihedral_atoms, self.displacement = lib
+
+            self.site2 = site + lib[-1]
+            self.kwargs = kwargs
+            self.selstr = f'resid {self.site1} {self.site2} and segid {chain} and not altloc B'
+
+            self.forgive = kwargs.get('forgive', 1.)
+            self.clash_radius = kwargs.get('clash_radius', 14.)
+            self._clash_ori_inp = kwargs.get('clash_ori', 'cen')
+            self.superimposition_method = kwargs.get('superimposition_method', 'bisect').lower()
+            self.dihedral_sigma = kwargs.get('dihedral_sigma', 25)
+
+            if 'weighted_sampling' in kwargs:
+                self.weighted_sampling = True
+
+            self.SC1 = chiLife.RotamerLibrary.from_dihedrals()
+            self.SC2 = chiLife.RotamerLibrary.from_dihedrals()
+            self.SC3
+
+        def get_lib(self):
+            PhiSel, PsiSel = None, None
+            if self.protein is not None:
+                # get site backbone information from protein structure
+                PhiSel = self.protein.select_atoms(f'resnum {self.site} and segid {self.chain}').residues[
+                    0].phi_selection()
+                PsiSel = self.protein.select_atoms(f'resnum {self.site} and segid {self.chain}').residues[
+                    0].psi_selection()
+
+            # Default to helix backbone if none provided
+            Phi = None if PhiSel is None else chiLife.get_dihedral(PhiSel.positions)
+            Psi = None if PsiSel is None else chiLife.get_dihedral(PsiSel.positions)
+
+            return chiLife.read_library(self.res, Phi, Psi)
+
+        def protein_setup(self):
+            pass

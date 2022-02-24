@@ -24,9 +24,9 @@ def test_read_dunbrack( res):
 
     for test, ans in zip(dlib, dlib_ans):
         if ans.dtype not in [np.dtype(f'<U{i}') for i in range(1, 5)]:
-            np.testing.assert_almost_equal(ans, test)
+            np.testing.assert_almost_equal(ans, dlib[test])
         else:
-            assert np.all(np.char.equal(test, ans))
+            assert np.all(np.char.equal(dlib[test], ans))
 
 
 @pytest.mark.parametrize('pdbid', pdbids)

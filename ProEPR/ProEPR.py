@@ -528,11 +528,12 @@ def read_sl_library(label: str, user: bool = False) -> Tuple[ArrayLike,...]:
     subdir = 'UserRotlibs/' if user else 'MMM_RotLibs/'
     data = os.path.join(os.path.dirname(__file__), 'data/rotamer_libraries/')
     with np.load(data + subdir + label + '_rotlib.npz', allow_pickle=True) as files:
+        lib = dict(files)
+    del lib['allow_pickle']
 
-        coords, internal_coords, weights = files['coords'], files['internal_coords'], files['weights']
-        atom_types, atom_names = files['atom_types'], files['atom_names']
-        dihedrals, dihedral_atoms = files['dihedrals'], files['dihedral_atoms']
-    return coords, internal_coords, weights, atom_types, atom_names, dihedrals, dihedral_atoms
+    if 'sigmas' not in lib:
+        lib['sigmas'] = np.array([])
+    return lib
 
 
 @cached
@@ -552,6 +553,7 @@ def read_bbdep(res: str, Phi: float, Psi: float) -> Tuple[ArrayLike,...]:
     :return coords, internal_coords, weights, atom_types, atom_names: numpy.ndarray
         Numpy arrays containing all rotamer library information in cartesian and dihedral space
     """
+    lib = {}
     Phi, Psi = str(Phi), str(Psi)
 
     # Read residue internal coordinate structure
@@ -575,21 +577,23 @@ def read_bbdep(res: str, Phi: float, Psi: float) -> Tuple[ArrayLike,...]:
             s.seek(0)
             data = np.genfromtxt(s, usecols=range(maxchi + 4, maxchi + 5 + 2 * maxchi))
 
-        weights, dihedrals, sigmas = data[:, 0], data[:, 1:nchi+1], data[:, maxchi+1:maxchi + nchi + 1]
+        lib['weights'] = data[:, 0]
+        lib['dihedrals'] = data[:, 1:nchi+1]
+        lib['sigmas'] = data[:, maxchi+1:maxchi + nchi + 1]
         dihedral_atoms = dihedral_defs[res][:nchi]
 
         # Calculate cartesian coordinates for each rotamer
         coords = []
         internal_coords = []
-        for r in dihedrals:
+        for r in lib['dihedrals']:
             ICn = ICs.copy().set_dihedral(np.deg2rad(r), 1, atom_list=dihedral_atoms)
 
             coords.append(ICn.to_cartesian())
             internal_coords.append(ICn)
 
     else:
-        weights = [1]
-        dihedrals, sigmas, dihedral_atoms = [], [], []
+        lib['weights'] = [1]
+        lib['dihedrals'], lib['sigmas'], dihedral_atoms = [], [], []
         coords = [ICs.to_cartesian()]
         internal_coords = [ICs.copy()]
 
@@ -598,12 +602,15 @@ def read_bbdep(res: str, Phi: float, Psi: float) -> Tuple[ArrayLike,...]:
     ori, mx = local_mx(*coords[0][mask])
 
     # Set coords in local frame and prepare output
-    coords = np.array([(coord - ori) @ mx for coord in coords])
-    atom_types = np.asarray(atom_types)
-    atom_names = np.asarray(atom_names)
-    dihedral_atoms = np.asarray(dihedral_atoms)
+    lib['coords'] = np.array([(coord - ori) @ mx for coord in coords])
+    lib['internal_coords'] = internal_coords
+    lib['atom_types'] = np.asarray(atom_types)
+    lib['atom_names'] = np.asarray(atom_names)
+    lib['dihedral_atoms'] = np.asarray(dihedral_atoms)
+    lib['_rdihedrals'] = np.deg2rad(lib['dihedrals'])
+    lib['_rsigmas'] = np.deg2rad(lib['sigmas'])
 
-    return coords, internal_coords, weights, sigmas, atom_types, atom_names, dihedrals, dihedral_atoms
+    return lib
 
 
 def read_library(res: str, Phi: float=None, Psi: float=None) -> Tuple[ArrayLike, ...]:

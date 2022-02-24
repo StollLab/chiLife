@@ -43,22 +43,10 @@ class RotamerLibrary:
             self.weighted_sampling = True
 
         lib = self.get_lib()
+        self.__dict__.update(lib)
 
-        if len(lib) == 6:
-            self.coords, self.weights, self.atom_types, self.atom_names, self.dihedrals, self.dihedral_atoms = lib
-        elif len(lib) == 7:
-            self.coords, self.internal_coords, self.weights, self.atom_types, \
-            self.atom_names, self.dihedrals, self.dihedral_atoms = lib
-            self.internal_coords = self.internal_coords[()]
-            self._rdihedrals = np.deg2rad(self.dihedrals)
-            self.sigmas = np.ones_like(self._rdihedrals) * self.dihedral_sigma
-            self._rsigmas = np.deg2rad(self.sigmas)
-        elif len(lib) == 8:
-            self.coords, self.internal_coords, self.weights, self.sigmas, \
-            self.atom_types, self.atom_names, self.dihedrals, self.dihedral_atoms = lib
-            if len(self.sigmas) > 0:
-                self.sigmas[self.sigmas == 0] = self.dihedral_sigma
-            self._rdihedrals = np.deg2rad(self.dihedrals)
+        if len(self.sigmas) > 0:
+            self.sigmas[self.sigmas == 0] = self.dihedral_sigma
             self._rsigmas = np.deg2rad(self.sigmas)
 
         self.ic_mask = self.atom_names != 'Z'
@@ -290,7 +278,7 @@ class RotamerLibrary:
         :return:
         """
         new_weight = 0
-        if hasattr(self, 'sigmas'):
+        if len(self.sigmas) > 0:
             new_dihedrals = np.random.normal(self._rdihedrals[idx, off_rotamer], self._rsigmas[idx, off_rotamer])
             diff = (new_dihedrals - self._rdihedrals[idx, off_rotamer]) / self._rsigmas[idx, off_rotamer]
             diff = (diff @ diff)

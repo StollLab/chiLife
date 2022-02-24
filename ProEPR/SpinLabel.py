@@ -113,7 +113,7 @@ class SpinLabel(RotamerLibrary):
     def from_wizard(cls, label, site=1, chain='A', protein=None, to_find=200, to_try=10000, vdw=2.5, clashes=5, **kwargs):
         prelib = cls(label, site, chain, protein, eval_clash=False, **kwargs)
         if not kwargs.get('use_prior', False):
-            del prelib.sigmas
+            prelib.sigmas = np.array([])
 
         coords = np.zeros((to_find, len(prelib.atom_names), 3))
         internal_coords = []

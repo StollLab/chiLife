@@ -118,6 +118,7 @@ def test_lib_distribution_persists(res):
 
     np.testing.assert_almost_equal(L1._rdihedrals, L2._rdihedrals)
     np.testing.assert_almost_equal(L1._rsigmas, L2._rsigmas)
+    np.testing.assert_almost_equal(L1._weights, L2._weights)
 
 methods = ['rosetta', 'bisect', 'mmm', 'fit']
 @pytest.mark.parametrize(('method'), methods)

@@ -44,6 +44,7 @@ class RotamerLibrary:
 
         lib = self.get_lib()
         self.__dict__.update(lib)
+        self._weights = self.weights.copy()
 
         if len(self.sigmas) > 0:
             self.sigmas[self.sigmas == 0] = self.dihedral_sigma
@@ -252,10 +253,9 @@ class RotamerLibrary:
     def sample(self, n=1, off_rotamer=False, **kwargs):
         """Randomly sample a rotamer in the library."""
         if not hasattr(self, 'weighted_sampling'):
-            idx = np.random.randint(len(self.weights), size=n)
+            idx = np.random.randint(len(self._weights), size=n)
         else:
-            idx = np.random.choice(len(self.weights), size=n, p=self.weights
-                                   )
+            idx = np.random.choice(len(self._weights), size=n, p=self._weights)
         if not hasattr(off_rotamer, '__len__'):
             off_rotamer = [off_rotamer] * len(self.dihedral_atoms) if len(self.dihedral_atoms) > 0 else [True]
         else:
@@ -285,7 +285,7 @@ class RotamerLibrary:
             new_dihedrals = np.random.normal(self._rdihedrals[idx, off_rotamer], self._rsigmas[idx, off_rotamer])
             diff = (new_dihedrals - self._rdihedrals[idx, off_rotamer]) / self._rsigmas[idx, off_rotamer]
             diff = (diff @ diff)
-            new_weight = self.weights[idx] # * np.exp(-0.5 * 1e-4 * diff)
+            new_weight = self._weights[idx] # * np.exp(-0.5 * 1e-4 * diff)
         else:
             new_dihedrals = np.random.random(len(off_rotamer)) * 2 * np.pi
             new_weight = 1.

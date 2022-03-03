@@ -6,7 +6,7 @@ import ProEPR
 
 
 @njit(cache=True, parallel=True)
-def get_lj_energy(r, rmin, eps, forgive=0.9):
+def get_lj_energy(r, rmin, eps, forgive=1, cap=10):
     """
     Return a vector with the energy values for the flat bottom lenard-jones potential from a set of atom pairs with
     distance r, rmin values of rmin and epsilon values of eps. In the absence of solvent this energy function will
@@ -37,7 +37,7 @@ def get_lj_energy(r, rmin, eps, forgive=0.9):
             lj = rmin_lower[i] / r[i]
             lj = lj * lj * lj
             lj = lj * lj
-            lj_energy[i] = np.minimum(eps[i] * (lj**2 - 2*lj), 10 * eps[i])
+            lj_energy[i] = np.minimum(eps[i] * (lj**2 - 2*lj), cap * eps[i])
 
         elif rmin_lower[i] <= r[i] < rmin[i]:
             lj_energy[i] = -eps[i]
@@ -50,7 +50,7 @@ def get_lj_energy(r, rmin, eps, forgive=0.9):
     return lj_energy
 
 @njit(cache=True, parallel=True)
-def get_lj_scwrl(r, rmin, eps, forgive=0.9):
+def get_lj_scwrl(r, rmin, eps, forgive=1):
     """
     Return a vector with the energy values for the flat bottom lenard-jones potential from a set of atom pairs with
     distance r, rmin values of rmin and epsilon values of eps. In the absence of solvent this energy function will
@@ -84,7 +84,7 @@ def get_lj_scwrl(r, rmin, eps, forgive=0.9):
         elif rat <= 1:
             lj_energy[i] = 57.273 * (1 - rat) * eps[i]
         elif rat < 10/9:
-            lj_energy[i] = (eps[i] * (10 - 9 * rat) ** 6 - eps[i])
+            lj_energy[i] = eps[i] * (10 - 9 * rat) ** (57.273/(9 * eps[i])) - eps[i]
         elif rat < 4/3:
             lj_energy[i] = ((eps[i] / 4) * (9 * rat - 10) ** 2 - eps[i])
         else:

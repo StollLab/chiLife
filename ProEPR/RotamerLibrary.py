@@ -46,9 +46,11 @@ class RotamerLibrary:
         self.__dict__.update(lib)
         self._weights = self.weights.copy()
 
-        if len(self.sigmas) > 0:
-            self.sigmas[self.sigmas == 0] = self.dihedral_sigma
-            self._rsigmas = np.deg2rad(self.sigmas)
+        if len(self.sigmas) == 0:
+            self.sigmas = np.ones((len(self._weights), len(self.dihedral_atoms))) * self.dihedral_sigma
+
+        self.sigmas[self.sigmas == 0] = self.dihedral_sigma
+        self._rsigmas = np.deg2rad(self.sigmas)
 
         self.ic_mask = self.atom_names != 'Z'
 

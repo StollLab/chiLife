@@ -36,6 +36,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 import ProEPR
 
+# ProEPR comes with its own mplstyle 
+plt.style.use('ProEPR')
+
 # Download protein structure from PDB
 MBP = ProEPR.fetch('1omp', save=True)
 
@@ -48,14 +51,23 @@ r = np.linspace(0, 100, 256)
 P = ProEPR.get_dd(SL1, SL2, r=r)
 
 # Plot distribution
-fig, ax = plt.subplots()
+fig, ax = plt.subplots(figsize=(6, 3))
 ax.plot(r, P)
+ax.set_yticks([])
 ax.set_xlabel('Distance ($\AA$)')
-plt.show()
+for spine in ['left', 'top', 'right']:
+    ax.spines[spine].set_visible(False)
+```
 
+![MBP L20R1 S238R1](img/L20R1_S238R1_Pr.png)
+
+```
 # Save structure
 ProEPR.save('MBP_L20R1_S238R1.pdb', SL1, SL2, protein=MBP)
 ```
+
+![MBP L20R1 S238R1 Structure](img/L20R1_S238R1_Structure.png)
+
 
 ### Mimicking MMM and MTSSLWizard
 In addition to its own features, ProEPR offers spin label modeling methods that mimic the popular MMM and MTSSLWizard 

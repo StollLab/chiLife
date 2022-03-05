@@ -57,6 +57,7 @@ ax.set_yticks([])
 ax.set_xlabel('Distance ($\AA$)')
 for spine in ['left', 'top', 'right']:
     ax.spines[spine].set_visible(False)
+plt.show()
 ```
 
 ![MBP L20R1 S238R1](img/L20R1_S238R1_Pr.png)

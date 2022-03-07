@@ -1116,3 +1116,137 @@ def add_label(name: str, pdb: str, dihedral_atoms: List[str], spin_atoms: List[s
              atom_types=atom_types, atom_names=atom_names,
              dihedrals=dihedrals, dihedral_atoms=dihedral_atoms,
              allow_pickle=True)
+
+
+def add_dlabel(name: str, incriment: int,  pdb: str, dihedral_atoms: List[str], spin_atoms: List[str] = None,
+               dihedrals: ArrayLike = None, weights: ArrayLike = None):
+    """
+    Add a user defined SpinLabel from a pdb file.
+
+    :param name: str
+        Name for the user defined label.
+
+    :param incriment: int
+        The number of residues the second site away from the first site.
+
+    :param pdb: str
+        Name of (and path to) pdb file containing the user defined spin label structure. This pdb file should contain
+        only the desired spin label and no additional residues.
+
+    :param dihedral_atoms: list
+        list of rotatable dihedrals. List should contain lists of 4 atom names. Atom names must be the same as defined
+        in the pdb file eg:
+        [ ['CA', 'CB', 'SG', 'SD'],
+          ['CB', 'SG', 'SD', 'CE']...]
+
+    :param spin_atoms: list
+        List of atom names on which the spin density is localized.
+
+    :param dihedrals: ndarray, optional
+        Array of dihedral angles. If provided the new label object will be stored as a rotamer library with the
+        dihedrals provided.
+
+    :param weights: ndarray, optional
+        Weights associated with the dihedral angles provided by the `dihedrals` keyword argument
+    """
+    # TODO: Add dihedral definitions to DihedralDefs.pkl
+    # Sort the PDB for optimal dihedral definitions
+    pdb_lines = sort_pdb(pdb)
+    pdb_resname = pdb_lines[0][17:20] if isinstance(pdb_lines[0], str) else pdb_lines[0][0][17:20]
+
+    # Store spin atoms if provided
+    if spin_atoms is not None:
+        if isinstance(spin_atoms, str):
+            spin_atoms = spin_atoms.split()
+
+        with open(DATA_DIR + 'spin_atoms.txt', 'r+') as f:
+            lines = f.readlines()
+            spin_dict = {x.split(':')[0]: eval(x.split(':')[1]) for x in lines}
+            if name in spin_dict:
+                if spin_dict[name] != spin_atoms:
+                    raise NameError('There is already a ProEPR spin label with this name')
+            else:
+                joinstr = "', '"
+                line = f"{name}: ['{joinstr.join(spin_atoms)}']\n"
+                f.write(line)
+                SPIN_ATOMS[name] = spin_atoms
+
+    # Update USER_LABELS to include the new label
+    global USER_LABELS
+    USER_LABELS = tuple(key for key in SPIN_ATOMS if key not in SUPPORTED_LABELS)
+
+    # Write a temporary file with the sorted atoms
+    if isinstance(pdb_lines[0], list):
+        with tempfile.NamedTemporaryFile(suffix='.pdb', mode='w+', delete=False) as tmpfile:
+            for i, model in enumerate(pdb_lines):
+                tmpfile.write(f'MODEL {i + 1}\n')
+                for atom in model:
+                    tmpfile.write(atom)
+                tmpfile.write('TER\nENDMDL\n')
+    else:
+        with tempfile.NamedTemporaryFile(suffix='.pdb', mode='w+', delete=False) as tmpfile:
+            for line in pdb_lines:
+                tmpfile.write(line)
+
+    # Load sorted atom pdb using MDAnalysis and remove tempfile
+    struct = mda.Universe(tmpfile.name, in_memory=True)
+    os.remove(tmpfile.name)
+
+    i = 0
+    dihedral_atoms_i = []
+    dihedral_atoms_i_plus_n = []
+    extra_dihedral_atoms = []
+    while dihedral_atoms[i] == dihedral_atoms[-i]:
+        dihedral_atoms_i.append(dihedral_atoms[i])
+        dihedral_atoms_i_plus_n.insert(0, dihedral_atoms[-1])
+        i += 1
+    extra_dihedral_atoms = dihedral_atoms[i:]
+    internal_coords = [chiLife.get_internal_coords(struct.select_atoms(f'resnum 1 {1 + incriment}'),
+                                                  resname=pdb_resname, preferred_dihedrals=dihedral_atoms) for
+                       ts in struct.trajectory]
+
+    # Convert loaded rotamer library to internal coords
+    internal_coords = [chiLife.get_internal_coords(struct, resname=pdb_resname, preferred_dihedrals=dihedral_atoms) for
+                       ts in struct.trajectory]
+
+    # Add internal_coords to data dir
+    with open(DATA_DIR + 'residue_internal_coords/' + name + '_ic.pkl', 'wb') as f:
+        pickle.dump(internal_coords, f)
+
+    # If multi-state pdb extract rotamers from pdb
+    if dihedrals is None:
+        dihedrals = []
+        for ts in struct.trajectory:
+            dihedrals.append(
+                [get_dihedral(struct.select_atoms(f'name {" ".join(a)}').positions) for a in dihedral_atoms])
+
+    if weights is None:
+        weights = np.ones(len(dihedrals))
+        weights /= weights.sum()
+
+    # Extract coordinats and transform to the local frame
+    coords = internal_coords[0].to_cartesian()
+    ori, mx = local_mx(*struct.select_atoms('name N CA C').positions)
+    coords = (coords - ori) @ mx
+
+    # Save pdb structure
+    save_pdb(DATA_DIR + 'residue_pdbs/' + name + '.pdb', internal_coords[0], coords)
+
+    if len(struct.trajectory) > 1:
+        coords = np.array([(struct.atoms.positions - ori) @ mx for ts in struct.trajectory])
+    elif len(dihedrals) > 1:
+        coords = np.array([internal_coords.set_dihedral(dihe, 1, dihedral_atoms) for dihe in dihedrals])
+    else:
+        if coords.ndim == 2:
+            coords = np.expand_dims(coords, axis=0)
+
+    atom_types = struct.atoms.types
+    atom_names = struct.atoms.names
+
+    # Save rotamer library
+    np.savez(DATA_DIR + 'UserRotlibs/' + name + '_rotlib.npz',
+             coords=coords, internal_coords=internal_coords, weights=weights,
+             atom_types=atom_types, atom_names=atom_names,
+             dihedrals=dihedrals, dihedral_atoms=dihedral_atoms,
+             incriment=incriment,
+             allow_pickle=True)

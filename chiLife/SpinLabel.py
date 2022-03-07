@@ -178,7 +178,7 @@ class SpinLabel(RotamerLibrary):
             self.site = site
             self.chain = chain
             self.protein = protein
-            self.protein_tree = self.kwargs.get('protein_tree', None)
+            self.protein_tree = self.kwargs.setdefault('protein_tree', None)
 
             lib = self.get_lib()
             self.coords, self.internal_coords, self.weights, self.atom_types, \
@@ -188,11 +188,11 @@ class SpinLabel(RotamerLibrary):
             self.kwargs = kwargs
             self.selstr = f'resid {self.site1} {self.site2} and segid {chain} and not altloc B'
 
-            self.forgive = kwargs.get('forgive', 1.)
-            self.clash_radius = kwargs.get('clash_radius', 14.)
-            self._clash_ori_inp = kwargs.get('clash_ori', 'cen')
-            self.superimposition_method = kwargs.get('superimposition_method', 'bisect').lower()
-            self.dihedral_sigma = kwargs.get('dihedral_sigma', 25)
+            self.forgive = kwargs.setdefault('forgive', 1.)
+            self.clash_radius = kwargs.setdefault('clash_radius', 14.)
+            self._clash_ori_inp = kwargs.setdefault('clash_ori', 'cen')
+            self.superimposition_method = kwargs.setdefault('superimposition_method', 'bisect').lower()
+            self.dihedral_sigma = kwargs.setdefault('dihedral_sigma', 25)
 
             if 'weighted_sampling' in kwargs:
                 self.weighted_sampling = True

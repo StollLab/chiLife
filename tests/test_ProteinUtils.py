@@ -1,4 +1,5 @@
 import os, hashlib
+from functools import partial
 import numpy as np
 import pytest
 import MDAnalysis as mda
@@ -99,7 +100,7 @@ def test_sort_pdb3():
 
 def test_mutate():
     protein = ProEPR.fetch('1ubq').select_atoms('protein')
-    SL = ProEPR.SpinLabel('R1C', site=28, protein=protein)
+    SL = ProEPR.SpinLabel('R1C', site=28, protein=protein, energy_func=partial(ProEPR.get_lj_rep, forgive=0.8))
 
     labeled_protein = ProEPR.mutate(protein, SL)
     ub1_A28R1 = mda.Universe('test_data/1ubq_A28R1.pdb')
@@ -109,8 +110,8 @@ def test_mutate():
 
 def test_mutate2():
     protein = ProEPR.fetch('1ubq').select_atoms('protein')
-    SL1 = ProEPR.SpinLabel('R1C', site=28, protein=protein)
-    SL2 = ProEPR.SpinLabel('R1C', site=48, protein=protein)
+    SL1 = ProEPR.SpinLabel('R1C', site=28, protein=protein, energy_func=partial(ProEPR.get_lj_rep, forgive=0.8))
+    SL2 = ProEPR.SpinLabel('R1C', site=48, protein=protein, energy_func=partial(ProEPR.get_lj_rep, forgive=0.8))
 
     labeled_protein = ProEPR.mutate(protein, SL1, SL2)
     ub1_A28R1_K48R1 = mda.Universe('test_data/ub1_A28R1_K48R1.pdb')

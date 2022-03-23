@@ -12,6 +12,7 @@ eps_params = [-0.110, -0.046, -0.200, -0.120, -0.450, -0.450, -0.320]
 U = mda.Universe('test_data/m1omp.pdb')
 protein = U.select_atoms('protein')
 r = np.linspace(0, 100, 2 ** 8)
+old_ef = lambda r, rmin, eps: ProEPR.get_lj_rep(r, rmin, eps, forgive=0.8)
 
 # get permutations for get_dd() tests
 kws = []
@@ -19,8 +20,8 @@ args = []
 for SL in labels:
     site1, site2 = 25, 73
     chain = 'A'
-    SL1 = ProEPR.SpinLabel(SL, site1, chain, protein)
-    SL2 = ProEPR.SpinLabel(SL, site2, chain, protein)
+    SL1 = ProEPR.SpinLabel(SL, site1, protein, chain, energy_func=old_ef)
+    SL2 = ProEPR.SpinLabel(SL, site2, protein, chain, energy_func=old_ef)
     [args.append([SL1, SL2]) for i in range(6)]
 
     kws.append({'prune': True})
@@ -109,12 +110,12 @@ def test_get_dd(args, kws, expected):
 
     np.testing.assert_almost_equal(y_ans, y)
 
-def test_det_dd_uq():
-    SL1 = ProEPR.SpinLabel('R1M', 238, protein=protein, sample=10000)
-    SL2 = ProEPR.SpinLabel('R1M', 20, protein=protein, sample=10000)
+def test_get_dd_uq():
+    SL1 = ProEPR.SpinLabel('R1M', 238, protein=protein, sample=1000)
+    SL2 = ProEPR.SpinLabel('R1M', 20, protein=protein, sample=1000)
 
     print(SL1.weights.sum(), SL2.weights.sum())
-    P = ProEPR.get_dd(SL1, SL2, r=r, uq=1000)
+    P = ProEPR.get_dd(SL1, SL2, r=r, uq=500)
 
     mean = P.mean(axis=0)
     # mean /= np.trapz(mean, r)
@@ -126,7 +127,7 @@ def test_det_dd_uq():
     plt.show()
 
 
-def test_det_dd_uq2():
+def test_get_dd_uq2():
     import pickle
     with open('test_data/SL1.pkl', 'rb') as f:
         SL1 = pickle.load(f)
@@ -135,7 +136,7 @@ def test_det_dd_uq2():
         SL2 = pickle.load(f)
 
     print(SL1.spin_coords, SL2)
-    P = ProEPR.get_dd(SL1, SL2, r=r, uq=1000)
+    P = ProEPR.get_dd(SL1, SL2, r=r, uq=500)
 
     mean = P.mean(axis=0)
     # mean /= np.trapz(mean, r)
@@ -178,7 +179,7 @@ def test_fetch2(pdbid, names):
 def test_repack():
     np.random.seed(1000)
     protein = ProEPR.fetch('1ubq').select_atoms('protein')
-    SL = ProEPR.SpinLabel('R1C', site=28, protein=protein, use_bbdep=True)
+    SL = ProEPR.SpinLabel('R1C', site=28, protein=protein)
 
     traj1, deltaE1, _ = ProEPR.repack(protein, SL, repetitions=100)
     traj2, deltaE2, _ = ProEPR.repack(protein, SL, repetitions=100, off_rotamer=True)
@@ -195,14 +196,14 @@ def test_repack():
 
 
 def test_repack2():
-    SL1 = ProEPR.SpinLabel('R1C', site=28, protein=protein, use_bbdep=True)
-    SL2 = ProEPR.SpinLabel('R1C', site=48, protein=protein, use_bbdep=True)
+    SL1 = ProEPR.SpinLabel('R1C', site=28, protein=protein)
+    SL2 = ProEPR.SpinLabel('R1C', site=48, protein=protein)
     ProEPR.repack(protein, SL1, SL2, repetitions=10)
 
 def test_repack3():
     protein = ProEPR.fetch('1anf')
-    SL1 = ProEPR.SpinLabel('R1C', site=28, protein=protein, use_bbdep=True)
-    SL2 = ProEPR.SpinLabel('R1C', site=48, protein=protein, use_bbdep=True)
+    SL1 = ProEPR.SpinLabel('R1C', site=28, protein=protein)
+    SL2 = ProEPR.SpinLabel('R1C', site=48, protein=protein)
     ProEPR.repack(protein, SL1, SL2, repetitions=10)
 
 

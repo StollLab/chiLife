@@ -617,7 +617,7 @@ def get_missing_residues(protein: Union[MDAnalysis.Universe, MDAnalysis.AtomGrou
         # Check if there are any missing heavy atoms
         heavy_atoms = res.atoms.types[res.atoms.types != 'H']
         if len(heavy_atoms) != cache.get(res.resname, len(RotamerLibrary(res.resname).atom_names)):
-            missing_residues.append(RotamerLibrary(res.resname, res.resnum, protein=protein, use_H=use_H))
+            missing_residues.append(RotamerLibrary(res.resname, res.resnum, protein=protein, chain=res.segid, use_H=use_H))
 
     return missing_residues
 

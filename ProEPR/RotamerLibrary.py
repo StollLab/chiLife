@@ -13,7 +13,7 @@ class RotamerLibrary:
 
     backbone_atoms = ['H', 'N', 'CA', 'HA', 'C', 'O']
 
-    def __init__(self, res, site=1, chain='A', protein=None, **kwargs):
+    def __init__(self, res, site=1, protein=None, chain=None, **kwargs):
         """
         Create new RotamerLibrary object.
 
@@ -28,34 +28,26 @@ class RotamerLibrary:
         """
 
         self.res = res
-        self.kwargs = kwargs
-        self.selstr = f'resid {site} and segid {chain} and not altloc B'
         self.protein = protein
-        self.protein_tree = self.kwargs.setdefault('protein_tree', None)
-        self.chain = chain
         self.site = site
-        self.forgive = kwargs.setdefault('forgive', 1.)
-        self.clash_radius = kwargs.setdefault('clash_radius', 14.)
-        self._clash_ori_inp = kwargs.setdefault('clash_ori', 'cen')
-        self.superimposition_method = kwargs.setdefault('superimposition_method', 'bisect').lower()
-        self.dihedral_sigma = kwargs.setdefault('dihedral_sigma', 25)
-        if 'weighted_sampling' in kwargs:
-            self.weighted_sampling = True
+        self.chain = chain if chain is not None else self.guess_chain()
+        self.selstr = f'resid {self.site} and segid {self.chain} and not altloc B'
+        self.__dict__.update(assign_defaults(kwargs))
 
         lib = self.get_lib()
         self.__dict__.update(lib)
-        self._weights = self.weights.copy()
+        self._weights = self.weights / self.weights.sum()
 
         if len(self.sigmas) == 0:
             self.sigmas = np.ones((len(self._weights), len(self.dihedral_atoms))) * self.dihedral_sigma
 
         self.sigmas[self.sigmas == 0] = self.dihedral_sigma
         self._rsigmas = np.deg2rad(self.sigmas)
-
+        self._rkappas = 1 / self._rsigmas ** 2
         self.ic_mask = self.atom_names != 'Z'
 
         # Remove hydrogen atoms unless otherwise specified
-        if not self.kwargs.setdefault('use_H', False):
+        if not self.use_H:
             self.H_mask = self.atom_types != 'H'
             self.ic_mask *= self.H_mask
             self.coords = self.coords[:, self.H_mask]
@@ -66,15 +58,15 @@ class RotamerLibrary:
         self.backbone_idx = np.argwhere(np.isin(self.atom_names, ['N', 'CA', 'C']))
         self.side_chain_idx = np.argwhere(np.isin(self.atom_names, RotamerLibrary.backbone_atoms, invert=True)).flatten()
 
-        if (sample_size := kwargs.setdefault('sample', False)) and len(self.dihedral_atoms) > 0:
+        if self.sample_size and len(self.dihedral_atoms) > 0:
             # Get list of non-bonded atoms before overwritig
             a, b = [list(x) for x in zip(*self.non_bonded)]
 
             # Perform sapling
-            self.coords = np.tile(self.coords[0], (sample_size, 1, 1))
+            self.coords = np.tile(self.coords[0], (self.sample_size, 1, 1))
             self.mx, self.ori = np.eye(3), np.array([0, 0, 0])
             self.ic_ori, self.ic_mx = None, None
-            self.coords, self.weights, self.internal_coords = self.sample(sample_size,
+            self.coords, self.weights, self.internal_coords = self.sample(self.sample_size,
                                                                           off_rotamer=True,
                                                                           return_dihedrals=True)
 
@@ -91,9 +83,6 @@ class RotamerLibrary:
         self.clash_ignore_coords = None
         self.clash_ignore_idx = None
         self.partition = 1
-
-        # Assign energy function if provided
-        self.energy_func = self.kwargs.setdefault('energy_func', ProEPR.get_lj_rep)
 
         # Assign a name to the label
         self.name = self.res
@@ -123,7 +112,7 @@ class RotamerLibrary:
         return cls(res, site, protein, chain)
 
     @classmethod
-    def from_mda(cls, residue):
+    def from_mda(cls, residue, **kwargs):
         """
         Create a ProEPR.RotamerLibrary from the MDAnalysis.Residue
         :param residue: MDAnalysis.Residue
@@ -135,7 +124,7 @@ class RotamerLibrary:
         site = residue.resnum
         chain = residue.segid
         protein = residue.universe
-        return cls(res, site, chain, protein)
+        return cls(res, site, protein, chain, **kwargs)
 
     @classmethod
     def from_trajectory(cls, traj, site, energy=None, burn_in=100,  **kwargs):
@@ -254,7 +243,7 @@ class RotamerLibrary:
 
     def sample(self, n=1, off_rotamer=False, **kwargs):
         """Randomly sample a rotamer in the library."""
-        if not hasattr(self, 'weighted_sampling'):
+        if not self.weighted_sampling:
             idx = np.random.randint(len(self._weights), size=n)
         else:
             idx = np.random.choice(len(self._weights), size=n, p=self._weights)
@@ -285,9 +274,9 @@ class RotamerLibrary:
         new_weight = 0
         if len(self.sigmas) > 0:
             new_dihedrals = np.random.normal(self._rdihedrals[idx, off_rotamer], self._rsigmas[idx, off_rotamer])
-            diff = (new_dihedrals - self._rdihedrals[idx, off_rotamer]) / self._rsigmas[idx, off_rotamer]
-            diff = (diff @ diff)
-            new_weight = self._weights[idx] # * np.exp(-0.5 * 1e-4 * diff)
+            # diff1 = (new_dihedrals - self._rdihedrals[idx, off_rotamer]) * self._rkappas[idx, off_rotamer]
+            # diff = (diff1 @ diff1) / len(diff1)
+            new_weight = self._weights[idx]  # * np.exp(-0.5 * 5e-2 * diff)
         else:
             new_dihedrals = np.random.random(len(off_rotamer)) * 2 * np.pi
             new_weight = 1.
@@ -342,8 +331,8 @@ class RotamerLibrary:
             dist = cdist(coords[self.side_chain_idx], self.protein.atoms.positions[protein_clash_idx]).ravel()
             dist2 = np.linalg.norm(coords[a] - coords[b], axis=1)
             with np.errstate(divide='ignore'):
-                E1 = ProEPR.get_lj_scwrl(dist[dist < 10], rmin_ij[dist < 10], eps_ij[dist < 10]).sum()
-                E2 = ProEPR.get_lj_scwrl(dist2, ab_lj_radii, ab_lj_eps).sum()
+                E1 = self.energy_func(dist[dist < 10], rmin_ij[dist < 10], eps_ij[dist < 10]).sum()
+                E2 = self.energy_func(dist2, ab_lj_radii, ab_lj_eps).sum()
 
             E = E1 + E2
             return E
@@ -450,12 +439,26 @@ class RotamerLibrary:
 
         return ProEPR.read_library(self.res, Phi, Psi)
 
-    def protein_setup(self):
+    def guess_chain(self):
+        if self.protein is None:
+            chain = 'A'
+        elif len(nr_segids := set(self.protein.segments.segids)) == 1:
+            chain = self.protein.segments.segids[0]
+        elif np.isin(self.protein.residues.resids, self.site).sum() == 0:
+            raise ValueError(f'Residue {self.site} is not present on the provided protein')
+        elif np.isin(self.protein.residues.resids, self.site).sum() == 1:
+            chain = self.protein.select_atoms(f'resid {self.site}').segids[0]
+        else:
+            raise ValueError(f'Residue {self.site} is present on more than one chain. Please specify the desired chain')
+        return chain
 
+    def protein_setup(self):
         # Position library at selected residue
         self.resindex = self.protein.select_atoms(self.selstr).residues[0].resindex
         self.segindex = self.protein.select_atoms(self.selstr).residues[0].segindex
         self.protein = self.protein.select_atoms('not (byres name OH2 or resname HOH)')
+
+
         self._to_site()
 
         # Get weight of current or closest rotamer
@@ -469,6 +472,9 @@ class RotamerLibrary:
             self.current_weight = self.weights[idx]
         else:
             self.current_weight = 0
+
+        if self.eval_clash:
+            self.evaluate()
 
     @property
     def bonds(self):
@@ -512,11 +518,11 @@ class RotamerLibrary:
         elif isinstance(self._clash_ori_inp, str):
             if self._clash_ori_inp in ['cen', 'centroid']:
                 return self.centroid()
-            elif self._clash_ori_inp in self.atom_names:
-                return np.squeeze(self.coords[0][self._clash_ori_inp == self.atom_names])
+            elif (ori_name := self._clash_ori_inp.upper()) in self.atom_names:
+                return np.squeeze(self.coords[0][ori_name == self.atom_names])
         else:
-            raise ValueError(f'Unrecognized clash_ori option {self._clash_ori_inp}. Please specify a 3D vector, an atom '
-                             f'name or `centroid`')
+            raise ValueError(f'Unrecognized clash_ori option {self._clash_ori_inp}. Please specify a 3D vector, an '
+                             f'atom name or `centroid`')
 
         return self._clash_ori
 
@@ -524,3 +530,33 @@ class RotamerLibrary:
     def clash_ori(self, inp):
         self._clash_ori_inp = inp
 
+
+def assign_defaults(kwargs):
+
+    # Make all string arguments lowercase
+    for key, value in kwargs.items():
+        if isinstance(value, str):
+            kwargs[key] = value.lower()
+
+    # Default parameters
+    defaults = {'protein_tree': None,
+                'forgive': 1.,
+                'clash_radius': 14.,
+                '_clash_ori_inp': kwargs.pop('clash_ori', 'cen'),
+                'superimposition_method': 'bisect',
+                'dihedral_sigma': 35,
+                'weighted_sampling': False,
+                'eval_clash': False,
+                'use_H': False,
+                'sample_size': kwargs.pop('sample', False),
+                'energy_func': ProEPR.get_lj_rep}
+
+    # Overwrite defaults
+    kwargs_filled = {**defaults, **kwargs}
+
+    # Make sure there are no unused parameters
+    if len(kwargs_filled) != len(defaults):
+        raise TypeError(f'Got unexpected keyword argument(s): '
+                        f'{", ".join(key for key in kwargs if key not in defaults)}')
+
+    return kwargs_filled.items()

@@ -1,4 +1,5 @@
 import hashlib, os, pickle
+from functools import partial
 import numpy as np
 import ProEPR
 import pytest
@@ -31,7 +32,7 @@ def test_from_mda():
 def test_with_sample():
     np.random.seed(200)
 
-    SL = ProEPR.SpinLabel('R1C', 28, 'A', protein=ubq, sample=2000)
+    SL = ProEPR.SpinLabel('R1C', 28, ubq, sample=2000, energy_func=partial(ProEPR.get_lj_rep, forgive=0.8))
 
     with open('test_data/withsample.pkl', 'rb') as f:
         SLans = pickle.load(f)
@@ -42,7 +43,7 @@ def test_with_sample():
     assert len(SL.coords) == len(SL.weights) == len(SL.dihedrals) == len(SL.internal_coords)
 
 def test_user_label():
-    SL = ProEPR.SpinLabel('TRT', 28, 'A', ubq)
+    SL = ProEPR.SpinLabel('TRT', 28, ubq, 'A')
     ProEPR.save('test_data/1ubq_28TRT.pdb', SL, protein='test_data/1ubq.pdb', KDE=False)
     ans = hashes['1ubq_28TRT.pdb']
 
@@ -87,7 +88,7 @@ def test_sample():
     K48 = ProEPR.RotamerLibrary.from_mda(ubq.residues[47])
     coords, weight = K48.sample(off_rotamer=True)
 
-    wans = 0.003702
+    wans = 0.0037019925960148086
     cans = np.array([[20.7640662,  27.90259646, 22.59445096],
                      [21.54999924, 26.79599953, 23.13299942],
                      [23.02842996, 27.03777002, 22.93937713],
@@ -117,7 +118,7 @@ def test_lib_distribution_persists(res):
         L2 = ProEPR.RotamerLibrary(res, sample=100)
 
     np.testing.assert_almost_equal(L1._rdihedrals, L2._rdihedrals)
-    np.testing.assert_almost_equal(L1._rsigmas, L2._rsigmas)
+    np.testing.assert_almost_equal(L1._rkappas, L2._rkappas)
     np.testing.assert_almost_equal(L1._weights, L2._weights)
 
 methods = ['rosetta', 'bisect', 'mmm', 'fit']
@@ -127,7 +128,9 @@ def test_superimposition_method(method):
         with pytest.raises(NotImplementedError) as e_info:
             SL = ProEPR.SpinLabel('R1C', site=28, protein=ubq, superimposition_method=method)
     else:
-        SL = ProEPR.SpinLabel('R1C', site=28, protein=ubq, superimposition_method=method)
+        SL = ProEPR.SpinLabel('R1C', site=28, protein=ubq,
+                              superimposition_method=method,
+                              energy_func=partial(ProEPR.get_lj_rep, forgive=0.8))
         ProEPR.save(f'A28R1_{method}_superimposition.pdb', SL, 'test_data/1ubq.pdb', KDE=False)
 
         with open(f'A28R1_{method}_superimposition.pdb', 'rb') as f:

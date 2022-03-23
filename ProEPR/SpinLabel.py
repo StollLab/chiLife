@@ -1,5 +1,6 @@
 import logging
 import multiprocessing as mp
+from functools import partial
 import numpy as np
 from scipy.spatial.distance import cdist
 from scipy.spatial import cKDTree
@@ -28,7 +29,7 @@ class SpinLabel(RotamerLibrary):
 
     backbone_atoms = ['H', 'N', 'CA', 'HA', 'C', 'O']
 
-    def __init__(self, label, site=1, chain='A', protein=None, protein_tree=None, **kwargs):
+    def __init__(self, label, site=1, protein=None, chain=None, **kwargs):
         """
         Create new SpinLabel object.
 
@@ -43,8 +44,9 @@ class SpinLabel(RotamerLibrary):
         :param protein_tree: cKDtree
             k-dimensional tree object associated with the protein coordinates.
         """
-
-        super().__init__(label, site, chain=chain, protein=protein, protein_tree=protein_tree, **kwargs)
+        # Overide RotamerLibrary default of not evaluating clashes
+        kwargs.setdefault('eval_clash', True)
+        super().__init__(label, site, protein=protein, chain=chain, **kwargs)
 
         self.label = label
 
@@ -61,23 +63,22 @@ class SpinLabel(RotamerLibrary):
         return np.average(self.spin_coords, weights=self.weights, axis=0)
 
     def protein_setup(self):
-        if hasattr(self.protein, 'atoms') and isinstance(self.protein.atoms, mda.AtomGroup):
-            self.protein = self.protein.select_atoms('not (byres name OH2 or resname HOH)')
-            self._to_site()
-            self.clash_ignore_idx = \
-                self.protein.select_atoms(f'resid {self.site} and segid {self.chain}').ix
+        self.protein = self.protein.select_atoms('not (byres name OH2 or resname HOH)')
+        self._to_site()
+        self.clash_ignore_idx = \
+            self.protein.select_atoms(f'resid {self.site} and segid {self.chain}').ix
 
-            self.resindex = self.protein.select_atoms(self.selstr).residues[0].resindex
-            self.segindex = self.protein.select_atoms(self.selstr).residues[0].segindex
+        self.resindex = self.protein.select_atoms(self.selstr).residues[0].resindex
+        self.segindex = self.protein.select_atoms(self.selstr).residues[0].segindex
 
-            if self.protein_tree is None:
-                self.protein_tree = cKDTree(self.protein.atoms.positions)
+        if self.protein_tree is None:
+            self.protein_tree = cKDTree(self.protein.atoms.positions)
 
-            if self.kwargs.setdefault('eval_clash', True):
-                self.evaluate()
+        if self.eval_clash:
+            self.evaluate()
 
     @classmethod
-    def from_mmm(cls, label, site, chain='A', protein=None, **kwargs):
+    def from_mmm(cls, label, site, protein=None, chain=None, **kwargs):
         """
         Create a SpinLabel object using the default MMM protocol with any modifications passed via kwargs
         """
@@ -89,19 +90,20 @@ class SpinLabel(RotamerLibrary):
 
         # Store the force field parameter set being used before creating the spin label
         curr_lj = ProEPR.using_lj_param
-
+        user_lj = kwargs.pop('lj_params', 'uff')
         # Set MMM defaults or user defined overrides
-        ProEPR.set_lj_params(kwargs.setdefault('lj_params', 'uff'))
+        ProEPR.set_lj_params(user_lj)
 
         clash_radius = kwargs.pop('clash_radius', MMM_maxdist[label] + 4)
         superimposition_method = kwargs.pop('superimposition_method', 'mmm')
         clash_ori = kwargs.pop('clash_ori', 'CA')
-        energy_func = kwargs.pop('energy_func', ProEPR.get_lj_MMM)
+        energy_func = kwargs.pop('energy_func', partial(ProEPR.get_lj_energy, cap=np.inf))
         use_H = kwargs.pop('use_H', True)
         forgive = kwargs.pop('forgive', 0.5)
 
+
         # Calculate the SpinLabel
-        SL = ProEPR.SpinLabel(label, site, chain=chain, protein=protein, superimposition_method=superimposition_method,
+        SL = ProEPR.SpinLabel(label, site, protein, chain, superimposition_method=superimposition_method,
                               clash_radius=clash_radius, clash_ori=clash_ori, energy_func=energy_func,
                               use_H=use_H, forgive=forgive, **kwargs)
 
@@ -110,8 +112,8 @@ class SpinLabel(RotamerLibrary):
         return SL
 
     @classmethod
-    def from_wizard(cls, label, site=1, chain='A', protein=None, to_find=200, to_try=10000, vdw=2.5, clashes=5, **kwargs):
-        prelib = cls(label, site, chain, protein, eval_clash=False, **kwargs)
+    def from_wizard(cls, label, site=1, protein=None, chain=None, to_find=200, to_try=10000, vdw=2.5, clashes=5, **kwargs):
+        prelib = cls(label, site, protein, chain, eval_clash=False, **kwargs)
         if not kwargs.setdefault('use_prior', False):
             prelib.sigmas = np.array([])
 

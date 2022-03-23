@@ -6,7 +6,7 @@ import ProEPR
 
 
 @njit(cache=True, parallel=True)
-def get_lj_energy(r, rmin, eps, forgive=1, cap=10):
+def get_lj_energy(r, rmin, eps, forgive=1, cap=10, rmax=10):
     """
     Return a vector with the energy values for the flat bottom lenard-jones potential from a set of atom pairs with
     distance r, rmin values of rmin and epsilon values of eps. In the absence of solvent this energy function will
@@ -26,7 +26,7 @@ def get_lj_energy(r, rmin, eps, forgive=1, cap=10):
     :return lj_energy: numpy ndarray
         vector of energies calculated using the modified lj potential function.
     """
-    lj_energy = np.empty_like(r)
+    lj_energy = np.zeros_like(r)
 
     eps = eps.copy()
     rmin_lower = forgive * rmin
@@ -41,7 +41,7 @@ def get_lj_energy(r, rmin, eps, forgive=1, cap=10):
 
         elif rmin_lower[i] <= r[i] < rmin[i]:
             lj_energy[i] = -eps[i]
-        else:
+        elif r[i] < rmax:
             lj = rmin[i] / r[i]
             lj = lj * lj * lj
             lj = lj * lj
@@ -78,7 +78,7 @@ def get_lj_scwrl(r, rmin, eps, forgive=1):
 
     # Piecewise function for flat lj potential near rmin
     for i in range(len(r)):
-        rat = r[i] / (rmin_lower[i] * 9 / 10)
+        rat = r[i] / (rmin_lower[i] / 1.12246204831)
         if rat < 0.8254:
             lj_energy[i] = 10 * eps[i]
         elif rat <= 1:
@@ -94,45 +94,7 @@ def get_lj_scwrl(r, rmin, eps, forgive=1):
 
 
 @njit(cache=True, parallel=True)
-def get_lj_MMM(r, rmin, eps):
-    """
-    Return a vector with the energy values for the flat bottom lenard-jones potential from a set of atom pairs with
-    distance r, rmin values of rmin and epsilon values of eps. In the absence of solvent this energy function will
-    overestimate attractive forces.
-
-    :param r: numpy ndarray
-        vector of distances
-
-    :param rmin: numpy ndarray
-        vector of rmin values corresponding to atoms pairs of r
-
-    :param eps: numpy ndarray
-        vector of epsilon values corresponding to atom pairs of r
-
-    :param forgive: numpy ndarray
-        fraction of
-
-    :return lj_energy: numpy ndarray
-        vector of energies calculated using the modified lj potential function.
-    """
-    lj_energy = np.zeros_like(r)
-
-    # Piecewise function for flat lj potential near rmin
-    for i in range(len(r)):
-        if r[i] > 10:
-            continue
-        else:
-            lj = rmin[i] / r[i]
-            lj = lj * lj * lj
-            lj = lj * lj
-            lj_energy[i] = eps[i] * (lj**2 - 2*lj)
-
-    return lj_energy
-
-
-
-@njit(cache=True, parallel=True)
-def get_lj_rep(r, rmin, eps, forgive=0.8):
+def get_lj_rep(r, rmin, eps, forgive=0.9, cap=10):
     """
     Calculate only repulsive terms of lennard jones potential.
 
@@ -163,10 +125,12 @@ def get_lj_rep(r, rmin, eps, forgive=0.8):
         lj = rmin_lower[i] / r[i]
         lj = lj * lj * lj
         lj = lj * lj
-        lj_energy[i] = np.minimum(eps[i] * lj ** 2, 10 * eps[i])
+        lj_energy[i] = np.minimum(eps[i] * lj ** 2, cap * eps[i])
 
     return lj_energy
 
+# @njit(cache=True, parallel=True)
+# def get_lj_LR90(r, rmin, eps, forgive=0.9, cap=10):
 
 def evaluate_clashes(ori, label_library,  label_lj_rmin2, label_lj_eps,
                      environment, environment_tree, ignore_idx=None, temp=298., energy_func=get_lj_rep,

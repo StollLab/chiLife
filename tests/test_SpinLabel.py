@@ -1,4 +1,5 @@
 import hashlib, os, pickle
+from functools import partial
 import numpy as np
 from scipy.spatial import cKDTree
 import pytest
@@ -15,11 +16,11 @@ with open('test_data/hashes.txt', 'r') as f:
         if len(line.split()) == 2:
             a, b = line.split()
             hashes[a] = b
-
-kwinput = [{'label': l} for l in labels] + \
-          [{'label': l, 'site': 25, 'chain': 'A'} for l in labels] + \
-          [{'label': l, 'site': 25, 'chain': 'A', 'protein': protein} for l in labels] + \
-          [{'label': l, 'site': 25, 'chain': 'A', 'protein': U} for l in labels]
+efunc = partial(ProEPR.get_lj_rep, forgive=0.8)
+kwinput = [{'label': l, 'energy_func': efunc} for l in labels] + \
+          [{'label': l, 'site': 25, 'chain': 'A', 'energy_func': efunc} for l in labels] + \
+          [{'label': l, 'site': 25, 'chain': 'A', 'protein': protein, 'energy_func': efunc} for l in labels] + \
+          [{'label': l, 'site': 25, 'chain': 'A', 'protein': U, 'energy_func': efunc} for l in labels]
 ansinput = [f'test_data/{label}_basic.npz' for label in labels] * 2 + \
            [f'test_data/{label}_advanced.npz' for label in labels] * 2
 
@@ -37,8 +38,9 @@ def test_MMM_construction(kwinput, afile):
 
 
 def test_bbdep_construction1():
-    SL1 = ProEPR.SpinLabel('R1C', site=211, chain='A', protein=U, energy_func=ProEPR.get_lj_MMM, forgive=0.5)
-    SL2 = ProEPR.SpinLabel('R1C', site=295, chain='A', protein=U, energy_func=ProEPR.get_lj_MMM, forgive=0.5)
+    efunc = partial(ProEPR.get_lj_energy, cap=np.inf)
+    SL1 = ProEPR.SpinLabel('R1C', site=211, chain='A', protein=U, energy_func=efunc, forgive=0.5)
+    SL2 = ProEPR.SpinLabel('R1C', site=295, chain='A', protein=U, energy_func=efunc, forgive=0.5)
 
     ProEPR.save('test_data/bbdep_test.pdb', SL1, SL2, protein='test_data/1omp.pdb')
 
@@ -78,7 +80,7 @@ def test_evaluate_clashes(label):
     environment = U.select_atoms(f'protein and not (segid {chain} and resid {site1})')
     environment_tree = cKDTree(environment.positions)
 
-    lib = ProEPR.SpinLabel(label, site1, chain, superimposition_method='mmm')
+    lib = ProEPR.SpinLabel(label, site1, chain=chain, superimposition_method='mmm', energy_func=efunc)
     lib._to_site(U.select_atoms(f'protein and segid {chain} and resid {site1} and name N CA C').positions)
     lib.evaluate_clashes(environment, environment_tree, temp=298)
     with np.load(f'test_data/{label}_label.npz') as f:
@@ -88,7 +90,7 @@ def test_evaluate_clashes(label):
 
 def test_from_wizard():
     np.random.seed(200)
-    SL = ProEPR.SpinLabel.from_wizard('TRT', 28, 'A', ubq, to_find=10)
+    SL = ProEPR.SpinLabel.from_wizard('TRT', 28, ubq, to_find=10)
 
     with open('test_data/from_wiz.pkl', 'rb') as f:
         SLans = pickle.load(f)

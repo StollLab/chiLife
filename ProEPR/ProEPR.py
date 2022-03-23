@@ -245,7 +245,7 @@ def ic_mx(atom1: ArrayLike, atom2: ArrayLike, atom3: ArrayLike) -> Tuple[ArrayLi
     return rotation_matrix, origin
 
 
-def get_dd(*args, r: Union[Tuple, ArrayLike]=(0, 100), sigma: float=1.0,
+def get_dd(*args, r: ArrayLike = (0, 100), sigma: float=1.0,
            prune: bool=False, uq: bool=False, **kwargs) -> ArrayLike:
     """
     Wrapper function to calculate distance distribution using arbitrary function and arbitrary inputs
@@ -985,8 +985,8 @@ def repack(protein: Union[mda.Universe, mda.AtomGroup], *spin_labels: SpinLabel,
 
     return_labels = []
     for spin_label in spin_labels:
-        return_labels.append(SpinLabel(spin_label.label, spin_label.site, spin_label.chain,
-                                       protein=protein, energy_func=energy_func))
+        return_labels.append(SpinLabel(spin_label.label, spin_label.site, protein,
+                                       spin_label.chain, energy_func=energy_func))
 
     return protein, deltaEs, return_labels
 

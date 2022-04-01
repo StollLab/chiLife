@@ -29,7 +29,7 @@ class RotamerLibrary:
 
         self.res = res
         self.protein = protein
-        self.site = site
+        self.site = int(site)
         self.chain = chain if chain is not None else self.guess_chain()
         self.selstr = f'resid {self.site} and segid {self.chain} and not altloc B'
         self.__dict__.update(assign_defaults(kwargs))

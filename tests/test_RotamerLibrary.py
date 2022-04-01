@@ -6,6 +6,7 @@ import pytest
 
 ubq = ProEPR.fetch('1ubq')
 U = ProEPR.fetch('1omp')
+exou = ProEPR.fetch('3tu3')
 hashes = {}
 with open('test_data/hashes.txt', 'r') as f:
     for line in f:
@@ -141,3 +142,25 @@ def test_superimposition_method(method):
 
         os.remove(f'A28R1_{method}_superimposition.pdb')
         assert ans == test
+
+
+def test_catch_unused_kwargs():
+    with pytest.raises(TypeError) as e_info:
+        SL = ProEPR.SpinLabel('R1C', site=28, protein=ubq, supermposition_method='mmm')
+    assert str(e_info.value) == 'Got unexpected keyword argument(s): supermposition_method'
+
+def test_guess_chain():
+    anf = ProEPR.fetch('1anf')
+    SL = ProEPR.SpinLabel.from_mmm('R1M', 20, forgive=0.9)
+
+
+@pytest.mark.parametrize(('resi', 'ans'), ((20, 'A'), (200, 'B')))
+def test_guess_chain2(resi, ans):
+    SL = ProEPR.SpinLabel('R1C', resi, exou)
+    assert SL.chain == ans
+
+
+@pytest.mark.parametrize('resi', (100, 344))
+def test_guess_chain_fail(resi):
+    with pytest.raises(ValueError) as e_info:
+        SL = ProEPR.SpinLabel('R1C', resi, exou)

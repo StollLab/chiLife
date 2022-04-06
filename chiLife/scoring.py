@@ -1,7 +1,6 @@
 import numpy as np
 from scipy.spatial.distance import cdist
 from numba import njit
-
 import chiLife
 
 

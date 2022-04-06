@@ -458,7 +458,6 @@ class RotamerLibrary:
         self.segindex = self.protein.select_atoms(self.selstr).residues[0].segindex
         self.protein = self.protein.select_atoms('not (byres name OH2 or resname HOH)')
 
-
         self._to_site()
 
         # Get weight of current or closest rotamer

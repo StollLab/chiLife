@@ -10,8 +10,8 @@
   rules:
     - changes:
       - tests/*
-      - ProEPR/data/*
-      - ProEPR/*.py
+      - chiLife/data/*
+      - chiLife/*.py
 
 
 test:3.8:

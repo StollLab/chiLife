@@ -1,12 +1,12 @@
 import hashlib, os, pickle
 from functools import partial
 import numpy as np
-import ProEPR
+import chiLife
 import pytest
 
-ubq = ProEPR.fetch('1ubq')
-U = ProEPR.fetch('1omp')
-exou = ProEPR.fetch('3tu3')
+ubq = chiLife.fetch('1ubq')
+U = chiLife.fetch('1omp')
+exou = chiLife.fetch('3tu3')
 hashes = {}
 with open('test_data/hashes.txt', 'r') as f:
     for line in f:
@@ -17,7 +17,7 @@ with open('test_data/hashes.txt', 'r') as f:
 
 def test_from_mda():
     res16 = U.residues[16]
-    rotlib = ProEPR.RotamerLibrary.from_mda(res16)
+    rotlib = chiLife.RotamerLibrary.from_mda(res16)
     rotlib.save_pdb('test_data/test_from_MDA.pdb')
 
     with open('test_data/ans_from_MDA.pdb', 'r') as f:
@@ -33,7 +33,7 @@ def test_from_mda():
 def test_with_sample():
     np.random.seed(200)
 
-    SL = ProEPR.SpinLabel('R1C', 28, ubq, sample=2000, energy_func=partial(ProEPR.get_lj_rep, forgive=0.8))
+    SL = chiLife.SpinLabel('R1C', 28, ubq, sample=2000, energy_func=partial(chiLife.get_lj_rep, forgive=0.8))
 
     with open('test_data/withsample.pkl', 'rb') as f:
         SLans = pickle.load(f)
@@ -44,8 +44,8 @@ def test_with_sample():
     assert len(SL.coords) == len(SL.weights) == len(SL.dihedrals) == len(SL.internal_coords)
 
 def test_user_label():
-    SL = ProEPR.SpinLabel('TRT', 28, ubq, 'A')
-    ProEPR.save('test_data/1ubq_28TRT.pdb', SL, protein='test_data/1ubq.pdb', KDE=False)
+    SL = chiLife.SpinLabel('TRT', 28, ubq, 'A')
+    chiLife.save('test_data/1ubq_28TRT.pdb', SL, protein='test_data/1ubq.pdb', KDE=False)
     ans = hashes['1ubq_28TRT.pdb']
 
     with open('test_data/1ubq_28TRT.pdb', 'rb') as f:
@@ -57,7 +57,7 @@ def test_user_label():
 
 
 def test_save_pkl():
-    Lys = ProEPR.RotamerLibrary('LYS')
+    Lys = chiLife.RotamerLibrary('LYS')
 
     with open('test_data/Lys.pkl', 'wb') as f:
         pickle.dump(Lys, f)
@@ -72,7 +72,7 @@ def test_save_pkl():
 
 def test_save_pkl_2():
     res16 = U.residues[16]
-    rotlib = ProEPR.RotamerLibrary.from_mda(res16)
+    rotlib = chiLife.RotamerLibrary.from_mda(res16)
     with open('test_data/res16.pkl', 'wb') as f:
         pickle.dump(rotlib, f)
 
@@ -85,8 +85,8 @@ def test_save_pkl_2():
 
 def test_sample():
     np.random.seed(200)
-    ubq = ProEPR.fetch('1ubq')
-    K48 = ProEPR.RotamerLibrary.from_mda(ubq.residues[47])
+    ubq = chiLife.fetch('1ubq')
+    K48 = chiLife.RotamerLibrary.from_mda(ubq.residues[47])
     coords, weight = K48.sample(off_rotamer=True)
 
     wans = 0.0037019925960148086
@@ -105,18 +105,18 @@ def test_sample():
 
 
 def test_multisample():
-    ubq = ProEPR.fetch('1ubq')
-    R1M = ProEPR.SpinLabel.from_wizard('R1M', site=48, protein=ubq, to_find=10000)
+    ubq = chiLife.fetch('1ubq')
+    R1M = chiLife.SpinLabel.from_wizard('R1M', site=48, protein=ubq, to_find=10000)
 
 
-@pytest.mark.parametrize('res', ProEPR.SUPPORTED_RESIDUES)
+@pytest.mark.parametrize('res', chiLife.SUPPORTED_RESIDUES)
 def test_lib_distribution_persists(res):
-    if res in list(ProEPR.SUPPORTED_LABELS) + list(ProEPR.USER_LABELS):
-        L1 = ProEPR.SpinLabel(res)
-        L2 = ProEPR.SpinLabel(res, sample=100)
+    if res in list(chiLife.SUPPORTED_LABELS) + list(chiLife.USER_LABELS):
+        L1 = chiLife.SpinLabel(res)
+        L2 = chiLife.SpinLabel(res, sample=100)
     else:
-        L1 = ProEPR.RotamerLibrary(res)
-        L2 = ProEPR.RotamerLibrary(res, sample=100)
+        L1 = chiLife.RotamerLibrary(res)
+        L2 = chiLife.RotamerLibrary(res, sample=100)
 
     np.testing.assert_almost_equal(L1._rdihedrals, L2._rdihedrals)
     np.testing.assert_almost_equal(L1._rkappas, L2._rkappas)
@@ -127,12 +127,12 @@ methods = ['rosetta', 'bisect', 'mmm', 'fit']
 def test_superimposition_method(method):
     if method == 'fit':
         with pytest.raises(NotImplementedError) as e_info:
-            SL = ProEPR.SpinLabel('R1C', site=28, protein=ubq, superimposition_method=method)
+            SL = chiLife.SpinLabel('R1C', site=28, protein=ubq, superimposition_method=method)
     else:
-        SL = ProEPR.SpinLabel('R1C', site=28, protein=ubq,
-                              superimposition_method=method,
-                              energy_func=partial(ProEPR.get_lj_rep, forgive=0.8))
-        ProEPR.save(f'A28R1_{method}_superimposition.pdb', SL, 'test_data/1ubq.pdb', KDE=False)
+        SL = chiLife.SpinLabel('R1C', site=28, protein=ubq,
+                               superimposition_method=method,
+                               energy_func=partial(chiLife.get_lj_rep, forgive=0.8))
+        chiLife.save(f'A28R1_{method}_superimposition.pdb', SL, 'test_data/1ubq.pdb', KDE=False)
 
         with open(f'A28R1_{method}_superimposition.pdb', 'rb') as f:
             test = hashlib.md5(f.read()).hexdigest()
@@ -146,21 +146,21 @@ def test_superimposition_method(method):
 
 def test_catch_unused_kwargs():
     with pytest.raises(TypeError) as e_info:
-        SL = ProEPR.SpinLabel('R1C', site=28, protein=ubq, supermposition_method='mmm')
+        SL = chiLife.SpinLabel('R1C', site=28, protein=ubq, supermposition_method='mmm')
     assert str(e_info.value) == 'Got unexpected keyword argument(s): supermposition_method'
 
 def test_guess_chain():
-    anf = ProEPR.fetch('1anf')
-    SL = ProEPR.SpinLabel.from_mmm('R1M', 20, forgive=0.9)
+    anf = chiLife.fetch('1anf')
+    SL = chiLife.SpinLabel.from_mmm('R1M', 20, forgive=0.9)
 
 
-@pytest.mark.parametrize(('resi', 'ans'), ((20, 'A'), (200, 'B')))
+@pytest.mark.parametrize(('resi', 'ans'), ((20, 'A'), (206, 'B')))
 def test_guess_chain2(resi, ans):
-    SL = ProEPR.SpinLabel('R1C', resi, exou)
+    SL = chiLife.SpinLabel('R1C', resi, exou)
     assert SL.chain == ans
 
 
 @pytest.mark.parametrize('resi', (100, 344))
 def test_guess_chain_fail(resi):
     with pytest.raises(ValueError) as e_info:
-        SL = ProEPR.SpinLabel('R1C', resi, exou)
+        SL = chiLife.SpinLabel('R1C', resi, exou)

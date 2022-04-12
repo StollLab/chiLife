@@ -3,10 +3,10 @@ from pathlib import Path
 import shutil
 
 setup(
-    name='ProEPR',
+    name='chiLife',
     version='0.1',
-    packages=['ProEPR'],
-    package_data={'ProEPR': ['data/*', 'data/*/*', 'data/*/*/*']},
+    packages=['chiLife'],
+    package_data={'chiLife': ['data/*', 'data/*/*', 'data/*/*/*']},
     url='',
     license='',
     author='Maxx Tessmer',

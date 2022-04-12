@@ -1,6 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
-import ProEPR
+import chiLife
 
 #
 # def test_generation():

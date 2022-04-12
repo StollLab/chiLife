@@ -3,7 +3,7 @@ from scipy.stats import norm
 from scipy.special import kl_div
 from scipy.spatial.distance import cdist
 import pytest
-import ProEPR.numba_utils as nu
+import chiLife.numba_utils as nu
 
 
 def test_compute_bin():

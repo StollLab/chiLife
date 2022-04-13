@@ -181,11 +181,11 @@ def test_repack():
     protein = chiLife.fetch('1ubq').select_atoms('protein')
     SL = chiLife.SpinLabel('R1C', site=28, protein=protein)
 
-    traj1, deltaE1, _ = chiLife.repack(protein, SL, repetitions=100)
-    traj2, deltaE2, _ = chiLife.repack(protein, SL, repetitions=100, off_rotamer=True)
+    traj1, deltaE1, _ = chiLife.repack(protein, SL, repetitions=10)
+    traj2, deltaE2, _ = chiLife.repack(protein, SL, repetitions=10, off_rotamer=True)
 
-    t1coords = traj1.universe.trajectory.coordinate_array[-10:]
-    t2coords = traj2.universe.trajectory.coordinate_array[-10:]
+    t1coords = traj1.universe.trajectory.coordinate_array
+    t2coords = traj2.universe.trajectory.coordinate_array
 
     with np.load('test_data/repack_ans.npz') as f:
         t1ans = f['traj1']

@@ -2,7 +2,7 @@
 dist/
 build/
 __pycache__/
-ProEPR.egg-info/
+chiLife.egg-info/
 */.ipynb_checkpoints/
 scripts/
 

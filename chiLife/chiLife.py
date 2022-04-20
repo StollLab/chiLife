@@ -1,28 +1,26 @@
-import logging, numbers, shutil, pickle, sqlite3, tempfile, os
-from unittest import mock
-from itertools import combinations
-from typing import Tuple, Union, Callable
-from io import StringIO
-from pathlib import Path
+import numbers
+import shutil
+import sqlite3
+import tempfile
 from collections.abc import Sized
-import MDAnalysis
-import MDAnalysis.core.topologyattrs
-import matplotlib.pyplot as plt
-from tqdm import tqdm
-import numpy as np
-from numpy.typing import ArrayLike
-from scipy.stats import gaussian_kde
-from scipy.signal import fftconvolve
-from memoization import cached
-from chiLife.RotamerLibrary import RotamerLibrary
-from chiLife.SpinLabel import SpinLabel
-from chiLife.SpinLabelTraj import SpinLabelTraj
-from chiLife.protein_utils import *
-from chiLife.numba_utils import *
-from chiLife.scoring import *
-import chiLife
-from .superimpositions import superimpositions
+from io import StringIO
+from itertools import combinations
+from pathlib import Path
+from typing import Callable
+from unittest import mock
 
+import MDAnalysis.core.topologyattrs
+from memoization import cached
+from scipy.signal import fftconvolve
+from scipy.stats import gaussian_kde
+from tqdm import tqdm
+
+from .SpinLabel import SpinLabel
+from .SpinLabelTraj import SpinLabelTraj
+from .numba_utils import *
+from .protein_utils import *
+from .scoring import *
+from .superimpositions import superimpositions
 
 # Define useful global variables
 SUPPORTED_LABELS = ('R1M', 'R7M', 'V1M', 'I1M', 'M1M', 'R1C')
@@ -383,6 +381,9 @@ def unfiltered_dd(*args, r: ArrayLike, sigma: float=1.) -> ArrayLike:
     else:
         P = hist
 
+    # Clip values less than 0 (numerical artifacts)
+    P = P.clip(0)
+
     # Normalize weights
     P /= np.trapz(P, r)
 
@@ -465,10 +466,18 @@ def filtered_dd(NO1: ArrayLike, NO2: ArrayLike, weights: ArrayLike, r: ArrayLike
         end -= 1
 
     # Compute distance distribution by convolution
-    distance_distribution = np.convolve(hist, g)
-    distance_distribution = distance_distribution / distance_distribution.sum()
+    P = np.convolve(hist, g)
 
-    return distance_distribution[begin:-end]
+    # Trim ends created by convolution
+    P = P[begin:-end]
+
+    # Clip values less than 0 (numerical artifacts)
+    P = P.clip(0)
+
+    # Normalize weights
+    P /= np.trapz(P, r)
+
+    return P
 
 
 def traj_dd(SL1: SpinLabelTraj, SL2: SpinLabelTraj, r: ArrayLike, sigma: float,

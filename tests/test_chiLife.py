@@ -108,7 +108,8 @@ def test_get_dd(args, kws, expected):
     y_ans = expected
     y = chiLife.get_dd(*args, **kws)
 
-    np.testing.assert_almost_equal(y_ans, y)
+    # Stored values normalized to 1 while get_dd normalizes to r
+    np.testing.assert_almost_equal(y_ans, y / y.sum())
 
 def test_get_dd_uq():
     SL1 = chiLife.SpinLabel('R1M', 238, protein=protein, sample=1000)

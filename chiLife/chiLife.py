@@ -37,6 +37,7 @@ USER_LABELS = {key for key in SPIN_ATOMS if key not in SUPPORTED_LABELS}
 SUPPORTED_RESIDUES = set(list(SUPPORTED_LABELS) + list(USER_LABELS) + list(dihedral_defs.keys()))
 [SUPPORTED_RESIDUES.remove(lab) for lab in ('CYR1', 'MTN')]
 
+
 def read_distance_distribution(file_name: str) -> Tuple[ArrayLike, ArrayLike]:
     """
     Reads a DEER distance distribution file in the DeerAnalysis format.
@@ -101,7 +102,7 @@ def get_dihedral(p: ArrayLike) -> float:
     :param p: numpy ndarray (4x3)
         matrix containing coordinates to be used to calculate dihedral.
 
-    :retrun: float
+    :return: float
         Dihedral angle in degrees
     """
 
@@ -167,10 +168,19 @@ def local_mx(N: ArrayLike, CA: ArrayLike, C: ArrayLike, method: str='rosetta') -
     """
     Calculates a translation vector and rotation matrix to transform the provided rotamer library from the global
     coordinate frame to the local coordinate frame using the specified method.
-    :param rotamer_library: RotamerLibrary
-        RotamerLibrary to be moved
+    
+    :param N: ArrayLike
+        3D coordinates of the amino Nitrogen of the amino acid backbone
+        
+    :parma CA: ArrayLike
+        3D coordinates of the alpha carbon of the amino acid backbone
+        
+    :param C: ArrayLike
+        3D coordinates of the carboxyl carbon of the amino acid backbone
+        
     :param method: str
         Method to use for generation of rotation matrix
+        
     :return origin, rotation_matrix: ndarray, ndarray
         origin and rotation matrix for rotamer library
     """
@@ -188,13 +198,32 @@ def local_mx(N: ArrayLike, CA: ArrayLike, C: ArrayLike, method: str='rosetta') -
 
     rotation_matrix = rotation_matrix.T
 
-    # Set origin at Calpha
+    # Set origin at C-alpha
     origin = CA
 
     return origin, rotation_matrix
 
 
 def global_mx(N: ArrayLike, CA: ArrayLike, C: ArrayLike, method: str='rosetta') -> Tuple[ArrayLike, ArrayLike]:
+    """
+        Calculates a translation vector and rotation matrix to transform the provided rotamer library from the local
+    coordinate frame to the global coordinate frame using the specified method.
+    
+    :param N: ArrayLike
+        3D coordinates of the amino Nitrogen of the amino acid backbone
+        
+    :parma CA: ArrayLike
+        3D coordinates of the alpha carbon of the amino acid backbone
+        
+    :param C: ArrayLike
+        3D coordinates of the carboxyl carbon of the amino acid backbone
+        
+    :param method: str
+        Method to use for generation of rotation matrix
+        
+    :return rotation_matrix, origin: ndarray, ndarray
+        rotation matrix and origin for rotamer library
+    """
     rotation_matrix, origin = superimpositions[method](N, CA, C)
     return rotation_matrix, origin
 
@@ -213,7 +242,7 @@ def ic_mx(atom1: ArrayLike, atom2: ArrayLike, atom3: ArrayLike) -> Tuple[ArrayLi
         Backbone carbonyl carbon coordinates
 
     :param atom3: numpy ndarray (1x3)
-        Backbone Calpha carbon coordinates
+        Backbone C-alpha carbon coordinates
 
     :return (rotation_matrix, origin) : (numpy ndarray (1x3), numpy ndarray (3x3))
         rotation_matrix: rotation  matrix to rotate spin label to
@@ -235,10 +264,10 @@ def ic_mx(atom1: ArrayLike, atom2: ArrayLike, atom3: ArrayLike) -> Tuple[ArrayLi
     v23 /= np.linalg.norm(v23)
 
     # Define new z axis
-    zaxis = np.cross(v12, v23)
+    z_axis = np.cross(v12, v23)
 
     # Create rotation matrix
-    rotation_matrix = np.array([v12, v23, zaxis])
+    rotation_matrix = np.array([v12, v23, z_axis])
     origin = p1
 
     return rotation_matrix, origin
@@ -263,6 +292,14 @@ def get_dd(*args, r: ArrayLike = (0, 100), sigma: float=1.0,
     :param prune: bool, float
         Filter insignificant rotamer pairs from the distance distribution calculation.
         If filter is a float the bottom percentile to be filtered out.
+
+    :param uq: bool, int
+        Perform uncertainty quantification by subsampling rotamer libraries used to calculate the distance distribution.
+        if uq is an int than that will be the number of subsamples defaulting to 100.
+
+    :Keyword Arguments:
+        * *size* (``int``) --
+          Number of points in the distance domain
 
     :return P: ndarray
         The probability density of the distance distribution corresponding to r
@@ -295,11 +332,11 @@ def get_dd(*args, r: ArrayLike = (0, 100), sigma: float=1.0,
         if prune:
             raise ValueError('Pruning is not supported when performing uncertainty analysis (yet)')
         Ps = []
-        nboots = uq if uq > 1 else 100
-        for i in tqdm(range(nboots)):
+        n_boots = uq if uq > 1 else 100
+        for i in range(n_boots):
             dummy_labels = []
             for SL in args:
-                idxs = np.random.choice(len(SL), len(SL)    )
+                idxs = np.random.choice(len(SL), len(SL))
 
                 dummy_SL = mock.Mock()
                 dummy_SL.spin_coords = np.atleast_2d(SL.spin_coords[idxs])
@@ -1050,34 +1087,10 @@ def add_label(name: str, pdb: str, dihedral_atoms: List[str], spin_atoms: List[s
         weights = np.ones(len(dihedrals))
         weights /= weights.sum()
 
-    # Extract coordinats and transform to the local frame
-    coords = internal_coords[0].to_cartesian()
-    ori, mx = local_mx(*struct.select_atoms('name N CA C').positions)
-    coords = (coords - ori) @ mx
-
-    # Save pdb structure
-    save_pdb(DATA_DIR + 'residue_pdbs/' + name + '.pdb', internal_coords[0], coords)
-
-    if len(struct.trajectory) > 1:
-        coords = np.array([(struct.atoms.positions - ori) @ mx for ts in struct.trajectory])
-    elif len(dihedrals) > 1:
-        coords = np.array([internal_coords.set_dihedral(dihe, 1, dihedral_atoms) for dihe in dihedrals])
-    else:
-        if coords.ndim == 2:
-            coords = np.expand_dims(coords, axis=0)
-
-    atom_types = struct.atoms.types
-    atom_names = struct.atoms.names
-
-    # Save rotamer library
-    np.savez(DATA_DIR + 'UserRotlibs/' + name + '_rotlib.npz',
-             coords=coords, internal_coords=internal_coords, weights=weights,
-             atom_types=atom_types, atom_names=atom_names,
-             dihedrals=dihedrals, dihedral_atoms=dihedral_atoms,
-             allow_pickle=True)
+    store_new_restype(name, internal_coords, weights, dihedrals, dihedral_atoms)
 
 
-def add_dlabel(name: str, incriment: int,  pdb: str, dihedral_atoms: List[str], spin_atoms: List[str] = None,
+def add_dlabel(name: str, increment: int,  pdb: str, dihedral_atoms: List[str], spin_atoms: List[str] = None,
                dihedrals: ArrayLike = None, weights: ArrayLike = None):
     """
     Add a user defined SpinLabel from a pdb file.
@@ -1108,24 +1121,43 @@ def add_dlabel(name: str, incriment: int,  pdb: str, dihedral_atoms: List[str], 
     :param weights: ndarray, optional
         Weights associated with the dihedral angles provided by the `dihedrals` keyword argument
     """
+    if len(dihedral_atoms) != 2:
+        dihedral_error = True
+    elif not isinstance(dihedral_atoms[0], ArrayLike):
+        dihedral_error = True
+    elif len(dihedral_atoms[0][0]) != 4:
+        dihedral_error = True
+    else:
+        dihedral_error = False
+
+    if dihedral_error:
+        raise ValueError('dihedral_atoms must be a list of lists where each sublist contains the list of dihedral atoms'
+                         'for the i and i+{increment} side chains. Sublists can contain any amount of dihedrals but '
+                         'each dihedral should be defined by exactly four unique atom names that belong to the same '
+                         'residue number')
+
     struct, pdb_resname = pre_add_label(name, pdb, spin_atoms)
 
-    i = 0
-    dihedral_atoms_i = []
-    dihedral_atoms_i_plus_n = []
-    extra_dihedral_atoms = []
-    while dihedral_atoms[i] == dihedral_atoms[-i]:
-        dihedral_atoms_i.append(dihedral_atoms[i])
-        dihedral_atoms_i_plus_n.insert(0, dihedral_atoms[-1])
-        i += 1
-    extra_dihedral_atoms = dihedral_atoms[i:]
-    internal_coords = [chiLife.get_internal_coords(struct.select_atoms(f'resnum 1 {1 + incriment}'),
-                                                  resname=pdb_resname, preferred_dihedrals=dihedral_atoms) for
-                       ts in struct.trajectory]
+    IC1 = [chiLife.get_internal_coords(struct.select_atoms(f'resnum 1'), resname=pdb_resname,
+                                       preferred_dihedrals=dihedral_atoms[0]) for ts in struct.trajectory]
 
-    # Convert loaded rotamer library to internal coords
-    internal_coords = [chiLife.get_internal_coords(struct, resname=pdb_resname, preferred_dihedrals=dihedral_atoms) for
-                       ts in struct.trajectory]
+    IC2 = [chiLife.get_internal_coords(struct.select_atoms(f'resnum {1 + increment}'), resname=pdb_resname,
+                                       preferred_dihedrals=dihedral_atoms[1]) for ts in struct.trajectory]
+
+    csmin1 = max([i for i, atom in enumerate(IC1[0]) if
+                  any(atom.name in dihedral_def for dihedral_def in dihedral_atoms[0])])
+
+    csmin2 = max([i for i, atom in enumerate(IC2[0]) if
+                  any(atom.name in dihedral_def for dihedral_def in dihedral_atoms[1])])
+
+    constraint_atom_idxs = np.array([[csmin1, csmin1 + 1, csmin1, csmin1 + 1],
+                                     [csmin2, csmin2 + 1, csmin2 + 1, csmin2]], dtype=int)
+
+    constraint_distances = [np.linalg.norm(IC1i.coords[constraint_atom_idxs[0]] -
+                                           IC2i.coords[constraint_atom_idxs[1]], axis=1)
+                            for IC1i, IC2i in zip(IC1, IC2)]
+
+    internal_coords = [IC1, IC2, constraint_atom_idxs, constraint_distances]
 
     # Add internal_coords to data dir
     with open(DATA_DIR + 'residue_internal_coords/' + name + '_ic.pkl', 'wb') as f:
@@ -1134,40 +1166,16 @@ def add_dlabel(name: str, incriment: int,  pdb: str, dihedral_atoms: List[str], 
     # If multi-state pdb extract rotamers from pdb
     if dihedrals is None:
         dihedrals = []
-        for ts in struct.trajectory:
-            dihedrals.append(
-                [get_dihedral(struct.select_atoms(f'name {" ".join(a)}').positions) for a in dihedral_atoms])
+        for IC1i, IC2i in zip(IC1, IC2):
+            dihedrals.append([[IC1i.get_dihedral(1, ddef) for ddef in dihedral_atoms[0]],
+                              [IC2i.get_dihedral(1+increment, ddef) for ddef in dihedral_atoms[1]]])
 
     if weights is None:
-        weights = np.ones(len(dihedrals))
-        weights /= weights.sum()
+        weights = np.ones(len(IC1))
 
-    # Extract coordinats and transform to the local frame
-    coords = internal_coords[0].to_cartesian()
-    ori, mx = local_mx(*struct.select_atoms('name N CA C').positions)
-    coords = (coords - ori) @ mx
-
-    # Save pdb structure
-    save_pdb(DATA_DIR + 'residue_pdbs/' + name + '.pdb', internal_coords[0], coords)
-
-    if len(struct.trajectory) > 1:
-        coords = np.array([(struct.atoms.positions - ori) @ mx for ts in struct.trajectory])
-    elif len(dihedrals) > 1:
-        coords = np.array([internal_coords.set_dihedral(dihe, 1, dihedral_atoms) for dihe in dihedrals])
-    else:
-        if coords.ndim == 2:
-            coords = np.expand_dims(coords, axis=0)
-
-    atom_types = struct.atoms.types
-    atom_names = struct.atoms.names
-
-    # Save rotamer library
-    np.savez(DATA_DIR + 'UserRotlibs/' + name + '_rotlib.npz',
-             coords=coords, internal_coords=internal_coords, weights=weights,
-             atom_types=atom_types, atom_names=atom_names,
-             dihedrals=dihedrals, dihedral_atoms=dihedral_atoms,
-             incriment=incriment,
-             allow_pickle=True)
+    weights /= weights.sum()
+    store_new_restype(name, IC1, weights, dihedrals[0], dihedral_atoms, increment=0)
+    store_new_restype(name, IC2, weights, dihedrals[1], dihedral_atoms, increment=increment)
 
 
 def pre_add_label(name, pdb, spin_atoms):
@@ -1214,3 +1222,41 @@ def pre_add_label(name, pdb, spin_atoms):
     struct = mda.Universe(tmpfile.name, in_memory=True)
     os.remove(tmpfile.name)
     return struct, pdb_resname
+
+
+def store_new_restype(name, internal_coords, weights, dihedrals, dihedral_atoms, increment=None):
+    # Extract coordinates and transform to the local frame
+    bb_atom_idx = [i for i, atom in enumerate(internal_coords[0]) if atom.name in ['N', 'CA', 'C']]
+    coords = internal_coords[0].coords.copy()
+    ori, mx = local_mx(*coords[bb_atom_idx])
+    coords = (coords - ori) @ mx
+
+    if increment == 0:
+        name += 'i'
+    else:
+        increment = 0
+
+    if increment > 0:
+        name += f'ip{increment}'
+
+
+    # Save pdb structure
+    save_pdb(DATA_DIR + 'residue_pdbs/' + name + '.pdb', internal_coords[0], coords)
+
+    if len(internal_coords) > 1:
+        coords = np.array([(IC.coords - ori) @ mx for IC in internal_coords])
+    elif len(dihedrals) > 1:
+        coords = np.array([internal_coords.set_dihedral(dihe, 1 + increment, dihedral_atoms) for dihe in dihedrals])
+    else:
+        if coords.ndim == 2:
+            coords = np.expand_dims(coords, axis=0)
+
+    atom_types = np.array([atom.atype for atom in internal_coords[0]])
+    atom_names = np.array([atom.name for atom in internal_coords[0]])
+
+    # Save rotamer library
+    np.savez(DATA_DIR + 'UserRotlibs/' + name + '_rotlib.npz',
+             coords=coords, internal_coords=internal_coords, weights=weights,
+             atom_types=atom_types, atom_names=atom_names,
+             dihedrals=dihedrals, dihedral_atoms=dihedral_atoms,
+             allow_pickle=True)

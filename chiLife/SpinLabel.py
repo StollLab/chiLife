@@ -251,7 +251,7 @@ class dSpinLabel:
 
         self.SC1 = chiLife.RotamerLibrary.from_dihedrals()
         self.SC2 = chiLife.RotamerLibrary.from_dihedrals()
-        self.SC3 =
+        # self.SC3 =
 
     def get_lib(self):
         PhiSel, PsiSel = None, None
@@ -268,4 +268,4 @@ class dSpinLabel:
 
         return chiLife.read_library(self.res, Phi, Psi)
 
-    def protein_setup(self):
+    # def protein_setup(self):

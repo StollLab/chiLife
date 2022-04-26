@@ -1029,48 +1029,7 @@ def add_label(name: str, pdb: str, dihedral_atoms: List[str], spin_atoms: List[s
     :param weights: ndarray, optional
         Weights associated with the dihedral angles provided by the `dihedrals` keyword argument
     """
-    # TODO: Add dihedral definitions to DihedralDefs.pkl
-    # Sort the PDB for optimal dihedral definitions
-    pdb_lines = sort_pdb(pdb)
-    pdb_resname = pdb_lines[0][17:20] if isinstance(pdb_lines[0], str) else pdb_lines[0][0][17:20]
-
-    # Store spin atoms if provided
-    if spin_atoms is not None:
-        if isinstance(spin_atoms, str):
-            spin_atoms = spin_atoms.split()
-
-        with open(DATA_DIR + 'spin_atoms.txt', 'r+') as f:
-            lines = f.readlines()
-            spin_dict = {x.split(':')[0]: eval(x.split(':')[1]) for x in lines}
-            if name in spin_dict:
-                if spin_dict[name] != spin_atoms:
-                    raise NameError('There is already a stored spin label with this name')
-            else:
-                joinstr = "', '"
-                line = f"{name}: ['{joinstr.join(spin_atoms)}']\n"
-                f.write(line)
-                SPIN_ATOMS[name] = spin_atoms
-
-    # Update USER_LABELS to include the new label
-    global USER_LABELS
-    USER_LABELS = tuple(key for key in SPIN_ATOMS if key not in SUPPORTED_LABELS)
-
-    # Write a temporary file with the sorted atoms
-    if isinstance(pdb_lines[0], list):
-        with tempfile.NamedTemporaryFile(suffix='.pdb', mode='w+', delete=False) as tmpfile:
-            for i, model in enumerate(pdb_lines):
-                tmpfile.write(f'MODEL {i + 1}\n')
-                for atom in model:
-                    tmpfile.write(atom)
-                tmpfile.write('TER\nENDMDL\n')
-    else:
-        with tempfile.NamedTemporaryFile(suffix='.pdb', mode='w+', delete=False) as tmpfile:
-            for line in pdb_lines:
-                tmpfile.write(line)
-
-    # Load sorted atom pdb using MDAnalysis and remove tempfile
-    struct = mda.Universe(tmpfile.name, in_memory=True)
-    os.remove(tmpfile.name)
+    struct, pdb_resname = pre_add_label(name, pdb, spin_atoms)
 
     # Convert loaded rotamer library to internal coords
     internal_coords = [chiLife.get_internal_coords(struct, resname=pdb_resname, preferred_dihedrals=dihedral_atoms) for ts
@@ -1149,48 +1108,7 @@ def add_dlabel(name: str, incriment: int,  pdb: str, dihedral_atoms: List[str], 
     :param weights: ndarray, optional
         Weights associated with the dihedral angles provided by the `dihedrals` keyword argument
     """
-    # TODO: Add dihedral definitions to DihedralDefs.pkl
-    # Sort the PDB for optimal dihedral definitions
-    pdb_lines = sort_pdb(pdb)
-    pdb_resname = pdb_lines[0][17:20] if isinstance(pdb_lines[0], str) else pdb_lines[0][0][17:20]
-
-    # Store spin atoms if provided
-    if spin_atoms is not None:
-        if isinstance(spin_atoms, str):
-            spin_atoms = spin_atoms.split()
-
-        with open(DATA_DIR + 'spin_atoms.txt', 'r+') as f:
-            lines = f.readlines()
-            spin_dict = {x.split(':')[0]: eval(x.split(':')[1]) for x in lines}
-            if name in spin_dict:
-                if spin_dict[name] != spin_atoms:
-                    raise NameError('There is already a ProEPR spin label with this name')
-            else:
-                joinstr = "', '"
-                line = f"{name}: ['{joinstr.join(spin_atoms)}']\n"
-                f.write(line)
-                SPIN_ATOMS[name] = spin_atoms
-
-    # Update USER_LABELS to include the new label
-    global USER_LABELS
-    USER_LABELS = tuple(key for key in SPIN_ATOMS if key not in SUPPORTED_LABELS)
-
-    # Write a temporary file with the sorted atoms
-    if isinstance(pdb_lines[0], list):
-        with tempfile.NamedTemporaryFile(suffix='.pdb', mode='w+', delete=False) as tmpfile:
-            for i, model in enumerate(pdb_lines):
-                tmpfile.write(f'MODEL {i + 1}\n')
-                for atom in model:
-                    tmpfile.write(atom)
-                tmpfile.write('TER\nENDMDL\n')
-    else:
-        with tempfile.NamedTemporaryFile(suffix='.pdb', mode='w+', delete=False) as tmpfile:
-            for line in pdb_lines:
-                tmpfile.write(line)
-
-    # Load sorted atom pdb using MDAnalysis and remove tempfile
-    struct = mda.Universe(tmpfile.name, in_memory=True)
-    os.remove(tmpfile.name)
+    struct, pdb_resname = pre_add_label(name, pdb, spin_atoms)
 
     i = 0
     dihedral_atoms_i = []
@@ -1250,3 +1168,49 @@ def add_dlabel(name: str, incriment: int,  pdb: str, dihedral_atoms: List[str], 
              dihedrals=dihedrals, dihedral_atoms=dihedral_atoms,
              incriment=incriment,
              allow_pickle=True)
+
+
+def pre_add_label(name, pdb, spin_atoms):
+    # TODO: Add dihedral definitions to DihedralDefs.pkl
+    # Sort the PDB for optimal dihedral definitions
+    pdb_lines = sort_pdb(pdb)
+    pdb_resname = pdb_lines[0][17:20] if isinstance(pdb_lines[0], str) else pdb_lines[0][0][17:20]
+
+    # Store spin atoms if provided
+    if spin_atoms is not None:
+        if isinstance(spin_atoms, str):
+            spin_atoms = spin_atoms.split()
+
+        with open(DATA_DIR + 'spin_atoms.txt', 'r+') as f:
+            lines = f.readlines()
+            spin_dict = {x.split(':')[0]: eval(x.split(':')[1]) for x in lines}
+            if name in spin_dict:
+                if spin_dict[name] != spin_atoms:
+                    raise NameError('There is already a ProEPR spin label with this name')
+            else:
+                joinstr = "', '"
+                line = f"{name}: ['{joinstr.join(spin_atoms)}']\n"
+                f.write(line)
+                SPIN_ATOMS[name] = spin_atoms
+
+    # Update USER_LABELS to include the new label
+    global USER_LABELS
+    USER_LABELS = tuple(key for key in SPIN_ATOMS if key not in SUPPORTED_LABELS)
+
+    # Write a temporary file with the sorted atoms
+    if isinstance(pdb_lines[0], list):
+        with tempfile.NamedTemporaryFile(suffix='.pdb', mode='w+', delete=False) as tmpfile:
+            for i, model in enumerate(pdb_lines):
+                tmpfile.write(f'MODEL {i + 1}\n')
+                for atom in model:
+                    tmpfile.write(atom)
+                tmpfile.write('TER\nENDMDL\n')
+    else:
+        with tempfile.NamedTemporaryFile(suffix='.pdb', mode='w+', delete=False) as tmpfile:
+            for line in pdb_lines:
+                tmpfile.write(line)
+
+    # Load sorted atom pdb using MDAnalysis and remove tempfile
+    struct = mda.Universe(tmpfile.name, in_memory=True)
+    os.remove(tmpfile.name)
+    return struct, pdb_resname

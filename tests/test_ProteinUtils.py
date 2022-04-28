@@ -48,12 +48,10 @@ def test_get_internal_coordinates(pdbid):
 def test_icset_dihedral():
     ICs = chiLife.get_internal_coords(ubq)
     ICs.set_dihedral([-np.pi / 2, np.pi / 2], 72, [['C', 'N', 'CA', 'C'], ['N', 'CA', 'C', 'N']])
-    coords = ICs.to_cartesian()
-    ubq2 = ubq.universe.copy().select_atoms('protein and not altloc B')
-    ubq2.atoms.positions = coords
 
     ans = mda.Universe('test_data/1ubq.pdb')
-    np.testing.assert_almost_equal(ans.atoms.positions, ubq2.atoms.positions, decimal=3)
+
+    np.testing.assert_almost_equal(ans.atoms.positions, ICs.coords, decimal=3)
 
 
 def test_sort_pdb():

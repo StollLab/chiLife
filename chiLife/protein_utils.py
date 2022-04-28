@@ -411,7 +411,7 @@ def get_ICAtom(atom: mda.core.groups.Atom, offset: int = 0, preferred_dihedral: 
     else:
 
         # Skip dihedrals that are not preferred
-        j, k = 0, 0
+        i, j, k = 0, 0, 0
         if preferred_dihedral is not None:
             preferred_stems = [tuple(dh[:3]) for dh in preferred_dihedral]
             for dh_idx, dh in enumerate(atom.dihedrals):
@@ -424,11 +424,15 @@ def get_ICAtom(atom: mda.core.groups.Atom, offset: int = 0, preferred_dihedral: 
         while not found:
 
             # Check that the bond, angle and dihedral are all defined by the same atoms in the same order
-            condition = atom.index == atom.angles.indices[j][-1]
-            bondidx = 1 if (atom.resname == 'PRO' and atom.name == 'CD') else 0
-            condition = condition and all(atom.bonds.indices[bondidx] == atom.angles.indices[j][-2:])
+            try:
+                condition = atom.index == atom.angles.indices[j][-1]
+            except:
+                print('hw')
+            condition = condition and all(atom.bonds.indices[i] == atom.angles.indices[j][-2:])
             condition = condition and all(atom.angles.indices[j] == atom.dihedrals.indices[k][-3:])
+            condition = condition and all(atom.dihedrals.indices[k] >= offset)
 
+            i_idx = atom.bonds.indices[i][0]
             j_idx = atom.angles.indices[j][0]
             k_idx = atom.dihedrals.indices[k][0]
 
@@ -439,27 +443,32 @@ def get_ICAtom(atom: mda.core.groups.Atom, offset: int = 0, preferred_dihedral: 
                 condition = condition and (not any(
                     [x.name in ['C', 'O'] and x.resnum == atom.resnum for x in (atom.angles[j].atoms[0], atom.universe.atoms[k_idx])]))
 
-            # If all checks have been pased use angle j and dihedral k
+            # If all checks have been pased use bond i, angle j, and dihedral k
             if condition:
                 found = True
 
-            # otherwise, increment j and k until a suitable definition has been found
+            # If all angles and dihedrals containing bond i have been searched increment bond
+            elif k == len(atom.dihedrals.indices) - 1 and j == len(atom.angles.indices) - 1:
+                k = 0
+                j = 0
+                i += 1
+            # if all dihedrals containing bond i and angle j have been searched increment angle
             elif k == len(atom.dihedrals.indices) - 1:
                 k = 0
                 j += 1
-
+            # If this dihedral does not contain atoms of the angle then try the next dihedral
             else:
                 k += 1
 
-        atom_names = (atom.name, U.atoms[atom.bonds.indices[bondidx][0]].name, U.atoms[j_idx].name, U.atoms[k_idx].name)
+        atom_names = (atom.name, U.atoms[i_idx].name, U.atoms[j_idx].name, U.atoms[k_idx].name)
 
         if atom_names != ('N', 'C', 'CA', 'N'):
             dihedral_resi = atom.resnum
         else:
             dihedral_resi = atom.resnum - 1
 
-        return ICAtom(atom.name, atom.type, atom.index, atom.resname, atom.resnum, atom_names,
-                      atom.bonds.indices[bondidx][0] - offset, atom.bonds.bonds()[0],
+        return ICAtom(atom.name, atom.type, atom.index-offset, atom.resname, atom.resnum, atom_names,
+                      i_idx - offset, atom.bonds.bonds()[i],
                       j_idx - offset, atom.angles.angles()[j],
                       k_idx - offset, atom.dihedrals.dihedrals()[k],
                       dihedral_resi=dihedral_resi)
@@ -512,7 +521,7 @@ def get_internal_coords(mol: Union[MDAnalysis.Universe, MDAnalysis.AtomGroup],
     for atom in protein.atoms:
 
         chaind = atom.segid
-        if atom.index == mol.atoms[0].index or atom.resid - U.atoms[atom.index - 1].resid not in (0, 1):
+        if atom.index == protein.atoms[0].index or atom.resid - U.atoms[atom.index - 1].resid not in (0, 1):
             segid += 1
             offset = atom.index
             mx, ori = chiLife.ic_mx(*U.atoms[offset:offset + 3].positions)

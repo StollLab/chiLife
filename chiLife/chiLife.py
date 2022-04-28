@@ -1038,7 +1038,7 @@ def repack(protein: Union[mda.Universe, mda.AtomGroup], *spin_labels: SpinLabel,
     return protein, deltaEs, return_labels
 
 
-def add_label(name: str, pdb: str, dihedral_atoms: List[str], spin_atoms: List[str] = None,
+def add_label(name: str, pdb: str, dihedral_atoms: List[str], resi: int=1, spin_atoms: List[str] = None,
               dihedrals: ArrayLike = None, weights: ArrayLike = None):
     """
     Add a user defined SpinLabel from a pdb file.
@@ -1069,8 +1069,8 @@ def add_label(name: str, pdb: str, dihedral_atoms: List[str], spin_atoms: List[s
     struct, pdb_resname = pre_add_label(name, pdb, spin_atoms)
 
     # Convert loaded rotamer library to internal coords
-    internal_coords = [chiLife.get_internal_coords(struct, resname=pdb_resname, preferred_dihedrals=dihedral_atoms) for ts
-                       in struct.trajectory]
+    internal_coords = [chiLife.get_internal_coords(struct.select_atoms(f'resnum {resi}'), resname=pdb_resname,
+                                                   preferred_dihedrals=dihedral_atoms) for ts in struct.trajectory]
 
     # Add internal_coords to data dir
     with open(DATA_DIR / f'residue_internal_coords/{name}_ic.pkl', 'wb') as f:
@@ -1090,7 +1090,7 @@ def add_label(name: str, pdb: str, dihedral_atoms: List[str], spin_atoms: List[s
     store_new_restype(name, internal_coords, weights, dihedrals, dihedral_atoms)
 
 
-def add_dlabel(name: str, increment: int,  pdb: str, dihedral_atoms: List[List[List[str]]],
+def add_dlabel(name: str, pdb: str, increment: int, dihedral_atoms: List[List[List[str]]], resi: int=1,
                spin_atoms: List[str] = None, dihedrals: ArrayLike = None, weights: ArrayLike = None):
     """
     Add a user defined SpinLabel from a pdb file.
@@ -1098,7 +1098,7 @@ def add_dlabel(name: str, increment: int,  pdb: str, dihedral_atoms: List[List[L
     :param name: str
         Name for the user defined label.
 
-    :param incriment: int
+    :param increment: int
         The number of residues the second site away from the first site.
 
     :param pdb: str
@@ -1138,10 +1138,12 @@ def add_dlabel(name: str, increment: int,  pdb: str, dihedral_atoms: List[List[L
 
     struct, pdb_resname = pre_add_label(name, pdb, spin_atoms)
 
-    IC1 = [chiLife.get_internal_coords(struct.select_atoms(f'resnum 1'), resname=pdb_resname,
+    IC1 = [chiLife.get_internal_coords(struct.select_atoms(f'resnum {resi}'), resname=pdb_resname,
                                        preferred_dihedrals=dihedral_atoms[0]) for ts in struct.trajectory]
 
-    IC2 = [chiLife.get_internal_coords(struct.select_atoms(f'resnum {1 + increment}'), resname=pdb_resname,
+    IC1[0].save_pdb('DHC_FromIC.pdb')
+
+    IC2 = [chiLife.get_internal_coords(struct.select_atoms(f'resnum {resi + increment}'), resname=pdb_resname,
                                        preferred_dihedrals=dihedral_atoms[1]) for ts in struct.trajectory]
 
     csmin1 = max([i for i, atom in enumerate(IC1[0]) if
@@ -1166,16 +1168,15 @@ def add_dlabel(name: str, increment: int,  pdb: str, dihedral_atoms: List[List[L
     # If multi-state pdb extract rotamers from pdb
     if dihedrals is None:
         dihedrals = []
-        for IC1i, IC2i in zip(IC1, IC2):
-            dihedrals.append([[IC1i.get_dihedral(1, ddef) for ddef in dihedral_atoms[0]],
-                              [IC2i.get_dihedral(1+increment, ddef) for ddef in dihedral_atoms[1]]])
+        for IC, resnum, dihedral_set in zip([IC1, IC2], [resi, resi+increment], dihedral_atoms):
+            dihedrals.append([[ICi.get_dihedral(resnum, ddef) for ddef in dihedral_set] for ICi in IC])
 
     if weights is None:
         weights = np.ones(len(IC1))
 
     weights /= weights.sum()
-    store_new_restype(name, IC1, weights, dihedrals[0], dihedral_atoms, increment=0)
-    store_new_restype(name, IC2, weights, dihedrals[1], dihedral_atoms, increment=increment)
+    store_new_restype(name, IC1, weights, dihedrals[0], dihedral_atoms[0], increment=0)
+    store_new_restype(name, IC2, weights, dihedrals[1], dihedral_atoms[1], increment=increment)
 
 
 def pre_add_label(name, pdb, spin_atoms):
@@ -1233,7 +1234,7 @@ def store_new_restype(name, internal_coords, weights, dihedrals, dihedral_atoms,
 
     if increment == 0:
         name += 'i'
-    else:
+    elif increment is None:
         increment = 0
 
     if increment > 0:

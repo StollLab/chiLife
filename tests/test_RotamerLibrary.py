@@ -45,13 +45,15 @@ def test_with_sample():
 
 def test_user_label():
     SL = chiLife.SpinLabel('TRT', 28, ubq, 'A')
-    chiLife.save('test_data/1ubq_28TRT.pdb', SL, protein='test_data/1ubq.pdb', KDE=False)
-    ans = hashes['1ubq_28TRT.pdb']
+    chiLife.save('test_data/1ubq_28TRT_tmp.pdb', SL, protein='test_data/1ubq.pdb', KDE=False)
 
     with open('test_data/1ubq_28TRT.pdb', 'rb') as f:
+        ans = hashlib.md5(f.read()).hexdigest()
+
+    with open('test_data/1ubq_28TRT_tmp.pdb', 'rb') as f:
         test = hashlib.md5(f.read()).hexdigest()
 
-    os.remove('test_data/1ubq_28TRT.pdb')
+    os.remove('test_data/1ubq_28TRT_tmp.pdb')
 
     assert test == ans
 
@@ -111,7 +113,9 @@ def test_multisample():
 
 @pytest.mark.parametrize('res', chiLife.SUPPORTED_RESIDUES)
 def test_lib_distribution_persists(res):
-    if res in list(chiLife.SUPPORTED_LABELS) + list(chiLife.USER_LABELS):
+    if res in chiLife.USER_dLABELS:
+        return None
+    elif res in list(chiLife.SUPPORTED_LABELS) + list(chiLife.USER_LABELS):
         L1 = chiLife.SpinLabel(res)
         L2 = chiLife.SpinLabel(res, sample=100)
     else:

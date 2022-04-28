@@ -1,4 +1,5 @@
 import logging, os, urllib, pickle, itertools
+from pathlib import Path
 from typing import Set, List, Union, Tuple
 from numpy.typing import ArrayLike
 from dataclasses import dataclass
@@ -485,10 +486,12 @@ def get_internal_coords(mol: Union[MDAnalysis.Universe, MDAnalysis.AtomGroup],
         An ProteinIC object of the supplied molecule
     """
     U = mol.universe
+    # Making things up to get the right results but vdwradii should not determine bond length so talk to the MDA devs
+    extra_radii = {'S': 2., 'Br': 4.189, 'Cu': 2.75}
     if not hasattr(U, 'bonds'):
-        U.add_TopologyAttr('bonds', guessers.guess_bonds(U.atoms, U.atoms.positions, vdwradii={'S': 2., 'Br': 4.189}))
+        U.add_TopologyAttr('bonds', guessers.guess_bonds(U.atoms, U.atoms.positions, vdwradii=extra_radii))
     elif len(U.bonds) < len(U.atoms):
-        U.add_TopologyAttr('bonds', guessers.guess_bonds(U.atoms, U.atoms.positions, vdwradii={'S': 2., 'Br': 4.189}))
+        U.add_TopologyAttr('bonds', guessers.guess_bonds(U.atoms, U.atoms.positions, vdwradii=extra_radii))
     if not hasattr(U, 'angles'):
         U.add_TopologyAttr('angles', guessers.guess_angles(U.bonds))
     if not hasattr(U, 'dihedrals'):
@@ -497,10 +500,10 @@ def get_internal_coords(mol: Union[MDAnalysis.Universe, MDAnalysis.AtomGroup],
         U.add_TopologyAttr('impropers', guessers.guess_improper_dihedrals(U.angles))
 
     if resname is not None:
-        protein = U.select_atoms(f'(protein or resname {" ".join(list(chiLife.SUPPORTED_RESIDUES) + [resname])})'
+        protein = mol.select_atoms(f'(protein or resname {" ".join(list(chiLife.SUPPORTED_RESIDUES) + [resname])})'
                                  f' and not altloc B')
     else:
-        protein = U.select_atoms(f'(protein or resname {" ".join(list(chiLife.SUPPORTED_RESIDUES))}) and not altloc B')
+        protein = mol.select_atoms(f'(protein or resname {" ".join(list(chiLife.SUPPORTED_RESIDUES))}) and not altloc B')
 
     all_ICAtoms = defaultdict(partial(defaultdict, dict))
     chain_operators = defaultdict(dict)
@@ -509,7 +512,7 @@ def get_internal_coords(mol: Union[MDAnalysis.Universe, MDAnalysis.AtomGroup],
     for atom in protein.atoms:
 
         chaind = atom.segid
-        if atom.index == 0 or atom.resid - U.atoms[atom.index - 1].resid not in (0, 1):
+        if atom.index == mol.atoms[0].index or atom.resid - U.atoms[atom.index - 1].resid not in (0, 1):
             segid += 1
             offset = atom.index
             mx, ori = chiLife.ic_mx(*U.atoms[offset:offset + 3].positions)
@@ -563,7 +566,7 @@ def save_rotlib(name: str, atoms: ArrayLike, coords: ArrayLike = None) -> None:
         save_pdb(name, atoms, coords)
 
 
-def save_pdb(name: str, atoms: ArrayLike, coords: ArrayLike, mode: str = 'w') -> None:
+def save_pdb(name: Union[str, Path], atoms: ArrayLike, coords: ArrayLike, mode: str = 'w') -> None:
     """
     Save a single state pdb structure of the provided atoms and coords
 
@@ -580,9 +583,8 @@ def save_pdb(name: str, atoms: ArrayLike, coords: ArrayLike, mode: str = 'w') ->
         File open mode. Usually used to specify append ("a") when you want to add structures to a PDB rather than
         overwrite that pdb.
     """
-
-    if not name.endswith('.pdb'):
-        name += '.pdb'
+    name = Path(name) if isinstance(name, str) else name
+    name = name.with_suffix('.pdb')
 
     with open(name, mode, newline='\n') as f:
         for atom, coord in zip(atoms, coords):
@@ -894,7 +896,12 @@ def sort_pdb(pdbfile: Union[str, List]) -> List[str]:
     for key in resdict:
         start, stop = resdict[key]
         kdtree = cKDTree(coords[start:stop])
-        pairs = kdtree.query_pairs(2.2)
+
+        # Get all nearest neighbors and sort by distance
+        pairs = kdtree.query_pairs(2.2, output_type='ndarray')
+        distances = np.linalg.norm(kdtree.data[pairs[:, 0]] - kdtree.data[pairs[:, 1]], axis=1)
+        idx_sort = np.argsort(distances)
+        pairs = pairs[idx_sort]
 
         idx = 1
         sorted_args = list(range(np.minimum(4, stop-start)))
@@ -907,13 +914,13 @@ def sort_pdb(pdbfile: Union[str, List]) -> List[str]:
                     for pair in pairs:
                         if idx in pair:
                             ap = pair[0] if pair[0] != idx else pair[1]
-                            if ap not in sorted_args:
+                            if ap not in sorted_args and ap not in appendid:
                                 appendid.append(ap)
                 if appendid != []:
-                    appendid = list(set(appendid))
-                    tmp = [lines[i + start][12:17].strip() for i in appendid]
-                    tmp = np.argsort(tmp)
-                    appendid = [appendid[i] for i in tmp]
+                    # appendid = list(set(appendid))
+                    # tmp = [lines[i + start][15:17].strip() for i in appendid]
+                    # tmp = np.argsort(tmp)
+                    # appendid = [appendid[i] for i in tmp]
                     sorted_args += appendid
                     search_len = len(appendid)
                 else:
@@ -928,9 +935,9 @@ def sort_pdb(pdbfile: Union[str, List]) -> List[str]:
                             appendid.append(ap)
 
                 if appendid != []:
-                    tmp = [lines[i + start][12:17].strip() for i in appendid]
-                    tmp = np.argsort(tmp)
-                    appendid = [appendid[i] for i in tmp]
+                    # tmp = [lines[i + start][14:17].strip() for i in appendid]
+                    # tmp = np.argsort(tmp)
+                    # appendid = [appendid[i] for i in tmp]
                     sorted_args += appendid
                     search_len = len(appendid)
                 else:

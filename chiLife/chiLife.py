@@ -25,15 +25,15 @@ from .superimpositions import superimpositions
 # Define useful global variables
 SUPPORTED_LABELS = ('R1M', 'R7M', 'V1M', 'I1M', 'M1M', 'R1C')
 SUPPORTED_BB_LABELS = ('R1C',)
-DATA_DIR = os.path.join(os.path.dirname(__file__), 'data/rotamer_libraries/')
-cursor = sqlite3.connect(DATA_DIR + 'bbdep.db').cursor()
+DATA_DIR = Path(__file__).parent.absolute() / 'data/rotamer_libraries/'
 logging.captureWarnings(True)
 
-with open(DATA_DIR + 'spin_atoms.txt', 'r') as f:
+with open(DATA_DIR / 'spin_atoms.txt', 'r') as f:
     lines = f.readlines()
     SPIN_ATOMS = {x.split(':')[0]: eval(x.split(':')[1]) for x in lines}
 
 USER_LABELS = {key for key in SPIN_ATOMS if key not in SUPPORTED_LABELS}
+USER_dLABELS = {f.name[:3] for f in (DATA_DIR / 'UserRotlibs').glob('*i_*.npz')}
 SUPPORTED_RESIDUES = set(list(SUPPORTED_LABELS) + list(USER_LABELS) + list(dihedral_defs.keys()))
 [SUPPORTED_RESIDUES.remove(lab) for lab in ('CYR1', 'MTN')]
 
@@ -608,7 +608,7 @@ def read_bbdep(res: str, Phi: float, Psi: float) -> Tuple[ArrayLike,...]:
     Phi, Psi = str(Phi), str(Psi)
 
     # Read residue internal coordinate structure
-    with open(DATA_DIR + 'residue_internal_coords/' + res.lower() + '_ic.pkl', 'rb') as f:
+    with open(DATA_DIR / f'residue_internal_coords/{res.lower()}_ic.pkl', 'rb') as f:
         ICs = pickle.load(f)
 
     atom_types = [atom.atype for atom in ICs]
@@ -621,7 +621,7 @@ def read_bbdep(res: str, Phi: float, Psi: float) -> Tuple[ArrayLike,...]:
         library = 'R1C.lib' if res in SUPPORTED_BB_LABELS else 'ALL.bbdep.rotamers.lib'
         start, length = rotlib_indexes[f'{res}  {Phi:>4}{Psi:>5}']
 
-        with open(DATA_DIR + library, 'rb') as f:
+        with open(DATA_DIR / library, 'rb') as f:
             f.seek(start)
             rotlib_string = f.read(length).decode()
             s = StringIO(rotlib_string)
@@ -1073,7 +1073,7 @@ def add_label(name: str, pdb: str, dihedral_atoms: List[str], spin_atoms: List[s
                        in struct.trajectory]
 
     # Add internal_coords to data dir
-    with open(DATA_DIR + 'residue_internal_coords/' + name + '_ic.pkl', 'wb') as f:
+    with open(DATA_DIR / f'residue_internal_coords/{name}_ic.pkl', 'wb') as f:
         pickle.dump(internal_coords, f)
 
     # If multi-state pdb extract rotamers from pdb
@@ -1090,8 +1090,8 @@ def add_label(name: str, pdb: str, dihedral_atoms: List[str], spin_atoms: List[s
     store_new_restype(name, internal_coords, weights, dihedrals, dihedral_atoms)
 
 
-def add_dlabel(name: str, increment: int,  pdb: str, dihedral_atoms: List[str], spin_atoms: List[str] = None,
-               dihedrals: ArrayLike = None, weights: ArrayLike = None):
+def add_dlabel(name: str, increment: int,  pdb: str, dihedral_atoms: List[List[List[str]]],
+               spin_atoms: List[str] = None, dihedrals: ArrayLike = None, weights: ArrayLike = None):
     """
     Add a user defined SpinLabel from a pdb file.
 
@@ -1123,7 +1123,7 @@ def add_dlabel(name: str, increment: int,  pdb: str, dihedral_atoms: List[str], 
     """
     if len(dihedral_atoms) != 2:
         dihedral_error = True
-    elif not isinstance(dihedral_atoms[0], ArrayLike):
+    elif not isinstance(dihedral_atoms[0], List):
         dihedral_error = True
     elif len(dihedral_atoms[0][0]) != 4:
         dihedral_error = True
@@ -1160,7 +1160,7 @@ def add_dlabel(name: str, increment: int,  pdb: str, dihedral_atoms: List[str], 
     internal_coords = [IC1, IC2, constraint_atom_idxs, constraint_distances]
 
     # Add internal_coords to data dir
-    with open(DATA_DIR + 'residue_internal_coords/' + name + '_ic.pkl', 'wb') as f:
+    with open(DATA_DIR / f'residue_internal_coords/{name}_ic.pkl', 'wb') as f:
         pickle.dump(internal_coords, f)
 
     # If multi-state pdb extract rotamers from pdb
@@ -1189,7 +1189,7 @@ def pre_add_label(name, pdb, spin_atoms):
         if isinstance(spin_atoms, str):
             spin_atoms = spin_atoms.split()
 
-        with open(DATA_DIR + 'spin_atoms.txt', 'r+') as f:
+        with open(DATA_DIR/'spin_atoms.txt', 'r+') as f:
             lines = f.readlines()
             spin_dict = {x.split(':')[0]: eval(x.split(':')[1]) for x in lines}
             if name in spin_dict:
@@ -1241,7 +1241,7 @@ def store_new_restype(name, internal_coords, weights, dihedrals, dihedral_atoms,
 
 
     # Save pdb structure
-    save_pdb(DATA_DIR + 'residue_pdbs/' + name + '.pdb', internal_coords[0], coords)
+    save_pdb(DATA_DIR / f'residue_pdbs/{name}.pdb', internal_coords[0], coords)
 
     if len(internal_coords) > 1:
         coords = np.array([(IC.coords - ori) @ mx for IC in internal_coords])
@@ -1255,7 +1255,7 @@ def store_new_restype(name, internal_coords, weights, dihedrals, dihedral_atoms,
     atom_names = np.array([atom.name for atom in internal_coords[0]])
 
     # Save rotamer library
-    np.savez(DATA_DIR + 'UserRotlibs/' + name + '_rotlib.npz',
+    np.savez(DATA_DIR / f'UserRotlibs/{name}_rotlib.npz',
              coords=coords, internal_coords=internal_coords, weights=weights,
              atom_types=atom_types, atom_names=atom_names,
              dihedrals=dihedrals, dihedral_atoms=dihedral_atoms,

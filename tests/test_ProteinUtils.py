@@ -175,3 +175,7 @@ def test_add_missing_atoms():
 def test_get_internal_coords():
     polypro = mda.Universe('test_data/PPII_Capped.pdb')
     polyproIC = chiLife.get_internal_coords(polypro)
+
+@pytest.mark.parametrize('res', chiLife.SUPPORTED_RESIDUES)
+def test_sort_and_internal_coords(res):
+    pass

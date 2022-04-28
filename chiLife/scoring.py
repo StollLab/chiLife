@@ -249,6 +249,7 @@ rmin_charmm = {"C": 2.0000,
                "S": 2.0000,
                "SE": 2.0000,    # Default Selenium to Sulfur
                "Br": 1.9800,
+               "Cu": 1.8000,
                "join_protocol": join_arith}    # Bromobenzene from Gutiérrez et al. 2016
 
 eps_charmm = {"C": -0.110,
@@ -258,6 +259,7 @@ eps_charmm = {"C": -0.110,
               "S": -0.450,
              "SE": -0.450,  # Default Selenium to Sulfur
              "Br": -0.320,
+             "Cu": -0.170,
               "join_protocol": join_geom}  # Bromobenzene from Gutiérrez et al. 2016
 
 rmin_uff = {"C": 3.851,

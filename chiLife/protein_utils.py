@@ -424,24 +424,18 @@ def get_ICAtom(atom: mda.core.groups.Atom, offset: int = 0, preferred_dihedral: 
         while not found:
 
             # Check that the bond, angle and dihedral are all defined by the same atoms in the same order
-            try:
-                condition = atom.index == atom.angles.indices[j][-1]
-            except:
-                print('hw')
-            condition = condition and all(atom.bonds.indices[i] == atom.angles.indices[j][-2:])
-            condition = condition and all(atom.angles.indices[j] == atom.dihedrals.indices[k][-3:])
-            condition = condition and all(atom.dihedrals.indices[k] >= offset)
-
-            i_idx = atom.bonds.indices[i][0]
-            j_idx = atom.angles.indices[j][0]
-            k_idx = atom.dihedrals.indices[k][0]
+            condition = atom.index == atom.angles.indices[j][-1]
+            condition = condition and np.all(atom.bonds.indices[i] == atom.angles.indices[j][-2:])
+            condition = condition and np.all(atom.angles.indices[j] == atom.dihedrals.indices[k][-3:])
+            condition = condition and np.all(atom.dihedrals.indices[k] >= offset)
 
             # If the atom being placed is part of a side chain dihedral that is near the backbone.
             if (atom.name not in ['N', 'CA', 'C', 'O', 'CB', 'CB1', 'CB2', 'CD']) and (atom.type != 'H'):
 
                 # Check if the dihedral definition is coming from the carboxyl end of the residue
                 condition = condition and (not any(
-                    [x.name in ['C', 'O'] and x.resnum == atom.resnum for x in (atom.angles[j].atoms[0], atom.universe.atoms[k_idx])]))
+                    [x.name in ['C', 'O'] and x.resnum == atom.resnum
+                     for x in (atom.angles[j].atoms[0], atom.dihedrals[k].atoms[0])]))
 
             # If all checks have been pased use bond i, angle j, and dihedral k
             if condition:
@@ -459,6 +453,10 @@ def get_ICAtom(atom: mda.core.groups.Atom, offset: int = 0, preferred_dihedral: 
             # If this dihedral does not contain atoms of the angle then try the next dihedral
             else:
                 k += 1
+
+        i_idx = atom.bonds.indices[i][0]
+        j_idx = atom.angles.indices[j][0]
+        k_idx = atom.dihedrals.indices[k][0]
 
         atom_names = (atom.name, U.atoms[i_idx].name, U.atoms[j_idx].name, U.atoms[k_idx].name)
 

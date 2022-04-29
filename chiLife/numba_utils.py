@@ -238,3 +238,33 @@ def _ic_to_cart(IC_idx_Array, ICArray):
             coords[i] = M.T @ N + coords[IC_idx_Array[i, 0]]
 
     return coords
+
+@njit(cache=True)
+def get_ICAtom_indices(i, j, k, index, bonds, angles, dihedrals, offset):
+    found = False
+    while not found:
+
+        # Check that the bond, angle and dihedral are all defined by the same atoms in the same order
+        condition = index == angles[j][-1]
+        condition = condition and np.all(bonds[i] == angles[j][-2:])
+        condition = condition and np.all(angles[j] == dihedrals[k][-3:])
+        condition = condition and np.all(dihedrals[k] >= offset)
+
+        # If all checks have been pased use bond i, angle j, and dihedral k
+        if condition:
+            found = True
+
+        # If all angles and dihedrals containing bond i have been searched increment bond
+        elif k == len(dihedrals) - 1 and j == len(angles) - 1:
+            k = 0
+            j = 0
+            i += 1
+        # if all dihedrals containing bond i and angle j have been searched increment angle
+        elif k == len(dihedrals) - 1:
+            k = 0
+            j += 1
+        # If this dihedral does not contain atoms of the angle then try the next dihedral
+        else:
+            k += 1
+
+    return i, j, k

@@ -14,6 +14,7 @@ gd_kwargs = [{'resi': 28, 'atom_list': ['C', 'N', 'CA', 'C']},
              {'resi': 28, 'atom_list': [['C', 'N', 'CA', 'C'], ['N', 'CA', 'C', 'N']]}]
 gd_ans = [-1.1540443794802524, np.array([-1.15404438, -0.66532042])]
 
+
 @pytest.mark.parametrize('res', resis)
 def test_read_dunbrack( res):
     res, phi, psi = res
@@ -33,7 +34,6 @@ def test_read_dunbrack( res):
 @pytest.mark.parametrize('pdbid', pdbids)
 def test_get_internal_coordinates(pdbid):
     protein = chiLife.fetch(pdbid).select_atoms('protein and not altloc B')
-    protein2 = protein.universe.copy().select_atoms('protein and not altloc B')
     ICs = chiLife.get_internal_coords(protein)
     np.testing.assert_almost_equal(ICs.coords, protein.atoms.positions, decimal=5)
 
@@ -163,9 +163,10 @@ def test_add_missing_atoms():
     assert len(new_prot.atoms) != len(protein.atoms)
     assert len(new_prot.atoms) == 2877
 
-def test_get_internal_coords():
+def test_polypro_IC():
     polypro = mda.Universe('test_data/PPII_Capped.pdb')
     polyproIC = chiLife.get_internal_coords(polypro)
+    polyproIC.save_pdb('polypro.pdb')
 
 @pytest.mark.parametrize('res', chiLife.SUPPORTED_RESIDUES)
 def test_sort_and_internal_coords(res):

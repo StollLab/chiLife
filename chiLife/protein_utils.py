@@ -3,8 +3,7 @@ from pathlib import Path
 from typing import Set, List, Union, Tuple
 from numpy.typing import ArrayLike
 from dataclasses import dataclass
-from collections import Counter, defaultdict
-from functools import partial
+from collections import Counter
 import MDAnalysis
 import numpy as np
 from scipy.spatial import cKDTree
@@ -14,7 +13,7 @@ import MDAnalysis as mda
 import freesasa
 from .RotamerLibrary import RotamerLibrary
 import chiLife
-from .numba_utils import _ic_to_cart
+from .numba_utils import _ic_to_cart, get_ICAtom_indices
 
 # TODO: Align Atom and ICAtom names with MDA
 # TODO: Implement Internal Coord Residue object
@@ -120,11 +119,7 @@ class ProteinIC:
             residue and bottom dict holds ICAtom objects.
         """
 
-        # Convert to conventional dictionary in case default dict was being used
-        self.ICs = {key1: {key2: {key3: ic
-                                  for key3, ic in resi.items()}
-                           for key2, resi in chain.items()}
-                    for key1, chain in ICs.items()}
+        self.ICs = ICs
 
         # Store important ProteinIC variables
         self.atoms = [ic for chain in ICs.values() for resi in chain.values() for ic in resi.values()]
@@ -138,9 +133,9 @@ class ProteinIC:
         if self.bonded_pairs is None or self.bonded_pairs.any() is None:
             self.nonbonded_pairs = None
         else:
-            bonded_pairs = [(a, b) for a, b in self.bonded_pairs]
+            bonded_pairs = {(a, b) for a, b in self.bonded_pairs}
             possible_bonds = set(itertools.combinations(range(len(self.atoms)), 2))
-            self.nonbonded_pairs = np.array(list(possible_bonds - set(bonded_pairs)))
+            self.nonbonded_pairs = np.array(possible_bonds - bonded_pairs)
 
         self.perturbed = False
         self._coords = None
@@ -176,10 +171,7 @@ class ProteinIC:
         """
         if op is None:
             logging.info('No protein chain origins have been provided. All chains will start at [0, 0, 0]')
-            op = defaultdict(dict)
-            for chain in self.ICs.keys():
-                op[chain]['ori'] = np.array([0, 0, 0])
-                op[chain]['mx'] = np.identity(3)
+            op = {chain: {'ori': np.array([0, 0, 0]), 'mx': np.identity(3)} for chain in self.ICs}
 
         self._chain_operators = op
 
@@ -420,39 +412,7 @@ def get_ICAtom(atom: mda.core.groups.Atom, offset: int = 0, preferred_dihedral: 
                         k = dh_idx
                         break
 
-        found = False
-        while not found:
-
-            # Check that the bond, angle and dihedral are all defined by the same atoms in the same order
-            condition = atom.index == atom.angles.indices[j][-1]
-            condition = condition and np.all(atom.bonds.indices[i] == atom.angles.indices[j][-2:])
-            condition = condition and np.all(atom.angles.indices[j] == atom.dihedrals.indices[k][-3:])
-            condition = condition and np.all(atom.dihedrals.indices[k] >= offset)
-
-            # If the atom being placed is part of a side chain dihedral that is near the backbone.
-            if (atom.name not in ['N', 'CA', 'C', 'O', 'CB', 'CB1', 'CB2', 'CD']) and (atom.type != 'H'):
-
-                # Check if the dihedral definition is coming from the carboxyl end of the residue
-                condition = condition and (not any(
-                    [x.name in ['C', 'O'] and x.resnum == atom.resnum
-                     for x in (atom.angles[j].atoms[0], atom.dihedrals[k].atoms[0])]))
-
-            # If all checks have been pased use bond i, angle j, and dihedral k
-            if condition:
-                found = True
-
-            # If all angles and dihedrals containing bond i have been searched increment bond
-            elif k == len(atom.dihedrals.indices) - 1 and j == len(atom.angles.indices) - 1:
-                k = 0
-                j = 0
-                i += 1
-            # if all dihedrals containing bond i and angle j have been searched increment angle
-            elif k == len(atom.dihedrals.indices) - 1:
-                k = 0
-                j += 1
-            # If this dihedral does not contain atoms of the angle then try the next dihedral
-            else:
-                k += 1
+        i, j, k = get_ICAtom_indices(i, j, k, atom.index, atom.bonds.indices, atom.angles.indices, atom.dihedrals.indices, offset)
 
         i_idx = atom.bonds.indices[i][0]
         j_idx = atom.angles.indices[j][0]
@@ -470,6 +430,19 @@ def get_ICAtom(atom: mda.core.groups.Atom, offset: int = 0, preferred_dihedral: 
                       j_idx - offset, atom.angles.angles()[j],
                       k_idx - offset, atom.dihedrals.dihedrals()[k],
                       dihedral_resi=dihedral_resi)
+
+
+def get_ICResidues(ICAtoms):
+    residues = {}
+    prev_res = None
+    for atom in ICAtoms:
+        if atom.dihedral_resi == prev_res:
+            residues[prev_res][atom.atom_names] = atom
+        else:
+            prev_res = atom.dihedral_resi
+            residues[prev_res] = {atom.atom_names: atom}
+
+    return residues
 
 
 def get_internal_coords(mol: Union[MDAnalysis.Universe, MDAnalysis.AtomGroup],
@@ -512,23 +485,20 @@ def get_internal_coords(mol: Union[MDAnalysis.Universe, MDAnalysis.AtomGroup],
     else:
         protein = mol.select_atoms(f'(protein or resname {" ".join(list(chiLife.SUPPORTED_RESIDUES))}) and not altloc B')
 
-    all_ICAtoms = defaultdict(partial(defaultdict, dict))
-    chain_operators = defaultdict(dict)
+    all_ICAtoms = {}
+    chain_operators = {}
     offset = 0
     segid = 0
-    for atom in protein.atoms:
+    for seg in protein.segments:
+        segatoms = protein.atoms[protein.atoms.segids == seg.segid]
+        segid += 1
+        offset = seg.atoms[0].index
+        mx, ori = chiLife.ic_mx(*U.atoms[offset:offset + 3].positions)
 
-        chaind = atom.segid
-        if atom.index == protein.atoms[0].index or atom.resid - U.atoms[atom.index - 1].resid not in (0, 1):
-            segid += 1
-            offset = atom.index
-            mx, ori = chiLife.ic_mx(*U.atoms[offset:offset + 3].positions)
-
-            chain_operators[segid]['ori'] = ori
-            chain_operators[segid]['mx'] = mx
-
-        ICatom = get_ICAtom(atom, offset=offset, preferred_dihedral=preferred_dihedrals)
-        all_ICAtoms[segid][ICatom.dihedral_resi][ICatom.atom_names] = ICatom
+        chain_operators[segid] = {'ori': ori, 'mx': mx}
+        #
+        ICatoms = [get_ICAtom(atom, offset=offset, preferred_dihedral=preferred_dihedrals) for atom in segatoms]
+        all_ICAtoms[segid] = get_ICResidues(ICatoms)
 
     return ProteinIC(all_ICAtoms, chain_operators=chain_operators, bonded_pairs=U.bonds.to_indices())
 

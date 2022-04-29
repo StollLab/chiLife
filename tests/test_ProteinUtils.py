@@ -35,14 +35,7 @@ def test_get_internal_coordinates(pdbid):
     protein = chiLife.fetch(pdbid).select_atoms('protein and not altloc B')
     protein2 = protein.universe.copy().select_atoms('protein and not altloc B')
     ICs = chiLife.get_internal_coords(protein)
-
-    coords = ICs.to_cartesian()
-    protein2.atoms.positions = coords
-
-    # Calculate max absolute deviation
-    aa_MaxAD = np.linalg.norm(protein2.atoms.positions - protein.atoms.positions, axis=1).max()
-
-    assert aa_MaxAD < 0.1  # Angstroms
+    np.testing.assert_almost_equal(ICs.coords, protein.atoms.positions, decimal=5)
 
 
 def test_icset_dihedral():

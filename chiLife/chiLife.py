@@ -1141,8 +1141,6 @@ def add_dlabel(name: str, pdb: str, increment: int, dihedral_atoms: List[List[Li
     IC1 = [chiLife.get_internal_coords(struct.select_atoms(f'resnum {resi}'), resname=pdb_resname,
                                        preferred_dihedrals=dihedral_atoms[0]) for ts in struct.trajectory]
 
-    IC1[0].save_pdb('DHC_FromIC.pdb')
-
     IC2 = [chiLife.get_internal_coords(struct.select_atoms(f'resnum {resi + increment}'), resname=pdb_resname,
                                        preferred_dihedrals=dihedral_atoms[1]) for ts in struct.trajectory]
 

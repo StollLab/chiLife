@@ -1,11 +1,10 @@
 import numbers
 import shutil
-import sqlite3
 import tempfile
 from collections.abc import Sized
 from io import StringIO
 from itertools import combinations
-from pathlib import Path
+
 from typing import Callable
 from unittest import mock
 
@@ -15,6 +14,7 @@ from scipy.signal import fftconvolve
 from scipy.stats import gaussian_kde
 from tqdm import tqdm
 
+import chiLife
 from .SpinLabel import SpinLabel
 from .SpinLabelTraj import SpinLabelTraj
 from .numba_utils import *
@@ -164,7 +164,7 @@ def set_dihedral(p: ArrayLike, angle: float, mobile: ArrayLike) -> ArrayLike:
     return new_mobile
 
 
-def local_mx(N: ArrayLike, CA: ArrayLike, C: ArrayLike, method: str='rosetta') -> Tuple[ArrayLike, ArrayLike]:
+def local_mx(N: ArrayLike, CA: ArrayLike, C: ArrayLike, method: str='bisect') -> Tuple[ArrayLike, ArrayLike]:
     """
     Calculates a translation vector and rotation matrix to transform the provided rotamer library from the global
     coordinate frame to the local coordinate frame using the specified method.
@@ -204,7 +204,7 @@ def local_mx(N: ArrayLike, CA: ArrayLike, C: ArrayLike, method: str='rosetta') -
     return origin, rotation_matrix
 
 
-def global_mx(N: ArrayLike, CA: ArrayLike, C: ArrayLike, method: str='rosetta') -> Tuple[ArrayLike, ArrayLike]:
+def global_mx(N: ArrayLike, CA: ArrayLike, C: ArrayLike, method: str='bisect') -> Tuple[ArrayLike, ArrayLike]:
     """
         Calculates a translation vector and rotation matrix to transform the provided rotamer library from the local
     coordinate frame to the global coordinate frame using the specified method.
@@ -576,7 +576,16 @@ def read_sl_library(label: str, user: bool = False) -> Tuple[ArrayLike,...]:
     data = os.path.join(os.path.dirname(__file__), 'data/rotamer_libraries/')
     with np.load(data + subdir + label + '_rotlib.npz', allow_pickle=True) as files:
         lib = dict(files)
+
     del lib['allow_pickle']
+
+    with open(chiLife.DATA_DIR / f'residue_internal_coords/{label}_ic.pkl', 'rb') as f:
+        IC = pickle.load(f)
+        if isinstance(IC, list):
+            IC = IC[0]
+
+    ICn = [IC.copy().set_dihedral(np.deg2rad(r), 1, atom_list=lib['dihedral_atoms']) for r in lib['dihedrals']]
+    lib['internal_coords'] = ICn
 
     if 'sigmas' not in lib:
         lib['sigmas'] = np.array([])
@@ -689,7 +698,7 @@ def read_library(res: str, Phi: float=None, Psi: float=None) -> Tuple[ArrayLike,
 
     if res in SUPPORTED_LABELS and res not in SUPPORTED_BB_LABELS:
         return read_sl_library(res)
-    elif res in USER_LABELS:
+    elif res in USER_LABELS or res[:3] in USER_dLABELS:
         return read_sl_library(res, user=True)
     elif backbone_exists:
         return read_bbdep(res, Phi, Psi)
@@ -874,7 +883,7 @@ def write_labels(file: str, *args: SpinLabel, KDE: bool = True) -> None:
                                                           label.weights[sorted_index])):
                 f.write('MODEL {}\n'.format(mdl))
 
-                [f.write(fmt_str.format(i, label.atom_names[i], label.label, label.chain, int(label.site),
+                [f.write(fmt_str.format(i, label.atom_names[i], label.res[:3], label.chain, int(label.site),
                                         *conformer[i], 1.00, weight * 100, label.atom_types[i]))
                  for i in range(len(label.atom_names))]
                 f.write('TER\n')
@@ -882,10 +891,15 @@ def write_labels(file: str, *args: SpinLabel, KDE: bool = True) -> None:
 
         # Write electron density at electron coordinates
         for k, label in enumerate(args):
+            if not hasattr(label, 'spin_coords'):
+                break
+            if np.any(np.isnan(label.spin_coords)):
+                break
+
             f.write(f'HEADER {label.name}_density\n'.format(label.label, k + 1))
             NO = np.atleast_2d(label.spin_coords)
 
-            if KDE:
+            if KDE and len(label) > 5:
                 # Perform gaussian KDE to determine electron density
                 gkde = gaussian_kde(NO.T, weights=label.weights)
 
@@ -1157,11 +1171,12 @@ def add_dlabel(name: str, pdb: str, increment: int, dihedral_atoms: List[List[Li
                                            IC2i.coords[constraint_atom_idxs[1]], axis=1)
                             for IC1i, IC2i in zip(IC1, IC2)]
 
-    internal_coords = [IC1, IC2, constraint_atom_idxs, constraint_distances]
+    csts = [constraint_atom_idxs, constraint_distances]
 
     # Add internal_coords to data dir
-    with open(DATA_DIR / f'residue_internal_coords/{name}_ic.pkl', 'wb') as f:
-        pickle.dump(internal_coords, f)
+    for suffix, save_data in zip(["", 'i', f'ip{increment}'], [csts, IC1, IC2]):
+        with open(DATA_DIR / f'residue_internal_coords/{name}{suffix}_ic.pkl', 'wb') as f:
+            pickle.dump(save_data, f)
 
     # If multi-state pdb extract rotamers from pdb
     if dihedrals is None:

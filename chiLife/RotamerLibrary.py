@@ -1,5 +1,5 @@
 from copy import deepcopy
-import pickle, logging
+import logging
 import numpy as np
 from itertools import combinations
 from scipy.spatial import cKDTree
@@ -65,7 +65,6 @@ class RotamerLibrary:
             # Perform sapling
             self.coords = np.tile(self.coords[0], (self.sample_size, 1, 1))
             self.mx, self.ori = np.eye(3), np.array([0, 0, 0])
-            self.ic_ori, self.ic_mx = None, None
             self.coords, self.weights, self.internal_coords = self.sample(self.sample_size,
                                                                           off_rotamer=True,
                                                                           return_dihedrals=True)
@@ -103,8 +102,7 @@ class RotamerLibrary:
         self.atoms = [chiLife.Atom(name, atype, idx, self.res, self.site, coord) for idx, (coord, atype, name) in
                       enumerate(zip(self.coords[0], self.atom_types, self.atom_names))]
 
-        self.mx, self.ori = chiLife.global_mx(*np.squeeze(self.backbone))
-        self.ic_ori, self.ic_mx = None, None
+        self.mx, self.ori = chiLife.global_mx(*np.squeeze(self.backbone), method=self.superimposition_method)
 
     @classmethod
     def from_pdb(cls, pdb_file, res=None, site=None, protein=None, chain=None,):
@@ -224,11 +222,11 @@ class RotamerLibrary:
 
         mx, ori = chiLife.global_mx(N, CA, C, method=self.superimposition_method)
 
-        if self.superimposition_method not in {'fit', 'rosetta'}:
-            N, CA, C = chiLife.parse_backbone(self, kind='local')
-            old_ori, ori_mx = chiLife.local_mx(N, CA, C, method=self.superimposition_method)
-            self.coords -= old_ori
-            mx = ori_mx @ mx
+        # if self.superimposition_method not in {'fit', 'rosetta'}:
+        N, CA, C = chiLife.parse_backbone(self, kind='local')
+        old_ori, ori_mx = chiLife.local_mx(N, CA, C, method=self.superimposition_method)
+        self.coords -= old_ori
+        mx = ori_mx @ mx
 
         self.coords = np.einsum('ijk,kl->ijl', self.coords, mx) + ori
 
@@ -240,6 +238,22 @@ class RotamerLibrary:
                                                 f'and name {atom} and not altloc B').positions
                 if len(pos) > 0:
                     self.coords[:, mask] = pos[0]
+
+        self.mx, self.ori = chiLife.global_mx(*np.squeeze(self.backbone), method=self.superimposition_method)
+        self.ICs_to_site()
+
+    def ICs_to_site(self):
+        ic_backbone = np.squeeze(self.internal_coords[0].coords[:3])
+        self.ic_ori, self.ic_mx = chiLife.local_mx(*ic_backbone, method=self.superimposition_method)
+        m2m3 = self.ic_mx @ self.mx
+        op = {}
+        for segid in self.internal_coords[0].chain_operators:
+            new_mx = self.internal_coords[0].chain_operators[segid]['mx'] @ m2m3
+            new_ori = (self.internal_coords[0].chain_operators[segid]['ori'] - self.ic_ori) @ m2m3 + self.ori
+            op[segid] = {'mx': new_mx, 'ori': new_ori}
+
+        for IC in self.internal_coords:
+            IC.chain_operators = op
 
     def sample(self, n=1, off_rotamer=False, **kwargs):
         """Randomly sample a rotamer in the library."""
@@ -286,12 +300,6 @@ class RotamerLibrary:
         coords = internal_coord.to_cartesian()
         coords = coords[self.ic_mask]
 
-        if self.ic_ori is None:
-            self.ic_ori, self.ic_mx = chiLife.local_mx(*np.squeeze(coords[self.backbone_idx]))
-
-        coords = (coords - self.ic_ori) @ self.ic_mx
-        coords = coords @ self.mx + self.ori
-
         if kwargs.setdefault('return_dihedrals', False):
             return coords, new_weight, internal_coord
         else:
@@ -322,12 +330,6 @@ class RotamerLibrary:
             coords = ic.set_dihedral(dihedrals, 1, self.dihedral_atoms).to_cartesian()
             coords = coords[self.ic_mask]
 
-            if self.ic_ori is None:
-                self.ic_ori, self.ic_mx = chiLife.local_mx(*np.squeeze(coords[self.backbone_idx]))
-
-            coords = (coords - self.ic_ori) @ self.ic_mx
-            coords = coords @ self.mx + self.ori
-
             dist = cdist(coords[self.side_chain_idx], self.protein.atoms.positions[protein_clash_idx]).ravel()
             dist2 = np.linalg.norm(coords[a] - coords[b], axis=1)
             with np.errstate(divide='ignore'):
@@ -344,7 +346,7 @@ class RotamerLibrary:
             bounds = np.c_[lb, ub]
             xopt = opt.minimize(objective, x0=self._rdihedrals[i], args=IC, bounds=bounds)
 
-            self.coords[i] = (IC.to_cartesian()[self.ic_mask] - self.ic_ori) @ self.ic_mx @ self.mx + self.ori
+            self.coords[i] = IC.to_cartesian()[self.ic_mask]
             self.weights[i] = self.weights[i] * np.exp(-xopt.fun / (chiLife.GAS_CONST * 298))
 
         self.weights /= self.weights.sum()
@@ -436,8 +438,8 @@ class RotamerLibrary:
 
         # Get library
         logging.info(f'Using backbone dependent library with Phi={Phi}, Psi={Psi}')
-
-        return chiLife.read_library(self.res, Phi, Psi)
+        lib = chiLife.read_library(self.res, Phi, Psi)
+        return deepcopy(lib)
 
     def guess_chain(self):
         if self.protein is None:

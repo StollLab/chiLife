@@ -21,8 +21,14 @@ def test_read_dunbrack( res):
 
     dlib = chiLife.read_bbdep(res, -70, 90)
 
+    dlib_mx, dlib_ori = chiLife.global_mx(*np.squeeze(dlib['coords'][0, :3]))
+    dlib['coords'] = np.einsum('ijk,kl->ijl', dlib['coords'], dlib_mx) + dlib_ori
+
     with np.load(f'test_data/{res}_{phi}_{psi}.npz', allow_pickle=True) as f:
         dlib_ans = {key: f[key] for key in f if key != 'allow_pickle'}
+
+    dlib_ans_mx, dlib_ans_ori = chiLife.global_mx(*np.squeeze(dlib_ans['coords'][0, :3]))
+    dlib_ans['coords'] = np.einsum('ijk,kl->ijl', dlib_ans['coords'], dlib_ans_mx) + dlib_ans_ori
 
     for key in dlib_ans:
         if dlib_ans[key].dtype not in [np.dtype(f'<U{i}') for i in range(1, 5)]:
@@ -128,7 +134,6 @@ def test_mutate4():
     np.testing.assert_almost_equal(S238A.coords[0], S238A_pos, decimal=6)
 
 
-
 @pytest.mark.parametrize(['inp', 'ans'], zip(gd_kwargs, gd_ans))
 def test_get_dihedral(inp, ans):
     dihedral = ICs.get_dihedral(**inp)
@@ -150,6 +155,13 @@ def test_ProteinIC_save_pdb():
     os.remove('test_data/postwrite_alphabet_peptide.pdb')
     assert test == truth
 
+def test_ic_to_site():
+    backbone = ubq.select_atoms('resnum 28 and name N CA C').positions
+    r1c = mda.Universe(r'..\chiLife\data\rotamer_libraries\residue_pdbs\R1C.pdb')
+    R1ic = chiLife.get_internal_coords(r1c)
+    R1ic.to_site(*backbone)
+
+    np.testing.assert_almost_equal(R1ic.coords[1], backbone[1])
 
 def test_has_clashes():
     assert not ICs.has_clashes()
@@ -170,3 +182,8 @@ def test_polypro_IC():
 @pytest.mark.parametrize('res', chiLife.SUPPORTED_RESIDUES)
 def test_sort_and_internal_coords(res):
     pass
+
+def test_PRO_ics():
+    pro = mda.Universe('../chiLife/data/rotamer_libraries/residue_pdbs/pro.pdb')
+    pro_ic = chiLife.get_internal_coords(pro)
+    assert ('CD', 'CG', 'CB', 'CA') in pro_ic.ICs[1][1]

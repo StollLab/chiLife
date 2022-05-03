@@ -135,7 +135,7 @@ class ProteinIC:
         else:
             bonded_pairs = {(a, b) for a, b in self.bonded_pairs}
             possible_bonds = set(itertools.combinations(range(len(self.atoms)), 2))
-            self.nonbonded_pairs = np.array(possible_bonds - bonded_pairs)
+            self.nonbonded_pairs = np.array(list(possible_bonds - bonded_pairs), dtype=int)
 
         self.perturbed = False
         self._coords = None
@@ -174,10 +174,11 @@ class ProteinIC:
             op = {chain: {'ori': np.array([0, 0, 0]), 'mx': np.identity(3)} for chain in self.ICs}
 
         self._chain_operators = op
+        self.perturbed = True
 
     @property
     def coords(self):
-        if (self._coords is None) or not self.perturbed:
+        if (self._coords is None) or self.perturbed:
             self._coords = self.to_cartesian()
             self.perturbed = False
         return self._coords 
@@ -198,7 +199,7 @@ class ProteinIC:
         :return coords: ndarray
             ProteinIC object with new dihedral angle(s)
         """
-        self._perturbed = True
+        self.perturbed = True
 
         if chain is None and len(self.ICs) == 1:
             chain = list(self.ICs.keys())[0]
@@ -299,6 +300,20 @@ class ProteinIC:
 
         return np.concatenate(coord_arrays)
 
+    def to_site(self, N, CA, C, method='bisect'):
+        new_co = {}
+        gmx, gori = chiLife.global_mx(N, CA, C)
+        lori, lmx = chiLife.local_mx(*np.squeeze(self.coords[:3]), method=method)
+        m2m3 = lmx@gmx
+        for segid in self.chain_operators:
+
+            new_mx = self.chain_operators[segid]['mx'] @ m2m3
+            new_ori = (self.chain_operators[segid]['ori'] - lori) @ m2m3 + gori
+            new_co[segid] = {'mx': new_mx, 'ori': new_ori}
+
+        self.chain_operators = new_co
+        self.perturbed = True
+
     def save_pdb(self, filename: str, mode='w'):
         """
         Save a pdb structure file from a ProteinIC object
@@ -312,7 +327,7 @@ class ProteinIC:
         if 'a' in mode:
             with open(str(filename), mode, newline='\n') as f:
                 f.write("MODEL\n")
-            chiLife.save_pdb(filename, self.atoms, self.to_cartesian(), mode=mode)
+            chiLife.save_pdb(filename, self.atoms, self.coords, mode=mode)
             with open(str(filename), mode, newline='\n') as f:
                 f.write("ENDMDL\n")
         else:
@@ -492,7 +507,7 @@ def get_internal_coords(mol: Union[MDAnalysis.Universe, MDAnalysis.AtomGroup],
     for seg in protein.segments:
         segatoms = protein.atoms[protein.atoms.segids == seg.segid]
         segid += 1
-        offset = seg.atoms[0].index
+        offset = segatoms[0].index
         mx, ori = chiLife.ic_mx(*U.atoms[offset:offset + 3].positions)
 
         chain_operators[segid] = {'ori': ori, 'mx': mx}
@@ -500,7 +515,12 @@ def get_internal_coords(mol: Union[MDAnalysis.Universe, MDAnalysis.AtomGroup],
         ICatoms = [get_ICAtom(atom, offset=offset, preferred_dihedral=preferred_dihedrals) for atom in segatoms]
         all_ICAtoms[segid] = get_ICResidues(ICatoms)
 
-    return ProteinIC(all_ICAtoms, chain_operators=chain_operators, bonded_pairs=U.bonds.to_indices())
+    # Get bonded pairs within selection
+    bonded_pairs = protein.bonds.to_indices()
+    mask = np.isin(bonded_pairs, protein.indices).prod(axis=1, dtype=bool)
+    bonded_pairs = bonded_pairs[mask]
+
+    return ProteinIC(all_ICAtoms, chain_operators=chain_operators, bonded_pairs=bonded_pairs)
 
 
 def save_rotlib(name: str, atoms: ArrayLike, coords: ArrayLike = None) -> None:
@@ -565,7 +585,7 @@ def save_pdb(name: Union[str, Path], atoms: ArrayLike, coords: ArrayLike, mode: 
 
     with open(name, mode, newline='\n') as f:
         for atom, coord in zip(atoms, coords):
-            f.write(f"ATOM  {atom.index + 1:5d}  {atom.name:<4s}{atom.resn:3s} {'A':1s}{atom.resi:4d}   "
+            f.write(f"ATOM  {atom.index + 1:5d} {atom.name:^4s} {atom.resn:3s} {'A':1s}{atom.resi:4d}    "
                     f"{coord[0]:8.3f}{coord[1]:8.3f}{coord[2]:8.3f}{1.0:6.2f}{1.0:6.2f}          {atom.atype:>2s}  \n")
 
 

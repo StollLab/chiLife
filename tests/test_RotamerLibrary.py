@@ -168,3 +168,8 @@ def test_guess_chain2(resi, ans):
 def test_guess_chain_fail(resi):
     with pytest.raises(ValueError) as e_info:
         SL = chiLife.SpinLabel('R1C', resi, exou)
+
+def test_label_as_library():
+    R1C = chiLife.RotamerLibrary('R1C', site=28, protein=ubq)
+    for ic in R1C.internal_coords:
+        np.testing.assert_almost_equal(ic.coords[2], [38.73227962, 26.58109478, 12.6243569])

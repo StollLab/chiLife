@@ -1,10 +1,8 @@
-import logging
-import multiprocessing as mp
+import pickle
 from functools import partial
 import numpy as np
 from scipy.spatial.distance import cdist
 from scipy.spatial import cKDTree
-import MDAnalysis as mda
 from .RotamerLibrary import RotamerLibrary
 import chiLife
 
@@ -51,7 +49,7 @@ class SpinLabel(RotamerLibrary):
         self.label = label
 
         # Parse important indices
-        self.spin_idx = np.argwhere(np.isin(self.atom_names, chiLife.SPIN_ATOMS[label]))
+        self.spin_idx = np.argwhere(np.isin(self.atom_names, chiLife.SPIN_ATOMS[label[:3]]))
 
     @property
     def spin_coords(self):
@@ -169,7 +167,7 @@ class SpinLabel(RotamerLibrary):
 
 class dSpinLabel:
 
-    def __init__(self, label, site, increment, chain='A', protein=None, **kwargs):
+    def __init__(self, label, site, increment, protein=None, chain=None, **kwargs):
         """
 
         """
@@ -178,17 +176,19 @@ class dSpinLabel:
         self.site = site
         self.site2 = site + increment
         self.increment = increment
-        self.chain = chain
+        self.kwargs = kwargs
+
         self.protein = protein
+        self.chain = chain if chain is not None else self.guess_chain()
         self.protein_tree = self.kwargs.setdefault('protein_tree', None)
 
-        lib = self.get_lib()
-        self.coords, self.internal_coords, self.weights, self.atom_types, \
-        self.atom_names, self.dihedrals, self.dihedral_atoms, self.displacement = lib
+        self.name = self.res
+        if self.site is not None:
+            self.name = f'{self.site}_{self.site2}_{self.res}'
+        if self.chain is not None:
+            self.name += f'_{self.chain}'
 
-        self.site2 = site + lib[-1]
-        self.kwargs = kwargs
-        self.selstr = f'resid {self.site1} {self.site2} and segid {chain} and not altloc B'
+        self.selstr = f'resid {self.site} {self.site2} and segid {self.chain} and not altloc B'
 
         self.forgive = kwargs.setdefault('forgive', 1.)
         self.clash_radius = kwargs.setdefault('clash_radius', 14.)
@@ -196,12 +196,37 @@ class dSpinLabel:
         self.superimposition_method = kwargs.setdefault('superimposition_method', 'bisect').lower()
         self.dihedral_sigma = kwargs.setdefault('dihedral_sigma', 25)
 
-        if 'weighted_sampling' in kwargs:
-            self.weighted_sampling = True
+        self.eval_clash = kwargs['eval_clash'] = False
 
-        self.SC1 = chiLife.RotamerLibrary.from_dihedrals()
-        self.SC2 = chiLife.RotamerLibrary.from_dihedrals()
-        # self.SC3 =
+        self.get_lib()
+
+    def protein_setup(self):
+        self.protein = self.protein.select_atoms('not (byres name OH2 or resname HOH)')
+        self.clash_ignore_idx = \
+            self.protein.select_atoms(f'resid {self.site} and segid {self.chain}').ix
+
+        self.resindex = self.protein.select_atoms(self.selstr).residues[0].resindex
+        self.segindex = self.protein.select_atoms(self.selstr).residues[0].segindex
+
+        if self.protein_tree is None:
+            self.protein_tree = cKDTree(self.protein.atoms.positions)
+
+        if self.minimize:
+            self._minimize()
+
+
+    def guess_chain(self):
+        if self.protein is None:
+            chain = 'A'
+        elif len(nr_segids := set(self.protein.segments.segids)) == 1:
+            chain = self.protein.segments.segids[0]
+        elif np.isin(self.protein.residues.resnums, self.site).sum() == 0:
+            raise ValueError(f'Residue {self.site} is not present on the provided protein')
+        elif np.isin(self.protein.residues.resnums, self.site).sum() == 1:
+            chain = self.protein.select_atoms(f'resid {self.site}').segids[0]
+        else:
+            raise ValueError(f'Residue {self.site} is present on more than one chain. Please specify the desired chain')
+        return chain
 
     def get_lib(self):
         PhiSel, PsiSel = None, None
@@ -215,6 +240,52 @@ class dSpinLabel:
         Phi = None if PhiSel is None else chiLife.get_dihedral(PhiSel.positions)
         Psi = None if PsiSel is None else chiLife.get_dihedral(PsiSel.positions)
 
-        return chiLife.read_library(self.res, Phi, Psi)
+        with open(chiLife.DATA_DIR/f'residue_internal_coords/{self.label}_ic.pkl', 'rb') as f:
+            self.cst_idxs, self.csts = pickle.load(f)
 
-    # def protein_setup(self):
+        self.SL1 = chiLife.SpinLabel(self.label + 'i', self.site, self.protein, self.chain, **self.kwargs)
+        self.SL2 = chiLife.SpinLabel(self.label + f'ip{self.increment}', self.site2, self.protein, self.chain, **self.kwargs)
+
+    def save_pdb(self, name=None):
+        if name is None:
+            name = self.name + '.pdb'
+        if not name.endswith('.pdb'):
+            name += '.pdb'
+
+        chiLife.save(name, self.SL1, self.SL2)
+
+    # def _minimize(self):
+    #
+    #     def objective(dihedrals, ic1, ic2, opt):
+    #         coords1 = ic1.set_dihedral(dihedrals[:len(ic1.dihedral_atoms)], 1, ic1.dihedral_atoms).to_cartesian()
+    #         coords2 = ic2.set_dihedral(dihedrals[-len(ic2.dihedral_atoms):], 1, ic2.dihedral_atoms).to_cartesian()
+    #
+    #         distances = np.linal.norm(coords1[self.cst_idxs[0]] - coords2[self.cst_idxs[1]], axis=1)
+    #         diff = distances - opt
+    #         return diff@diff
+    #
+    #         coords = (coords - self.ic_ori) @ self.ic_mx
+    #         coords = coords @ self.mx + self.ori
+    #
+    #         dist = cdist(coords[self.side_chain_idx], self.protein.atoms.positions[protein_clash_idx]).ravel()
+    #         dist2 = np.linalg.norm(coords[a] - coords[b], axis=1)
+    #         with np.errstate(divide='ignore'):
+    #             E1 = self.energy_func(dist[dist < 10], rmin_ij[dist < 10], eps_ij[dist < 10]).sum()
+    #             E2 = self.energy_func(dist2, ab_lj_radii, ab_lj_eps).sum()
+    #
+    #         E = E1 + E2
+    #         return E
+    #
+    #     for i, IC in enumerate(self.internal_coords):
+    #         d0 = IC.get_dihedral(1, self.dihedral_atoms)
+    #         lb = d0 - np.deg2rad(self.dihedral_sigma) / 2
+    #         ub = d0 + np.deg2rad(self.dihedral_sigma) / 2
+    #         bounds = np.c_[lb, ub]
+    #         xopt = opt.minimize(objective, x0=self._rdihedrals[i], args=IC, bounds=bounds)
+    #
+    #         self.coords[i] = (IC.to_cartesian()[self.ic_mask] - self.ic_ori) @ self.ic_mx @ self.mx + self.ori
+    #         self.weights[i] = self.weights[i] * np.exp(-xopt.fun / (chiLife.GAS_CONST * 298))
+    #
+    #     self.weights /= self.weights.sum()
+    #     self.trim()
+    # # def protein_setup(self):

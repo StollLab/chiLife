@@ -383,6 +383,16 @@ class ProteinIC:
 
         return dihs
 
+    def shift_resnum(self, delta):
+        for segid in self.ICs:
+            for resi in list(self.ICs[segid].keys()):
+                self.ICs[segid][resi + delta] = self.ICs[segid][resi]
+                del self.ICs[segid][resi]
+                for atom in self.ICs[segid][resi + delta].values():
+                    atom.resi += delta
+                    atom.dihedral_resi += delta
+
+        self.resis = [key for i in self.ICs for key in self.ICs[i]]
 
 def get_ICAtom(atom: mda.core.groups.Atom, offset: int = 0, preferred_dihedral: List = None) -> ICAtom:
     """
@@ -644,6 +654,20 @@ def mutate(protein: MDAnalysis.Universe,
     :return U: MDAnalysis.Universe
         New Universe with a copy of the spin labeled protein with the highest probability rotamer
     """
+
+    # Check for dRotamerLibraries in rotlibs
+    trotlibs = []
+    for lib in rotlibs:
+        if isinstance(lib, chiLife.RotamerLibrary):
+            trotlibs.append(lib)
+        elif isinstance(lib, chiLife.dSpinLabel):
+            trotlibs.append(lib.SL1)
+            trotlibs.append(lib.SL2)
+        else:
+            raise TypeError(f'mutate only accepts RotamerLibrary, SpinLabel and dSpinLabel objects, not {lib}.')
+
+    rotlibs = trotlibs
+
     if add_missing_atoms:
         if len(rotlibs) > 0 and all(not hasattr(lib, 'H_mask') for lib in rotlibs):
             use_H = True

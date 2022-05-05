@@ -42,14 +42,17 @@ def test_bbdep_construction1():
     SL1 = chiLife.SpinLabel('R1C', site=211, chain='A', protein=U, energy_func=efunc, forgive=0.5)
     SL2 = chiLife.SpinLabel('R1C', site=295, chain='A', protein=U, energy_func=efunc, forgive=0.5)
 
-    chiLife.save('test_data/bbdep_test.pdb', SL1, SL2, protein='test_data/1omp.pdb')
+    chiLife.save('bbdep.pdb', SL1, SL2, protein='test_data/1omp.pdb')
 
-    with open('test_data/bbdep_test.pdb', 'rb') as f:
+    with open('bbdep.pdb', 'rb') as f:
         test = hashlib.md5(f.read()).hexdigest()
 
-    os.remove('test_data/bbdep_test.pdb')
+    with open('test_data/bbdep.pdb', 'rb') as f:
+        ans = hashlib.md5(f.read()).hexdigest()
 
-    assert hashes['bbdep_test.pdb'] == test
+    os.remove('bbdep.pdb')
+
+    assert test == ans
 
 
 @pytest.mark.parametrize('label', labels)

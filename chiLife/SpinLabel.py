@@ -1,8 +1,10 @@
 import pickle
+import logging
 from functools import partial
 import numpy as np
 from scipy.spatial.distance import cdist
 from scipy.spatial import cKDTree
+import scipy.optimize as opt
 from .RotamerLibrary import RotamerLibrary
 import chiLife
 
@@ -195,15 +197,17 @@ class dSpinLabel:
         self._clash_ori_inp = kwargs.setdefault('clash_ori', 'cen')
         self.superimposition_method = kwargs.setdefault('superimposition_method', 'bisect').lower()
         self.dihedral_sigma = kwargs.setdefault('dihedral_sigma', 25)
-
+        self.minimize = kwargs.pop('minimize', True)
         self.eval_clash = kwargs['eval_clash'] = False
-
+        self.energy_func = kwargs.setdefault('energy_func', chiLife.get_lj_rep)
         self.get_lib()
+        self.protein_setup()
+        self.sub_labels = (self.SL1, self.SL2)
 
     def protein_setup(self):
         self.protein = self.protein.select_atoms('not (byres name OH2 or resname HOH)')
         self.clash_ignore_idx = \
-            self.protein.select_atoms(f'resid {self.site} and segid {self.chain}').ix
+            self.protein.select_atoms(f'resid {self.site} {self.site2} and segid {self.chain}').ix
 
         self.resindex = self.protein.select_atoms(self.selstr).residues[0].resindex
         self.segindex = self.protein.select_atoms(self.selstr).residues[0].segindex
@@ -214,6 +218,8 @@ class dSpinLabel:
         if self.minimize:
             self._minimize()
 
+        if self.eval_clash:
+            self.evaluate()
 
     def guess_chain(self):
         if self.protein is None:
@@ -254,38 +260,139 @@ class dSpinLabel:
 
         chiLife.save(name, self.SL1, self.SL2)
 
-    # def _minimize(self):
-    #
-    #     def objective(dihedrals, ic1, ic2, opt):
-    #         coords1 = ic1.set_dihedral(dihedrals[:len(ic1.dihedral_atoms)], 1, ic1.dihedral_atoms).to_cartesian()
-    #         coords2 = ic2.set_dihedral(dihedrals[-len(ic2.dihedral_atoms):], 1, ic2.dihedral_atoms).to_cartesian()
-    #
-    #         distances = np.linal.norm(coords1[self.cst_idxs[0]] - coords2[self.cst_idxs[1]], axis=1)
-    #         diff = distances - opt
-    #         return diff@diff
-    #
-    #         coords = (coords - self.ic_ori) @ self.ic_mx
-    #         coords = coords @ self.mx + self.ori
-    #
-    #         dist = cdist(coords[self.side_chain_idx], self.protein.atoms.positions[protein_clash_idx]).ravel()
-    #         dist2 = np.linalg.norm(coords[a] - coords[b], axis=1)
-    #         with np.errstate(divide='ignore'):
-    #             E1 = self.energy_func(dist[dist < 10], rmin_ij[dist < 10], eps_ij[dist < 10]).sum()
-    #             E2 = self.energy_func(dist2, ab_lj_radii, ab_lj_eps).sum()
-    #
-    #         E = E1 + E2
-    #         return E
-    #
-    #     for i, IC in enumerate(self.internal_coords):
-    #         d0 = IC.get_dihedral(1, self.dihedral_atoms)
-    #         lb = d0 - np.deg2rad(self.dihedral_sigma) / 2
-    #         ub = d0 + np.deg2rad(self.dihedral_sigma) / 2
-    #         bounds = np.c_[lb, ub]
-    #         xopt = opt.minimize(objective, x0=self._rdihedrals[i], args=IC, bounds=bounds)
-    #
-    #         self.coords[i] = (IC.to_cartesian()[self.ic_mask] - self.ic_ori) @ self.ic_mx @ self.mx + self.ori
-    #         self.weights[i] = self.weights[i] * np.exp(-xopt.fun / (chiLife.GAS_CONST * 298))
-    #
-    #     self.weights /= self.weights.sum()
-    #     self.trim()
-    # # def protein_setup(self):
+    def _minimize(self):
+
+        def objective(dihedrals, ic1, ic2, opt):
+            coords1 = ic1.set_dihedral(dihedrals[:len(self.SL1.dihedral_atoms)], 1, self.SL1.dihedral_atoms).to_cartesian()
+            coords2 = ic2.set_dihedral(dihedrals[-len(self.SL2.dihedral_atoms):], 1, self.SL2.dihedral_atoms).to_cartesian()
+
+            distances = np.linalg.norm(coords1[self.cst_idxs[:, 0]] - coords2[self.cst_idxs[:, 1]], axis=1)
+            diff = distances - opt
+            return diff@diff
+
+        scores = np.empty_like(self.weights)
+        for i, (ic1, ic2) in enumerate(zip(self.SL1.internal_coords, self.SL2.internal_coords)):
+            d0 = np.concatenate([ic1.get_dihedral(1, self.SL1.dihedral_atoms),
+                                 ic2.get_dihedral(1, self.SL2.dihedral_atoms)])
+            lb = [-np.pi] * len(d0)  # d0 - np.deg2rad(40)  #
+            ub = [np.pi] * len(d0)   # d0 + np.deg2rad(40) #
+            bounds = np.c_[lb, ub]
+            xopt = opt.minimize(objective, x0=d0, args=(ic1, ic2, self.csts[i]), bounds=bounds)
+            self.SL1.coords[i] = ic1.coords[self.SL1.H_mask]
+            self.SL2.coords[i] = ic2.coords[self.SL2.H_mask]
+            scores[i] = xopt.fun
+
+        scores /= len(self.cst_idxs)
+        scores -= scores.min()
+
+        self.weights *= np.exp(-scores) / np.exp(-scores).sum()
+        self.weights /= self.weights.sum()
+
+    @property
+    def weights(self):
+        return self.SL1.weights
+
+    @weights.setter
+    def weights(self, value):
+        self.SL1.weights = value
+        self.SL2.weights = value
+
+    @property
+    def coords(self):
+        return np.concatenate([self.SL1.coords, self.SL2.coords], axis=1)
+
+    @coords.setter
+    def coords(self, value):
+        if value.shape[1] != self.SL1.coords.shape[1] + self.SL2.coords.shape[1]:
+            raise ValueError(f'The provided coordinates do not match the number of atoms of this label ({self.label})')
+
+        self.SL1.coords = value[:, :self.SL1.coords.shape[1]]
+        self.SL2.coords = value[:, -self.SL2.coords.shape[1]:]
+
+    @property
+    def spin_coords(self):
+        sc_matrix = [SL.spin_coords for SL in self.sub_labels if not np.any(np.isnan(SL.spin_coords))]
+        return np.sum(sc_matrix, axis=0) / len(sc_matrix)
+
+    @property
+    def spin_centroid(self):
+        return np.average(self.spin_coords, weights=self.weights, axis=0)
+
+    @property
+    def centroid(self):
+        return self.coords.mean(axis=(0, 1))
+
+    @property
+    def clash_ori(self):
+
+        if isinstance(self._clash_ori_inp, (np.ndarray, list)):
+            if len(self._clash_ori_inp) == 3:
+                return self._clash_ori_inp
+
+        elif isinstance(self._clash_ori_inp, str):
+            if self._clash_ori_inp in ['cen', 'centroid']:
+                return self.centroid()
+
+            elif (ori_name := self._clash_ori_inp.upper()) in self.atom_names:
+                return np.squeeze(self.coords[0][ori_name == self.atom_names])
+
+        else:
+            raise ValueError(f'Unrecognized clash_ori option {self._clash_ori_inp}. Please specify a 3D vector, an '
+                             f'atom name or `centroid`')
+
+        return self._clash_ori
+
+    @clash_ori.setter
+    def clash_ori(self, inp):
+        self._clash_ori_inp = inp
+
+    @property
+    def side_chain_idx(self):
+        return np.concatenate([self.SL1.side_chain_idx, self.SL2.side_chain_idx + len(self.SL1.atom_names)])
+
+    @property
+    def rmin2(self):
+        return np.concatenate([self.SL1.rmin2, self.SL2.rmin2])
+
+    @property
+    def eps(self):
+        return np.concatenate([self.SL1.eps, self.SL2.eps])
+
+    def trim(self):
+        self.SL1.trim()
+        self.SL2.trim()
+
+    def evaluate(self, environment, environment_tree=None, ignore_idx=None, temp=298):
+
+        if self.protein_tree is None:
+            self.protein_tree = cKDTree(self.protein.atoms.positions)
+
+        self.evaluate_clashes(self.protein, self.protein_tree, ignore_idx=self.clash_ignore_idx)
+        self.trim()
+
+    def evaluate_clashes(self, environment, environment_tree=None, ignore_idx=None, temp=298):
+        """
+        Measure lennard-jones clashes of the spin label in a given environment and reweight/trim rotamers of the
+        SpinLabel.
+        :param environment: MDAnalysis.Universe, MDAnalysis.AtomGroup
+            The protein environment to be considered when evaluating clashes.
+        :param environment_tree: cKDtree
+            k-dimensional tree of atom coordinates of the environment.
+        :param ignore_idx: array-like
+            list of atom coordinate indices to ignore when evaluating clashes. Usually the native amino acid at the
+            SpinLable site.
+        :param temp: float
+            Temperature to consider when re-weighting rotamers.
+        """
+
+        if environment_tree is None:
+            environment_tree = cKDTree(environment.positions)
+
+        probabilities = chiLife.evaluate_clashes(ori=self.clash_ori, label_library=self.coords[:, self.side_chain_idx],
+                                                 label_lj_rmin2=self.rmin2, label_lj_eps=self.eps,
+                                                 environment=environment, environment_tree=environment_tree,
+                                                 ignore_idx=ignore_idx, temp=temp, energy_func=self.energy_func,
+                                                 clash_radius=self.clash_radius, forgive=self.forgive)
+
+        self.weights, self.partition = chiLife.reweight_rotamers(probabilities, self.weights, return_partition=True)
+        logging.info(f'Relative partition function: {self.partition:.3}')

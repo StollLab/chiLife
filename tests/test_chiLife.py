@@ -240,6 +240,31 @@ def test_MMM():
 
     chiLife.set_lj_params('charmm')
 
+
+def test_save():
+    L20R1 = chiLife.SpinLabel('R1C', 20, protein)
+    S238T = chiLife.RotamerLibrary('THR', 238, protein)
+    A318DHC = chiLife.dSpinLabel('DHC', 318, 4, protein)
+
+    chiLife.save(L20R1, S238T, A318DHC, protein)
+
+    with open(f'test_data/test_save.pdb', 'r') as f:
+        ans = hashlib.md5(f.read().encode('utf-8')).hexdigest()
+
+    with open('No_Name_Protein_many_labels.pdb', 'r') as f:
+        test = hashlib.md5(f.read().encode('utf-8')).hexdigest()
+
+    os.remove('No_Name_Protein_many_labels.pdb')
+
+    assert ans == test
+
+
+def test_save_fail():
+    with pytest.raises(TypeError):
+        chiLife.save('tmp', np.array([1, 2, 3]))
+
+
+
 # class TestProtein:
 #
 #     def test_load(self):

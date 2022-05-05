@@ -3,12 +3,15 @@ import shutil
 import tempfile
 from collections.abc import Sized
 from io import StringIO
-from itertools import combinations
+from itertools import combinations, product
 
 from typing import Callable
 from unittest import mock
 
+import MDAnalysis
 import MDAnalysis.core.topologyattrs
+import MDAnalysis.transformations
+import numpy as np
 from memoization import cached
 from scipy.signal import fftconvolve
 from scipy.stats import gaussian_kde
@@ -829,11 +832,10 @@ def save(file_name: str, *labels: SpinLabel, protein: Union[mda.Universe, mda.At
         if isinstance(protein, str):
             f = Path(protein)
             file_name = f.name.rstrip('.pdb')
-        elif hasattr(protein, 'atoms'):
-            if protein.filename is not None:
-                file_name = protein.filename.rstrip('.pdb')
-            else:
-                file_name = 'No_Name_Protein'
+        elif getattr(protein, 'filename', None) is not None:
+            file_name = protein.filename.rstrip('.pdb')
+        else:
+            file_name = 'No_Name_Protein'
 
         if 0 < len(labels) < 3:
             for label in labels:
@@ -847,15 +849,26 @@ def save(file_name: str, *labels: SpinLabel, protein: Union[mda.Universe, mda.At
             print(protein, file_name)
             shutil.copy(protein, file_name)
         elif isinstance(protein, mda.Universe) or isinstance(protein, MDAnalysis.AtomGroup):
-            protein.atoms.write(file_name)
+            write_protein(file_name, protein)
         else:
             raise TypeError('`protein` must be a string or an MDAnalysis Universe/AtomGroup object')
 
     if len(labels) > 0:
         write_labels(file_name, *labels, **kwargs)
 
+def write_protein(file: str, protein: Union[mda.Universe, mda.AtomGroup], **kwargs) -> None:
 
-def write_labels(file: str, *args: SpinLabel, KDE: bool = True) -> None:
+    fmt_str = "ATOM  {:5d} {:^4s} {:3s} {:1s}{:4d}    {:8.3f}{:8.3f}{:8.3f}{:6.2f}{:6.2f}          {:>2s}  \n"
+    with open(file, 'w') as f:
+        f.write(f'HEADER {file.rstrip(".pdb")}\n')
+        for mdl, ts in enumerate(protein.universe.trajectory):
+            f.write(f'MODEL {mdl}\n')
+            [f.write(fmt_str.format(atom.index, atom.name, atom.resname[:3], atom.segid, atom.resnum,
+                                    *atom.position, 1.00, 1.0, atom.type)) for atom in protein.atoms]
+            f.write('TER\n')
+            f.write('ENDMDL\n')
+
+def write_labels(file: str, *args: SpinLabel, KDE: bool = True, **kwargs) -> None:
     """
     Lower level helper function for save. Loops over SpinLabel objects and appends atoms and electron coordinates to the
     provided file.
@@ -870,11 +883,23 @@ def write_labels(file: str, *args: SpinLabel, KDE: bool = True) -> None:
         Switch to perform Kernel Density Estimate (KDE) on spin label weights to produce a smooth surface to
         visualize pseudo-spin density with b-factor
     """
-    fmt_str = "ATOM  {:5d} {:<4s} {:3s} {:1s}{:4d}    {:8.3f}{:8.3f}{:8.3f}{:6.2f}{:6.2f}          {:>2s}\n"
+
+    # Check for dSpinLables
+    rotlibs = []
+    for arg in args:
+        if isinstance(arg, chiLife.RotamerLibrary):
+            rotlibs.append(arg)
+        elif isinstance(arg, chiLife.dSpinLabel):
+            rotlibs.append(arg.SL1)
+            rotlibs.append(arg.SL2)
+        else:
+            raise TypeError(f'Cannot save {arg}. *args must be RotamerLibrary SpinLabel or dSpinLabal objects')
+
+    fmt_str = "ATOM  {:5d} {:^4s} {:3s} {:1s}{:4d}    {:8.3f}{:8.3f}{:8.3f}{:6.2f}{:6.2f}          {:>2s}  \n"
     with open(file, 'a+', newline='\n') as f:
         # Write spin label models
         f.write('\n')
-        for k, label in enumerate(args):
+        for k, label in enumerate(rotlibs):
             f.write(f'HEADER {label.name}\n')
 
             # Save models in order of weight
@@ -890,16 +915,16 @@ def write_labels(file: str, *args: SpinLabel, KDE: bool = True) -> None:
                 f.write('ENDMDL\n')
 
         # Write electron density at electron coordinates
-        for k, label in enumerate(args):
+        for k, label in enumerate(rotlibs):
             if not hasattr(label, 'spin_coords'):
-                break
+                continue
             if np.any(np.isnan(label.spin_coords)):
-                break
+                continue
 
             f.write(f'HEADER {label.name}_density\n'.format(label.label, k + 1))
             NO = np.atleast_2d(label.spin_coords)
 
-            if KDE and len(label) > 5:
+            if KDE and np.all(np.linalg.eigh(np.cov(NO.T))[0] > 0):
                 # Perform gaussian KDE to determine electron density
                 gkde = gaussian_kde(NO.T, weights=label.weights)
 
@@ -908,7 +933,7 @@ def write_labels(file: str, *args: SpinLabel, KDE: bool = True) -> None:
             else:
                 vals = label.weights
 
-            [f.write(fmt_str.format(i, 'NEN', label.label, label.chain, int(label.site),
+            [f.write(fmt_str.format(i, 'NEN', label.label[:3], label.chain, int(label.site),
                                     *NO[i], 1.00, vals[i] * 100, 'N'))
              for i in range(len(vals))]
 
@@ -1158,20 +1183,24 @@ def add_dlabel(name: str, pdb: str, increment: int, dihedral_atoms: List[List[Li
     IC2 = [chiLife.get_internal_coords(struct.select_atoms(f'resnum {resi + increment}'), resname=pdb_resname,
                                        preferred_dihedrals=dihedral_atoms[1]) for ts in struct.trajectory]
 
-    csmin1 = max([i for i, atom in enumerate(IC1[0]) if
-                  any(atom.name in dihedral_def for dihedral_def in dihedral_atoms[0])])
+    for ic1, ic2 in zip(IC1, IC2):
+        ic1.shift_resnum(-(resi-1))
+        ic2.shift_resnum(-(resi + increment - 1))
 
-    csmin2 = max([i for i, atom in enumerate(IC2[0]) if
-                  any(atom.name in dihedral_def for dihedral_def in dihedral_atoms[1])])
+    # Identify atoms that dont move with respect to each other but move with the dihedrals
+    maxindex1 = max([IC1[0].ICs[1][1][tuple(d[::-1])].index for d in dihedral_atoms[0]]) - 1
+    maxindex2 = max([IC2[0].ICs[1][1][tuple(d[::-1])].index for d in dihedral_atoms[1]]) - 1
 
-    constraint_atom_idxs = np.array([[csmin1, csmin1 + 1, csmin1, csmin1 + 1],
-                                     [csmin2, csmin2 + 1, csmin2 + 1, csmin2]], dtype=int)
+    # Store 4 pairs between SLs as constriants
+    cst_pool1 = [atom.index for atom in IC1[0].ICs[1][1].values() if atom.index >= maxindex1]
+    cst_pool2 = [atom.index for atom in IC2[0].ICs[1][1].values() if atom.index >= maxindex2]
 
-    constraint_distances = [np.linalg.norm(IC1i.coords[constraint_atom_idxs[0]] -
-                                           IC2i.coords[constraint_atom_idxs[1]], axis=1)
-                            for IC1i, IC2i in zip(IC1, IC2)]
+    cst_pairs = np.array(list(product(cst_pool1, cst_pool2)))
 
-    csts = [constraint_atom_idxs, constraint_distances]
+    constraint_distances = [np.linalg.norm(ic1.coords[cst_pairs[:, 0]] - ic2.coords[cst_pairs[:, 1]], axis=1)
+                            for ic1, ic2 in zip(IC1, IC2)]
+
+    csts = [cst_pairs, constraint_distances]
 
     # Add internal_coords to data dir
     for suffix, save_data in zip(["", 'i', f'ip{increment}'], [csts, IC1, IC2]):
@@ -1182,7 +1211,7 @@ def add_dlabel(name: str, pdb: str, increment: int, dihedral_atoms: List[List[Li
     if dihedrals is None:
         dihedrals = []
         for IC, resnum, dihedral_set in zip([IC1, IC2], [resi, resi+increment], dihedral_atoms):
-            dihedrals.append([[ICi.get_dihedral(resnum, ddef) for ddef in dihedral_set] for ICi in IC])
+            dihedrals.append([[ICi.get_dihedral(1, ddef) for ddef in dihedral_set] for ICi in IC])
 
     if weights is None:
         weights = np.ones(len(IC1))

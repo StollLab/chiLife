@@ -3,6 +3,7 @@ import hashlib
 import numpy as np
 import pytest
 import chiLife as xl
+import matplotlib.pyplot as plt
 
 
 protein = xl.fetch('1ubq')

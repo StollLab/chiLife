@@ -261,6 +261,7 @@ class RotamerLibrary:
             idx = np.random.randint(len(self._weights), size=n)
         else:
             idx = np.random.choice(len(self._weights), size=n, p=self._weights)
+
         if not hasattr(off_rotamer, '__len__'):
             off_rotamer = [off_rotamer] * len(self.dihedral_atoms) if len(self.dihedral_atoms) > 0 else [True]
         else:
@@ -268,6 +269,7 @@ class RotamerLibrary:
 
         if not any(off_rotamer):
             return np.squeeze(self.coords[idx]), np.squeeze(self.weights[idx])
+
         if len(self.dihedral_atoms) == 0:
             return self.coords, self.weights, self.internal_coords
         elif hasattr(self, 'internal_coords'):
@@ -287,7 +289,7 @@ class RotamerLibrary:
         """
         new_weight = 0
         if len(self.sigmas) > 0:
-            new_dihedrals = np.random.normal(self._rdihedrals[idx, off_rotamer], self._rsigmas[idx, off_rotamer])
+            new_dihedrals = np.random.vonmises(self._rdihedrals[idx, off_rotamer], self._rkappas[idx, off_rotamer])
             # diff1 = (new_dihedrals - self._rdihedrals[idx, off_rotamer]) * self._rkappas[idx, off_rotamer]
             # diff = (diff1 @ diff1) / len(diff1)
             new_weight = self._weights[idx]  # * np.exp(-0.5 * 5e-2 * diff)

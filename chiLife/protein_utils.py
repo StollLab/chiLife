@@ -838,7 +838,7 @@ def fetch(pdbid: str, save: bool = False) -> MDAnalysis.Universe:
     return U
 
 
-def presort_key(pdb_line: str) -> Tuple[str, int, int]:
+def atom_sort_key(pdb_line: str, include_name=False) -> Tuple[str, int, int]:
     """
     Assign a base rank to sort atoms of a pdb.
 
@@ -858,10 +858,13 @@ def presort_key(pdb_line: str) -> Tuple[str, int, int]:
     else:
         name_order = atom_order.get(atom_name, 4) if atom_type != 'H' else 5
 
-    return chainid, resid, name_order
+    if include_name:
+        return chainid, resid, name_order, atom_name[-1]
+    else:
+        return chainid, resid, name_order
 
 
-def sort_pdb(pdbfile: Union[str, List]) -> List[str]:
+def sort_pdb(pdbfile: Union[str, List], index=False) -> Union[List[str], List[int]]:
     """
     Read ATOM lines of a pdb and sort the atoms according to chain, residue index, backbone atoms and side chain atoms.
     Side chain atoms are sorted by distance to each other/backbone atoms with atoms closest to the backbone coming
@@ -889,15 +892,20 @@ def sort_pdb(pdbfile: Union[str, List]) -> List[str]:
                 end_idxs.append(i)
 
         if start_idxs != []:
-            return [sort_pdb(lines[s:e]) for s, e in zip(start_idxs, end_idxs)]
+            # Assume all models have the same atoms
+            idxs = sort_pdb(lines[start_idxs[0]:end_idxs[0]], index=True)
+            lines[:] = [[lines[idx + start][:6] + f"{i + 1:5d}" + lines[idx + start][11:] for i, idx in enumerate(idxs)]
+                        for start in start_idxs]
+            return lines
 
     elif isinstance(pdbfile, list):
         lines = pdbfile
 
+    index_key = {line: i for i, line in enumerate(lines)}
     lines = [line for line in lines if line.startswith('ATOM')]
 
     # Presort
-    lines.sort(key=presort_key)
+    lines.sort(key=lambda x: atom_sort_key(x))
 
     coords = np.array([[float(line[30:38]), float(line[38:46]), float(line[46:54])] for line in lines])
 
@@ -921,44 +929,49 @@ def sort_pdb(pdbfile: Union[str, List]) -> List[str]:
         # Get all nearest neighbors and sort by distance
         pairs = kdtree.query_pairs(2.2, output_type='ndarray')
         distances = np.linalg.norm(kdtree.data[pairs[:, 0]] - kdtree.data[pairs[:, 1]], axis=1)
-        idx_sort = np.argsort(distances)
+        distances = np.around(distances, decimals=3)
+        idx_sort = np.lexsort((distances, pairs[:, 0], pairs[:, 1]))
         pairs = pairs[idx_sort]
 
+        # Start steming from CA atom
         idx = 1
         sorted_args = list(range(np.minimum(4, stop-start)))
         i = 0
 
         while len(sorted_args) < stop - start:
+            # If you have already started adding atoms
             if 'search_len' in locals():
                 appendid = []
+                # Go back to the first atom you added
                 for idx in sorted_args[-search_len:]:
+                    # Find anything bound to that atom that is not in already sorted
                     for pair in pairs:
                         if idx in pair:
                             ap = pair[0] if pair[0] != idx else pair[1]
                             if ap not in sorted_args and ap not in appendid:
                                 appendid.append(ap)
+
+                # Add all the new atoms to the sorted list
                 if appendid != []:
-                    # appendid = list(set(appendid))
-                    # tmp = [lines[i + start][15:17].strip() for i in appendid]
-                    # tmp = np.argsort(tmp)
-                    # appendid = [appendid[i] for i in tmp]
                     sorted_args += appendid
                     search_len = len(appendid)
                 else:
                     search_len += 1
 
+            # If you have not added any atoms yet
             else:
                 appendid = []
+                # Look at the closest atoms
                 for pair in pairs:
+                    # Get atoms bound to this atom
                     if idx in pair:
                         ap = pair[0] if pair[0] != idx else pair[1]
                         if ap not in sorted_args:
                             appendid.append(ap)
 
+                # If there are atoms bound
                 if appendid != []:
-                    # tmp = [lines[i + start][14:17].strip() for i in appendid]
-                    # tmp = np.argsort(tmp)
-                    # appendid = [appendid[i] for i in tmp]
+                    # Add them to the list of sorted atoms and keep track of where you left off
                     sorted_args += appendid
                     search_len = len(appendid)
                 else:
@@ -966,8 +979,18 @@ def sort_pdb(pdbfile: Union[str, List]) -> List[str]:
                     # idx += 1
         midsort_key += [x + start for x in sorted_args]
 
+        # Delete search length to start new on the next residue
+        if 'search_len' in locals():
+            del search_len
+
     lines[:] = [lines[i] for i in midsort_key]
-    lines.sort(key=presort_key)
+    lines.sort(key=atom_sort_key)
+
+    # Return line indices if requested
+    if index:
+        return [index_key[line] for line in lines]
+
+    # Otherwise replace atom index for new sorted liens
     lines = [line[:6] + f"{i + 1:5d}" + line[11:] for i, line in enumerate(lines)]
 
     return lines

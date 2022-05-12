@@ -585,9 +585,10 @@ def read_sl_library(label: str, user: bool = False) -> Tuple[ArrayLike,...]:
     with open(chiLife.DATA_DIR / f'residue_internal_coords/{label}_ic.pkl', 'rb') as f:
         IC = pickle.load(f)
         if isinstance(IC, list):
-            IC = IC[0]
+            ICn = IC
+        else:
+            ICn = [IC.copy().set_dihedral(np.deg2rad(r), 1, atom_list=lib['dihedral_atoms']) for r in lib['dihedrals']]
 
-    ICn = [IC.copy().set_dihedral(np.deg2rad(r), 1, atom_list=lib['dihedral_atoms']) for r in lib['dihedrals']]
     lib['internal_coords'] = ICn
 
     if 'sigmas' not in lib:
@@ -1111,16 +1112,17 @@ def add_label(name: str, pdb: str, dihedral_atoms: List[str], resi: int=1, spin_
     internal_coords = [chiLife.get_internal_coords(struct.select_atoms(f'resnum {resi}'), resname=pdb_resname,
                                                    preferred_dihedrals=dihedral_atoms) for ts in struct.trajectory]
 
+    # Remove chain operators so all rotamers are in the ic coordinate frame
+    for ic in internal_coords:
+        ic.chain_operators = None
+
     # Add internal_coords to data dir
     with open(DATA_DIR / f'residue_internal_coords/{name}_ic.pkl', 'wb') as f:
         pickle.dump(internal_coords, f)
 
     # If multi-state pdb extract rotamers from pdb
     if dihedrals is None:
-        dihedrals = []
-        for ts in struct.trajectory:
-            dihedrals.append(
-                [get_dihedral(struct.select_atoms(f'name {" ".join(a)}').positions) for a in dihedral_atoms])
+        dihedrals = np.rad2deg([ic.get_dihedral(1, dihedral_atoms) for ic in internal_coords])
 
     if weights is None:
         weights = np.ones(len(dihedrals))

@@ -94,6 +94,30 @@ def test_sort_pdb3():
     os.remove('test_data/SL_GGAGG_tmp.pdb')
     ICs = chiLife.get_internal_coords(U, preferred_dihedrals=[['C', 'N', 'CA', 'C']])
 
+def test_sort_manymodels():
+    x = chiLife.sort_pdb('test_data/msort.pdb')
+    with open('test_data/msort_tmp.pdb', 'w') as f:
+        for i, struct in enumerate(x):
+            f.write(f'MODEL {i}\n')
+            f.writelines(struct)
+            f.write('ENDMDL\n')
+
+    with open('test_data/msort_tmp.pdb', 'r') as f:
+        test = hashlib.md5(f.read().encode('utf-8')).hexdigest()
+
+    with open('test_data/msort_ans.pdb', 'r') as f:
+        ans = hashlib.md5(f.read().encode('utf-8')).hexdigest()
+
+    os.remove('test_data/msort_tmp.pdb')
+
+    assert test == ans
+
+
+def test_makeics():
+    traj = mda.Universe('test_data/msort_ans.pdb')
+    ICs = [chiLife.get_internal_coords(traj) for ts in traj.universe.trajectory]
+
+    print('d')
 
 def test_mutate():
     protein = chiLife.fetch('1ubq').select_atoms('protein')
@@ -179,11 +203,27 @@ def test_polypro_IC():
     polypro = mda.Universe('test_data/PPII_Capped.pdb')
     polyproIC = chiLife.get_internal_coords(polypro)
 
-@pytest.mark.parametrize('res', chiLife.SUPPORTED_RESIDUES)
+@pytest.mark.parametrize('res', set(chiLife.dihedral_defs.keys()) -  {'CYR1', 'MTN', 'R1M', 'R1C'})
 def test_sort_and_internal_coords(res):
-    pass
+    pdbfile = chiLife.DATA_DIR / f'residue_pdbs/{res.lower()}.pdb'
+    lines = chiLife.sort_pdb(str(pdbfile))
+    anames = [line[13:16] for line in lines if 'H' not in line[12:16]]
+
+    with open(pdbfile, 'r') as f:
+        ans = [line[13:16] for line in f.readlines() if line.startswith('ATOM') if 'H' not in line[12:16]]
+
+    assert anames == ans
+
 
 def test_PRO_ics():
     pro = mda.Universe('../chiLife/data/rotamer_libraries/residue_pdbs/pro.pdb')
     pro_ic = chiLife.get_internal_coords(pro)
     assert ('CD', 'CG', 'CB', 'CA') in pro_ic.ICs[1][1]
+
+
+def test_sort_pdb():
+    ubq = chiLife.fetch('1ubq')
+    V1A = chiLife.SpinLabel('V1A', 28, ubq, sample=10)
+    V1A.weights
+
+    chiLife.save('V1A_ubq.pdb', V1A, ubq, KDE=False)

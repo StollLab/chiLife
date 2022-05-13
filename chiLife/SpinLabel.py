@@ -198,7 +198,7 @@ class dSpinLabel:
         self.superimposition_method = kwargs.setdefault('superimposition_method', 'bisect').lower()
         self.dihedral_sigma = kwargs.setdefault('dihedral_sigma', 25)
         self.minimize = kwargs.pop('minimize', True)
-        self.eval_clash = kwargs['eval_clash'] = False
+        self.eval_clash = kwargs.pop('eval_clash', True)
         self.energy_func = kwargs.setdefault('energy_func', chiLife.get_lj_rep)
         self.get_lib()
         self.protein_setup()
@@ -248,7 +248,7 @@ class dSpinLabel:
 
         with open(chiLife.DATA_DIR/f'residue_internal_coords/{self.label}_ic.pkl', 'rb') as f:
             self.cst_idxs, self.csts = pickle.load(f)
-
+        self.kwargs['eval_clash'] = False
         self.SL1 = chiLife.SpinLabel(self.label + 'i', self.site, self.protein, self.chain, **self.kwargs)
         self.SL2 = chiLife.SpinLabel(self.label + f'ip{self.increment}', self.site2, self.protein, self.chain, **self.kwargs)
 
@@ -281,6 +281,9 @@ class dSpinLabel:
             self.SL1.coords[i] = ic1.coords[self.SL1.H_mask]
             self.SL2.coords[i] = ic2.coords[self.SL2.H_mask]
             scores[i] = xopt.fun
+
+        self.SL1.backbone_to_site()
+        self.SL2.backbone_to_site()
 
         scores /= len(self.cst_idxs)
         scores -= scores.min()
@@ -331,7 +334,7 @@ class dSpinLabel:
 
         elif isinstance(self._clash_ori_inp, str):
             if self._clash_ori_inp in ['cen', 'centroid']:
-                return self.centroid()
+                return self.centroid
 
             elif (ori_name := self._clash_ori_inp.upper()) in self.atom_names:
                 return np.squeeze(self.coords[0][ori_name == self.atom_names])
@@ -362,7 +365,7 @@ class dSpinLabel:
         self.SL1.trim()
         self.SL2.trim()
 
-    def evaluate(self, environment, environment_tree=None, ignore_idx=None, temp=298):
+    def evaluate(self):
 
         if self.protein_tree is None:
             self.protein_tree = cKDTree(self.protein.atoms.positions)

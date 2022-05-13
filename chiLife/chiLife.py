@@ -925,7 +925,7 @@ def write_labels(file: str, *args: SpinLabel, KDE: bool = True, **kwargs) -> Non
             f.write(f'HEADER {label.name}_density\n'.format(label.label, k + 1))
             NO = np.atleast_2d(label.spin_coords)
 
-            if KDE and np.all(np.linalg.eigh(np.cov(NO.T))[0] > 0):
+            if KDE and np.all(np.linalg.eigh(np.cov(NO.T))[0] > 0) and len(NO) > 5:
                 # Perform gaussian KDE to determine electron density
                 gkde = gaussian_kde(NO.T, weights=label.weights)
 
@@ -1194,8 +1194,8 @@ def add_dlabel(name: str, pdb: str, increment: int, dihedral_atoms: List[List[Li
     maxindex2 = max([IC2[0].ICs[1][1][tuple(d[::-1])].index for d in dihedral_atoms[1]]) - 1
 
     # Store 4 pairs between SLs as constriants
-    cst_pool1 = [atom.index for atom in IC1[0].ICs[1][1].values() if atom.index >= maxindex1]
-    cst_pool2 = [atom.index for atom in IC2[0].ICs[1][1].values() if atom.index >= maxindex2]
+    cst_pool1 = [atom.index for atom in IC1[0].ICs[1][1].values() if atom.index >= maxindex1 and atom.atype != 'H']
+    cst_pool2 = [atom.index for atom in IC2[0].ICs[1][1].values() if atom.index >= maxindex2 and atom.atype != 'H']
 
     cst_pairs = np.array(list(product(cst_pool1, cst_pool2)))
 
@@ -1257,7 +1257,7 @@ def pre_add_label(name, pdb, spin_atoms):
                 tmpfile.write(f'MODEL {i + 1}\n')
                 for atom in model:
                     tmpfile.write(atom)
-                tmpfile.write('TER\nENDMDL\n')
+                tmpfile.write('ENDMDL\n')
     else:
         with tempfile.NamedTemporaryFile(suffix='.pdb', mode='w+', delete=False) as tmpfile:
             for line in pdb_lines:

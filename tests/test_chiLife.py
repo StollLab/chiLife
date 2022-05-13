@@ -246,7 +246,7 @@ def test_save():
     S238T = chiLife.RotamerLibrary('THR', 238, protein)
     A318DHC = chiLife.dSpinLabel('DHC', 318, 4, protein)
 
-    chiLife.save(L20R1, S238T, A318DHC, protein)
+    chiLife.save(L20R1, S238T, A318DHC, protein, KDE=False)
 
     with open(f'test_data/test_save.pdb', 'r') as f:
         ans = hashlib.md5(f.read().encode('utf-8')).hexdigest()

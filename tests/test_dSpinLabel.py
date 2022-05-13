@@ -24,6 +24,8 @@ def test_distance_distribution():
     r = np.linspace(15, 50, 256)
     SL1 = xl.SpinLabel('R1C', 6, gb1)
     dd = xl.get_dd(SL1, SL2, r)
+    xl.save(SL1, SL2, gb1)
+
     np.testing.assert_almost_equal(dd[50:60], [0.000241, 0.000315, 0.000406, 0.000512, 0.000634,
                                                0.00077, 0.001014, 0.002226, 0.002989, 0.004808], decimal=6)
 

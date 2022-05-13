@@ -230,14 +230,7 @@ class RotamerLibrary:
 
         self.coords = np.einsum('ijk,kl->ijl', self.coords, mx) + ori
 
-        # Keep protein backbone dihedrals for oxygen and hydrogens
-        for atom in ['H', 'O']:
-            mask = self.atom_names == atom
-            if any(mask) and self.protein is not None:
-                pos = self.protein.select_atoms(f'segid {self.chain} and resnum {self.site} '
-                                                f'and name {atom} and not altloc B').positions
-                if len(pos) > 0:
-                    self.coords[:, mask] = pos[0]
+        self.backbone_to_site()
 
         self.mx, self.ori = chiLife.global_mx(*np.squeeze(self.backbone), method=self.superimposition_method)
         self.ICs_to_site()
@@ -254,6 +247,16 @@ class RotamerLibrary:
 
         for IC in self.internal_coords:
             IC.chain_operators = op
+
+    def backbone_to_site(self):
+        # Keep protein backbone dihedrals for oxygen and hydrogens
+        for atom in ['H', 'O']:
+            mask = self.atom_names == atom
+            if any(mask) and self.protein is not None:
+                pos = self.protein.select_atoms(f'segid {self.chain} and resnum {self.site} '
+                                                f'and name {atom} and not altloc B').positions
+                if len(pos) > 0:
+                    self.coords[:, mask] = pos[0]
 
     def sample(self, n=1, off_rotamer=False, **kwargs):
         """Randomly sample a rotamer in the library."""

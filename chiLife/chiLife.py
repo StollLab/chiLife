@@ -1116,7 +1116,8 @@ def add_label(name: str, pdb: str, dihedral_atoms: List[str], resi: int=1, spin_
     :param weights: ndarray, optional
         Weights associated with the dihedral angles provided by the `dihedrals` keyword argument
     """
-    struct, pdb_resname = pre_add_label(name, pdb, spin_atoms)
+    struct = pre_add_label(name, pdb, spin_atoms)
+    pdb_resname = struct.select_atoms(f'resnum {resi}').resnames[0]
 
     # Convert loaded rotamer library to internal coords
     internal_coords = [chiLife.get_internal_coords(struct.select_atoms(f'resnum {resi}'), resname=pdb_resname,
@@ -1187,7 +1188,8 @@ def add_dlabel(name: str, pdb: str, increment: int, dihedral_atoms: List[List[Li
                          'each dihedral should be defined by exactly four unique atom names that belong to the same '
                          'residue number')
 
-    struct, pdb_resname = pre_add_label(name, pdb, spin_atoms)
+    struct = pre_add_label(name, pdb, spin_atoms)
+    pdb_resname = struct.select_atoms(f'resnum {resi}').resnames[0]
 
     IC1 = [chiLife.get_internal_coords(struct.select_atoms(f'resnum {resi}'), resname=pdb_resname,
                                        preferred_dihedrals=dihedral_atoms[0]) for ts in struct.trajectory]
@@ -1237,7 +1239,6 @@ def pre_add_label(name, pdb, spin_atoms):
     # TODO: Add dihedral definitions to DihedralDefs.pkl
     # Sort the PDB for optimal dihedral definitions
     pdb_lines = sort_pdb(pdb)
-    pdb_resname = pdb_lines[0][17:20] if isinstance(pdb_lines[0], str) else pdb_lines[0][0][17:20]
 
     # Store spin atoms if provided
     if spin_atoms is not None:
@@ -1276,7 +1277,7 @@ def pre_add_label(name, pdb, spin_atoms):
     # Load sorted atom pdb using MDAnalysis and remove tempfile
     struct = mda.Universe(tmpfile.name, in_memory=True)
     os.remove(tmpfile.name)
-    return struct, pdb_resname
+    return struct
 
 
 def store_new_restype(name, internal_coords, weights, dihedrals, dihedral_atoms, increment=None):

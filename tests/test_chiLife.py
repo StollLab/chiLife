@@ -264,6 +264,16 @@ def test_save_fail():
         chiLife.save('tmp', np.array([1, 2, 3]))
 
 
+def test_add_label2():
+    dihedrals = [['N', 'CA', 'CB', 'SG'],
+                 ['CA', 'CB', 'SG', 'SD'],
+                 ['CB', 'SG', 'SD', 'CE'],
+                 ['SG', 'SD', 'CE', 'C3'],
+                 ['SD', 'CE', 'C3', 'C2']]
+    spin_atoms = ['N1', 'O1']
+
+    chiLife.add_label('R1A', f'R1A_sorted_ens_trimed.pdb', dihedral_atoms=dihedrals, spin_atoms=spin_atoms)
+
 
 # class TestProtein:
 #

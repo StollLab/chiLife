@@ -7,7 +7,6 @@ from collections import Counter
 import MDAnalysis
 import numpy as np
 from scipy.spatial import cKDTree
-from scipy.spatial.distance import pdist, squareform
 from MDAnalysis.core.topologyattrs import Atomindices, Resindices, Segindices, Segids
 from MDAnalysis.topology import guessers
 import MDAnalysis as mda

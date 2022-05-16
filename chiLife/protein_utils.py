@@ -7,6 +7,7 @@ from collections import Counter
 import MDAnalysis
 import numpy as np
 from scipy.spatial import cKDTree
+from scipy.spatial.distance import pdist, squareform
 from MDAnalysis.core.topologyattrs import Atomindices, Resindices, Segindices, Segids
 from MDAnalysis.topology import guessers
 import MDAnalysis as mda
@@ -134,8 +135,9 @@ class ProteinIC:
             self.nonbonded_pairs = None
         else:
             bonded_pairs = {(a, b) for a, b in self.bonded_pairs}
-            possible_bonds = set(itertools.combinations(range(len(self.atoms)), 2))
-            self.nonbonded_pairs = np.array(list(possible_bonds - bonded_pairs), dtype=int)
+            possible_bonds = itertools.combinations(range(len(self.atoms)), 2)
+            self.nonbonded_pairs = np.fromiter(itertools.chain.from_iterable(nb for nb in possible_bonds if nb not in bonded_pairs), dtype=int)
+            self.nonbonded_pairs.shape = (-1, 2)
 
         self.perturbed = False
         self._coords = None
@@ -283,10 +285,10 @@ class ProteinIC:
         coord_arrays = []
         for segid in self.chain_operators:
             # Prepare variables for numba compiled function
-            ICArray = np.array([[ic.bond_idx, ic.angle_idx, ic.dihedral_idx,
-                                 ic.bond, ic.angle, ic.dihedral] for
-                                res in self.ICs[segid].values() for ic in res.values()])
-
+            ICArray = np.fromiter(itertools.chain.from_iterable(itertools.chain((ic.bond_idx, ic.angle_idx, ic.dihedral_idx,
+                                                                                 ic.bond, ic.angle, ic.dihedral)) for
+                                res in self.ICs[segid].values() for ic in res.values()), dtype=float)
+            ICArray.shape = (-1,  6,)
             IC_idx_array, ICArray = ICArray[:, :3].astype(int), ICArray[:, 3:]
             cart_coords = _ic_to_cart(IC_idx_array, ICArray)
 
@@ -394,6 +396,7 @@ class ProteinIC:
 
         self.resis = [key for i in self.ICs for key in self.ICs[i]]
 
+
 def get_ICAtom(atom: mda.core.groups.Atom, offset: int = 0, preferred_dihedral: List = None) -> ICAtom:
     """
     Construct internal coordinates for an atom given that atom is linked to an MDAnalysis Universe.
@@ -411,16 +414,20 @@ def get_ICAtom(atom: mda.core.groups.Atom, offset: int = 0, preferred_dihedral: 
         Atom with internal coordinates.
     """
     U = atom.universe
+    bond_idxs = atom.bonds.indices
+    angle_idxs = atom.angles.indices
+    dihedral_idxs = atom.dihedrals.indices
+
     if (atom.index - offset) == 0:
         return ICAtom(atom.name, atom.type, atom.index - offset, atom.resname, atom.resid, (atom.name,))
 
     elif (atom.index - offset) == 1:
-        atom_names = (atom.name, U.atoms[atom.bonds.indices[0][0]].name)
+        atom_names = (atom.name, U.atoms[bond_idxs[0][0]].name)
         return ICAtom(atom.name, atom.type, atom.index - offset, atom.resname, atom.resid, atom_names,
                       atom.bonds.indices[0][0] - offset, atom.bonds.bonds()[0])
 
     elif (atom.index - offset) == 2:
-        atom_names = (atom.name, U.atoms[atom.bonds.indices[0][0]].name, U.atoms[atom.angles.indices[0][0]].name)
+        atom_names = (atom.name, U.atoms[bond_idxs[0][0]].name, U.atoms[atom.angles.indices[0][0]].name)
         return ICAtom(atom.name, atom.type, atom.index - offset, atom.resname, atom.resid, atom_names,
                       atom.bonds.indices[0][0] - offset, atom.bonds.bonds()[0],
                       atom.angles.indices[0][0] - offset, atom.angles.angles()[0])
@@ -428,20 +435,23 @@ def get_ICAtom(atom: mda.core.groups.Atom, offset: int = 0, preferred_dihedral: 
     else:
 
         # Skip dihedrals that are not preferred
-        i, j, k = 0, 0, 0
+        k = 0
         if preferred_dihedral is not None:
             preferred_stems = [tuple(dh[:3]) for dh in preferred_dihedral]
-            for dh_idx, dh in enumerate(atom.dihedrals):
-                if any(stem == tuple(dh.atoms.names[:3]) for stem in preferred_stems):
-                    if atom.name == dh.atoms.names[-1]:
-                        k = dh_idx
+            for kidx, dh_idx in enumerate(dihedral_idxs):
+                if any(stem == tuple(U.atoms.names[dh_idx[:3]]) for stem in preferred_stems):
+                    if atom.name == U.atoms.names[dh_idx[-1]]:
+                        k = kidx
                         break
 
-        i, j, k = get_ICAtom_indices(i, j, k, atom.index, atom.bonds.indices, atom.angles.indices, atom.dihedrals.indices, offset)
 
-        i_idx = atom.bonds.indices[i][0]
-        j_idx = atom.angles.indices[j][0]
-        k_idx = atom.dihedrals.indices[k][0]
+
+        i, j, k = get_ICAtom_indices(k, atom.index,
+                                        bond_idxs,
+                                        angle_idxs,
+                                        dihedral_idxs, offset)
+
+        k_idx, j_idx, i_idx = dihedral_idxs[k][:3]
 
         atom_names = (atom.name, U.atoms[i_idx].name, U.atoms[j_idx].name, U.atoms[k_idx].name)
 
@@ -450,10 +460,19 @@ def get_ICAtom(atom: mda.core.groups.Atom, offset: int = 0, preferred_dihedral: 
         else:
             dihedral_resi = atom.resnum - 1
 
+        p1, p2, p3, p4 = U.atoms.positions[dihedral_idxs[k]]
+
+        bl = np.linalg.norm(p3 - p4)
+        al = chiLife.get_angle([p2, p3, p4])
+        dl = chiLife.get_dihedral([p1, p2, p3, p4])
+
+        if any(np.isnan(np.array([bl, al, dl]))):
+            print('bd')
+
         return ICAtom(atom.name, atom.type, atom.index-offset, atom.resname, atom.resnum, atom_names,
-                      i_idx - offset, atom.bonds.bonds()[i],
-                      j_idx - offset, atom.angles.angles()[j],
-                      k_idx - offset, atom.dihedrals.dihedrals()[k],
+                      i_idx - offset, bl,
+                      j_idx - offset, al,
+                      k_idx - offset, dl,
                       dihedral_resi=dihedral_resi)
 
 
@@ -501,8 +520,8 @@ def get_internal_coords(mol: Union[MDAnalysis.Universe, MDAnalysis.AtomGroup],
         U.add_TopologyAttr('angles', guessers.guess_angles(U.bonds))
     if not hasattr(U, 'dihedrals'):
         U.add_TopologyAttr('dihedrals', guessers.guess_dihedrals(U.angles))
-    if not hasattr(U, 'impropers'):
-        U.add_TopologyAttr('impropers', guessers.guess_improper_dihedrals(U.angles))
+    # if not hasattr(U, 'impropers'):
+    #     U.add_TopologyAttr('impropers', guessers.guess_improper_dihedrals(U.angles))
 
     if resname is not None:
         protein = mol.select_atoms(f'(protein or resname {" ".join(list(chiLife.SUPPORTED_RESIDUES) + [resname])})'
@@ -514,6 +533,7 @@ def get_internal_coords(mol: Union[MDAnalysis.Universe, MDAnalysis.AtomGroup],
     chain_operators = {}
     offset = 0
     segid = 0
+
     for seg in protein.segments:
         segatoms = protein.atoms[protein.atoms.segids == seg.segid]
         segid += 1
@@ -522,7 +542,8 @@ def get_internal_coords(mol: Union[MDAnalysis.Universe, MDAnalysis.AtomGroup],
 
         chain_operators[segid] = {'ori': ori, 'mx': mx}
         #
-        ICatoms = [get_ICAtom(atom, offset=offset, preferred_dihedral=preferred_dihedrals) for atom in segatoms]
+        ICatoms = [get_ICAtom(atom, offset=offset, preferred_dihedral=preferred_dihedrals)
+                   for atom in segatoms]
         all_ICAtoms[segid] = get_ICResidues(ICatoms)
 
     # Get bonded pairs within selection
@@ -863,6 +884,18 @@ def atom_sort_key(pdb_line: str, include_name=False) -> Tuple[str, int, int]:
     else:
         return chainid, resid, name_order
 
+def guess_topology(protein):
+
+    U = protein.universe
+    # Making things up to get the right results but vdwradii should not determine bond length so talk to the MDA devs
+    extra_radii = {'S': 2., 'Br': 4.189, 'Cu': 2.75}
+    if not hasattr(U, 'bonds'):
+        U.add_TopologyAttr('bonds', np.array(guessers.guess_bonds(U.atoms, U.atoms.positions, vdwradii=extra_radii)))
+    elif len(U.bonds) < len(U.atoms):
+        U.add_TopologyAttr('bonds', np.array(guessers.guess_bonds(U.atoms, U.atoms.positions, vdwradii=extra_radii)))
+
+    print('i')
+
 
 def sort_pdb(pdbfile: Union[str, List], index=False) -> Union[List[str], List[int]]:
     """
@@ -1003,3 +1036,5 @@ with open(os.path.join(os.path.dirname(__file__), 'data/rotamer_libraries/Rotlib
     rotlib_indexes = pickle.load(f)
 
 atom_order = {'N': 0, 'CA': 1, 'C': 2, 'O': 3}
+
+

@@ -239,42 +239,47 @@ def _ic_to_cart(IC_idx_Array, ICArray):
 
     return coords
 
+
+@njit(cache=True)
+def np_all_axis1(x):
+    """Numba compatible version of np.all(x, axis=1)."""
+    out = np.ones(x.shape[0], dtype=np.bool8)
+    for i in range(x.shape[1]):
+        out = np.logical_and(out, x[:, i])
+    return out
+
+
 # @njit(cache=True)
-def get_ICAtom_indices(i, j, k, index, bonds, angles, dihedrals, offset):
+def get_ICAtom_indices(k, index, bonds, angles, dihedrals, offset):
     found = False
     ordered = True
-    i0, j0, k0 = i, j, k
+    k0 = k
+
     while not found:
+        dk = dihedrals[k]
+        condition = np.all(dk >= offset)
+        condition = condition and dk[-1] == index
 
-        # Check that the bond, angle and dihedral are all defined by the same atoms in the same order
-        condition = index == angles[j][-1]
-        condition = condition and np.all(bonds[i] == angles[j][-2:])
-        condition = condition and np.all(angles[j] == dihedrals[k][-3:])
-        condition = condition and np.all(dihedrals[k] >= offset)
         if ordered:
-            condition = condition and np.all([dihedrals[k][i] < dihedrals[k][i+1] for i in range(3)])
+            try:
+                srted = np.array([dk[i] < dk[i + 1] for i in range(3)])
+                condition = condition and np.all(srted)
+            except:
+                print('asdfasdf')
+                raise
         else:
-            condition = condition and np.all(dihedrals[k][:3] < dihedrals[k][3])
+            condition = condition and np.all(dk[:3] < dk[3])
 
-        # If all checks have been pased use bond i, angle j, and dihedral k
         if condition:
+            j = np.argwhere(np_all_axis1(angles == dk[-3:]))[0, 0]
+            i = np.argwhere(np_all_axis1(bonds == dk[-2:]))[0, 0]
+
             found = True
-
-        elif k == len(dihedrals) - 1 and j == len(angles) - 1 and i == len(bonds) - 1 and ordered:
-            i, j, k = i0, j0, k0
+        elif k + 1 == len(dihedrals):
+            k = k0
             ordered = False
-
-        # If all angles and dihedrals containing bond i have been searched increment bond
-        elif k == len(dihedrals) - 1 and j == len(angles) - 1:
-            k = 0
-            j = 0
-            i += 1
-        # if all dihedrals containing bond i and angle j have been searched increment angle
-        elif k == len(dihedrals) - 1:
-            k = 0
-            j += 1
-        # If this dihedral does not contain atoms of the angle then try the next dihedral
         else:
             k += 1
+
 
     return i, j, k

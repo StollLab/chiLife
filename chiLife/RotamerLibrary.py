@@ -164,7 +164,7 @@ class RotamerLibrary:
         for i in range(len(prelib.weights)):
             dihedrals.append([chiLife.get_dihedral(coords[i][mask]) for mask in masks])
 
-        dihedrals = np.array(dihedrals)
+        dihedrals = np.rad2deg(np.array(dihedrals))
         prelib.dihedrals = dihedrals
 
         return prelib
@@ -438,8 +438,8 @@ class RotamerLibrary:
             PsiSel = self.protein.select_atoms(f'resnum {self.site} and segid {self.chain}').residues[0].psi_selection()
 
         # Default to helix backbone if none provided
-        Phi = None if PhiSel is None else chiLife.get_dihedral(PhiSel.positions)
-        Psi = None if PsiSel is None else chiLife.get_dihedral(PsiSel.positions)
+        Phi = None if PhiSel is None else np.rad2deg(chiLife.get_dihedral(PhiSel.positions))
+        Psi = None if PsiSel is None else np.rad2deg(chiLife.get_dihedral(PsiSel.positions))
 
         # Get library
         logging.info(f'Using backbone dependent library with Phi={Phi}, Psi={Psi}')

@@ -1,4 +1,5 @@
 import os, hashlib
+import time
 from functools import partial
 import numpy as np
 import pytest
@@ -40,8 +41,11 @@ def test_read_dunbrack( res):
 @pytest.mark.parametrize('pdbid', pdbids)
 def test_get_internal_coordinates(pdbid):
     protein = chiLife.fetch(pdbid).select_atoms('protein and not altloc B')
+    t1 = time.perf_counter()
     ICs = chiLife.get_internal_coords(protein)
-    np.testing.assert_almost_equal(ICs.coords, protein.atoms.positions, decimal=5)
+    print(time.perf_counter() - t1)
+
+    np.testing.assert_almost_equal(ICs.coords, protein.atoms.positions, decimal=4)
 
 
 def test_icset_dihedral():
@@ -227,3 +231,7 @@ def test_sort_pdb():
     V1A.weights
 
     chiLife.save('V1A_ubq.pdb', V1A, ubq, KDE=False)
+
+
+def test_guess_topology():
+    chiLife.guess_topology(ubq)

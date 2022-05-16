@@ -1,6 +1,7 @@
 import numbers
 import shutil
 import tempfile
+import math
 from collections.abc import Sized
 from io import StringIO
 from itertools import combinations, product
@@ -106,7 +107,7 @@ def get_dihedral(p: ArrayLike) -> float:
         matrix containing coordinates to be used to calculate dihedral.
 
     :return: float
-        Dihedral angle in degrees
+        Dihedral angle in radians
     """
 
     p0 = p[0]
@@ -130,8 +131,17 @@ def get_dihedral(p: ArrayLike) -> float:
     x = np.dot(v, w)
     y = np.dot(np.cross(b1, v), w)
 
-    # Return as degrees
-    return np.degrees(np.arctan2(y, x))
+    return math.atan2(y, x)
+
+
+def get_angle(p: ArrayLike) -> float:
+    p1, p2, p3 = p
+    v1 = p1 - p2
+    v2 = p3 - p2
+    X = v1 @ v2
+    Y = np.cross(v1, v2)
+    Y = math.sqrt(Y@Y)
+    return math.atan2(Y, X)
 
 
 def set_dihedral(p: ArrayLike, angle: float, mobile: ArrayLike) -> ArrayLike:
@@ -153,8 +163,8 @@ def set_dihedral(p: ArrayLike, angle: float, mobile: ArrayLike) -> ArrayLike:
     """
 
     current = get_dihedral(p)
-    angle = angle - current
-    angle = np.deg2rad(angle)
+    angle = np.deg2rad(angle) - current
+    angle = angle
 
     ori = p[1]
     mobile -= ori

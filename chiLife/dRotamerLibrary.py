@@ -74,8 +74,8 @@ class dRotamerLibrary(RotamerLibrary):
             PsiSel = self.protein.select_atoms(sel_txt).residues[0].psi_selection()
 
         # Default to helix backbone if none provided
-        Phi = None if PhiSel is None else chiLife.get_dihedral(PhiSel.positions)
-        Psi = None if PsiSel is None else chiLife.get_dihedral(PsiSel.positions)
+        Phi = None if PhiSel is None else np.rad2deg(chiLife.get_dihedral(PhiSel.positions))
+        Psi = None if PsiSel is None else np.rad2deg(chiLife.get_dihedral(PsiSel.positions))
 
         with open(chiLife.DATA_DIR / f'residue_internal_coords/{self.label}_ic.pkl', 'rb') as f:
             self.cst_idxs, self.csts = pickle.load(f)

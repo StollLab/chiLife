@@ -74,6 +74,9 @@ class SpinLabel(RotamerLibrary):
         if self.protein_tree is None:
             self.protein_tree = cKDTree(self.protein.atoms.positions)
 
+        protein_clash_idx = self.protein_tree.query_ball_point(self.clash_ori, self.clash_radius)
+        self.protein_clash_idx = [idx for idx in protein_clash_idx if idx not in self.clash_ignore_idx]
+
         if self.eval_clash:
             self.evaluate()
 
@@ -200,6 +203,7 @@ class dSpinLabel:
         self.minimize = kwargs.pop('minimize', True)
         self.eval_clash = kwargs.pop('eval_clash', True)
         self.energy_func = kwargs.setdefault('energy_func', chiLife.get_lj_rep)
+        self.temp = kwargs.setdefault('temp', 298)
         self.get_lib()
         self.protein_setup()
         self.sub_labels = (self.SL1, self.SL2)
@@ -214,6 +218,9 @@ class dSpinLabel:
 
         if self.protein_tree is None:
             self.protein_tree = cKDTree(self.protein.atoms.positions)
+
+        protein_clash_idx = self.protein_tree.query_ball_point(self.clash_ori, self.clash_radius)
+        self.protein_clash_idx = [idx for idx in protein_clash_idx if idx not in self.clash_ignore_idx]
 
         if self.minimize:
             self._minimize()
@@ -370,32 +377,11 @@ class dSpinLabel:
         if self.protein_tree is None:
             self.protein_tree = cKDTree(self.protein.atoms.positions)
 
-        self.evaluate_clashes(self.protein, self.protein_tree, ignore_idx=self.clash_ignore_idx)
-        self.trim()
+        rotamer_energies = self.energy_func(self.protein, self)
+        rotamer_probabilities = np.exp(-rotamer_energies / (chiLife.GAS_CONST * self.temp))
 
-    def evaluate_clashes(self, environment, environment_tree=None, ignore_idx=None, temp=298):
-        """
-        Measure lennard-jones clashes of the spin label in a given environment and reweight/trim rotamers of the
-        SpinLabel.
-        :param environment: MDAnalysis.Universe, MDAnalysis.AtomGroup
-            The protein environment to be considered when evaluating clashes.
-        :param environment_tree: cKDtree
-            k-dimensional tree of atom coordinates of the environment.
-        :param ignore_idx: array-like
-            list of atom coordinate indices to ignore when evaluating clashes. Usually the native amino acid at the
-            SpinLable site.
-        :param temp: float
-            Temperature to consider when re-weighting rotamers.
-        """
-
-        if environment_tree is None:
-            environment_tree = cKDTree(environment.positions)
-
-        probabilities = chiLife.evaluate_clashes(ori=self.clash_ori, label_library=self.coords[:, self.side_chain_idx],
-                                                 label_lj_rmin2=self.rmin2, label_lj_eps=self.eps,
-                                                 environment=environment, environment_tree=environment_tree,
-                                                 ignore_idx=ignore_idx, temp=temp, energy_func=self.energy_func,
-                                                 clash_radius=self.clash_radius, forgive=self.forgive)
-
-        self.weights, self.partition = chiLife.reweight_rotamers(probabilities, self.weights, return_partition=True)
+        self.weights, self.partition = chiLife.reweight_rotamers(rotamer_probabilities,
+                                                                 self.weights,
+                                                                 return_partition=True)
         logging.info(f'Relative partition function: {self.partition:.3}')
+        self.trim()

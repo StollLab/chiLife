@@ -1,9 +1,70 @@
+from functools import wraps
 import numpy as np
+from scipy.spatial import cKDTree
 from scipy.spatial.distance import cdist
+from memoization import cached
 from numba import njit
 import chiLife
 
 
+def clash_only(func):
+
+    @wraps(func)
+    def energy_func(protein, rotlib=None, **kwargs):
+
+        rmax = kwargs.get('rmax', 10)
+        forgive = kwargs.get('forgive', 1)
+
+        if rotlib is None:
+            bonds = {(a, b) for a, b in protein.atoms.bonds.indices}
+            tree = cKDTree(protein.atoms.positions)
+            pairs = tree.query_pairs(rmax)
+            pairs = pairs - bonds
+            pairs = np.array(list(pairs))
+
+            r = np.linalg.norm(protein.atoms.positions[pairs[:, 0]] - protein.atoms.positions[pairs[:, 1]], axis=1)
+
+            lj_radii_1 = chiLife.get_lj_rmin(protein.atoms.types[pairs[:, 0]])
+            lj_radii_2 = chiLife.get_lj_rmin(protein.atoms.types[pairs[:, 1]])
+
+            lj_eps_1 = chiLife.get_lj_eps(protein.atoms.types[pairs[:, 0]])
+            lj_eps_2 = chiLife.get_lj_eps(protein.atoms.types[pairs[:, 1]])
+
+            join_rmin = chiLife.get_lj_rmin('join_protocol')[()]
+            join_eps = chiLife.get_lj_eps('join_protocol')[()]
+
+            rmin_ij = join_rmin(lj_radii_1 * forgive, lj_radii_2 * forgive, flat=True)
+            eps_ij = join_eps(lj_eps_1, lj_eps_2, flat=True)
+            E = func(r, rmin_ij, eps_ij, **kwargs)
+            E = E.sum()
+
+        else:
+            if hasattr(rotlib, 'protein'):
+                if rotlib.protein is not protein:
+                    raise NotImplementedError('The protein passed must be the same as the protein associated with the '
+                                              'rotamer library passed')
+            else:
+                # Attach the protein to the rotlib in case it is passed again but don't evaluate clashes
+                rotlib.protein = protein
+                rotlib.eval_clash = False
+                rotlib.protein_setup()
+
+            r, rmin, eps, shape = prep_external_clash(rotlib)
+            E = func(r, rmin, eps, **kwargs).reshape(shape)
+
+            if kwargs.get('internal', False):
+                r, rmin, eps, shape = prep_internal_clash(rotlib)
+                E += func(r, rmin, eps, **kwargs).reshape(rotlib.coords.shape[:2])
+
+            E = E.sum(axis=1)
+
+        return E
+
+
+    return energy_func
+
+
+@clash_only
 @njit(cache=True, parallel=True)
 def get_lj_energy(r, rmin, eps, forgive=1, cap=10, rmax=10):
     """
@@ -48,6 +109,8 @@ def get_lj_energy(r, rmin, eps, forgive=1, cap=10, rmax=10):
 
     return lj_energy
 
+
+@clash_only
 @njit(cache=True, parallel=True)
 def get_lj_scwrl(r, rmin, eps, forgive=1):
     """
@@ -92,6 +155,7 @@ def get_lj_scwrl(r, rmin, eps, forgive=1):
     return lj_energy
 
 
+@clash_only
 @njit(cache=True, parallel=True)
 def get_lj_rep(r, rmin, eps, forgive=0.9, cap=10):
     """
@@ -131,67 +195,39 @@ def get_lj_rep(r, rmin, eps, forgive=0.9, cap=10):
 # @njit(cache=True, parallel=True)
 # def get_lj_LR90(r, rmin, eps, forgive=0.9, cap=10):
 
-def evaluate_clashes(ori, label_library,  label_lj_rmin2, label_lj_eps,
-                     environment, environment_tree, ignore_idx=None, temp=298., energy_func=get_lj_rep,
-                     clash_radius=14, **kwargs):
-    """
-    Calculate clash energies for each rotamer and return Boltzmann weighted probabilities of rotamers based off of clash
-    energies.
 
-    :param ori: numpy ndarray
-        3D coordinate of library centroid. Used to find neighboring atoms for clash evaluation.
-
-    :param label_library: numpy ndarray
-        Library or rotamer atoms superimposed onto site of interest
-
-    :param label_lj_rmin2: numpy ndarray
-        Lennard jones radius parameters for atoms of spin label
-
-    :param label_lj_eps: numpy ndarray
-        Lennard jones energy parameters for atoms of spin label
-
-    :param environment: numpy ndarray
-        Atoms of protein excluding original atoms of site of interest.
-
-    :param environment_tree: cKDTree
-        KDTree of environment
-
-    :param ignore_idx: list
-        List of indices corresponding to atoms to ignore. Usually atoms of native residues.
-
-    :param temp: float
-        Reference temperature for calculation of Boltzmann probabilities.
-
-    :param energy_func: function
-        Energy function used to calculate rotamer probabilities in the given environment
-
-    :param forgive: float
-        Re-weighting factor for the energy function to help account for artifacts introduced by static rotamer libraries
-
-    :param clash_radius: float
-        Max distance from library centroid to consider when evaluating clashes
-
-    :return rotamer_energies: numpy ndarray
-        Boltzmann weighted probability distribution of rotamers
-    """
-    # Get all potential clashes
-
-    protein_clash_idx = environment_tree.query_ball_point(ori, clash_radius)
-    if ignore_idx is not None:
-        protein_clash_idx =[idx for idx in protein_clash_idx if idx not in ignore_idx]
+def prep_external_clash(rotlib):
 
     # Calculate rmin and epsilon for all atoms in protein that may clash
-    rmin_ij, eps_ij = get_lj_params(label_lj_rmin2, label_lj_eps,
-                                    environment.atoms.types[protein_clash_idx],
-                                    len(label_library), forgive=kwargs.get('forgive', 1.))
+    rmin_ij, eps_ij = get_lj_params(rotlib)
 
     # Calculate distances
-    dist = cdist(label_library.reshape(-1, 3), environment_tree.data[protein_clash_idx]).ravel()
-    shape = (len(label_library), len(label_library[0]) * len(protein_clash_idx))
-    atom_energies = energy_func(dist, rmin_ij, eps_ij).reshape(shape)
-    rotamer_probabilities = np.exp(-atom_energies.sum(axis=1) / (GAS_CONST * temp))
+    dist = cdist(rotlib.coords[:, rotlib.side_chain_idx].reshape(-1, 3),
+                 rotlib.protein_tree.data[rotlib.protein_clash_idx]).ravel()
+    shape = (len(rotlib.coords), len(rotlib.side_chain_idx) * len(rotlib.protein_clash_idx))
 
-    return rotamer_probabilities
+    return dist, rmin_ij, eps_ij, shape
+
+
+def prep_internal_clash(rotlib):
+
+    a, b = [list(x) for x in zip(*rotlib.non_bonded)]
+    a_eps = chiLife.get_lj_eps(rotlib.atom_types[a])
+    a_radii = chiLife.get_lj_rmin(rotlib.atom_types[a])
+    b_eps = chiLife.get_lj_eps(rotlib.atom_types[b])
+    b_radii = chiLife.get_lj_rmin(rotlib.atom_types[b])
+
+    join_rmin = chiLife.get_lj_rmin('join_protocol')[()]
+    join_eps = chiLife.get_lj_eps('join_protocol')[()]
+
+    rmin_ij = join_rmin(a_radii * rotlib.forgive, b_radii * rotlib.forgive, flat=True)
+    eps_ij = join_eps(a_eps, b_eps, flat=True)
+
+    dist = np.linalg.norm(rotlib.coords[:, a] - rotlib.coords[:, b], axis=2)
+    shape = (len(rotlib.coords), len(a_radii))
+
+    return dist, rmin_ij, eps_ij, shape
+
 
 
 def reweight_rotamers(probabilities, weights, return_partition=False):
@@ -216,31 +252,34 @@ def reweight_rotamers(probabilities, weights, return_partition=False):
 
     return new_weights
 
-def get_lj_params(label_lj_rmin2, label_lj_eps, environment_atypes, lib_len, forgive):
+@cached
+def get_lj_params(rotlib):
     """
-    Create tiled matrices of lj parameters for calculation of lj potential
-    :param label_lj_rmin2:
-    :param label_lj_eps:
-    :param environment_atypes:
-    :param lib_len:
-    :return:
+    rotlib
     """
+    environment_atypes = rotlib.protein.atoms.types[rotlib.protein_clash_idx]
     protein_lj_radii = chiLife.get_lj_rmin(environment_atypes)
     protein_lj_eps = chiLife.get_lj_eps(environment_atypes)
     join_rmin = chiLife.get_lj_rmin('join_protocol')[()]
     join_eps = chiLife.get_lj_eps('join_protocol')[()]
 
-    rmin_ij = np.tile(join_rmin(label_lj_rmin2 * forgive, protein_lj_radii * forgive).reshape(-1), lib_len)
-    eps_ij = np.tile(join_eps(label_lj_eps, protein_lj_eps).reshape((-1)), lib_len)
+    rmin_ij = np.tile(join_rmin(rotlib.rmin2 * rotlib.forgive, protein_lj_radii * rotlib.forgive).reshape(-1), len(rotlib.coords))
+    eps_ij = np.tile(join_eps(rotlib.eps, protein_lj_eps).reshape((-1)), len(rotlib.coords))
 
     return rmin_ij, eps_ij
 
-def join_geom(x, y):
-    return np.sqrt(np.outer(x, y))
+def join_geom(x, y, flat=False):
+    if flat:
+        return np.sqrt(x*y)
+    else:
+        return np.sqrt(np.outer(x, y))
 
 
-def join_arith(x, y):
-    return np.add.outer(x, y)
+def join_arith(x, y, flat=False):
+    if flat:
+        return x + y
+    else:
+        return np.add.outer(x, y)
 
 rmin_charmm = {"C": 2.0000,
                "H": 0.2245,

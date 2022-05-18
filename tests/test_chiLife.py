@@ -12,7 +12,7 @@ eps_params = [-0.110, -0.046, -0.200, -0.120, -0.450, -0.450, -0.320]
 U = mda.Universe('test_data/m1omp.pdb')
 protein = U.select_atoms('protein')
 r = np.linspace(0, 100, 2 ** 8)
-old_ef = lambda r, rmin, eps: chiLife.get_lj_rep(r, rmin, eps, forgive=0.8)
+old_ef = lambda protein, rotlib: chiLife.get_lj_rep(protein, rotlib, forgive=0.8)
 
 # get permutations for get_dd() tests
 kws = []
@@ -182,8 +182,8 @@ def test_repack():
     protein = chiLife.fetch('1ubq').select_atoms('protein')
     SL = chiLife.SpinLabel('R1C', site=28, protein=protein)
 
-    traj1, deltaE1, _ = chiLife.repack(protein, SL, repetitions=10)
-    traj2, deltaE2, _ = chiLife.repack(protein, SL, repetitions=10, off_rotamer=True)
+    traj1, deltaE1 = chiLife.repack(protein, SL, repetitions=50)
+    traj2, deltaE2 = chiLife.repack(protein, SL, repetitions=50, off_rotamer=True)
 
     t1coords = traj1.universe.trajectory.coordinate_array
     t2coords = traj2.universe.trajectory.coordinate_array
@@ -194,18 +194,6 @@ def test_repack():
 
     np.testing.assert_almost_equal(t1coords, t1ans, decimal=5)
     np.testing.assert_almost_equal(t2coords, t2ans, decimal=5)
-
-
-def test_repack2():
-    SL1 = chiLife.SpinLabel('R1C', site=28, protein=protein)
-    SL2 = chiLife.SpinLabel('R1C', site=48, protein=protein)
-    chiLife.repack(protein, SL1, SL2, repetitions=10)
-
-def test_repack3():
-    protein = chiLife.fetch('1anf')
-    SL1 = chiLife.SpinLabel('R1C', site=28, protein=protein)
-    SL2 = chiLife.SpinLabel('R1C', site=48, protein=protein)
-    chiLife.repack(protein, SL1, SL2, repetitions=10)
 
 
 def test_add_label():
@@ -262,17 +250,6 @@ def test_save():
 def test_save_fail():
     with pytest.raises(TypeError):
         chiLife.save('tmp', np.array([1, 2, 3]))
-
-
-def test_add_label2():
-    dihedrals = [['N', 'CA', 'CB', 'SG'],
-                 ['CA', 'CB', 'SG', 'SD'],
-                 ['CB', 'SG', 'SD', 'CE'],
-                 ['SG', 'SD', 'CE', 'C3'],
-                 ['SD', 'CE', 'C3', 'C2']]
-    spin_atoms = ['N1', 'O1']
-
-    chiLife.add_label('R1A', f'R1A_sorted_ens_trimed.pdb', dihedral_atoms=dihedrals, spin_atoms=spin_atoms)
 
 
 # class TestProtein:

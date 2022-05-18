@@ -3,7 +3,6 @@ import logging
 import numpy as np
 from itertools import combinations
 from scipy.spatial import cKDTree
-from scipy.spatial.distance import cdist
 import scipy.optimize as opt
 import MDAnalysis as mda
 import chiLife
@@ -200,7 +199,7 @@ class RotamerLibrary:
         return new_copy
 
     def __deepcopy__(self, memodict={}):
-        new_copy = chiLife.RotamerLibrary(self.res, self.site, self.chain)
+        new_copy = chiLife.RotamerLibrary(self.res, self.site)
         for item in self.__dict__:
             if item != 'protein':
                 new_copy.__dict__[item] = deepcopy(self.__dict__[item])
@@ -315,40 +314,18 @@ class RotamerLibrary:
 
     def minimize(self):
 
-        protein_clash_idx = self.protein_tree.query_ball_point(self.centroid(), self.clash_radius)
-        protein_clash_idx = [idx for idx in protein_clash_idx if idx not in self.clash_ignore_idx]
-
-        # Calculate rmin and epsilon for all atoms in protein that may clash
-        rmin_ij, eps_ij = chiLife.get_lj_params(self.rmin2, self.eps,
-                                                self.protein.atoms.types[protein_clash_idx], 1, forgive=1)
-
-        a, b = [list(x) for x in zip(*self.non_bonded)]
-        a_eps = chiLife.get_lj_eps(self.atom_types[a])
-        a_radii = chiLife.get_lj_rmin(self.atom_types[a])
-        b_eps = chiLife.get_lj_eps(self.atom_types[b])
-        b_radii = chiLife.get_lj_rmin(self.atom_types[b])
-
-        ab_lj_eps = np.sqrt(np.outer(a_eps, b_eps).reshape((-1)))
-        ab_lj_radii = np.add.outer(a_radii, b_radii).reshape(-1)
-
         def objective(dihedrals, ic):
             coords = ic.set_dihedral(dihedrals, 1, self.dihedral_atoms).to_cartesian()
-            coords = coords[self.ic_mask]
+            temp_rotlib.coords = np.atleast_3d([coords[self.ic_mask]])
+            return self.energy_func(temp_rotlib.protein, temp_rotlib)
 
-            dist = cdist(coords[self.side_chain_idx], self.protein.atoms.positions[protein_clash_idx]).ravel()
-            dist2 = np.linalg.norm(coords[a] - coords[b], axis=1)
-            with np.errstate(divide='ignore'):
-                E1 = self.energy_func(dist[dist < 10], rmin_ij[dist < 10], eps_ij[dist < 10]).sum()
-                E2 = self.energy_func(dist2, ab_lj_radii, ab_lj_eps).sum()
-
-            E = E1 + E2
-            return E
-
+        temp_rotlib = self.copy()
         for i, IC in enumerate(self.internal_coords):
             d0 = IC.get_dihedral(1, self.dihedral_atoms)
             lb = d0 - np.deg2rad(self.dihedral_sigma) / 2
             ub = d0 + np.deg2rad(self.dihedral_sigma) / 2
             bounds = np.c_[lb, ub]
+
             xopt = opt.minimize(objective, x0=self._rdihedrals[i], args=IC, bounds=bounds)
 
             self.coords[i] = IC.to_cartesian()[self.ic_mask]
@@ -356,33 +333,6 @@ class RotamerLibrary:
 
         self.weights /= self.weights.sum()
         self.trim()
-
-    def evaluate_clashes(self, environment, environment_tree=None, ignore_idx=None, temp=298):
-        """
-        Measure lennard-jones clashes of the spin label in a given environment and reweight/trim rotamers of the
-        SpinLabel.
-        :param environment: MDAnalysis.Universe, MDAnalysis.AtomGroup
-            The protein environment to be considered when evaluating clashes.
-        :param environment_tree: cKDtree
-            k-dimensional tree of atom coordinates of the environment.
-        :param ignore_idx: array-like
-            list of atom coordinate indices to ignore when evaluating clashes. Usually the native amino acid at the
-            SpinLable site.
-        :param temp: float
-            Temperature to consider when re-weighting rotamers.
-        """
-
-        if environment_tree is None:
-            environment_tree = cKDTree(environment.positions)
-
-        probabilities = chiLife.evaluate_clashes(ori=self.clash_ori, label_library=self.coords[:, self.side_chain_idx],
-                                                 label_lj_rmin2=self.rmin2, label_lj_eps=self.eps,
-                                                 environment=environment, environment_tree=environment_tree,
-                                                 ignore_idx=ignore_idx, temp=temp, energy_func=self.energy_func,
-                                                 clash_radius=self.clash_radius, forgive=self.forgive)
-
-        self.weights, self.partition = chiLife.reweight_rotamers(probabilities, self.weights, return_partition=True)
-        logging.info(f'Relative partition function: {self.partition:.3}')
 
     def trim(self, tol=0.005):
         """ Remove insignificant rotamers from Library"""
@@ -411,7 +361,15 @@ class RotamerLibrary:
 
         if self.protein_tree is None:
             self.protein_tree = cKDTree(self.protein.atoms.positions)
-        self.evaluate_clashes(self.protein, self.protein_tree, ignore_idx=self.clash_ignore_idx)
+
+        rotamer_energies = self.energy_func(self.protein, self)
+        rotamer_probabilities = np.exp(-rotamer_energies / (chiLife.GAS_CONST * self.temp))
+
+        self.weights, self.partition = chiLife.reweight_rotamers(rotamer_probabilities,
+                                                                 self.weights,
+                                                                 return_partition=True)
+        logging.info(f'Relative partition function: {self.partition:.3}')
+
         self.trim()
 
     def save_pdb(self, name=None):
@@ -449,7 +407,7 @@ class RotamerLibrary:
     def guess_chain(self):
         if self.protein is None:
             chain = 'A'
-        elif len(nr_segids := set(self.protein.segments.segids)) == 1:
+        elif len(set(self.protein.segments.segids)) == 1:
             chain = self.protein.segments.segids[0]
         elif np.isin(self.protein.residues.resnums, self.site).sum() == 0:
             raise ValueError(f'Residue {self.site} is not present on the provided protein')
@@ -465,11 +423,17 @@ class RotamerLibrary:
         self.segindex = self.protein.select_atoms(self.selstr).residues[0].segindex
         self.protein = self.protein.select_atoms('not (byres name OH2 or resname HOH)')
 
+        if self.protein_tree is None:
+            self.protein_tree = cKDTree(self.protein.atoms.positions)
+
         self._to_site()
 
         # Get weight of current or closest rotamer
         self.clash_ignore_idx = \
             self.protein.select_atoms(f'resid {self.site} and segid {self.chain}').ix
+
+        protein_clash_idx = self.protein_tree.query_ball_point(self.clash_ori, self.clash_radius)
+        self.protein_clash_idx = [idx for idx in protein_clash_idx if idx not in self.clash_ignore_idx]
 
         if self.coords.shape[1] == len(self.clash_ignore_idx):
             RMSDs = np.linalg.norm(self.coords - self.protein.atoms[self.clash_ignore_idx].positions[None, :, :],
@@ -547,6 +511,7 @@ def assign_defaults(kwargs):
     # Default parameters
     defaults = {'protein_tree': None,
                 'forgive': 1.,
+                'temp': 298,
                 'clash_radius': 14.,
                 '_clash_ori_inp': kwargs.pop('clash_ori', 'cen'),
                 'superimposition_method': 'bisect',

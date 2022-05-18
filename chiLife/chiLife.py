@@ -19,7 +19,7 @@ from scipy.stats import gaussian_kde
 from tqdm import tqdm
 
 import chiLife
-from .SpinLabel import SpinLabel
+from .SpinLabel import SpinLabel, dSpinLabel
 from .SpinLabelTraj import SpinLabelTraj
 from .numba_utils import *
 from .protein_utils import *
@@ -824,7 +824,7 @@ def save(file_name: str, *labels: SpinLabel, protein: Union[mda.Universe, mda.At
     """
     # Check for filename at the beginning of args
     labels = list(labels)
-    if isinstance(file_name, SpinLabel):
+    if isinstance(file_name, (SpinLabel, dSpinLabel)):
         labels.insert(0, file_name)
         file_name = None
     elif hasattr(file_name, 'atoms'):
@@ -1009,11 +1009,6 @@ def repack(protein: Union[mda.Universe, mda.AtomGroup], *spin_labels: SpinLabel,
     sample_freq = np.array([len(res.weights) for res in repack_residue_libraries], dtype=np.float64)
     sample_freq /= sample_freq.sum()
 
-    # Select atoms to consider when calculating lennard-jones potential
-    lj_atoms = repack_residues.atoms.select_atoms(f'(around 10. protein) or protein')
-    lj_radii = chiLife.get_lj_rmin(lj_atoms.atoms.types)
-    lj_eps = chiLife.get_lj_eps(lj_atoms.atoms.types)
-
     count = 0
     acount = 0
     bcount = 0
@@ -1024,23 +1019,21 @@ def repack(protein: Union[mda.Universe, mda.AtomGroup], *spin_labels: SpinLabel,
 
             # Randomly select a residue from the repack residues
             SiteLibrary = repack_residue_libraries[np.random.choice(len(repack_residue_libraries), p=sample_freq)]
+            if not hasattr(SiteLibrary, 'dummy_label'):
+                SiteLibrary.dummy_label = SiteLibrary.copy()
+                SiteLibrary.dummy_label.protein = protein
+                SiteLibrary.dummy_label.mask = np.isin(protein.ix, SiteLibrary.clash_ignore_idx)
+
+            DummyLabel = SiteLibrary.dummy_label
+
             coords, weight = SiteLibrary.sample(off_rotamer=kwargs.get('off_rotamer', False))
-            lj_mask = ~np.isin(lj_atoms.ix, SiteLibrary.clash_ignore_idx)
-            mask = ~np.isin(protein.ix, SiteLibrary.clash_ignore_idx)
 
-            # Calculate energy before the change
-            dist = cdist(lj_atoms.positions[~lj_mask], lj_atoms.positions[lj_mask]).ravel()
-            tlj_eps = np.sqrt(np.outer(lj_eps[~lj_mask], lj_eps[lj_mask]).reshape((-1)))
-            tlj_radii = np.add.outer(lj_radii[~lj_mask], lj_radii[lj_mask]).reshape(-1)
-            with np.errstate(divide='ignore'):
-                E0 = energy_func(dist[dist < 10], tlj_radii[dist < 10], tlj_eps[dist < 10]).sum() \
-                     - KT[temp[bidx]] * np.log(SiteLibrary.current_weight)
 
-            # Calculate energy after the change
-            dist = cdist(coords, lj_atoms.positions[lj_mask]).ravel()
-            with np.errstate(divide='ignore'):
-                E1 = energy_func(dist[dist < 10], tlj_radii[dist < 10], tlj_eps[dist < 10]).sum() \
-                     - KT[temp[bidx]] * np.log(weight)
+            DummyLabel.coords = np.atleast_3d([protein.atoms[DummyLabel.mask].positions])
+            E0 = energy_func(DummyLabel.protein, DummyLabel) - KT[temp[bidx]] * np.log(SiteLibrary.current_weight)
+
+            DummyLabel.coords = np.atleast_3d([coords])
+            E1 = energy_func(DummyLabel.protein, DummyLabel) - KT[temp[bidx]] * np.log(weight)
 
             deltaE = E1 - E0
             deltaE = np.maximum(deltaE, -10.)
@@ -1054,7 +1047,7 @@ def repack(protein: Union[mda.Universe, mda.AtomGroup], *spin_labels: SpinLabel,
 
                 deltaEs.append(deltaE)
                 try:
-                    protein.atoms[~mask].positions = coords
+                    protein.atoms[DummyLabel.mask].positions = coords
                 except ValueError as err:
                     print(SiteLibrary.name)
                     print(SiteLibrary.atom_names)
@@ -1077,15 +1070,7 @@ def repack(protein: Union[mda.Universe, mda.AtomGroup], *spin_labels: SpinLabel,
     # Load MCMC trajectory into universe.
     protein.universe.load_new(traj)
 
-    # Set frame to lowest energy
-    protein.universe.trajectory[np.argmin(np.cumsum(deltaE))]
-
-    return_labels = []
-    for spin_label in spin_labels:
-        return_labels.append(SpinLabel(spin_label.label, spin_label.site, protein,
-                                       spin_label.chain, energy_func=energy_func))
-
-    return protein, deltaEs, return_labels
+    return protein, deltaEs
 
 
 def add_label(name: str, pdb: str, dihedral_atoms: List[str], resi: int=1, spin_atoms: List[str] = None,

@@ -2,7 +2,9 @@ import os
 import hashlib
 import numpy as np
 import pytest
+import MDAnalysis as mda
 import chiLife as xl
+
 import matplotlib.pyplot as plt
 
 
@@ -22,16 +24,14 @@ def test_add_dlabel():
 
 def test_distance_distribution():
     r = np.linspace(15, 50, 256)
-    SL1 = xl.SpinLabel('R1C', 6, gb1)
+    SL1 = xl.SpinLabel('R1A', 6, gb1)
     dd = xl.get_dd(SL1, SL2, r)
-    xl.save(SL1, SL2, gb1)
-
-    np.testing.assert_almost_equal(dd[50:60], [0.000241, 0.000315, 0.000406, 0.000512, 0.000634,
-                                               0.00077, 0.001014, 0.002226, 0.002989, 0.004808], decimal=6)
+    np.testing.assert_almost_equal(dd[50:60], [0.00183767, 0.00297856, 0.00437123, 0.00802083, 0.01147641,
+                                               0.01642888, 0.02282988, 0.03100296, 0.04135329, 0.05425753], decimal=6)
 
 
 def test_centroid():
-    np.testing.assert_allclose(SL2.centroid, [19.90694544, -13.92542835, 11.03828934])
+    np.testing.assert_allclose(SL2.centroid, [19.90399089, -13.87953919,  11.16228634])
 
 
 def test_side_chain_idx():

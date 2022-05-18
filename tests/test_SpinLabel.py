@@ -77,15 +77,13 @@ def test_lib2site(label):
 
 
 @pytest.mark.parametrize('label', labels)
-def test_evaluate_clashes(label):
+def test_add_protein(label):
+
     site1, chain = 25, 'A'
-
-    environment = U.select_atoms(f'protein and not (segid {chain} and resid {site1})')
-    environment_tree = cKDTree(environment.positions)
-
     lib = chiLife.SpinLabel(label, site1, chain=chain, superimposition_method='mmm', energy_func=efunc)
-    lib._to_site(U.select_atoms(f'protein and segid {chain} and resid {site1} and name N CA C').positions)
-    lib.evaluate_clashes(environment, environment_tree, temp=298)
+    lib.protein = U
+    lib.protein_setup()
+
     with np.load(f'test_data/{label}_label.npz') as f:
         np.testing.assert_almost_equal(f['coords'], lib.coords, decimal=5)
         np.testing.assert_almost_equal(f['weights'], lib.weights, decimal=5)

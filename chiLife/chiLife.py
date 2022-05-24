@@ -27,19 +27,21 @@ from .scoring import *
 from .superimpositions import superimpositions
 
 # Define useful global variables
-SUPPORTED_LABELS = ('R1M', 'R7M', 'V1M', 'I1M', 'M1M', 'R1C')
-SUPPORTED_BB_LABELS = ('R1C',)
-DATA_DIR = Path(__file__).parent.absolute() / 'data/rotamer_libraries/'
+SUPPORTED_LABELS = ("R1M", "R7M", "V1M", "I1M", "M1M", "R1C")
+SUPPORTED_BB_LABELS = ("R1C",)
+DATA_DIR = Path(__file__).parent.absolute() / "data/rotamer_libraries/"
 logging.captureWarnings(True)
 
-with open(DATA_DIR / 'spin_atoms.txt', 'r') as f:
+with open(DATA_DIR / "spin_atoms.txt", "r") as f:
     lines = f.readlines()
-    SPIN_ATOMS = {x.split(':')[0]: eval(x.split(':')[1]) for x in lines}
+    SPIN_ATOMS = {x.split(":")[0]: eval(x.split(":")[1]) for x in lines}
 
 USER_LABELS = {key for key in SPIN_ATOMS if key not in SUPPORTED_LABELS}
-USER_dLABELS = {f.name[:3] for f in (DATA_DIR / 'UserRotlibs').glob('*i_*.npz')}
-SUPPORTED_RESIDUES = set(list(SUPPORTED_LABELS) + list(USER_LABELS) + list(dihedral_defs.keys()))
-[SUPPORTED_RESIDUES.remove(lab) for lab in ('CYR1', 'MTN')]
+USER_dLABELS = {f.name[:3] for f in (DATA_DIR / "UserRotlibs").glob("*i_*.npz")}
+SUPPORTED_RESIDUES = set(
+    list(SUPPORTED_LABELS) + list(USER_LABELS) + list(dihedral_defs.keys())
+)
+[SUPPORTED_RESIDUES.remove(lab) for lab in ("CYR1", "MTN")]
 
 
 def read_distance_distribution(file_name: str) -> Tuple[ArrayLike, ArrayLike]:
@@ -88,7 +90,11 @@ def get_dihedral_rotation_matrix(theta: float, v: ArrayLike) -> ArrayLike:
     Vx -= Vx.T
 
     # Rotation matrix. See https://en.wikipedia.org/wiki/Rotation_matrix#Rotation_matrix_from_axis_and_angle
-    rotation_matrix = np.identity(3) * np.cos(theta) + np.sin(theta) * Vx + (1 - np.cos(theta)) * np.outer(v, v)
+    rotation_matrix = (
+        np.identity(3) * np.cos(theta)
+        + np.sin(theta) * Vx
+        + (1 - np.cos(theta)) * np.outer(v, v)
+    )
 
     return rotation_matrix
 
@@ -140,7 +146,7 @@ def get_angle(p: ArrayLike) -> float:
     v2 = p3 - p2
     X = v1 @ v2
     Y = np.cross(v1, v2)
-    Y = math.sqrt(Y@Y)
+    Y = math.sqrt(Y @ Y)
     return math.atan2(Y, X)
 
 
@@ -177,28 +183,30 @@ def set_dihedral(p: ArrayLike, angle: float, mobile: ArrayLike) -> ArrayLike:
     return new_mobile
 
 
-def local_mx(N: ArrayLike, CA: ArrayLike, C: ArrayLike, method: str='bisect') -> Tuple[ArrayLike, ArrayLike]:
+def local_mx(
+    N: ArrayLike, CA: ArrayLike, C: ArrayLike, method: str = "bisect"
+) -> Tuple[ArrayLike, ArrayLike]:
     """
     Calculates a translation vector and rotation matrix to transform the provided rotamer library from the global
     coordinate frame to the local coordinate frame using the specified method.
-    
+
     :param N: ArrayLike
         3D coordinates of the amino Nitrogen of the amino acid backbone
-        
+
     :parma CA: ArrayLike
         3D coordinates of the alpha carbon of the amino acid backbone
-        
+
     :param C: ArrayLike
         3D coordinates of the carboxyl carbon of the amino acid backbone
-        
+
     :param method: str
         Method to use for generation of rotation matrix
-        
+
     :return origin, rotation_matrix: ndarray, ndarray
         origin and rotation matrix for rotamer library
     """
 
-    if method in {'fit'}:
+    if method in {"fit"}:
         rotation_matrix, _ = superimpositions[method](N, CA, C)
     else:
         # Transform coordinates such that the CA atom is at the origin
@@ -217,23 +225,25 @@ def local_mx(N: ArrayLike, CA: ArrayLike, C: ArrayLike, method: str='bisect') ->
     return origin, rotation_matrix
 
 
-def global_mx(N: ArrayLike, CA: ArrayLike, C: ArrayLike, method: str='bisect') -> Tuple[ArrayLike, ArrayLike]:
+def global_mx(
+    N: ArrayLike, CA: ArrayLike, C: ArrayLike, method: str = "bisect"
+) -> Tuple[ArrayLike, ArrayLike]:
     """
         Calculates a translation vector and rotation matrix to transform the provided rotamer library from the local
     coordinate frame to the global coordinate frame using the specified method.
-    
+
     :param N: ArrayLike
         3D coordinates of the amino Nitrogen of the amino acid backbone
-        
+
     :parma CA: ArrayLike
         3D coordinates of the alpha carbon of the amino acid backbone
-        
+
     :param C: ArrayLike
         3D coordinates of the carboxyl carbon of the amino acid backbone
-        
+
     :param method: str
         Method to use for generation of rotation matrix
-        
+
     :return rotation_matrix, origin: ndarray, ndarray
         rotation matrix and origin for rotamer library
     """
@@ -241,7 +251,9 @@ def global_mx(N: ArrayLike, CA: ArrayLike, C: ArrayLike, method: str='bisect') -
     return rotation_matrix, origin
 
 
-def ic_mx(atom1: ArrayLike, atom2: ArrayLike, atom3: ArrayLike) -> Tuple[ArrayLike, ArrayLike]:
+def ic_mx(
+    atom1: ArrayLike, atom2: ArrayLike, atom3: ArrayLike
+) -> Tuple[ArrayLike, ArrayLike]:
     """
     Calculates a rotation matrix and translation to transform a set of atoms to global coordinate frame from a local
     coordinated frame defined by atom1, atom2 and atom 3. The X-vector is defined as the bond between atom1 and atom2
@@ -286,8 +298,14 @@ def ic_mx(atom1: ArrayLike, atom2: ArrayLike, atom3: ArrayLike) -> Tuple[ArrayLi
     return rotation_matrix, origin
 
 
-def get_dd(*args, r: ArrayLike = (0, 100), sigma: float=1.0,
-           prune: bool=False, uq: bool=False, **kwargs) -> ArrayLike:
+def get_dd(
+    *args,
+    r: ArrayLike = (0, 100),
+    sigma: float = 1.0,
+    prune: bool = False,
+    uq: bool = False,
+    **kwargs,
+) -> ArrayLike:
     """
     Wrapper function to calculate distance distribution using arbitrary function and arbitrary inputs
 
@@ -323,10 +341,12 @@ def get_dd(*args, r: ArrayLike = (0, 100), sigma: float=1.0,
         r = args[-1]
         args = args[:-1]
 
-    if any(not hasattr(arg, atr) for arg in args for atr in ['spin_coords', 'weights']):
-        raise TypeError('Arguments other than spin labels must be passed as a keyword argument')
+    if any(not hasattr(arg, atr) for arg in args for atr in ["spin_coords", "weights"]):
+        raise TypeError(
+            "Arguments other than spin labels must be passed as a keyword argument"
+        )
 
-    size = kwargs.get('size', 1024)
+    size = kwargs.get("size", 1024)
     if isinstance(r, numbers.Number):
         r = np.linspace(0, r, size)
 
@@ -343,7 +363,9 @@ def get_dd(*args, r: ArrayLike = (0, 100), sigma: float=1.0,
 
     if uq:
         if prune:
-            raise ValueError('Pruning is not supported when performing uncertainty analysis (yet)')
+            raise ValueError(
+                "Pruning is not supported when performing uncertainty analysis (yet)"
+            )
         Ps = []
         n_boots = uq if uq > 1 else 100
         for i in range(n_boots):
@@ -363,7 +385,9 @@ def get_dd(*args, r: ArrayLike = (0, 100), sigma: float=1.0,
 
     if prune:
         if len(args) != 2:
-            raise IndexError("Pruned distance distributions are only supported when using two spin labels (for now).")
+            raise IndexError(
+                "Pruned distance distributions are only supported when using two spin labels (for now)."
+            )
 
         SL1, SL2 = args
 
@@ -385,7 +409,7 @@ def get_dd(*args, r: ArrayLike = (0, 100), sigma: float=1.0,
     return P
 
 
-def unfiltered_dd(*args, r: ArrayLike, sigma: float=1.) -> ArrayLike:
+def unfiltered_dd(*args, r: ArrayLike, sigma: float = 1.0) -> ArrayLike:
     """
     Obtain the pairwise distance distribution from two rotamer libraries, NO1, NO2 with corresponding weights w1, w2.
     The distribution is calculated by convolving the weighted histogram of pairwise distances between NO1 and NO2 with
@@ -419,14 +443,16 @@ def unfiltered_dd(*args, r: ArrayLike, sigma: float=1.) -> ArrayLike:
     weights = np.concatenate(weights)
 
     # Calculate histogram over x
-    hist, _ = np.histogram(distances, weights=weights, range=(min(r), max(r)), bins=len(r))
+    hist, _ = np.histogram(
+        distances, weights=weights, range=(min(r), max(r)), bins=len(r)
+    )
     if sigma != 0:
         # Calculate normal distribution for convolution
         delta_r = get_delta_r(r)
         _, g = norm(delta_r, 0, sigma)
 
         # Convolve normal distribution and histogram
-        P = fftconvolve(hist, g, mode='same')
+        P = fftconvolve(hist, g, mode="same")
 
     else:
         P = hist
@@ -440,7 +466,9 @@ def unfiltered_dd(*args, r: ArrayLike, sigma: float=1.) -> ArrayLike:
     return P
 
 
-def filter_by_weight(w1:ArrayLike, w2:ArrayLike, cutoff: float=0.001) -> Tuple[ArrayLike, ArrayLike]:
+def filter_by_weight(
+    w1: ArrayLike, w2: ArrayLike, cutoff: float = 0.001
+) -> Tuple[ArrayLike, ArrayLike]:
     """
     Pre-calculates weights for each rotamer pair and returns a weight vector for corresponding to the weights for each
     significant pair and their coordinate indices.
@@ -469,7 +497,9 @@ def filter_by_weight(w1:ArrayLike, w2:ArrayLike, cutoff: float=0.001) -> Tuple[A
 
 
 @njit(cache=True)
-def filtered_dd(NO1: ArrayLike, NO2: ArrayLike, weights: ArrayLike, r: ArrayLike, sigma: float=1.) -> ArrayLike:
+def filtered_dd(
+    NO1: ArrayLike, NO2: ArrayLike, weights: ArrayLike, r: ArrayLike, sigma: float = 1.0
+) -> ArrayLike:
     """
     Calculates the distance distribution for two sets of NO midpoints.
 
@@ -504,7 +534,7 @@ def filtered_dd(NO1: ArrayLike, NO2: ArrayLike, weights: ArrayLike, r: ArrayLike
         hist[:] = 0
 
     # Set 0 distance to 0 density
-    hist[0] = 0.
+    hist[0] = 0.0
 
     # Create normal distribution to convolve with histogram
     _, g = norm(delta_r, 0, sigma)
@@ -530,8 +560,14 @@ def filtered_dd(NO1: ArrayLike, NO2: ArrayLike, weights: ArrayLike, r: ArrayLike
     return P
 
 
-def traj_dd(SL1: SpinLabelTraj, SL2: SpinLabelTraj, r: ArrayLike, sigma: float,
-            filter: Union[bool, float], **kwargs) -> ArrayLike:
+def traj_dd(
+    SL1: SpinLabelTraj,
+    SL2: SpinLabelTraj,
+    r: ArrayLike,
+    sigma: float,
+    filter: Union[bool, float],
+    **kwargs,
+) -> ArrayLike:
     """
     Calculate a distance distribution from a trajectory of spin labels
 
@@ -557,7 +593,7 @@ def traj_dd(SL1: SpinLabelTraj, SL2: SpinLabelTraj, r: ArrayLike, sigma: float,
 
     # Ensure that the SpinLabelTrajectories have the same numebr of frames.
     if len(SL1) != len(SL2):
-        raise ValueError('SpinLabelTraj objects must have the same length')
+        raise ValueError("SpinLabelTraj objects must have the same length")
 
     # Calculate the distance distribution for each frame and sum
     P = np.zeros_like(r)
@@ -571,7 +607,7 @@ def traj_dd(SL1: SpinLabelTraj, SL2: SpinLabelTraj, r: ArrayLike, sigma: float,
 
 
 @cached
-def read_sl_library(label: str, user: bool = False) -> Tuple[ArrayLike,...]:
+def read_sl_library(label: str, user: bool = False) -> Tuple[ArrayLike, ...]:
     """
     Reads RotamerLibrary for stored spin labels.
 
@@ -585,33 +621,38 @@ def read_sl_library(label: str, user: bool = False) -> Tuple[ArrayLike,...]:
         Arrays of spin label coordinates, weights, atom types and atom names in the local coordinate frame. If
         internal_coord information is available it will be returned in between coords and weights.
     """
-    subdir = 'UserRotlibs/' if user else 'MMM_RotLibs/'
-    data = os.path.join(os.path.dirname(__file__), 'data/rotamer_libraries/')
-    with np.load(data + subdir + label + '_rotlib.npz', allow_pickle=True) as files:
+    subdir = "UserRotlibs/" if user else "MMM_RotLibs/"
+    data = os.path.join(os.path.dirname(__file__), "data/rotamer_libraries/")
+    with np.load(data + subdir + label + "_rotlib.npz", allow_pickle=True) as files:
         lib = dict(files)
 
-    del lib['allow_pickle']
+    del lib["allow_pickle"]
 
-    with open(chiLife.DATA_DIR / f'residue_internal_coords/{label}_ic.pkl', 'rb') as f:
+    with open(chiLife.DATA_DIR / f"residue_internal_coords/{label}_ic.pkl", "rb") as f:
         IC = pickle.load(f)
         if isinstance(IC, list):
             ICn = IC
         else:
-            ICn = [IC.copy().set_dihedral(np.deg2rad(r), 1, atom_list=lib['dihedral_atoms']) for r in lib['dihedrals']]
+            ICn = [
+                IC.copy().set_dihedral(
+                    np.deg2rad(r), 1, atom_list=lib["dihedral_atoms"]
+                )
+                for r in lib["dihedrals"]
+            ]
 
-    lib['internal_coords'] = ICn
+    lib["internal_coords"] = ICn
 
-    if 'sigmas' not in lib:
-        lib['sigmas'] = np.array([])
+    if "sigmas" not in lib:
+        lib["sigmas"] = np.array([])
 
-    lib['_rdihedrals'] = np.deg2rad(lib['dihedrals'])
-    lib['_rsigmas'] = np.deg2rad(lib['sigmas'])
+    lib["_rdihedrals"] = np.deg2rad(lib["dihedrals"])
+    lib["_rsigmas"] = np.deg2rad(lib["sigmas"])
 
     return lib
 
 
 @cached
-def read_bbdep(res: str, Phi: float, Psi: float) -> Tuple[ArrayLike,...]:
+def read_bbdep(res: str, Phi: float, Psi: float) -> Tuple[ArrayLike, ...]:
     """
     Read the dunbrack rotamer library for for the provided residue and backbone conformation.
 
@@ -631,7 +672,7 @@ def read_bbdep(res: str, Phi: float, Psi: float) -> Tuple[ArrayLike,...]:
     Phi, Psi = str(Phi), str(Psi)
 
     # Read residue internal coordinate structure
-    with open(DATA_DIR / f'residue_internal_coords/{res.lower()}_ic.pkl', 'rb') as f:
+    with open(DATA_DIR / f"residue_internal_coords/{res.lower()}_ic.pkl", "rb") as f:
         ICs = pickle.load(f)
 
     atom_types = [atom.atype for atom in ICs]
@@ -640,54 +681,56 @@ def read_bbdep(res: str, Phi: float, Psi: float) -> Tuple[ArrayLike,...]:
     maxchi = 5 if res in SUPPORTED_BB_LABELS else 4
     nchi = np.minimum(len(dihedral_defs[res]), maxchi)
 
-    if res not in ('ALA', 'GLY'):
-        library = 'R1C.lib' if res in SUPPORTED_BB_LABELS else 'ALL.bbdep.rotamers.lib'
-        start, length = rotlib_indexes[f'{res}  {Phi:>4}{Psi:>5}']
+    if res not in ("ALA", "GLY"):
+        library = "R1C.lib" if res in SUPPORTED_BB_LABELS else "ALL.bbdep.rotamers.lib"
+        start, length = rotlib_indexes[f"{res}  {Phi:>4}{Psi:>5}"]
 
-        with open(DATA_DIR / library, 'rb') as f:
+        with open(DATA_DIR / library, "rb") as f:
             f.seek(start)
             rotlib_string = f.read(length).decode()
             s = StringIO(rotlib_string)
             s.seek(0)
             data = np.genfromtxt(s, usecols=range(maxchi + 4, maxchi + 5 + 2 * maxchi))
 
-        lib['weights'] = data[:, 0]
-        lib['dihedrals'] = data[:, 1:nchi+1]
-        lib['sigmas'] = data[:, maxchi+1:maxchi + nchi + 1]
+        lib["weights"] = data[:, 0]
+        lib["dihedrals"] = data[:, 1 : nchi + 1]
+        lib["sigmas"] = data[:, maxchi + 1 : maxchi + nchi + 1]
         dihedral_atoms = dihedral_defs[res][:nchi]
 
         # Calculate cartesian coordinates for each rotamer
         coords = []
         internal_coords = []
-        for r in lib['dihedrals']:
+        for r in lib["dihedrals"]:
             ICn = ICs.copy().set_dihedral(np.deg2rad(r), 1, atom_list=dihedral_atoms)
 
             coords.append(ICn.to_cartesian())
             internal_coords.append(ICn)
 
     else:
-        lib['weights'] = np.array([1])
-        lib['dihedrals'], lib['sigmas'], dihedral_atoms = [], [], []
+        lib["weights"] = np.array([1])
+        lib["dihedrals"], lib["sigmas"], dihedral_atoms = [], [], []
         coords = [ICs.to_cartesian()]
         internal_coords = [ICs.copy()]
 
     # Get origin and rotation matrix of local frame
-    mask = np.in1d(atom_names, ['N', 'CA', 'C'])
+    mask = np.in1d(atom_names, ["N", "CA", "C"])
     ori, mx = local_mx(*coords[0][mask])
 
     # Set coords in local frame and prepare output
-    lib['coords'] = np.array([(coord - ori) @ mx for coord in coords])
-    lib['internal_coords'] = internal_coords
-    lib['atom_types'] = np.asarray(atom_types)
-    lib['atom_names'] = np.asarray(atom_names)
-    lib['dihedral_atoms'] = np.asarray(dihedral_atoms)
-    lib['_rdihedrals'] = np.deg2rad(lib['dihedrals'])
-    lib['_rsigmas'] = np.deg2rad(lib['sigmas'])
+    lib["coords"] = np.array([(coord - ori) @ mx for coord in coords])
+    lib["internal_coords"] = internal_coords
+    lib["atom_types"] = np.asarray(atom_types)
+    lib["atom_names"] = np.asarray(atom_names)
+    lib["dihedral_atoms"] = np.asarray(dihedral_atoms)
+    lib["_rdihedrals"] = np.deg2rad(lib["dihedrals"])
+    lib["_rsigmas"] = np.deg2rad(lib["sigmas"])
 
     return lib
 
 
-def read_library(res: str, Phi: float=None, Psi: float=None) -> Tuple[ArrayLike, ...]:
+def read_library(
+    res: str, Phi: float = None, Psi: float = None
+) -> Tuple[ArrayLike, ...]:
     """
     Generalized wrapper function to aid selection of rotamer library reading function.
 
@@ -741,20 +784,25 @@ def get_site(site: Union[int, str], label: str) -> Tuple[int, str]:
             site = site[:-3]
 
         # Extract Chain if it exists
-        chain = site.strip('0123456789')
+        chain = site.strip("0123456789")
 
     if chain:
-        resi = int(site[len(chain):])
+        resi = int(site[len(chain) :])
     else:
         resi = int(site)
-        chain = 'A'
+        chain = "A"
 
     return resi, chain, label
 
 
 @njit(cache=True)
-def optimize_weights(ensemble: ArrayLike, idx: ArrayLike, start_weights: ArrayLike,
-                     start_score: float, data: ArrayLike) -> Tuple[ArrayLike, ArrayLike, ArrayLike, float]:
+def optimize_weights(
+    ensemble: ArrayLike,
+    idx: ArrayLike,
+    start_weights: ArrayLike,
+    start_score: float,
+    data: ArrayLike,
+) -> Tuple[ArrayLike, ArrayLike, ArrayLike, float]:
     """
     Fit weights to an ensemble of distance distributions optimizing the score with respect to user defined data.
 
@@ -805,7 +853,12 @@ def optimize_weights(ensemble: ArrayLike, idx: ArrayLike, start_weights: ArrayLi
     return ensemble, idx, best_weights, best_score
 
 
-def save(file_name: str, *labels: SpinLabel, protein: Union[mda.Universe, mda.AtomGroup, str] = None, **kwargs) -> None:
+def save(
+    file_name: str,
+    *labels: SpinLabel,
+    protein: Union[mda.Universe, mda.AtomGroup, str] = None,
+    **kwargs,
+) -> None:
     """
     Save a pdb file of the provided labels
 
@@ -827,57 +880,81 @@ def save(file_name: str, *labels: SpinLabel, protein: Union[mda.Universe, mda.At
     if isinstance(file_name, (SpinLabel, dSpinLabel)):
         labels.insert(0, file_name)
         file_name = None
-    elif hasattr(file_name, 'atoms'):
+    elif hasattr(file_name, "atoms"):
         labels.insert(-1, file_name)
         file_name = None
 
     # Check for protein structures at the end of args
     if protein is None:
-        if isinstance(labels[-1], str) or \
-                isinstance(labels[-1], mda.Universe) or \
-                isinstance(labels[-1], MDAnalysis.AtomGroup):
+        if (
+            isinstance(labels[-1], str)
+            or isinstance(labels[-1], mda.Universe)
+            or isinstance(labels[-1], MDAnalysis.AtomGroup)
+        ):
             protein = labels.pop(-1)
 
     # Create a file name from spin label and protein information
     if file_name is None:
         if isinstance(protein, str):
             f = Path(protein)
-            file_name = f.name.rstrip('.pdb')
-        elif getattr(protein, 'filename', None) is not None:
-            file_name = protein.filename.rstrip('.pdb')
+            file_name = f.name.rstrip(".pdb")
+        elif getattr(protein, "filename", None) is not None:
+            file_name = protein.filename.rstrip(".pdb")
         else:
-            file_name = 'No_Name_Protein'
+            file_name = "No_Name_Protein"
 
         if 0 < len(labels) < 3:
             for label in labels:
-                file_name += f'_{label.site}{label.label}'
+                file_name += f"_{label.site}{label.label}"
         else:
-            file_name += '_many_labels'
-        file_name += '.pdb'
+            file_name += "_many_labels"
+        file_name += ".pdb"
 
     if protein is not None:
         if isinstance(protein, str):
             print(protein, file_name)
             shutil.copy(protein, file_name)
-        elif isinstance(protein, mda.Universe) or isinstance(protein, MDAnalysis.AtomGroup):
+        elif isinstance(protein, mda.Universe) or isinstance(
+            protein, MDAnalysis.AtomGroup
+        ):
             write_protein(file_name, protein)
         else:
-            raise TypeError('`protein` must be a string or an MDAnalysis Universe/AtomGroup object')
+            raise TypeError(
+                "`protein` must be a string or an MDAnalysis Universe/AtomGroup object"
+            )
 
     if len(labels) > 0:
         write_labels(file_name, *labels, **kwargs)
 
-def write_protein(file: str, protein: Union[mda.Universe, mda.AtomGroup], **kwargs) -> None:
+
+def write_protein(
+    file: str, protein: Union[mda.Universe, mda.AtomGroup], **kwargs
+) -> None:
 
     fmt_str = "ATOM  {:5d} {:^4s} {:3s} {:1s}{:4d}    {:8.3f}{:8.3f}{:8.3f}{:6.2f}{:6.2f}          {:>2s}  \n"
-    with open(file, 'w') as f:
+    with open(file, "w") as f:
         f.write(f'HEADER {file.rstrip(".pdb")}\n')
         for mdl, ts in enumerate(protein.universe.trajectory):
-            f.write(f'MODEL {mdl}\n')
-            [f.write(fmt_str.format(atom.index, atom.name, atom.resname[:3], atom.segid, atom.resnum,
-                                    *atom.position, 1.00, 1.0, atom.type)) for atom in protein.atoms]
-            f.write('TER\n')
-            f.write('ENDMDL\n')
+            f.write(f"MODEL {mdl}\n")
+            [
+                f.write(
+                    fmt_str.format(
+                        atom.index,
+                        atom.name,
+                        atom.resname[:3],
+                        atom.segid,
+                        atom.resnum,
+                        *atom.position,
+                        1.00,
+                        1.0,
+                        atom.type,
+                    )
+                )
+                for atom in protein.atoms
+            ]
+            f.write("TER\n")
+            f.write("ENDMDL\n")
+
 
 def write_labels(file: str, *args: SpinLabel, KDE: bool = True, **kwargs) -> None:
     """
@@ -904,35 +981,51 @@ def write_labels(file: str, *args: SpinLabel, KDE: bool = True, **kwargs) -> Non
             rotlibs.append(arg.SL1)
             rotlibs.append(arg.SL2)
         else:
-            raise TypeError(f'Cannot save {arg}. *args must be RotamerLibrary SpinLabel or dSpinLabal objects')
+            raise TypeError(
+                f"Cannot save {arg}. *args must be RotamerLibrary SpinLabel or dSpinLabal objects"
+            )
 
     fmt_str = "ATOM  {:5d} {:^4s} {:3s} {:1s}{:4d}    {:8.3f}{:8.3f}{:8.3f}{:6.2f}{:6.2f}          {:>2s}  \n"
-    with open(file, 'a+', newline='\n') as f:
+    with open(file, "a+", newline="\n") as f:
         # Write spin label models
-        f.write('\n')
+        f.write("\n")
         for k, label in enumerate(rotlibs):
-            f.write(f'HEADER {label.name}\n')
+            f.write(f"HEADER {label.name}\n")
 
             # Save models in order of weight
             sorted_index = np.argsort(label.weights)[::-1]
-            for mdl, (conformer, weight) in enumerate(zip(label.coords[sorted_index],
-                                                          label.weights[sorted_index])):
-                f.write('MODEL {}\n'.format(mdl))
+            for mdl, (conformer, weight) in enumerate(
+                zip(label.coords[sorted_index], label.weights[sorted_index])
+            ):
+                f.write("MODEL {}\n".format(mdl))
 
-                [f.write(fmt_str.format(i, label.atom_names[i], label.res[:3], label.chain, int(label.site),
-                                        *conformer[i], 1.00, weight * 100, label.atom_types[i]))
-                 for i in range(len(label.atom_names))]
-                f.write('TER\n')
-                f.write('ENDMDL\n')
+                [
+                    f.write(
+                        fmt_str.format(
+                            i,
+                            label.atom_names[i],
+                            label.res[:3],
+                            label.chain,
+                            int(label.site),
+                            *conformer[i],
+                            1.00,
+                            weight * 100,
+                            label.atom_types[i],
+                        )
+                    )
+                    for i in range(len(label.atom_names))
+                ]
+                f.write("TER\n")
+                f.write("ENDMDL\n")
 
         # Write electron density at electron coordinates
         for k, label in enumerate(rotlibs):
-            if not hasattr(label, 'spin_coords'):
+            if not hasattr(label, "spin_coords"):
                 continue
             if np.any(np.isnan(label.spin_coords)):
                 continue
 
-            f.write(f'HEADER {label.name}_density\n'.format(label.label, k + 1))
+            f.write(f"HEADER {label.name}_density\n".format(label.label, k + 1))
             NO = np.atleast_2d(label.spin_coords)
 
             if KDE and np.all(np.linalg.eigh(np.cov(NO.T))[0] > 0) and len(NO) > 5:
@@ -944,15 +1037,34 @@ def write_labels(file: str, *args: SpinLabel, KDE: bool = True, **kwargs) -> Non
             else:
                 vals = label.weights
 
-            [f.write(fmt_str.format(i, 'NEN', label.label[:3], label.chain, int(label.site),
-                                    *NO[i], 1.00, vals[i] * 100, 'N'))
-             for i in range(len(vals))]
+            [
+                f.write(
+                    fmt_str.format(
+                        i,
+                        "NEN",
+                        label.label[:3],
+                        label.chain,
+                        int(label.site),
+                        *NO[i],
+                        1.00,
+                        vals[i] * 100,
+                        "N",
+                    )
+                )
+                for i in range(len(vals))
+            ]
 
-            f.write('TER\n')
+            f.write("TER\n")
 
 
-def repack(protein: Union[mda.Universe, mda.AtomGroup], *spin_labels: SpinLabel, repetitions: int=200, temp: float=1,
-           energy_func: Callable=get_lj_rep, **kwargs) -> Tuple[mda.Universe, ArrayLike, Tuple[SpinLabel, ...]]:
+def repack(
+    protein: Union[mda.Universe, mda.AtomGroup],
+    *spin_labels: SpinLabel,
+    repetitions: int = 200,
+    temp: float = 1,
+    energy_func: Callable = get_lj_rep,
+    **kwargs,
+) -> Tuple[mda.Universe, ArrayLike, Tuple[SpinLabel, ...]]:
     """
     Given a protein and a SpinLabel object, repack the local environment using monte carlo sampling.
 
@@ -982,31 +1094,43 @@ def repack(protein: Union[mda.Universe, mda.AtomGroup], *spin_labels: SpinLabel,
     temp = np.atleast_1d(temp)
     KT = {t: GAS_CONST * t for t in temp}
 
-    repack_radius = kwargs.get('repack_radius', 10)  # Angstroms
+    repack_radius = kwargs.get("repack_radius", 10)  # Angstroms
 
     # Construct a new spin labeled protein and preallocate variables to retain monte carlo trajectory
-    spin_label_str = " or ".join(f'( {spin_label.selstr} )' for spin_label in spin_labels)
+    spin_label_str = " or ".join(
+        f"( {spin_label.selstr} )" for spin_label in spin_labels
+    )
     protein = mutate(protein, *spin_labels).atoms
 
     # Determine the residues near the spin label that will be repacked
-    repack_residues = protein.select_atoms(f'(around {repack_radius} {spin_label_str} ) '
-                                           f'or {spin_label_str}').residues
-    repack_residue_libraries = [RotamerLibrary.from_mda(res) for res in repack_residues if
-                                res.resname not in ['GLY', 'ALA']]
+    repack_residues = protein.select_atoms(
+        f"(around {repack_radius} {spin_label_str} ) " f"or {spin_label_str}"
+    ).residues
+    repack_residue_libraries = [
+        RotamerLibrary.from_mda(res)
+        for res in repack_residues
+        if res.resname not in ["GLY", "ALA"]
+    ]
 
     # Create new labeled protein construct to fill in any missing atoms of repack residues
     protein = mutate(protein, *repack_residue_libraries).atoms
 
-    repack_residues = protein.select_atoms(f'(around {repack_radius} {spin_label_str} ) '
-                                           f'or {spin_label_str}').residues
+    repack_residues = protein.select_atoms(
+        f"(around {repack_radius} {spin_label_str} ) " f"or {spin_label_str}"
+    ).residues
 
-    repack_residue_libraries = [RotamerLibrary.from_mda(res) for res in repack_residues if
-                                res.resname not in ['GLY', 'ALA']]
+    repack_residue_libraries = [
+        RotamerLibrary.from_mda(res)
+        for res in repack_residues
+        if res.resname not in ["GLY", "ALA"]
+    ]
 
     traj = np.empty((repetitions, *protein.positions.shape))
     deltaEs = []
 
-    sample_freq = np.array([len(res.weights) for res in repack_residue_libraries], dtype=np.float64)
+    sample_freq = np.array(
+        [len(res.weights) for res in repack_residue_libraries], dtype=np.float64
+    )
     sample_freq /= sample_freq.sum()
 
     count = 0
@@ -1018,34 +1142,48 @@ def repack(protein: Union[mda.Universe, mda.AtomGroup], *spin_labels: SpinLabel,
         while count < repetitions:
 
             # Randomly select a residue from the repack residues
-            SiteLibrary = repack_residue_libraries[np.random.choice(len(repack_residue_libraries), p=sample_freq)]
-            if not hasattr(SiteLibrary, 'dummy_label'):
+            SiteLibrary = repack_residue_libraries[
+                np.random.choice(len(repack_residue_libraries), p=sample_freq)
+            ]
+            if not hasattr(SiteLibrary, "dummy_label"):
                 SiteLibrary.dummy_label = SiteLibrary.copy()
                 SiteLibrary.dummy_label.protein = protein
-                SiteLibrary.dummy_label.mask = np.isin(protein.ix, SiteLibrary.clash_ignore_idx)
-                SiteLibrary.dummy_label.coords = np.atleast_3d([protein.atoms[SiteLibrary.dummy_label.mask].positions])
+                SiteLibrary.dummy_label.mask = np.isin(
+                    protein.ix, SiteLibrary.clash_ignore_idx
+                )
+                SiteLibrary.dummy_label.coords = np.atleast_3d(
+                    [protein.atoms[SiteLibrary.dummy_label.mask].positions]
+                )
 
-                with np.errstate(divide='ignore'):
-                    SiteLibrary.dummy_label.E0 = energy_func(SiteLibrary.dummy_label.protein, SiteLibrary.dummy_label) - \
-                                                 KT[temp[bidx]] * np.log(SiteLibrary.current_weight)
+                with np.errstate(divide="ignore"):
+                    SiteLibrary.dummy_label.E0 = energy_func(
+                        SiteLibrary.dummy_label.protein, SiteLibrary.dummy_label
+                    ) - KT[temp[bidx]] * np.log(SiteLibrary.current_weight)
 
             DummyLabel = SiteLibrary.dummy_label
 
-            coords, weight = SiteLibrary.sample(off_rotamer=kwargs.get('off_rotamer', False))
+            coords, weight = SiteLibrary.sample(
+                off_rotamer=kwargs.get("off_rotamer", False)
+            )
 
-            with np.errstate(divide='ignore'):
+            with np.errstate(divide="ignore"):
                 DummyLabel.coords = np.atleast_3d([coords])
-                E1 = energy_func(DummyLabel.protein, DummyLabel) - KT[temp[bidx]] * np.log(weight)
+                E1 = energy_func(DummyLabel.protein, DummyLabel) - KT[
+                    temp[bidx]
+                ] * np.log(weight)
 
             deltaE = E1 - DummyLabel.E0
-            deltaE = np.maximum(deltaE, -10.)
+            deltaE = np.maximum(deltaE, -10.0)
             if deltaE == -np.inf:
                 print(SiteLibrary.name)
                 print(E1, DummyLabel.E0)
 
             acount += 1
             # Metropolis-Hastings criteria
-            if E1 < DummyLabel.E0 or np.exp(-deltaE / KT[temp[bidx]]) > np.random.rand():
+            if (
+                E1 < DummyLabel.E0
+                or np.exp(-deltaE / KT[temp[bidx]]) > np.random.rand()
+            ):
 
                 deltaEs.append(deltaE)
                 try:
@@ -1069,7 +1207,7 @@ def repack(protein: Union[mda.Universe, mda.AtomGroup], *spin_labels: SpinLabel,
             else:
                 continue
 
-    logging.info(f'Total counts: {acount}')
+    logging.info(f"Total counts: {acount}")
 
     # Load MCMC trajectory into universe.
     protein.universe.load_new(traj)
@@ -1077,8 +1215,15 @@ def repack(protein: Union[mda.Universe, mda.AtomGroup], *spin_labels: SpinLabel,
     return protein, deltaEs
 
 
-def add_label(name: str, pdb: str, dihedral_atoms: List[str], resi: int=1, spin_atoms: List[str] = None,
-              dihedrals: ArrayLike = None, weights: ArrayLike = None):
+def add_label(
+    name: str,
+    pdb: str,
+    dihedral_atoms: List[str],
+    resi: int = 1,
+    spin_atoms: List[str] = None,
+    dihedrals: ArrayLike = None,
+    weights: ArrayLike = None,
+):
     """
     Add a user defined SpinLabel from a pdb file.
 
@@ -1106,23 +1251,31 @@ def add_label(name: str, pdb: str, dihedral_atoms: List[str], resi: int=1, spin_
         Weights associated with the dihedral angles provided by the `dihedrals` keyword argument
     """
     struct = pre_add_label(name, pdb, spin_atoms)
-    pdb_resname = struct.select_atoms(f'resnum {resi}').resnames[0]
+    pdb_resname = struct.select_atoms(f"resnum {resi}").resnames[0]
 
     # Convert loaded rotamer library to internal coords
-    internal_coords = [chiLife.get_internal_coords(struct.select_atoms(f'resnum {resi}'), resname=pdb_resname,
-                                                   preferred_dihedrals=dihedral_atoms) for ts in struct.trajectory]
+    internal_coords = [
+        chiLife.get_internal_coords(
+            struct.select_atoms(f"resnum {resi}"),
+            resname=pdb_resname,
+            preferred_dihedrals=dihedral_atoms,
+        )
+        for ts in struct.trajectory
+    ]
 
     # Remove chain operators so all rotamers are in the ic coordinate frame
     for ic in internal_coords:
         ic.chain_operators = None
 
     # Add internal_coords to data dir
-    with open(DATA_DIR / f'residue_internal_coords/{name}_ic.pkl', 'wb') as f:
+    with open(DATA_DIR / f"residue_internal_coords/{name}_ic.pkl", "wb") as f:
         pickle.dump(internal_coords, f)
 
     # If multi-state pdb extract rotamers from pdb
     if dihedrals is None:
-        dihedrals = np.rad2deg([ic.get_dihedral(1, dihedral_atoms) for ic in internal_coords])
+        dihedrals = np.rad2deg(
+            [ic.get_dihedral(1, dihedral_atoms) for ic in internal_coords]
+        )
 
     if weights is None:
         weights = np.ones(len(dihedrals))
@@ -1131,8 +1284,16 @@ def add_label(name: str, pdb: str, dihedral_atoms: List[str], resi: int=1, spin_
     store_new_restype(name, internal_coords, weights, dihedrals, dihedral_atoms)
 
 
-def add_dlabel(name: str, pdb: str, increment: int, dihedral_atoms: List[List[List[str]]], resi: int=1,
-               spin_atoms: List[str] = None, dihedrals: ArrayLike = None, weights: ArrayLike = None):
+def add_dlabel(
+    name: str,
+    pdb: str,
+    increment: int,
+    dihedral_atoms: List[List[List[str]]],
+    resi: int = 1,
+    spin_atoms: List[str] = None,
+    dihedrals: ArrayLike = None,
+    weights: ArrayLike = None,
+):
     """
     Add a user defined SpinLabel from a pdb file.
 
@@ -1172,56 +1333,94 @@ def add_dlabel(name: str, pdb: str, increment: int, dihedral_atoms: List[List[Li
         dihedral_error = False
 
     if dihedral_error:
-        raise ValueError('dihedral_atoms must be a list of lists where each sublist contains the list of dihedral atoms'
-                         'for the i and i+{increment} side chains. Sublists can contain any amount of dihedrals but '
-                         'each dihedral should be defined by exactly four unique atom names that belong to the same '
-                         'residue number')
+        raise ValueError(
+            "dihedral_atoms must be a list of lists where each sublist contains the list of dihedral atoms"
+            "for the i and i+{increment} side chains. Sublists can contain any amount of dihedrals but "
+            "each dihedral should be defined by exactly four unique atom names that belong to the same "
+            "residue number"
+        )
 
     struct = pre_add_label(name, pdb, spin_atoms)
-    pdb_resname = struct.select_atoms(f'resnum {resi}').resnames[0]
+    pdb_resname = struct.select_atoms(f"resnum {resi}").resnames[0]
 
-    IC1 = [chiLife.get_internal_coords(struct.select_atoms(f'resnum {resi}'), resname=pdb_resname,
-                                       preferred_dihedrals=dihedral_atoms[0]) for ts in struct.trajectory]
+    IC1 = [
+        chiLife.get_internal_coords(
+            struct.select_atoms(f"resnum {resi}"),
+            resname=pdb_resname,
+            preferred_dihedrals=dihedral_atoms[0],
+        )
+        for ts in struct.trajectory
+    ]
 
-    IC2 = [chiLife.get_internal_coords(struct.select_atoms(f'resnum {resi + increment}'), resname=pdb_resname,
-                                       preferred_dihedrals=dihedral_atoms[1]) for ts in struct.trajectory]
+    IC2 = [
+        chiLife.get_internal_coords(
+            struct.select_atoms(f"resnum {resi + increment}"),
+            resname=pdb_resname,
+            preferred_dihedrals=dihedral_atoms[1],
+        )
+        for ts in struct.trajectory
+    ]
 
     for ic1, ic2 in zip(IC1, IC2):
-        ic1.shift_resnum(-(resi-1))
+        ic1.shift_resnum(-(resi - 1))
         ic2.shift_resnum(-(resi + increment - 1))
 
     # Identify atoms that dont move with respect to each other but move with the dihedrals
-    maxindex1 = max([IC1[0].ICs[1][1][tuple(d[::-1])].index for d in dihedral_atoms[0]]) - 1
-    maxindex2 = max([IC2[0].ICs[1][1][tuple(d[::-1])].index for d in dihedral_atoms[1]]) - 1
+    maxindex1 = (
+        max([IC1[0].ICs[1][1][tuple(d[::-1])].index for d in dihedral_atoms[0]]) - 1
+    )
+    maxindex2 = (
+        max([IC2[0].ICs[1][1][tuple(d[::-1])].index for d in dihedral_atoms[1]]) - 1
+    )
 
     # Store 4 pairs between SLs as constriants
-    cst_pool1 = [atom.index for atom in IC1[0].ICs[1][1].values() if atom.index >= maxindex1 and atom.atype != 'H']
-    cst_pool2 = [atom.index for atom in IC2[0].ICs[1][1].values() if atom.index >= maxindex2 and atom.atype != 'H']
+    cst_pool1 = [
+        atom.index
+        for atom in IC1[0].ICs[1][1].values()
+        if atom.index >= maxindex1 and atom.atype != "H"
+    ]
+    cst_pool2 = [
+        atom.index
+        for atom in IC2[0].ICs[1][1].values()
+        if atom.index >= maxindex2 and atom.atype != "H"
+    ]
 
     cst_pairs = np.array(list(product(cst_pool1, cst_pool2)))
 
-    constraint_distances = [np.linalg.norm(ic1.coords[cst_pairs[:, 0]] - ic2.coords[cst_pairs[:, 1]], axis=1)
-                            for ic1, ic2 in zip(IC1, IC2)]
+    constraint_distances = [
+        np.linalg.norm(
+            ic1.coords[cst_pairs[:, 0]] - ic2.coords[cst_pairs[:, 1]], axis=1
+        )
+        for ic1, ic2 in zip(IC1, IC2)
+    ]
 
     csts = [cst_pairs, constraint_distances]
 
     # Add internal_coords to data dir
-    for suffix, save_data in zip(["", 'i', f'ip{increment}'], [csts, IC1, IC2]):
-        with open(DATA_DIR / f'residue_internal_coords/{name}{suffix}_ic.pkl', 'wb') as f:
+    for suffix, save_data in zip(["", "i", f"ip{increment}"], [csts, IC1, IC2]):
+        with open(
+            DATA_DIR / f"residue_internal_coords/{name}{suffix}_ic.pkl", "wb"
+        ) as f:
             pickle.dump(save_data, f)
 
     # If multi-state pdb extract rotamers from pdb
     if dihedrals is None:
         dihedrals = []
-        for IC, resnum, dihedral_set in zip([IC1, IC2], [resi, resi+increment], dihedral_atoms):
-            dihedrals.append([[ICi.get_dihedral(1, ddef) for ddef in dihedral_set] for ICi in IC])
+        for IC, resnum, dihedral_set in zip(
+            [IC1, IC2], [resi, resi + increment], dihedral_atoms
+        ):
+            dihedrals.append(
+                [[ICi.get_dihedral(1, ddef) for ddef in dihedral_set] for ICi in IC]
+            )
 
     if weights is None:
         weights = np.ones(len(IC1))
 
     weights /= weights.sum()
     store_new_restype(name, IC1, weights, dihedrals[0], dihedral_atoms[0], increment=0)
-    store_new_restype(name, IC2, weights, dihedrals[1], dihedral_atoms[1], increment=increment)
+    store_new_restype(
+        name, IC2, weights, dihedrals[1], dihedral_atoms[1], increment=increment
+    )
 
 
 def pre_add_label(name, pdb, spin_atoms):
@@ -1234,12 +1433,14 @@ def pre_add_label(name, pdb, spin_atoms):
         if isinstance(spin_atoms, str):
             spin_atoms = spin_atoms.split()
 
-        with open(DATA_DIR/'spin_atoms.txt', 'r+') as f:
+        with open(DATA_DIR / "spin_atoms.txt", "r+") as f:
             lines = f.readlines()
-            spin_dict = {x.split(':')[0]: eval(x.split(':')[1]) for x in lines}
+            spin_dict = {x.split(":")[0]: eval(x.split(":")[1]) for x in lines}
             if name in spin_dict:
                 if spin_dict[name] != spin_atoms:
-                    raise NameError('There is already a ProEPR spin label with this name')
+                    raise NameError(
+                        "There is already a ProEPR spin label with this name"
+                    )
             else:
                 joinstr = "', '"
                 line = f"{name}: ['{joinstr.join(spin_atoms)}']\n"
@@ -1252,14 +1453,18 @@ def pre_add_label(name, pdb, spin_atoms):
 
     # Write a temporary file with the sorted atoms
     if isinstance(pdb_lines[0], list):
-        with tempfile.NamedTemporaryFile(suffix='.pdb', mode='w+', delete=False) as tmpfile:
+        with tempfile.NamedTemporaryFile(
+            suffix=".pdb", mode="w+", delete=False
+        ) as tmpfile:
             for i, model in enumerate(pdb_lines):
-                tmpfile.write(f'MODEL {i + 1}\n')
+                tmpfile.write(f"MODEL {i + 1}\n")
                 for atom in model:
                     tmpfile.write(atom)
-                tmpfile.write('ENDMDL\n')
+                tmpfile.write("ENDMDL\n")
     else:
-        with tempfile.NamedTemporaryFile(suffix='.pdb', mode='w+', delete=False) as tmpfile:
+        with tempfile.NamedTemporaryFile(
+            suffix=".pdb", mode="w+", delete=False
+        ) as tmpfile:
             for line in pdb_lines:
                 tmpfile.write(line)
 
@@ -1269,29 +1474,37 @@ def pre_add_label(name, pdb, spin_atoms):
     return struct
 
 
-def store_new_restype(name, internal_coords, weights, dihedrals, dihedral_atoms, increment=None):
+def store_new_restype(
+    name, internal_coords, weights, dihedrals, dihedral_atoms, increment=None
+):
     # Extract coordinates and transform to the local frame
-    bb_atom_idx = [i for i, atom in enumerate(internal_coords[0]) if atom.name in ['N', 'CA', 'C']]
+    bb_atom_idx = [
+        i for i, atom in enumerate(internal_coords[0]) if atom.name in ["N", "CA", "C"]
+    ]
     coords = internal_coords[0].coords.copy()
     ori, mx = local_mx(*coords[bb_atom_idx])
     coords = (coords - ori) @ mx
 
     if increment == 0:
-        name += 'i'
+        name += "i"
     elif increment is None:
         increment = 0
 
     if increment > 0:
-        name += f'ip{increment}'
-
+        name += f"ip{increment}"
 
     # Save pdb structure
-    save_pdb(DATA_DIR / f'residue_pdbs/{name}.pdb', internal_coords[0], coords)
+    save_pdb(DATA_DIR / f"residue_pdbs/{name}.pdb", internal_coords[0], coords)
 
     if len(internal_coords) > 1:
         coords = np.array([(IC.coords - ori) @ mx for IC in internal_coords])
     elif len(dihedrals) > 1:
-        coords = np.array([internal_coords.set_dihedral(dihe, 1 + increment, dihedral_atoms) for dihe in dihedrals])
+        coords = np.array(
+            [
+                internal_coords.set_dihedral(dihe, 1 + increment, dihedral_atoms)
+                for dihe in dihedrals
+            ]
+        )
     else:
         if coords.ndim == 2:
             coords = np.expand_dims(coords, axis=0)
@@ -1300,8 +1513,14 @@ def store_new_restype(name, internal_coords, weights, dihedrals, dihedral_atoms,
     atom_names = np.array([atom.name for atom in internal_coords[0]])
 
     # Save rotamer library
-    np.savez(DATA_DIR / f'UserRotlibs/{name}_rotlib.npz',
-             coords=coords, internal_coords=internal_coords, weights=weights,
-             atom_types=atom_types, atom_names=atom_names,
-             dihedrals=dihedrals, dihedral_atoms=dihedral_atoms,
-             allow_pickle=True)
+    np.savez(
+        DATA_DIR / f"UserRotlibs/{name}_rotlib.npz",
+        coords=coords,
+        internal_coords=internal_coords,
+        weights=weights,
+        atom_types=atom_types,
+        atom_names=atom_names,
+        dihedrals=dihedrals,
+        dihedral_atoms=dihedral_atoms,
+        allow_pickle=True,
+    )

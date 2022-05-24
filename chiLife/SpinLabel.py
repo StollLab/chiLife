@@ -28,7 +28,7 @@ class SpinLabel(RotamerLibrary):
             k-dimensional tree object associated with the protein coordinates.
     """
 
-    backbone_atoms = ['H', 'N', 'CA', 'HA', 'C', 'O']
+    backbone_atoms = ["H", "N", "CA", "HA", "C", "O"]
 
     def __init__(self, label, site=1, protein=None, chain=None, **kwargs):
         """
@@ -46,13 +46,15 @@ class SpinLabel(RotamerLibrary):
             k-dimensional tree object associated with the protein coordinates.
         """
         # Overide RotamerLibrary default of not evaluating clashes
-        kwargs.setdefault('eval_clash', True)
+        kwargs.setdefault("eval_clash", True)
         super().__init__(label, site, protein=protein, chain=chain, **kwargs)
 
         self.label = label
 
         # Parse important indices
-        self.spin_idx = np.argwhere(np.isin(self.atom_names, chiLife.SPIN_ATOMS[label[:3]]))
+        self.spin_idx = np.argwhere(
+            np.isin(self.atom_names, chiLife.SPIN_ATOMS[label[:3]])
+        )
 
     @property
     def spin_coords(self):
@@ -64,10 +66,11 @@ class SpinLabel(RotamerLibrary):
         return np.average(self.spin_coords, weights=self.weights, axis=0)
 
     def protein_setup(self):
-        self.protein = self.protein.select_atoms('not (byres name OH2 or resname HOH)')
+        self.protein = self.protein.select_atoms("not (byres name OH2 or resname HOH)")
         self._to_site()
-        self.clash_ignore_idx = \
-            self.protein.select_atoms(f'resid {self.site} and segid {self.chain}').ix
+        self.clash_ignore_idx = self.protein.select_atoms(
+            f"resid {self.site} and segid {self.chain}"
+        ).ix
 
         self.resindex = self.protein.select_atoms(self.selstr).residues[0].resindex
         self.segindex = self.protein.select_atoms(self.selstr).residues[0].segindex
@@ -75,8 +78,12 @@ class SpinLabel(RotamerLibrary):
         if self.protein_tree is None:
             self.protein_tree = cKDTree(self.protein.atoms.positions)
 
-        protein_clash_idx = self.protein_tree.query_ball_point(self.clash_ori, self.clash_radius)
-        self.protein_clash_idx = [idx for idx in protein_clash_idx if idx not in self.clash_ignore_idx]
+        protein_clash_idx = self.protein_tree.query_ball_point(
+            self.clash_ori, self.clash_radius
+        )
+        self.protein_clash_idx = [
+            idx for idx in protein_clash_idx if idx not in self.clash_ignore_idx
+        ]
 
         if self.eval_clash:
             self.evaluate()
@@ -86,51 +93,81 @@ class SpinLabel(RotamerLibrary):
         """
         Create a SpinLabel object using the default MMM protocol with any modifications passed via kwargs
         """
-        MMM_maxdist = {'R1M': 9.550856367392733,
-                       'R7M': 9.757254987175209,
-                       'V1M': 8.237071322458029,
-                       'M1M': 8.985723827323680,
-                       'I1M': 12.952083029729994}
+        MMM_maxdist = {
+            "R1M": 9.550856367392733,
+            "R7M": 9.757254987175209,
+            "V1M": 8.237071322458029,
+            "M1M": 8.985723827323680,
+            "I1M": 12.952083029729994,
+        }
 
         # Store the force field parameter set being used before creating the spin label
         curr_lj = chiLife.using_lj_param
-        user_lj = kwargs.pop('lj_params', 'uff')
+        user_lj = kwargs.pop("lj_params", "uff")
         # Set MMM defaults or user defined overrides
         chiLife.set_lj_params(user_lj)
 
-        clash_radius = kwargs.pop('clash_radius', MMM_maxdist[label] + 4)
-        superimposition_method = kwargs.pop('superimposition_method', 'mmm')
-        clash_ori = kwargs.pop('clash_ori', 'CA')
-        energy_func = kwargs.pop('energy_func', partial(chiLife.get_lj_energy, cap=np.inf))
-        use_H = kwargs.pop('use_H', True)
-        forgive = kwargs.pop('forgive', 0.5)
-
+        clash_radius = kwargs.pop("clash_radius", MMM_maxdist[label] + 4)
+        superimposition_method = kwargs.pop("superimposition_method", "mmm")
+        clash_ori = kwargs.pop("clash_ori", "CA")
+        energy_func = kwargs.pop(
+            "energy_func", partial(chiLife.get_lj_energy, cap=np.inf)
+        )
+        use_H = kwargs.pop("use_H", True)
+        forgive = kwargs.pop("forgive", 0.5)
 
         # Calculate the SpinLabel
-        SL = chiLife.SpinLabel(label, site, protein, chain, superimposition_method=superimposition_method,
-                               clash_radius=clash_radius, clash_ori=clash_ori, energy_func=energy_func,
-                               use_H=use_H, forgive=forgive, **kwargs)
+        SL = chiLife.SpinLabel(
+            label,
+            site,
+            protein,
+            chain,
+            superimposition_method=superimposition_method,
+            clash_radius=clash_radius,
+            clash_ori=clash_ori,
+            energy_func=energy_func,
+            use_H=use_H,
+            forgive=forgive,
+            **kwargs,
+        )
 
         # restore the force field parameter set being used before creating the spin label
         chiLife.set_lj_params(curr_lj)
         return SL
 
     @classmethod
-    def from_wizard(cls, label, site=1, protein=None, chain=None, to_find=200, to_try=10000, vdw=2.5, clashes=5, **kwargs):
+    def from_wizard(
+        cls,
+        label,
+        site=1,
+        protein=None,
+        chain=None,
+        to_find=200,
+        to_try=10000,
+        vdw=2.5,
+        clashes=5,
+        **kwargs,
+    ):
         prelib = cls(label, site, protein, chain, eval_clash=False, **kwargs)
-        if not kwargs.setdefault('use_prior', False):
+        if not kwargs.setdefault("use_prior", False):
             prelib.sigmas = np.array([])
 
         coords = np.zeros((to_find, len(prelib.atom_names), 3))
         internal_coords = []
         i = 0
         if protein is not None:
-            protein_clash_idx = prelib.protein_tree.query_ball_point(prelib.centroid(), 19.0)
-            protein_clash_idx = [idx for idx in protein_clash_idx if idx not in prelib.clash_ignore_idx]
+            protein_clash_idx = prelib.protein_tree.query_ball_point(
+                prelib.centroid(), 19.0
+            )
+            protein_clash_idx = [
+                idx for idx in protein_clash_idx if idx not in prelib.clash_ignore_idx
+            ]
 
         a, b = [list(x) for x in zip(*prelib.non_bonded)]
-        for _ in range(np.rint(to_try/to_find).astype(int)):
-            sample, _, internal_sample = prelib.sample(n=to_find, off_rotamer=True, return_dihedrals=True)
+        for _ in range(np.rint(to_try / to_find).astype(int)):
+            sample, _, internal_sample = prelib.sample(
+                n=to_find, off_rotamer=True, return_dihedrals=True
+            )
 
             # Evaluate internal clashes
             dist = np.linalg.norm(sample[:, a] - sample[:, b], axis=2)
@@ -142,9 +179,12 @@ class SpinLabel(RotamerLibrary):
             internal_sample = internal_sample[sidx]
             if protein is not None:
                 # Evaluate external clashes
-                dist = cdist(sample[:, prelib.side_chain_idx].reshape(-1, 3), prelib.protein_tree.data[protein_clash_idx])
+                dist = cdist(
+                    sample[:, prelib.side_chain_idx].reshape(-1, 3),
+                    prelib.protein_tree.data[protein_clash_idx],
+                )
                 dist = dist.reshape(len(sidx), -1)
-                nclashes = np.sum(dist < vdw,  axis=1)
+                nclashes = np.sum(dist < vdw, axis=1)
                 sidx = np.atleast_1d(np.squeeze(np.argwhere(nclashes < clashes)))
             else:
                 sidx = np.arange(len(sample))
@@ -153,9 +193,9 @@ class SpinLabel(RotamerLibrary):
                 continue
 
             if i + len(sidx) >= to_find:
-                sidx = sidx[:to_find - i]
+                sidx = sidx[: to_find - i]
 
-            coords[i:i+len(sidx)] = sample[sidx]
+            coords[i : i + len(sidx)] = sample[sidx]
             internal_coords.append(internal_sample[sidx])
             i += len(sidx)
 
@@ -163,8 +203,12 @@ class SpinLabel(RotamerLibrary):
                 break
 
         coords = coords[coords.sum(axis=(1, 2)) != 0]
-        prelib.internal_coords = np.concatenate(internal_coords) if len(internal_coords) > 0 else []
-        prelib.dihedrals = np.array([IC.get_dihedral(1, prelib.dihedral_atoms) for IC in prelib.internal_coords])
+        prelib.internal_coords = (
+            np.concatenate(internal_coords) if len(internal_coords) > 0 else []
+        )
+        prelib.dihedrals = np.array(
+            [IC.get_dihedral(1, prelib.dihedral_atoms) for IC in prelib.internal_coords]
+        )
         prelib.coords = coords
         prelib.weights = np.ones(len(coords))
         prelib.weights /= prelib.weights.sum()
@@ -173,7 +217,7 @@ class SpinLabel(RotamerLibrary):
     def __deepcopy__(self, memodict={}):
         new_copy = chiLife.SpinLabel(self.res, self.site)
         for item in self.__dict__:
-            if item != 'protein':
+            if item != "protein":
                 new_copy.__dict__[item] = deepcopy(self.__dict__[item])
             elif self.__dict__[item] is None:
                 new_copy.protein = None
@@ -183,11 +227,8 @@ class SpinLabel(RotamerLibrary):
 
 
 class dSpinLabel:
-
     def __init__(self, label, site, increment, protein=None, chain=None, **kwargs):
-        """
-
-        """
+        """ """
         self.label = label
         self.res = label
         self.site = site
@@ -197,33 +238,38 @@ class dSpinLabel:
 
         self.protein = protein
         self.chain = chain if chain is not None else self.guess_chain()
-        self.protein_tree = self.kwargs.setdefault('protein_tree', None)
+        self.protein_tree = self.kwargs.setdefault("protein_tree", None)
 
         self.name = self.res
         if self.site is not None:
-            self.name = f'{self.site}_{self.site2}_{self.res}'
+            self.name = f"{self.site}_{self.site2}_{self.res}"
         if self.chain is not None:
-            self.name += f'_{self.chain}'
+            self.name += f"_{self.chain}"
 
-        self.selstr = f'resid {self.site} {self.site2} and segid {self.chain} and not altloc B'
+        self.selstr = (
+            f"resid {self.site} {self.site2} and segid {self.chain} and not altloc B"
+        )
 
-        self.forgive = kwargs.setdefault('forgive', 1.)
-        self.clash_radius = kwargs.setdefault('clash_radius', 14.)
-        self._clash_ori_inp = kwargs.setdefault('clash_ori', 'cen')
-        self.superimposition_method = kwargs.setdefault('superimposition_method', 'bisect').lower()
-        self.dihedral_sigma = kwargs.setdefault('dihedral_sigma', 25)
-        self.minimize = kwargs.pop('minimize', True)
-        self.eval_clash = kwargs.pop('eval_clash', True)
-        self.energy_func = kwargs.setdefault('energy_func', chiLife.get_lj_rep)
-        self.temp = kwargs.setdefault('temp', 298)
+        self.forgive = kwargs.setdefault("forgive", 1.0)
+        self.clash_radius = kwargs.setdefault("clash_radius", 14.0)
+        self._clash_ori_inp = kwargs.setdefault("clash_ori", "cen")
+        self.superimposition_method = kwargs.setdefault(
+            "superimposition_method", "bisect"
+        ).lower()
+        self.dihedral_sigma = kwargs.setdefault("dihedral_sigma", 25)
+        self.minimize = kwargs.pop("minimize", True)
+        self.eval_clash = kwargs.pop("eval_clash", True)
+        self.energy_func = kwargs.setdefault("energy_func", chiLife.get_lj_rep)
+        self.temp = kwargs.setdefault("temp", 298)
         self.get_lib()
         self.protein_setup()
         self.sub_labels = (self.SL1, self.SL2)
 
     def protein_setup(self):
-        self.protein = self.protein.select_atoms('not (byres name OH2 or resname HOH)')
-        self.clash_ignore_idx = \
-            self.protein.select_atoms(f'resid {self.site} {self.site2} and segid {self.chain}').ix
+        self.protein = self.protein.select_atoms("not (byres name OH2 or resname HOH)")
+        self.clash_ignore_idx = self.protein.select_atoms(
+            f"resid {self.site} {self.site2} and segid {self.chain}"
+        ).ix
 
         self.resindex = self.protein.select_atoms(self.selstr).residues[0].resindex
         self.segindex = self.protein.select_atoms(self.selstr).residues[0].segindex
@@ -231,8 +277,12 @@ class dSpinLabel:
         if self.protein_tree is None:
             self.protein_tree = cKDTree(self.protein.atoms.positions)
 
-        protein_clash_idx = self.protein_tree.query_ball_point(self.clash_ori, self.clash_radius)
-        self.protein_clash_idx = [idx for idx in protein_clash_idx if idx not in self.clash_ignore_idx]
+        protein_clash_idx = self.protein_tree.query_ball_point(
+            self.clash_ori, self.clash_radius
+        )
+        self.protein_clash_idx = [
+            idx for idx in protein_clash_idx if idx not in self.clash_ignore_idx
+        ]
 
         if self.minimize:
             self._minimize()
@@ -242,61 +292,96 @@ class dSpinLabel:
 
     def guess_chain(self):
         if self.protein is None:
-            chain = 'A'
+            chain = "A"
         elif len(nr_segids := set(self.protein.segments.segids)) == 1:
             chain = self.protein.segments.segids[0]
         elif np.isin(self.protein.residues.resnums, self.site).sum() == 0:
-            raise ValueError(f'Residue {self.site} is not present on the provided protein')
+            raise ValueError(
+                f"Residue {self.site} is not present on the provided protein"
+            )
         elif np.isin(self.protein.residues.resnums, self.site).sum() == 1:
-            chain = self.protein.select_atoms(f'resid {self.site}').segids[0]
+            chain = self.protein.select_atoms(f"resid {self.site}").segids[0]
         else:
-            raise ValueError(f'Residue {self.site} is present on more than one chain. Please specify the desired chain')
+            raise ValueError(
+                f"Residue {self.site} is present on more than one chain. Please specify the desired chain"
+            )
         return chain
 
     def get_lib(self):
         PhiSel, PsiSel = None, None
         if self.protein is not None:
             # get site backbone information from protein structure
-            sel_txt = f'resnum {self.site} and segid {self.chain}'
+            sel_txt = f"resnum {self.site} and segid {self.chain}"
             PhiSel = self.protein.select_atoms(sel_txt).residues[0].phi_selection()
             PsiSel = self.protein.select_atoms(sel_txt).residues[0].psi_selection()
 
         # Default to helix backbone if none provided
-        Phi = None if PhiSel is None else np.rad2deg(chiLife.get_dihedral(PhiSel.positions))
-        Psi = None if PsiSel is None else np.rad2deg(chiLife.get_dihedral(PsiSel.positions))
+        Phi = (
+            None
+            if PhiSel is None
+            else np.rad2deg(chiLife.get_dihedral(PhiSel.positions))
+        )
+        Psi = (
+            None
+            if PsiSel is None
+            else np.rad2deg(chiLife.get_dihedral(PsiSel.positions))
+        )
 
-        with open(chiLife.DATA_DIR/f'residue_internal_coords/{self.label}_ic.pkl', 'rb') as f:
+        with open(
+            chiLife.DATA_DIR / f"residue_internal_coords/{self.label}_ic.pkl", "rb"
+        ) as f:
             self.cst_idxs, self.csts = pickle.load(f)
-        self.kwargs['eval_clash'] = False
-        self.SL1 = chiLife.SpinLabel(self.label + 'i', self.site, self.protein, self.chain, **self.kwargs)
-        self.SL2 = chiLife.SpinLabel(self.label + f'ip{self.increment}', self.site2, self.protein, self.chain, **self.kwargs)
+        self.kwargs["eval_clash"] = False
+        self.SL1 = chiLife.SpinLabel(
+            self.label + "i", self.site, self.protein, self.chain, **self.kwargs
+        )
+        self.SL2 = chiLife.SpinLabel(
+            self.label + f"ip{self.increment}",
+            self.site2,
+            self.protein,
+            self.chain,
+            **self.kwargs,
+        )
 
     def save_pdb(self, name=None):
         if name is None:
-            name = self.name + '.pdb'
-        if not name.endswith('.pdb'):
-            name += '.pdb'
+            name = self.name + ".pdb"
+        if not name.endswith(".pdb"):
+            name += ".pdb"
 
         chiLife.save(name, self.SL1, self.SL2)
 
     def _minimize(self):
-
         def objective(dihedrals, ic1, ic2, opt):
-            coords1 = ic1.set_dihedral(dihedrals[:len(self.SL1.dihedral_atoms)], 1, self.SL1.dihedral_atoms).to_cartesian()
-            coords2 = ic2.set_dihedral(dihedrals[-len(self.SL2.dihedral_atoms):], 1, self.SL2.dihedral_atoms).to_cartesian()
+            coords1 = ic1.set_dihedral(
+                dihedrals[: len(self.SL1.dihedral_atoms)], 1, self.SL1.dihedral_atoms
+            ).to_cartesian()
+            coords2 = ic2.set_dihedral(
+                dihedrals[-len(self.SL2.dihedral_atoms) :], 1, self.SL2.dihedral_atoms
+            ).to_cartesian()
 
-            distances = np.linalg.norm(coords1[self.cst_idxs[:, 0]] - coords2[self.cst_idxs[:, 1]], axis=1)
+            distances = np.linalg.norm(
+                coords1[self.cst_idxs[:, 0]] - coords2[self.cst_idxs[:, 1]], axis=1
+            )
             diff = distances - opt
-            return diff@diff
+            return diff @ diff
 
         scores = np.empty_like(self.weights)
-        for i, (ic1, ic2) in enumerate(zip(self.SL1.internal_coords, self.SL2.internal_coords)):
-            d0 = np.concatenate([ic1.get_dihedral(1, self.SL1.dihedral_atoms),
-                                 ic2.get_dihedral(1, self.SL2.dihedral_atoms)])
+        for i, (ic1, ic2) in enumerate(
+            zip(self.SL1.internal_coords, self.SL2.internal_coords)
+        ):
+            d0 = np.concatenate(
+                [
+                    ic1.get_dihedral(1, self.SL1.dihedral_atoms),
+                    ic2.get_dihedral(1, self.SL2.dihedral_atoms),
+                ]
+            )
             lb = [-np.pi] * len(d0)  # d0 - np.deg2rad(40)  #
-            ub = [np.pi] * len(d0)   # d0 + np.deg2rad(40) #
+            ub = [np.pi] * len(d0)  # d0 + np.deg2rad(40) #
             bounds = np.c_[lb, ub]
-            xopt = opt.minimize(objective, x0=d0, args=(ic1, ic2, self.csts[i]), bounds=bounds)
+            xopt = opt.minimize(
+                objective, x0=d0, args=(ic1, ic2, self.csts[i]), bounds=bounds
+            )
             self.SL1.coords[i] = ic1.coords[self.SL1.H_mask]
             self.SL2.coords[i] = ic2.coords[self.SL2.H_mask]
             scores[i] = xopt.fun
@@ -326,14 +411,20 @@ class dSpinLabel:
     @coords.setter
     def coords(self, value):
         if value.shape[1] != self.SL1.coords.shape[1] + self.SL2.coords.shape[1]:
-            raise ValueError(f'The provided coordinates do not match the number of atoms of this label ({self.label})')
+            raise ValueError(
+                f"The provided coordinates do not match the number of atoms of this label ({self.label})"
+            )
 
-        self.SL1.coords = value[:, :self.SL1.coords.shape[1]]
-        self.SL2.coords = value[:, -self.SL2.coords.shape[1]:]
+        self.SL1.coords = value[:, : self.SL1.coords.shape[1]]
+        self.SL2.coords = value[:, -self.SL2.coords.shape[1] :]
 
     @property
     def spin_coords(self):
-        sc_matrix = [SL.spin_coords for SL in self.sub_labels if not np.any(np.isnan(SL.spin_coords))]
+        sc_matrix = [
+            SL.spin_coords
+            for SL in self.sub_labels
+            if not np.any(np.isnan(SL.spin_coords))
+        ]
         return np.sum(sc_matrix, axis=0) / len(sc_matrix)
 
     @property
@@ -352,15 +443,17 @@ class dSpinLabel:
                 return self._clash_ori_inp
 
         elif isinstance(self._clash_ori_inp, str):
-            if self._clash_ori_inp in ['cen', 'centroid']:
+            if self._clash_ori_inp in ["cen", "centroid"]:
                 return self.centroid
 
             elif (ori_name := self._clash_ori_inp.upper()) in self.atom_names:
                 return np.squeeze(self.coords[0][ori_name == self.atom_names])
 
         else:
-            raise ValueError(f'Unrecognized clash_ori option {self._clash_ori_inp}. Please specify a 3D vector, an '
-                             f'atom name or `centroid`')
+            raise ValueError(
+                f"Unrecognized clash_ori option {self._clash_ori_inp}. Please specify a 3D vector, an "
+                f"atom name or `centroid`"
+            )
 
         return self._clash_ori
 
@@ -370,7 +463,12 @@ class dSpinLabel:
 
     @property
     def side_chain_idx(self):
-        return np.concatenate([self.SL1.side_chain_idx, self.SL2.side_chain_idx + len(self.SL1.atom_names)])
+        return np.concatenate(
+            [
+                self.SL1.side_chain_idx,
+                self.SL2.side_chain_idx + len(self.SL1.atom_names),
+            ]
+        )
 
     @property
     def rmin2(self):
@@ -390,10 +488,12 @@ class dSpinLabel:
             self.protein_tree = cKDTree(self.protein.atoms.positions)
 
         rotamer_energies = self.energy_func(self.protein, self)
-        rotamer_probabilities = np.exp(-rotamer_energies / (chiLife.GAS_CONST * self.temp))
+        rotamer_probabilities = np.exp(
+            -rotamer_energies / (chiLife.GAS_CONST * self.temp)
+        )
 
-        self.weights, self.partition = chiLife.reweight_rotamers(rotamer_probabilities,
-                                                                 self.weights,
-                                                                 return_partition=True)
-        logging.info(f'Relative partition function: {self.partition:.3}')
+        self.weights, self.partition = chiLife.reweight_rotamers(
+            rotamer_probabilities, self.weights, return_partition=True
+        )
+        logging.info(f"Relative partition function: {self.partition:.3}")
         self.trim()

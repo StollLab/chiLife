@@ -30,7 +30,7 @@ def test_get_delta_r():
 
 
 def test_histogram():
-    r = np.linspace(0, 100, 2 ** 8)
+    r = np.linspace(0, 100, 2**8)
     data = np.random.normal(45, 5, 100)
     w = np.random.uniform(0, 1, 100)
     w /= w.sum()
@@ -48,11 +48,11 @@ def test_jaccard():
     y2 = np.zeros(10)
     y2[4:8] = 1
 
-    assert nu.jaccard(y1, y2) == 3/5
+    assert nu.jaccard(y1, y2) == 3 / 5
 
 
 def test_kl_divergence():
-    r = np.linspace(0, 100, 2 ** 8)
+    r = np.linspace(0, 100, 2**8)
     p1 = norm(45, 5).pdf(r)
     p2 = norm(55, 6).pdf(r)
 
@@ -72,6 +72,7 @@ def test_norm():
 
 def test_pairwise_dist():
     from time import time
+
     A = np.random.rand(1000, 3)
     B = np.random.rand(1000, 3)
     print(A.shape)
@@ -82,7 +83,7 @@ def test_pairwise_dist():
     t2 = time()
     D_numba = nu.pairwise_dist(A, B)
     t3 = time()
-    print('cdist time: ', t2 - t1)
-    print('numba time: ', t3 - t2)
+    print("cdist time: ", t2 - t1)
+    print("numba time: ", t3 - t2)
 
     np.testing.assert_almost_equal(D_cdist, D_numba)

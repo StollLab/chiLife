@@ -134,7 +134,7 @@ def kl_divergence(p, q):
 
 
 @njit(cache=True)
-def norm(delta_r, mu=0., sigma=1.):
+def norm(delta_r, mu=0.0, sigma=1.0):
     """
     Calculate normal distribution for convolution with histogram of distances between two spin label ensembles
 
@@ -152,14 +152,15 @@ def norm(delta_r, mu=0., sigma=1.):
     """
 
     # Calculate normal distribution
-    x = np.arange(mu - 3. * sigma, mu + 3. * sigma + delta_r, delta_r)
+    x = np.arange(mu - 3.0 * sigma, mu + 3.0 * sigma + delta_r, delta_r)
 
     kernel_domain = (x - mu) ** 2
-    coef = (1 / (np.sqrt(2 * np.pi * sigma ** 2)))
-    denom = 2 * sigma ** 2
-    y = coef * np.exp(- (kernel_domain / denom))
+    coef = 1 / (np.sqrt(2 * np.pi * sigma**2))
+    denom = 2 * sigma**2
+    y = coef * np.exp(-(kernel_domain / denom))
 
     return x, y
+
 
 @njit(cache=True)
 def pairwise_dist(X, Y):
@@ -265,7 +266,7 @@ def get_ICAtom_indices(k, index, bonds, angles, dihedrals, offset):
                 srted = np.array([dk[i] < dk[i + 1] for i in range(3)])
                 condition = condition and np.all(srted)
             except:
-                print('asdfasdf')
+                print("asdfasdf")
                 raise
         else:
             condition = condition and np.all(dk[:3] < dk[3])
@@ -280,6 +281,5 @@ def get_ICAtom_indices(k, index, bonds, angles, dihedrals, offset):
             ordered = False
         else:
             k += 1
-
 
     return i, j, k

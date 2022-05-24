@@ -1,9 +1,11 @@
 from itertools import groupby
 import numpy as np
 
-class Protein:
 
-    def __init__(self, coords, atom_names, atom_types, atom_residues, atom_chain, res_names):
+class Protein:
+    def __init__(
+        self, coords, atom_names, atom_types, atom_residues, atom_chain, res_names
+    ):
         self.coords = coords
         self.atom_names = atom_names
         self.atom_types = atom_types
@@ -15,17 +17,17 @@ class Protein:
     def from_pdb(cls, file_name):
         atom_names = None
         # Read file
-        with open(file_name, 'r') as f:
+        with open(file_name, "r") as f:
             lines = f.readlines()
 
         # group by model
-        models = groupby(lines, lambda x: x.startswith('MODEL'))
+        models = groupby(lines, lambda x: x.startswith("MODEL"))
 
         coords = []
         # loop over models and extract information
         for key, model in models:
 
-            model = [line.strip().split() for line in model if line.startswith('ATOM')]
+            model = [line.strip().split() for line in model if line.startswith("ATOM")]
 
             for line in model:
                 if len(line) != 13:
@@ -63,4 +65,3 @@ class Protein:
     #
     #     # Group logical operators
     #     groupby(sel, lambda x: x in ['resnum, resname, name'])
-

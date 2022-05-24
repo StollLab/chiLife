@@ -1023,31 +1023,35 @@ def repack(protein: Union[mda.Universe, mda.AtomGroup], *spin_labels: SpinLabel,
                 SiteLibrary.dummy_label = SiteLibrary.copy()
                 SiteLibrary.dummy_label.protein = protein
                 SiteLibrary.dummy_label.mask = np.isin(protein.ix, SiteLibrary.clash_ignore_idx)
+                SiteLibrary.dummy_label.coords = np.atleast_3d([protein.atoms[SiteLibrary.dummy_label.mask].positions])
+
+                with np.errstate(divide='ignore'):
+                    SiteLibrary.dummy_label.E0 = energy_func(SiteLibrary.dummy_label.protein, SiteLibrary.dummy_label) - \
+                                                 KT[temp[bidx]] * np.log(SiteLibrary.current_weight)
 
             DummyLabel = SiteLibrary.dummy_label
 
             coords, weight = SiteLibrary.sample(off_rotamer=kwargs.get('off_rotamer', False))
 
+            with np.errstate(divide='ignore'):
+                DummyLabel.coords = np.atleast_3d([coords])
+                E1 = energy_func(DummyLabel.protein, DummyLabel) - KT[temp[bidx]] * np.log(weight)
 
-            DummyLabel.coords = np.atleast_3d([protein.atoms[DummyLabel.mask].positions])
-            E0 = energy_func(DummyLabel.protein, DummyLabel) - KT[temp[bidx]] * np.log(SiteLibrary.current_weight)
-
-            DummyLabel.coords = np.atleast_3d([coords])
-            E1 = energy_func(DummyLabel.protein, DummyLabel) - KT[temp[bidx]] * np.log(weight)
-
-            deltaE = E1 - E0
+            deltaE = E1 - DummyLabel.E0
             deltaE = np.maximum(deltaE, -10.)
             if deltaE == -np.inf:
                 print(SiteLibrary.name)
-                print(E1, E0)
+                print(E1, DummyLabel.E0)
 
             acount += 1
             # Metropolis-Hastings criteria
-            if E1 < E0 or np.exp(-deltaE / KT[temp[bidx]]) > np.random.rand():
+            if E1 < DummyLabel.E0 or np.exp(-deltaE / KT[temp[bidx]]) > np.random.rand():
 
                 deltaEs.append(deltaE)
                 try:
                     protein.atoms[DummyLabel.mask].positions = coords
+                    DummyLabel.E0 = E1
+
                 except ValueError as err:
                     print(SiteLibrary.name)
                     print(SiteLibrary.atom_names)

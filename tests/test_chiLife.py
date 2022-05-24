@@ -251,6 +251,11 @@ def test_save_fail():
     with pytest.raises(TypeError):
         chiLife.save('tmp', np.array([1, 2, 3]))
 
+def test_sthk():
+    SthK = mda.Universe('6cjq.pdb').select_atoms('protein')
+    D261R1_A = chiLife.SpinLabel('R1A', 261, SthK, chain='A')
+    traj, dE = chiLife.repack(SthK, D261R1_A, repetitions=500, temp=298, off_rotamer=True)
+    D261R1_A_Repack = chiLife.SpinLabel.from_trajectory(traj, 261, chain='A', burn_in=100)
 
 # class TestProtein:
 #

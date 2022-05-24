@@ -203,11 +203,13 @@ def test_add_missing_atoms():
     assert len(new_prot.atoms) != len(protein.atoms)
     assert len(new_prot.atoms) == 2877
 
+
 def test_polypro_IC():
     polypro = mda.Universe('test_data/PPII_Capped.pdb')
     polyproIC = chiLife.get_internal_coords(polypro)
 
-@pytest.mark.parametrize('res', set(chiLife.dihedral_defs.keys()) -  {'CYR1', 'MTN', 'R1M', 'R1C'})
+
+@pytest.mark.parametrize('res', set(chiLife.dihedral_defs.keys()) - {'CYR1', 'MTN', 'R1M', 'R1C'})
 def test_sort_and_internal_coords(res):
     pdbfile = chiLife.DATA_DIR / f'residue_pdbs/{res.lower()}.pdb'
     lines = chiLife.sort_pdb(str(pdbfile))
@@ -225,13 +227,28 @@ def test_PRO_ics():
     assert ('CD', 'CG', 'CB', 'CA') in pro_ic.ICs[1][1]
 
 
-def test_sort_pdb():
-    ubq = chiLife.fetch('1ubq')
-    V1A = chiLife.SpinLabel('V1A', 28, ubq, sample=10)
-    V1A.weights
-
-    chiLife.save('V1A_ubq.pdb', V1A, ubq, KDE=False)
-
-
 def test_guess_topology():
     chiLife.guess_topology(ubq)
+
+
+def test_wtf():
+    import numpy as np
+    import matplotlib.pyplot as plt
+    import chiLife as xl
+    import MDAnalysis as mda
+    from tqdm import tqdm
+    mbp = mda.Universe('2d21.pdb', in_memory=True).select_atoms('protein')
+
+    r = np.linspace(15, 80, 256)
+    site_pairs = (41, 239), (239, 279), (29, 211)
+
+    Kernel = []
+    for ts in tqdm(mbp.universe.trajectory):
+        P = []
+        for site1, site2 in site_pairs:
+            print(site1, site2)
+            SL1 = xl.SpinLabel('R1A', site1, mbp)
+            SL2 = xl.SpinLabel('R1A', site2, mbp)
+            P.append(xl.get_dd(SL1, SL2, r))
+
+        Kernel.append(np.concatenate(P))

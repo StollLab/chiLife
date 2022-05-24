@@ -1,5 +1,6 @@
 import pickle
 import logging
+from copy import deepcopy
 from functools import partial
 import numpy as np
 from scipy.spatial.distance import cdist
@@ -168,6 +169,17 @@ class SpinLabel(RotamerLibrary):
         prelib.weights = np.ones(len(coords))
         prelib.weights /= prelib.weights.sum()
         return prelib
+
+    def __deepcopy__(self, memodict={}):
+        new_copy = chiLife.SpinLabel(self.res, self.site)
+        for item in self.__dict__:
+            if item != 'protein':
+                new_copy.__dict__[item] = deepcopy(self.__dict__[item])
+            elif self.__dict__[item] is None:
+                new_copy.protein = None
+            else:
+                new_copy.protein = self.protein.copy()
+        return new_copy
 
 
 class dSpinLabel:

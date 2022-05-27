@@ -2,7 +2,6 @@ from functools import wraps
 import numpy as np
 from scipy.spatial import cKDTree
 from scipy.spatial.distance import cdist
-from memoization import cached
 from numba import njit
 import chiLife
 
@@ -262,7 +261,6 @@ def reweight_rotamers(probabilities, weights, return_partition=False):
     return new_weights
 
 
-@cached
 def get_lj_params(rotlib):
     """
     rotlib

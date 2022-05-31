@@ -29,7 +29,7 @@ class RotamerLibrary:
         self.res = res
         self.protein = protein
         self.site = int(site)
-        self.chain = chain if chain is not None else self.guess_chain()
+        self.chain = chain if chain is not None else guess_chain(self.protein, self.site)
         self.selstr = f"resid {self.site} and segid {self.chain} and not altloc B"
         self.__dict__.update(assign_defaults(kwargs))
 
@@ -264,8 +264,6 @@ class RotamerLibrary:
 
         self.coords = np.einsum("ijk,kl->ijl", self.coords, mx) + ori
 
-        self.backbone_to_site()
-
         self.mx, self.ori = chiLife.global_mx(
             *np.squeeze(self.backbone), method=self.superimposition_method
         )
@@ -483,9 +481,6 @@ class RotamerLibrary:
         logging.info(f"Using backbone dependent library with Phi={Phi}, Psi={Psi}")
         lib = chiLife.read_library(self.res, Phi, Psi)
         return deepcopy(lib)
-
-    def guess_chain(self):
-        return guess_chain(self.protein, self.site)
 
     def protein_setup(self):
         # Position library at selected residue

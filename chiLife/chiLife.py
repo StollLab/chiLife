@@ -1439,7 +1439,7 @@ def pre_add_label(name, pdb, spin_atoms):
             if name in spin_dict:
                 if spin_dict[name] != spin_atoms:
                     raise NameError(
-                        "There is already a ProEPR spin label with this name"
+                        "There is already a chiLife spin label with this name"
                     )
             else:
                 joinstr = "', '"

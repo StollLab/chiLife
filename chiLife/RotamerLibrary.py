@@ -492,6 +492,7 @@ class RotamerLibrary:
             self.protein_tree = cKDTree(self.protein.atoms.positions)
 
         self._to_site()
+        self.backbone_to_site()
 
         # Get weight of current or closest rotamer
         self.clash_ignore_idx = self.protein.select_atoms(

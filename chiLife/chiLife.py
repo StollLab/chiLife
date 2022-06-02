@@ -675,8 +675,8 @@ def read_bbdep(res: str, Phi: float, Psi: float) -> Tuple[ArrayLike, ...]:
     with open(DATA_DIR / f"residue_internal_coords/{res.lower()}_ic.pkl", "rb") as f:
         ICs = pickle.load(f)
 
-    atom_types = [atom.atype for atom in ICs]
-    atom_names = [atom.name for atom in ICs]
+    atom_types = ICs.atom_types.copy()
+    atom_names = ICs.atom_names.copy()
 
     maxchi = 5 if res in SUPPORTED_BB_LABELS else 4
     nchi = np.minimum(len(dihedral_defs[res]), maxchi)
@@ -897,15 +897,15 @@ def save(
     if file_name is None:
         if isinstance(protein, str):
             f = Path(protein)
-            file_name = f.name.rstrip(".pdb")
+            file_name = f.name[:-4]
         elif getattr(protein, "filename", None) is not None:
-            file_name = protein.filename.rstrip(".pdb")
+            file_name = protein.filename[:-4]
         else:
             file_name = "No_Name_Protein"
 
         if 0 < len(labels) < 3:
             for label in labels:
-                file_name += f"_{label.site}{label.label}"
+                file_name += f"_{label.site}{label.res}"
         else:
             file_name += "_many_labels"
         file_name += ".pdb"
@@ -1479,7 +1479,7 @@ def store_new_restype(
 ):
     # Extract coordinates and transform to the local frame
     bb_atom_idx = [
-        i for i, atom in enumerate(internal_coords[0]) if atom.name in ["N", "CA", "C"]
+        i for i, atom in enumerate(internal_coords[0].atoms) if atom.name in ["N", "CA", "C"]
     ]
     coords = internal_coords[0].coords.copy()
     ori, mx = local_mx(*coords[bb_atom_idx])
@@ -1494,7 +1494,7 @@ def store_new_restype(
         name += f"ip{increment}"
 
     # Save pdb structure
-    save_pdb(DATA_DIR / f"residue_pdbs/{name}.pdb", internal_coords[0], coords)
+    save_pdb(DATA_DIR / f"residue_pdbs/{name}.pdb", internal_coords[0].atoms, coords)
 
     if len(internal_coords) > 1:
         coords = np.array([(IC.coords - ori) @ mx for IC in internal_coords])
@@ -1509,8 +1509,8 @@ def store_new_restype(
         if coords.ndim == 2:
             coords = np.expand_dims(coords, axis=0)
 
-    atom_types = np.array([atom.atype for atom in internal_coords[0]])
-    atom_names = np.array([atom.name for atom in internal_coords[0]])
+    atom_types = np.array([atom.atype for atom in internal_coords[0].atoms])
+    atom_names = np.array([atom.name for atom in internal_coords[0].atoms])
 
     # Save rotamer library
     np.savez(

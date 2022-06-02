@@ -33,26 +33,16 @@ def test_from_mda():
 def test_with_sample():
     np.random.seed(200)
 
-    SL = chiLife.SpinLabel(
-        "R1C",
-        28,
-        ubq,
-        sample=2000,
-        energy_func=partial(chiLife.get_lj_rep, forgive=0.8),
-    )
+    SL = chiLife.SpinLabel("R1C", 28, ubq, sample=2000)
 
-    with open("test_data/withsample.pkl", "rb") as f:
-        SLans = pickle.load(f)
+    with np.load('withsample.npz') as f:
+        ans = {key: f[key] for key in f}
 
-    np.testing.assert_almost_equal(SL.coords, SLans.coords)
-    np.testing.assert_almost_equal(SL.weights, SLans.weights)
-    np.testing.assert_almost_equal(SL.dihedrals, SLans.dihedrals)
-    assert (
-        len(SL.coords)
-        == len(SL.weights)
-        == len(SL.dihedrals)
-        == len(SL.internal_coords)
-    )
+    np.testing.assert_almost_equal(SL.coords, ans['coords'])
+    np.testing.assert_almost_equal(SL.weights, ans['weights'])
+    np.testing.assert_almost_equal(SL.dihedrals, ans['dihedrals'])
+
+    assert len(SL.coords) == len(SL.internal_coords)
 
 
 def test_user_label():
@@ -106,19 +96,16 @@ def test_sample():
     coords, weight = K48.sample(off_rotamer=True)
 
     wans = 0.0037019925960148086
-    cans = np.array(
-        [
-            [20.7640662, 27.90259646, 22.59445096],
-            [21.54999924, 26.79599953, 23.13299942],
-            [23.02842996, 27.03777002, 22.93937713],
-            [23.46033135, 28.06053557, 22.38830811],
-            [21.11010724, 25.47090289, 22.45317528],
-            [21.19895832, 25.51252887, 20.90717046],
-            [21.03430245, 24.15607722, 20.21560241],
-            [22.11572221, 23.19412326, 20.72492902],
-            [22.1682722, 22.00913699, 19.85099123],
-        ]
-    )
+    cans = np.array([[20.76406623, 27.90259642, 22.59445098],
+                     [21.54999924, 26.79599953, 23.13299942],
+                     [23.02842999, 27.03777002, 22.93937713],
+                     [23.46033144, 28.06053553, 22.38830813],
+                     [21.1101072,  25.47090301, 22.45317533],
+                     [21.19895831, 25.51252905, 20.90717057],
+                     [21.03430238, 24.15607743, 20.2156025 ],
+                     [22.11572213, 23.19412351, 20.72492909],
+                     [22.16827211, 22.00913727, 19.85099131]])
+
 
     np.testing.assert_almost_equal(coords, cans)
     assert weight == wans
@@ -200,6 +187,12 @@ def test_guess_chain2(resi, ans):
 def test_guess_chain_fail(resi):
     with pytest.raises(ValueError) as e_info:
         SL = chiLife.SpinLabel("R1C", resi, exou)
+
+
+def test_mem_sample():
+    SL1 = chiLife.SpinLabel('R1M', 28, ubq, sample=10000)
+    print('booger')
+
 
 
 def test_label_as_library():

@@ -1,4 +1,5 @@
 from copy import deepcopy
+import pickle
 import logging
 import numpy as np
 from itertools import combinations
@@ -476,11 +477,15 @@ class RotamerLibrary:
             if PsiSel is None
             else np.rad2deg(chiLife.get_dihedral(PsiSel.positions))
         )
-
+        self.Phi, self.Psi = Phi, Psi
         # Get library
         logging.info(f"Using backbone dependent library with Phi={Phi}, Psi={Psi}")
         lib = chiLife.read_library(self.res, Phi, Psi)
-        return deepcopy(lib)
+        lib = {key: value.copy() for key, value in lib.items()}
+        if 'internal_coords' in lib:
+            lib['internal_coords'] = [a.copy() for a in lib['internal_coords']]
+
+        return lib
 
     def protein_setup(self):
         # Position library at selected residue

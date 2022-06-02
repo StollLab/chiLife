@@ -2,7 +2,7 @@ import logging, os, urllib, pickle, itertools
 from pathlib import Path
 from typing import Set, List, Union, Tuple
 from numpy.typing import ArrayLike
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from collections import Counter
 import MDAnalysis
 import numpy as np
@@ -112,42 +112,35 @@ class Atom:
 
 
 class ProteinIC:
-    def __init__(self, ICs, **kwargs):
-        """
-        Object collecting internal coords of atoms making up a protein.
-        :param ICs: dict
-            dictionary of dicts, of dicts containing ICAtom objects. Top dict specifies chain, middle dict specifies
-            residue and bottom dict holds ICAtom objects.
-        """
 
+    def __init__(self, zmats, zmat_idxs, atom_dict, ICs, **kwargs):
+        self.zmats = zmats
+        self.zmat_idxs = zmat_idxs
+        self.atom_dict = atom_dict
         self.ICs = ICs
-
-        # Store important ProteinIC variables
         self.atoms = [
             ic
-            for chain in ICs.values()
+            for chain in self.ICs.values()
             for resi in chain.values()
             for ic in resi.values()
         ]
+
+        self.atom_types = [atom.atype for atom in self.atoms]
+        self.atom_names = [atom.name for atom in self.atoms]
+
         self.resis = [key for i in self.ICs for key in self.ICs[i]]
         self.resnames = {
             j: next(iter(self.ICs[i][j].values())).resn
             for i in self.ICs
             for j in self.ICs[i]
         }
-        self.chains = [
-            name
-            for name, chain in ICs.items()
-            for resi in chain.values()
-            for ic in resi.values()
-        ]
+        self.chains = [name for name in ICs]
+
         self.chain_operators = kwargs.get("chain_operators", None)
-
         self.bonded_pairs = np.array(kwargs.get("bonded_pairs", None))
+        self.nonbonded_pairs = kwargs.get('nonbonded_pairs', None)
 
-        if self.bonded_pairs is None or self.bonded_pairs.any() is None:
-            self.nonbonded_pairs = None
-        else:
+        if self.nonbonded_pairs is None and not (self.bonded_pairs is None or self.bonded_pairs.any() is None):
             bonded_pairs = {(a, b) for a, b in self.bonded_pairs}
             possible_bonds = itertools.combinations(range(len(self.atoms)), 2)
             self.nonbonded_pairs = np.fromiter(
@@ -162,17 +155,65 @@ class ProteinIC:
         self._coords = None
         self.dihedral_defs = self.collect_dih_list()
 
-    def __iter__(self):
-        """Iterate over all atoms."""
-        return iter(self.atoms)
+    @classmethod
+    def from_ICatoms(cls, ICs, **kwargs):
+        """
+        Object collecting internal coords of atoms making up a protein.
+        :param ICs: dict
+            dictionary of dicts, of dicts containing ICAtom objects. Top dict specifies chain, middle dict specifies
+            residue and bottom dict holds ICAtom objects.
+        """
+
+        dihedral_dict, angle_dict, bond_dict = {}, {}, {}
+        for chain, chain_dict in ICs.items():
+            dihedral_dict[chain], angle_dict[chain], bond_dict[chain] = {}, {}, {}
+            for resi, resi_dict in chain_dict.items():
+                for atom_def, atom in  resi_dict.items():
+                    if len(atom_def) == 4:
+                        stem = atom_def[1:]
+                        if (resi, stem) in dihedral_dict[chain]:
+                            dihedral_dict[chain][resi, stem][atom.name] = atom.index
+                        else:
+                            dihedral_dict[chain][resi, stem] = {atom.name: atom.index}
+
+                    if len(atom_def) > 2:
+                        angle_dict[chain][resi, atom_def[:3]] = atom.index
+                    if len(atom_def) > 1:
+                        bond_dict[chain][resi, atom_def[:2]] = atom.index
+
+        atom_dict = {'bonds': bond_dict, 'angles': angle_dict, 'dihedrals': dihedral_dict}
+        zmats, zmat_idxs = {}, {}
+        for chain, chain_dict in ICs.items():
+            zmat_concat = np.fromiter(itertools.chain.from_iterable(itertools.chain(
+                                    (
+                                        ic.bond_idx,
+                                        ic.angle_idx,
+                                        ic.dihedral_idx,
+                                        ic.bond,
+                                        ic.angle,
+                                        ic.dihedral,
+                                    )
+                                )
+                    for res in chain_dict.values()
+                    for ic in res.values()
+                                ),
+                dtype=float,
+            )
+
+            zmat_concat.shape = (-1, 6)
+            zmat_idxs[chain], zmats[chain] = zmat_concat[:, :3].astype(int), zmat_concat[:, 3:].copy()
+
+        return cls(zmats, zmat_idxs, atom_dict, ICs, **kwargs)
 
     def copy(self):
         """Create a deep copy of an ProteinIC instance"""
-        return ProteinIC(self.ICs)
+        zmats = {key: value.copy() for key, value in self.zmats.items()}
+        zmat_idxs = {key: value.copy() for key, value in self.zmat_idxs.items()}
+        kwargs = {"chain_operators": self.chain_operators,
+                  "bonded_pairs": self.bonded_pairs,
+                  "nonbonded_pairs": self.nonbonded_pairs}
 
-    def __len__(self):
-        """Return the number of atoms in the structure"""
-        return len(self.atoms)
+        return ProteinIC(zmats, zmat_idxs, self.atom_dict, self.ICs, **kwargs)
 
     @property
     def chain_operators(self):
@@ -226,50 +267,36 @@ class ProteinIC:
         """
         self.perturbed = True
 
-        if chain is None and len(self.ICs) == 1:
+        if chain is None and len(self.chains) == 1:
             chain = list(self.ICs.keys())[0]
-        elif chain is None and len(self.ICs) > 1:
+        elif chain is None and len(self.chains) > 1:
             raise ValueError("You must specify the protein chain")
 
         dihedrals = np.atleast_1d(dihedrals)
         atom_list = np.atleast_2d(atom_list)
 
-        deltas, done = {}, []
         for i, (dihedral, atoms) in enumerate(zip(dihedrals, atom_list)):
-            atoms = tuple(atoms)
-            ratoms = tuple(reversed(atoms))
-            done.append(atoms)
+            stem, stemr = tuple(atoms[2::-1]), tuple(atoms[1:])
+            if (resi, stem) in self.atom_dict['dihedrals'][chain]:
+                aidx = self.atom_dict['dihedrals'][chain][resi, stem][atoms[-1]]
+                delta = self.zmats[chain][aidx, 2] - dihedral
+                self.zmats[chain][aidx, 2] = dihedral
+                idxs = [idx for idx in self.atom_dict['dihedrals'][chain][resi, stem].values() if idx != aidx]
 
-            if ratoms in self.ICs[chain][resi]:
-                delta = self.ICs[chain][resi][ratoms].dihedral - dihedral
-                self.ICs[chain][resi][ratoms].dihedral = dihedral
-                deltas[tuple(atoms[:3])] = delta
+            elif (resi, stemr) in self.atom_dict['dihedrals'][chain]:
+                aidx = self.atom_dict['dihedrals'][chain][resi, stemr][atoms[0]]
+                delta = self.zmats[chain][aidx, 2] - dihedral
+                self.zmats[chain][aidx, 2] = dihedral
+                idxs = [idx for idx in self.atom_dict['dihedrals'][chain][resi, stemr].values() if idx != aidx]
+
             else:
                 raise ValueError(
-                    f"Dihedral with atoms {atoms}, {ratoms} not found in chain {chain} on resi {resi} internal coordinates:\n"
-                    + "\n".join(
-                        [
-                            ic
-                            for chain in self.ICs.values()
-                            for resi in chain.values()
-                            for ic in resi
-                        ]
-                    )
+                    f"Dihedral with atoms {atoms} not found in chain {chain} on resi {resi} internal coordinates:\n"
+                    + "\n".join([ic for ic in self.ICs[chain][resi]])
                 )
 
-        # Check for additional atoms with the same dihedral stem (first three atoms) and also change accordingly
-        for atom in self.ICs[chain][resi].values():
-            # Skip any atoms that do not have the same stem or have already been set.
-            if (
-                len(atom.atom_names[:-4:-1]) != 3
-                or tuple(atom.atom_names) in done
-                or tuple(atom.atom_names[::-1]) in done
-            ):
-                continue
-
-            # Rotate atoms with the same stem by the same rotation applied to the designated dihedral
-            elif tuple(atom.atom_names[:-4:-1]) in deltas:
-                atom.dihedral -= deltas[tuple(atom.atom_names[:-4:-1])]
+            if idxs:
+                self.zmats[chain][idxs, 2] -= delta
 
         return self
 
@@ -296,23 +323,18 @@ class ProteinIC:
         atom_list = np.atleast_2d(atom_list)
         dihedrals = []
         for atoms in atom_list:
-            atoms = tuple(atoms)
-            ratoms = tuple(reversed(atoms))
-
-            if ratoms in self.ICs[chain][resi]:
-                dihedrals.append(self.ICs[chain][resi][ratoms].dihedral)
+            stem, stemr = tuple(atoms[2::-1]), tuple(atoms[1:])
+            if (resi, stem) in self.atom_dict['dihedrals'][chain]:
+                aidx = self.atom_dict['dihedrals'][chain][resi, stem][atoms[-1]]
+            elif (resi, stemr) in self.atom_dict['dihedrals'][chain]:
+                aidx = self.atom_dict['dihedrals'][chain][resi, stemr][atoms[0]]
             else:
                 raise ValueError(
-                    f"Dihedral with atoms {atoms}, {ratoms} not found in chain {chain} on resi {resi} internal coordinates:\n"
-                    + "\n".join(
-                        [
-                            " ".join(list(ic) + [str(resi)])
-                            for chain in self.ICs
-                            for resi in self.ICs[chain]
-                            for ic in self.ICs[chain][resi]
-                        ]
-                    )
+                    f"Dihedral with atoms {atoms} not found in chain {chain} on resi {resi} internal coordinates:\n"
+                    + "\n".join([ic for ic in self.ICs[chain][resi]])
                 )
+            dihedrals.append(self.zmats[chain][aidx, 2])
+
         return dihedrals[0] if len(dihedrals) == 1 else np.array(dihedrals)
 
     def to_cartesian(self):
@@ -325,28 +347,8 @@ class ProteinIC:
         coord_arrays = []
         for segid in self.chain_operators:
             # Prepare variables for numba compiled function
-            ICArray = np.fromiter(
-                itertools.chain.from_iterable(
-                    itertools.chain(
-                        (
-                            ic.bond_idx,
-                            ic.angle_idx,
-                            ic.dihedral_idx,
-                            ic.bond,
-                            ic.angle,
-                            ic.dihedral,
-                        )
-                    )
-                    for res in self.ICs[segid].values()
-                    for ic in res.values()
-                ),
-                dtype=float,
-            )
-            ICArray.shape = (
-                -1,
-                6,
-            )
-            IC_idx_array, ICArray = ICArray[:, :3].astype(int), ICArray[:, 3:]
+
+            IC_idx_array, ICArray = self.zmat_idxs[segid], self.zmats[segid]
             cart_coords = _ic_to_cart(IC_idx_array, ICArray)
 
             # Apply chain operations if any exist
@@ -450,6 +452,13 @@ class ProteinIC:
         return dihs
 
     def shift_resnum(self, delta):
+        for key in self.atom_dict:
+            for chain in self.atom_dict[key]:
+
+                self.atom_dict[key][chain] = {(res + delta, other): self.atom_dict[key][chain][res, other]
+                                              for res, other in self.atom_dict[key][chain]}
+
+
         for segid in self.ICs:
             for resi in list(self.ICs[segid].keys()):
                 self.ICs[segid][resi + delta] = self.ICs[segid][resi]
@@ -674,7 +683,7 @@ def get_internal_coords(
     mask = np.isin(bonded_pairs, protein.indices).prod(axis=1, dtype=bool)
     bonded_pairs = bonded_pairs[mask]
 
-    return ProteinIC(
+    return ProteinIC.from_ICatoms(
         all_ICAtoms, chain_operators=chain_operators, bonded_pairs=bonded_pairs
     )
 

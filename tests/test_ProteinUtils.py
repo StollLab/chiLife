@@ -31,15 +31,9 @@ def test_read_dunbrack(res):
     dlib_mx, dlib_ori = chiLife.global_mx(*np.squeeze(dlib["coords"][0, :3]))
     dlib["coords"] = np.einsum("ijk,kl->ijl", dlib["coords"], dlib_mx) + dlib_ori
 
+
     with np.load(f"test_data/{res}_{phi}_{psi}.npz", allow_pickle=True) as f:
         dlib_ans = {key: f[key] for key in f if key != "allow_pickle"}
-
-    dlib_ans_mx, dlib_ans_ori = chiLife.global_mx(
-        *np.squeeze(dlib_ans["coords"][0, :3])
-    )
-    dlib_ans["coords"] = (
-        np.einsum("ijk,kl->ijl", dlib_ans["coords"], dlib_ans_mx) + dlib_ans_ori
-    )
 
     for key in dlib_ans:
         if dlib_ans[key].dtype not in [np.dtype(f"<U{i}") for i in range(1, 5)]:

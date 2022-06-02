@@ -8,8 +8,6 @@ residue_pdbs = pdb_directory.glob('*.pdb')
 
 for pdb in residue_pdbs:
     print(pdb.stem)
-    if pdb.stem in ['ala', 'gly']:
-        continue
 
     struct = mda.Universe(str(pdb))
     ICs = chiLife.get_internal_coords(struct)

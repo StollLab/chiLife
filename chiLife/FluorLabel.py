@@ -52,7 +52,7 @@ class FluorLabel(RotamerLibrary):
     @property
     def fluor_coords(self):
         """get the fluorescent coordinates of the rotamer library"""
-        return self.coords[:, self.fluor_idx, :].mean(axis=1)[:, 0]
+        return self._coords[:, self.fluor_idx, :].mean(axis=1)[:, 0]
 
     @property
     def spin_centroid(self):
@@ -192,10 +192,10 @@ class FluorLabel(RotamerLibrary):
         prelib.internal_coords = (
             np.concatenate(internal_coords) if len(internal_coords) > 0 else []
         )
-        prelib.dihedrals = np.array(
+        prelib._dihedrals = np.array(
             [IC.get_dihedral(1, prelib.dihedral_atoms) for IC in prelib.internal_coords]
         )
-        prelib.coords = coords
+        prelib._coords = coords
         prelib.weights = np.ones(len(coords))
         prelib.weights /= prelib.weights.sum()
         return prelib

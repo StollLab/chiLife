@@ -186,8 +186,8 @@ def test_mutate4():
     mPro = chiLife.mutate(protein, D41G, S238A, add_missing_atoms=False)
     D41G_pos = mPro.select_atoms("resnum 41").positions
     S238A_pos = mPro.select_atoms("resnum 238").positions
-    np.testing.assert_almost_equal(D41G.coords[0], D41G_pos, decimal=6)
-    np.testing.assert_almost_equal(S238A.coords[0], S238A_pos, decimal=6)
+    np.testing.assert_almost_equal(D41G._coords[0], D41G_pos, decimal=6)
+    np.testing.assert_almost_equal(S238A._coords[0], S238A_pos, decimal=6)
 
 
 @pytest.mark.parametrize(["inp", "ans"], zip(gd_kwargs, gd_ans))

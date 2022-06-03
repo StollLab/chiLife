@@ -146,8 +146,8 @@ class dRotamerLibrary(RotamerLibrary):
                 objective, x0=d0, args=(ic1, ic2, self.csts[i]), bounds=bounds
             )
             print(xopt.fun)
-            self.SL1.coords[i] = ic1.coords[self.SL1.H_mask]
-            self.SL2.coords[i] = ic2.coords[self.SL2.H_mask]
+            self.SL1._coords[i] = ic1._coords[self.SL1.H_mask]
+            self.SL2._coords[i] = ic2._coords[self.SL2.H_mask]
 
     @property
     def weights(self):
@@ -155,7 +155,7 @@ class dRotamerLibrary(RotamerLibrary):
 
     @property
     def coords(self):
-        return np.concatenate([self.SL1.coords, self.SL2.coords], axis=1)
+        return np.concatenate([self.SL1._coords, self.SL2._coords], axis=1)
 
     @property
     def spin_coords(self):

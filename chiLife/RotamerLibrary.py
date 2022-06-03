@@ -53,7 +53,7 @@ class RotamerLibrary:
         if not self.use_H:
             self.H_mask = self.atom_types != "H"
             self.ic_mask *= self.H_mask
-            self.coords = self.coords[:, self.H_mask]
+            self._coords = self._coords[:, self.H_mask]
             self.atom_types = self.atom_types[self.H_mask]
             self.atom_names = self.atom_names[self.H_mask]
 
@@ -68,21 +68,21 @@ class RotamerLibrary:
             a, b = [list(x) for x in zip(*self.non_bonded)]
 
             # Perform sapling
-            self.coords = np.tile(self.coords[0], (self.sample_size, 1, 1))
+            self._coords = np.tile(self._coords[0], (self.sample_size, 1, 1))
             self.mx, self.ori = np.eye(3), np.array([0, 0, 0])
-            self.coords, self.weights, self.internal_coords = self.sample(
+            self._coords, self.weights, self.internal_coords = self.sample(
                 self.sample_size, off_rotamer=True, return_dihedrals=True
             )
 
-            self.dihedrals = np.asarray(
+            self._dihedrals = np.asarray(
                 [IC.get_dihedral(1, self.dihedral_atoms) for IC in self.internal_coords]
             )
             # Remove structures with internal clashes
-            dist = np.linalg.norm(self.coords[:, a] - self.coords[:, b], axis=2)
+            dist = np.linalg.norm(self._coords[:, a] - self._coords[:, b], axis=2)
             sidx = np.atleast_1d(np.squeeze(np.argwhere(np.all(dist > 2, axis=1))))
             self.internal_coords = self.internal_coords[sidx]
-            self.dihedrals = np.rad2deg(self.dihedrals[sidx])
-            self.coords, self.weights = self.coords[sidx], self.weights[sidx]
+            self._dihedrals = np.rad2deg(self._dihedrals[sidx])
+            self._coords, self.weights = self._coords[sidx], self.weights[sidx]
 
         # Allocate variables for clash evaluations
         self.atom_energies = None
@@ -111,7 +111,7 @@ class RotamerLibrary:
         self.atoms = [
             chiLife.Atom(name, atype, idx, self.res, self.site, coord)
             for idx, (coord, atype, name) in enumerate(
-                zip(self.coords[0], self.atom_types, self.atom_names)
+                zip(self._coords[0], self.atom_types, self.atom_names)
             )
         ]
 
@@ -172,7 +172,7 @@ class RotamerLibrary:
         prelib = cls(
             resname, site, chain=chain, protein=traj, eval_clash=False, **kwargs
         )
-        prelib.coords = np.atleast_3d(coords)
+        prelib._coords = np.atleast_3d(coords)
 
         if energy is not None:
             energy = energy[burn_in:]  # - energy[burn_in]
@@ -197,7 +197,7 @@ class RotamerLibrary:
             dihedrals.append([chiLife.get_dihedral(coords[i][mask]) for mask in masks])
 
         dihedrals = np.rad2deg(np.array(dihedrals))
-        prelib.dihedrals = dihedrals
+        prelib._dihedrals = dihedrals
         prelib.backbone_to_site()
 
         return prelib
@@ -209,10 +209,10 @@ class RotamerLibrary:
 
         if not isinstance(other, RotamerLibrary):
             return False
-        elif self.coords.shape != other.coords.shape:
+        elif self._coords.shape != other._coords.shape:
             return False
 
-        return np.all(np.isclose(self.coords, other.coords)) and np.all(
+        return np.all(np.isclose(self._coords, other._coords)) and np.all(
             np.isclose(self.weights, other.weights)
         )
 
@@ -260,10 +260,10 @@ class RotamerLibrary:
         # if self.superimposition_method not in {'fit', 'rosetta'}:
         N, CA, C = chiLife.parse_backbone(self, kind="local")
         old_ori, ori_mx = chiLife.local_mx(N, CA, C, method=self.superimposition_method)
-        self.coords -= old_ori
+        self._coords -= old_ori
         mx = ori_mx @ mx
 
-        self.coords = np.einsum("ijk,kl->ijl", self.coords, mx) + ori
+        self._coords = np.einsum("ijk,kl->ijl", self._coords, mx) + ori
 
         self.mx, self.ori = chiLife.global_mx(
             *np.squeeze(self.backbone), method=self.superimposition_method
@@ -297,7 +297,7 @@ class RotamerLibrary:
                     f"and name {atom} and not altloc B"
                 ).positions
                 if len(pos) > 0:
-                    self.coords[:, mask] = pos[0]
+                    self._coords[:, mask] = pos[0]
 
     def sample(self, n=1, off_rotamer=False, **kwargs):
         """Randomly sample a rotamer in the library."""
@@ -316,10 +316,10 @@ class RotamerLibrary:
             off_rotamer = off_rotamer[: len(self.dihedral_atoms)]
 
         if not any(off_rotamer):
-            return np.squeeze(self.coords[idx]), np.squeeze(self.weights[idx])
+            return np.squeeze(self._coords[idx]), np.squeeze(self.weights[idx])
 
         if len(self.dihedral_atoms) == 0:
-            return self.coords, self.weights, self.internal_coords
+            return self._coords, self.weights, self.internal_coords
         elif hasattr(self, "internal_coords"):
             returnables = zip(
                 *[self._off_rotamer_sample(iidx, off_rotamer, **kwargs) for iidx in idx]
@@ -369,7 +369,7 @@ class RotamerLibrary:
     def minimize(self):
         def objective(dihedrals, ic):
             coords = ic.set_dihedral(dihedrals, 1, self.dihedral_atoms).to_cartesian()
-            temp_rotlib.coords = np.atleast_3d([coords[self.ic_mask]])
+            temp_rotlib._coords = np.atleast_3d([coords[self.ic_mask]])
             return self.energy_func(temp_rotlib.protein, temp_rotlib)
 
         temp_rotlib = self.copy()
@@ -383,7 +383,7 @@ class RotamerLibrary:
                 objective, x0=self._rdihedrals[i], args=IC, bounds=bounds
             )
 
-            self.coords[i] = IC.to_cartesian()[self.ic_mask]
+            self._coords[i] = IC.to_cartesian()[self.ic_mask]
             self.weights[i] = self.weights[i] * np.exp(
                 -xopt.fun / (chiLife.GAS_CONST * 298)
             )
@@ -399,8 +399,8 @@ class RotamerLibrary:
         cumulative_weights = np.cumsum(sorted_weights)
         cutoff = np.maximum(1, len(cumulative_weights[cumulative_weights < 1 - tol]))
 
-        self.coords = self.coords[arg_sort_weights[:cutoff]]
-        self.dihedrals = self.dihedrals[arg_sort_weights[:cutoff]]
+        self._coords = self._coords[arg_sort_weights[:cutoff]]
+        self._dihedrals = self._dihedrals[arg_sort_weights[:cutoff]]
         self.weights = self.weights[arg_sort_weights[:cutoff]]
         if len(arg_sort_weights) == len(self.internal_coords):
             self.internal_coords = [
@@ -415,7 +415,7 @@ class RotamerLibrary:
 
     def centroid(self):
         """get the centroid of the whole rotamer library."""
-        return self.coords.mean(axis=(0, 1))
+        return self._coords.mean(axis=(0, 1))
 
     def evaluate(self):
         """place spin label on protein site and recalculate rotamer weights"""
@@ -438,12 +438,12 @@ class RotamerLibrary:
     def save_pdb(self, name=None):
         if name is None:
             name = self.name
-        chiLife.save_rotlib(name, self.atoms, self.coords)
+        chiLife.save_rotlib(name, self.atoms, self._coords)
 
     @property
     def backbone(self):
         """Backbone coordinates of the spin label"""
-        return np.squeeze(self.coords[0][self.backbone_idx])
+        return np.squeeze(self._coords[0][self.backbone_idx])
 
     def get_lib(self):
         """
@@ -484,7 +484,8 @@ class RotamerLibrary:
         lib = {key: value.copy() for key, value in lib.items()}
         if 'internal_coords' in lib:
             lib['internal_coords'] = [a.copy() for a in lib['internal_coords']]
-
+        lib['_coords'] = lib.pop('coords')
+        lib['_dihedrals'] = lib.pop('dihedrals')
         return lib
 
     def protein_setup(self):
@@ -511,9 +512,9 @@ class RotamerLibrary:
             idx for idx in protein_clash_idx if idx not in self.clash_ignore_idx
         ]
 
-        if self.coords.shape[1] == len(self.clash_ignore_idx):
+        if self._coords.shape[1] == len(self.clash_ignore_idx):
             RMSDs = np.linalg.norm(
-                self.coords
+                self._coords
                 - self.protein.atoms[self.clash_ignore_idx].positions[None, :, :],
                 axis=(1, 2),
             )
@@ -528,7 +529,7 @@ class RotamerLibrary:
     @property
     def bonds(self):
         if not hasattr(self, "_bonds"):
-            bond_tree = cKDTree(self.coords[0])
+            bond_tree = cKDTree(self._coords[0])
             bonds = bond_tree.query_pairs(2.0)
             self._bonds = set(tuple(sorted(bond)) for bond in bonds)
         return list(sorted(self._bonds))
@@ -568,7 +569,7 @@ class RotamerLibrary:
             if self._clash_ori_inp in ["cen", "centroid"]:
                 return self.centroid()
             elif (ori_name := self._clash_ori_inp.upper()) in self.atom_names:
-                return np.squeeze(self.coords[0][ori_name == self.atom_names])
+                return np.squeeze(self._coords[0][ori_name == self.atom_names])
         else:
             raise ValueError(
                 f"Unrecognized clash_ori option {self._clash_ori_inp}. Please specify a 3D vector, an "
@@ -581,6 +582,13 @@ class RotamerLibrary:
     def clash_ori(self, inp):
         self._clash_ori_inp = inp
 
+    @property
+    def coords(self):
+        return self._coords
+
+    @property
+    def dihedrals(self):
+        return self._dihedrals
 
 def assign_defaults(kwargs):
 

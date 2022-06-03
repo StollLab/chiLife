@@ -59,7 +59,7 @@ class SpinLabel(RotamerLibrary):
     @property
     def spin_coords(self):
         """get the spin coordinates of the rotamer library"""
-        return self.coords[:, self.spin_idx, :].mean(axis=1)[:, 0]
+        return self._coords[:, self.spin_idx, :].mean(axis=1)[:, 0]
 
     @property
     def spin_centroid(self):
@@ -207,10 +207,10 @@ class SpinLabel(RotamerLibrary):
         prelib.internal_coords = (
             np.concatenate(internal_coords) if len(internal_coords) > 0 else []
         )
-        prelib.dihedrals = np.array(
+        prelib._dihedrals = np.array(
             [IC.get_dihedral(1, prelib.dihedral_atoms) for IC in prelib.internal_coords]
         )
-        prelib.coords = coords
+        prelib._coords = coords
         prelib.weights = np.ones(len(coords))
         prelib.weights /= prelib.weights.sum()
         return prelib
@@ -383,8 +383,8 @@ class dSpinLabel:
             xopt = opt.minimize(
                 objective, x0=d0, args=(ic1, ic2, self.csts[i]), bounds=bounds
             )
-            self.SL1.coords[i] = ic1.coords[self.SL1.H_mask]
-            self.SL2.coords[i] = ic2.coords[self.SL2.H_mask]
+            self.SL1._coords[i] = ic1.coords[self.SL1.H_mask]
+            self.SL2._coords[i] = ic2.coords[self.SL2.H_mask]
             scores[i] = xopt.fun
 
         self.SL1.backbone_to_site()
@@ -407,17 +407,17 @@ class dSpinLabel:
 
     @property
     def coords(self):
-        return np.concatenate([self.SL1.coords, self.SL2.coords], axis=1)
+        return np.concatenate([self.SL1._coords, self.SL2._coords], axis=1)
 
     @coords.setter
     def coords(self, value):
-        if value.shape[1] != self.SL1.coords.shape[1] + self.SL2.coords.shape[1]:
+        if value.shape[1] != self.SL1._coords.shape[1] + self.SL2._coords.shape[1]:
             raise ValueError(
                 f"The provided coordinates do not match the number of atoms of this label ({self.label})"
             )
 
-        self.SL1.coords = value[:, : self.SL1.coords.shape[1]]
-        self.SL2.coords = value[:, -self.SL2.coords.shape[1] :]
+        self.SL1._coords = value[:, : self.SL1._coords.shape[1]]
+        self.SL2._coords = value[:, -self.SL2._coords.shape[1]:]
 
     @property
     def spin_coords(self):

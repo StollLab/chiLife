@@ -38,11 +38,11 @@ def test_with_sample():
     with np.load('withsample.npz') as f:
         ans = {key: f[key] for key in f}
 
-    np.testing.assert_almost_equal(SL.coords, ans['coords'])
+    np.testing.assert_almost_equal(SL._coords, ans['coords'])
     np.testing.assert_almost_equal(SL.weights, ans['weights'])
     np.testing.assert_almost_equal(SL.dihedrals, ans['dihedrals'])
 
-    assert len(SL.coords) == len(SL.internal_coords)
+    assert len(SL._coords) == len(SL.internal_coords)
 
 
 def test_user_label():

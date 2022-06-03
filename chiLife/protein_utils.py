@@ -712,7 +712,7 @@ def save_rotlib(name: str, atoms: ArrayLike, coords: ArrayLike = None) -> None:
                 for atom in model:
                     f.write(
                         f"ATOM  {atom.index + 1:5d}  {atom.name:<4s}{atom.resn:3s} {'A':1s}{atom.resi:4d}   "
-                        f"{atom.coords[0]:8.3f}{atom.coords[1]:8.3f}{atom.coords[2]:8.3f}{1.0:6.2f}{1.0:6.2f}        "
+                        f"{atom._coords[0]:8.3f}{atom._coords[1]:8.3f}{atom._coords[2]:8.3f}{1.0:6.2f}{1.0:6.2f}        "
                         f"  {atom.atype:>2s}\n"
                     )
                 f.write("ENDMDL\n")
@@ -962,11 +962,11 @@ def mutate(
     for spin_label in label_sites.values():
         sl_atoms = U.select_atoms(spin_label.selstr)
         if random_rotamers:
-            sl_atoms.atoms.positions = spin_label.coords[
-                np.random.choice(len(spin_label.coords), p=spin_label.weights)
+            sl_atoms.atoms.positions = spin_label._coords[
+                np.random.choice(len(spin_label._coords), p=spin_label.weights)
             ]
         else:
-            sl_atoms.atoms.positions = spin_label.coords[np.argmax(spin_label.weights)]
+            sl_atoms.atoms.positions = spin_label._coords[np.argmax(spin_label.weights)]
 
     return U
 

@@ -1151,7 +1151,7 @@ def repack(
                 SiteLibrary.dummy_label.mask = np.isin(
                     protein.ix, SiteLibrary.clash_ignore_idx
                 )
-                SiteLibrary.dummy_label.coords = np.atleast_3d(
+                SiteLibrary.dummy_label._coords = np.atleast_3d(
                     [protein.atoms[SiteLibrary.dummy_label.mask].positions]
                 )
 
@@ -1167,7 +1167,7 @@ def repack(
             )
 
             with np.errstate(divide="ignore"):
-                DummyLabel.coords = np.atleast_3d([coords])
+                DummyLabel._coords = np.atleast_3d([coords])
                 E1 = energy_func(DummyLabel.protein, DummyLabel) - KT[
                     temp[bidx]
                 ] * np.log(weight)

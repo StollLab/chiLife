@@ -43,7 +43,7 @@ def test_MMM_construction(kwinput, afile):
         weights = f["weights"]
 
     np.testing.assert_almost_equal(weights, SL1.weights, decimal=5)
-    np.testing.assert_almost_equal(coords, SL1.coords, decimal=5)
+    np.testing.assert_almost_equal(coords, SL1._coords, decimal=5)
 
 
 def test_bbdep_construction1():
@@ -90,7 +90,7 @@ def test_lib2site(label):
     lib = chiLife.SpinLabel(label)
     lib.to_site(site)
     ans = np.load(f"test_data/{label}_lib2site.npy")
-    np.testing.assert_almost_equal(ans, lib.coords)
+    np.testing.assert_almost_equal(ans, lib._coords)
 
 
 @pytest.mark.parametrize("label", labels)
@@ -104,7 +104,7 @@ def test_add_protein(label):
     lib.protein_setup()
 
     with np.load(f"test_data/{label}_label.npz") as f:
-        np.testing.assert_almost_equal(f["coords"], lib.coords, decimal=5)
+        np.testing.assert_almost_equal(f["coords"], lib._coords, decimal=5)
         np.testing.assert_almost_equal(f["weights"], lib.weights, decimal=5)
 
 

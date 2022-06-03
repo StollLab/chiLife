@@ -133,26 +133,26 @@ def test_get_dd_uq():
     plt.show()
 
 
-def test_get_dd_uq2():
-    import pickle
-
-    with open("test_data/SL1.pkl", "rb") as f:
-        SL1 = pickle.load(f)
-
-    with open("test_data/SL2.pkl", "rb") as f:
-        SL2 = pickle.load(f)
-
-    print(SL1.spin_coords, SL2)
-    P = chiLife.get_dd(SL1, SL2, r=r, uq=500)
-
-    mean = P.mean(axis=0)
-    # mean /= np.trapz(mean, r)
-    std = P.std(axis=0)
-    print(mean.shape, std.shape)
-
-    plt.plot(r, mean)
-    plt.fill_between(r, (mean - std / 2).clip(0), mean + std / 2, alpha=0.5)
-    plt.show()
+# def test_get_dd_uq2():
+#     import pickle
+#
+#     with open("test_data/SL1.pkl", "rb") as f:
+#         SL1 = pickle.load(f)
+#
+#     with open("test_data/SL2.pkl", "rb") as f:
+#         SL2 = pickle.load(f)
+#
+#     print(SL1.spin_coords, SL2)
+#     P = chiLife.get_dd(SL1, SL2, r=r, uq=500)
+#
+#     mean = P.mean(axis=0)
+#     # mean /= np.trapz(mean, r)
+#     std = P.std(axis=0)
+#     print(mean.shape, std.shape)
+#
+#     plt.plot(r, mean)
+#     plt.fill_between(r, (mean - std / 2).clip(0), mean + std / 2, alpha=0.5)
+#     plt.show()
 
 
 @pytest.mark.parametrize("cutoff, expected", zip([30, 0], sasa_ans))

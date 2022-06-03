@@ -58,7 +58,7 @@ def clash_only(func):
 
             if kwargs.get("internal", False):
                 r, rmin, eps, shape = prep_internal_clash(rotlib)
-                E += func(r, rmin, eps, **kwargs).reshape(rotlib.coords.shape[:2])
+                E += func(r, rmin, eps, **kwargs).reshape(rotlib._coords.shape[:2])
 
             E = E.sum(axis=1)
 
@@ -232,8 +232,8 @@ def prep_internal_clash(rotlib):
     rmin_ij = join_rmin(a_radii * rotlib.forgive, b_radii * rotlib.forgive, flat=True)
     eps_ij = join_eps(a_eps, b_eps, flat=True)
 
-    dist = np.linalg.norm(rotlib.coords[:, a] - rotlib.coords[:, b], axis=2)
-    shape = (len(rotlib.coords), len(a_radii))
+    dist = np.linalg.norm(rotlib._coords[:, a] - rotlib._coords[:, b], axis=2)
+    shape = (len(rotlib._coords), len(a_radii))
 
     return dist, rmin_ij, eps_ij, shape
 

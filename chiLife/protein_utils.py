@@ -152,7 +152,7 @@ class ProteinIC:
             self.nonbonded_pairs.shape = (-1, 2)
 
         self.perturbed = False
-        self._coords = None
+        self._coords = self.to_cartesian()
         self.dihedral_defs = self.collect_dih_list()
 
     @classmethod
@@ -248,6 +248,45 @@ class ProteinIC:
             self._coords = self.to_cartesian()
             self.perturbed = False
         return self._coords
+
+    @coords.setter
+    def coords(self, coords):
+        coords = np.asarray(coords)
+        if coords.shape != self._coords.shape:
+            raise ValueError('the coordinate array supplied does not match the ProteinIC object coords array')
+        if len(self.zmats) > 1:
+            raise NotImplementedError('ProteinIC does not currently support cartesian coordinate assignemnt for '
+                                      'multichain structures.')
+        chain = self.chains[0]
+        for idx, coord in enumerate(coords):
+            if np.all(np.isnan(coord)):
+                continue
+
+            bidx, aidx, tidx = self.zmat_idxs[chain][idx]
+            bond, angle, dihedral = np.nan, np.nan, np.nan
+            if idx == 0:
+                pass
+                # Need to calculate new chain operators
+            if idx > 0:
+                bond = np.linalg.norm(self.coords[bidx] - coord)
+            if idx > 1:
+                angle = chiLife.get_angle([self.coords[aidx],
+                                           self.coords[bidx],
+                                           coord])
+            if idx > 2:
+                dihedral = chiLife.get_dihedral([self.coords[tidx],
+                                                 self.coords[aidx],
+                                                 self.coords[bidx],
+                                                 coord])
+
+
+
+
+            self._coords[idx] = coord
+            self.zmats[chain][idx] = bond, angle, dihedral
+
+        # Update the location of any atoms that weren't included (e.g. hydrogens or backbones)
+        self._coords = self.to_cartesian()
 
     def set_dihedral(self, dihedrals, resi, atom_list, chain=None):
         """

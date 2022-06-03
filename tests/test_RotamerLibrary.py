@@ -35,7 +35,7 @@ def test_with_sample():
 
     SL = chiLife.SpinLabel("R1C", 28, ubq, sample=2000)
 
-    with np.load('withsample.npz') as f:
+    with np.load('test_data/withsample.npz') as f:
         ans = {key: f[key] for key in f}
 
     np.testing.assert_almost_equal(SL._coords, ans['coords'])
@@ -194,10 +194,34 @@ def test_mem_sample():
     print('booger')
 
 
-
 def test_label_as_library():
     R1C = chiLife.RotamerLibrary("R1C", site=28, protein=ubq)
     for ic in R1C.internal_coords:
         np.testing.assert_almost_equal(
             ic.coords[2], [38.73227962, 26.58109478, 12.6243569]
         )
+
+def test_coord_setter0():
+    R1C1 = chiLife.RotamerLibrary("R1C", site=28, protein=ubq)
+
+def test_coord_setter():
+    R1C1 = chiLife.RotamerLibrary("R1C", site=28, protein=ubq)
+    R1C2 = chiLife.RotamerLibrary("R1C", site=29, protein=ubq)
+
+    R1C1.coords = R1C2.coords
+
+    np.testing.assert_allclose(R1C1.coords, R1C2.coords)
+    np.testing.assert_allclose(R1C1.dihedrals, R1C2.dihedrals, rtol=1e-6)
+
+    for key in 'ori', 'mx':
+        np.testing.assert_allclose(R1C1.internal_coords[0].chain_operators[1][key],
+                                   R1C2.internal_coords[0].chain_operators[1][key])
+
+
+def test_coord_setter2():
+    R1C1 = chiLife.RotamerLibrary("R1C", site=28, protein=ubq, sample=100)
+    R1C2 = chiLife.RotamerLibrary("R1C", site=28, protein=ubq, sample=100)
+    R1C1.coords = R1C2.coords[:, R1C2.side_chain_idx]
+
+    np.testing.assert_allclose(R1C1.coords, R1C2.coords)
+    np.testing.assert_allclose(R1C1.dihedrals, R1C2.dihedrals)

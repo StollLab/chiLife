@@ -266,3 +266,18 @@ def test_PRO_ics():
 
 def test_guess_topology():
     chiLife.guess_topology(ubq)
+
+def test_ProteinIC_set_coords():
+    R1A = mda.Universe("../chiLife/data/rotamer_libraries/residue_pdbs/R1A.pdb")
+    R1A_IC = chiLife.get_internal_coords(R1A)
+    R1A_IC_c = R1A_IC.copy()
+    R1A_IC_c.set_dihedral([np.pi/2, -np.pi/2, np.pi/2], 1, [['N', 'CA', 'CB', 'SG' ],
+                                                            ['CA', 'CB', 'SG', 'SD'],
+                                                            ['CB', 'SG', 'SD', 'CE']])
+
+    coords = R1A_IC_c.coords
+
+    R1A_IC.coords = coords
+    np.testing.assert_allclose(R1A_IC.zmats[1], R1A_IC_c.zmats[1], rtol=1e-6)
+    np.testing.assert_almost_equal(R1A_IC.coords, R1A_IC_c.coords, decimal=6)
+

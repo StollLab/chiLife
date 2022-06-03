@@ -69,7 +69,6 @@ class RotamerLibrary:
 
             # Perform sapling
             self._coords = np.tile(self._coords[0], (self.sample_size, 1, 1))
-            self.mx, self.ori = np.eye(3), np.array([0, 0, 0])
             self._coords, self.weights, self.internal_coords = self.sample(
                 self.sample_size, off_rotamer=True, return_dihedrals=True
             )
@@ -114,10 +113,6 @@ class RotamerLibrary:
                 zip(self._coords[0], self.atom_types, self.atom_names)
             )
         ]
-
-        self.mx, self.ori = chiLife.global_mx(
-            *np.squeeze(self.backbone), method=self.superimposition_method
-        )
 
     @classmethod
     def from_pdb(
@@ -265,9 +260,6 @@ class RotamerLibrary:
 
         self._coords = np.einsum("ijk,kl->ijl", self._coords, mx) + ori
 
-        self.mx, self.ori = chiLife.global_mx(
-            *np.squeeze(self.backbone), method=self.superimposition_method
-        )
         self.ICs_to_site()
 
     def ICs_to_site(self):
@@ -351,7 +343,7 @@ class RotamerLibrary:
             new_dihedrals = np.random.random(len(off_rotamer)) * 2 * np.pi
             new_weight = 1.0
 
-        internal_coord = self.internal_coords[idx].set_dihedral(
+        internal_coord = self.internal_coords[idx].copy().set_dihedral(
             new_dihedrals, 1, self.dihedral_atoms[off_rotamer]
         )
 
@@ -586,9 +578,56 @@ class RotamerLibrary:
     def coords(self):
         return self._coords
 
+    @coords.setter
+    def coords(self, coords):
+        # Allow users to input a single rotamer
+        value = coords if coords.ndim == 3 else coords[None, :, :]
+
+        # Check if atoms match
+        if coords.shape[1] == len(self.side_chain_idx):
+            tmp = np.array([self._coords[0].copy() for _ in coords])
+            tmp[:, self.side_chain_idx] = coords
+            coords = tmp
+
+        if coords.shape[1] != len(self.atoms):
+            raise ValueError('The number of atoms in the input array does not match the number of atoms of the residue')
+
+        self._coords = coords
+        self.ICs_to_site()
+
+        if coords.shape[1] != len(self.internal_coords[0].coords):
+            tmp = np.array([np.empty_like(self.internal_coords[0].coords) for _ in coords])
+            tmp[:] = np.nan
+            tmp[:, self.ic_mask] = coords
+            coords = tmp
+
+        self.internal_coords = [self.internal_coords[0].copy() for _ in coords]
+        for ic, val in zip(self.internal_coords, coords):
+            ic.coords = val
+
+        self._dihedrals = np.rad2deg(
+            [IC.get_dihedral(1, self.dihedral_atoms) for IC in self.internal_coords]
+        )
+
+        # Apply uniform weights
+        self.weights = np.ones(len(self._dihedrals))
+        self.weights /= self.weights.sum()
+
     @property
     def dihedrals(self):
         return self._dihedrals
+
+    @property
+    def mx(self):
+        mx, ori = chiLife.global_mx(
+            *np.squeeze(self.backbone), method=self.superimposition_method
+        )
+        return mx
+
+    @property
+    def ori(self):
+        return np.squeeze(self.backbone[1])
+
 
 def assign_defaults(kwargs):
 

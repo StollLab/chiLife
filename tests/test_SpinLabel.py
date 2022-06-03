@@ -111,6 +111,8 @@ def test_add_protein(label):
 def test_from_wizard():
     np.random.seed(200)
     SL = chiLife.SpinLabel.from_wizard("TRT", 28, ubq, to_find=10)
+    for ic, dihedral in zip(SL.internal_coords, SL.dihedrals):
+        np.testing.assert_allclose(np.rad2deg(ic.get_dihedral(1, SL.dihedral_atoms)), dihedral)
 
     with open("test_data/from_wiz.pkl", "rb") as f:
         SLans = pickle.load(f)

@@ -150,8 +150,7 @@ class SpinLabel(RotamerLibrary):
         **kwargs,
     ):
         prelib = cls(label, site, protein, chain, eval_clash=False, **kwargs)
-        if not kwargs.setdefault("use_prior", False):
-            prelib.sigmas = np.array([])
+        prelib.sigmas = np.array([])
 
         coords = np.zeros((to_find, len(prelib.atom_names), 3))
         internal_coords = []
@@ -207,7 +206,7 @@ class SpinLabel(RotamerLibrary):
         prelib.internal_coords = (
             np.concatenate(internal_coords) if len(internal_coords) > 0 else []
         )
-        prelib._dihedrals = np.array(
+        prelib._dihedrals = np.rad2deg(
             [IC.get_dihedral(1, prelib.dihedral_atoms) for IC in prelib.internal_coords]
         )
         prelib._coords = coords

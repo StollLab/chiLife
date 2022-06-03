@@ -223,7 +223,7 @@ class RotamerLibrary:
             residue number to assign SpinLabel to.
         """
         self.site = site
-        self._to_site()
+        self.to_site()
 
     def copy(self, site=None, chain=None):
         """Create a deep copy of the spin label. Assign new site and chain information if desired"""
@@ -245,7 +245,7 @@ class RotamerLibrary:
                 new_copy.protein = self.protein.copy()
         return new_copy
 
-    def _to_site(self, site_pos=None):
+    def to_site(self, site_pos=None):
         """Move spin label to new site
         :param site_pos: array-like
             3x3 array of ordered backbone atom coordinates of new site (N CA C)
@@ -496,7 +496,7 @@ class RotamerLibrary:
         if self.protein_tree is None:
             self.protein_tree = cKDTree(self.protein.atoms.positions)
 
-        self._to_site()
+        self.to_site()
         self.backbone_to_site()
 
         # Get weight of current or closest rotamer

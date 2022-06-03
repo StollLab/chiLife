@@ -88,7 +88,7 @@ def test_lib2site(label):
     )
 
     lib = chiLife.SpinLabel(label)
-    lib._to_site(site)
+    lib.to_site(site)
     ans = np.load(f"test_data/{label}_lib2site.npy")
     np.testing.assert_almost_equal(ans, lib.coords)
 

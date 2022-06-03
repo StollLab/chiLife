@@ -60,7 +60,7 @@ class FluorLabel(RotamerLibrary):
 
     def protein_setup(self):
         self.protein = self.protein.select_atoms("not (byres name OH2 or resname HOH)")
-        self._to_site()
+        self.to_site()
         self.clash_ignore_idx = self.protein.select_atoms(
             f"resid {self.site} and segid {self.chain}"
         ).ix

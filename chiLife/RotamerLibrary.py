@@ -581,7 +581,7 @@ class RotamerLibrary:
     @coords.setter
     def coords(self, coords):
         # Allow users to input a single rotamer
-        value = coords if coords.ndim == 3 else coords[None, :, :]
+        coords = coords if coords.ndim == 3 else coords[None, :, :]
 
         # Check if atoms match
         if coords.shape[1] == len(self.side_chain_idx):
@@ -616,6 +616,24 @@ class RotamerLibrary:
     @property
     def dihedrals(self):
         return self._dihedrals
+
+    @dihedrals.setter
+    def dihedrals(self, dihedrals):
+        dihedrals = dihedrals if dihedrals.ndim == 2 else dihedrals[None, :]
+        if dihedrals.shape[1] != self.dihedrals.shape[1]:
+            raise ValueError('The input array does not have the correct number of dihedrals')
+
+        self._dihedrals = dihedrals
+        self.internal_coords = [self.internal_coords[0].copy().set_dihedral(np.deg2rad(dihedral),
+                                                                            1,
+                                                                            self.dihedral_atoms)
+                                for dihedral in dihedrals]
+        self._coords = np.array([ic.coords[self.ic_mask] for ic in self.internal_coords])
+        self.backbone_to_site()
+
+        # Apply uniform weights
+        self.weights = np.ones(len(self._dihedrals))
+        self.weights /= self.weights.sum()
 
     @property
     def mx(self):

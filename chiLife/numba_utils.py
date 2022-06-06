@@ -1,5 +1,8 @@
 import numpy as np
 from numba import njit
+import math as m
+import chiLife as xl
+from numba.typed import Dict
 
 # TODO: Write tests for all numba utils
 
@@ -176,7 +179,7 @@ def pairwise_dist(X, Y):
                 tmp = tmp * tmp
                 d += tmp
 
-            D[i, j] = np.sqrt(d)
+            D[i, j] = m.sqrt(d)
 
     return D
 
@@ -250,7 +253,7 @@ def np_all_axis1(x):
     return out
 
 
-# @njit(cache=True)
+@njit(cache=True)
 def get_ICAtom_indices(k, index, bonds, angles, dihedrals, offset):
     found = False
     ordered = True
@@ -262,12 +265,9 @@ def get_ICAtom_indices(k, index, bonds, angles, dihedrals, offset):
         condition = condition and dk[-1] == index
 
         if ordered:
-            try:
-                srted = np.array([dk[i] < dk[i + 1] for i in range(3)])
-                condition = condition and np.all(srted)
-            except:
-                print("asdfasdf")
-                raise
+            srted = np.array([dk[i] < dk[i + 1] for i in range(3)])
+            condition = condition and np.all(srted)
+
         else:
             condition = condition and np.all(dk[:3] < dk[3])
 
@@ -283,3 +283,58 @@ def get_ICAtom_indices(k, index, bonds, angles, dihedrals, offset):
             k += 1
 
     return i, j, k
+
+
+@njit(cache=True)
+def _get_sasa(atom_coords, atom_radii, environment_coords, environment_radii, probe_radius=1.4, npoints=1024):
+    grid_points = fibonacci_points(npoints)
+    atom_radii = atom_radii.copy()
+    environment_radii = environment_radii.copy()
+
+    atom_radii += probe_radius
+    environment_radii += probe_radius
+    all_radii = np.hstack((atom_radii, environment_radii))
+    all_coords = np.vstack((atom_coords, environment_coords))
+
+    atom_sasa = np.zeros(len(atom_coords), dtype=np.int64)
+    for i, (posi, radi) in enumerate(zip(atom_coords, atom_radii)):
+
+        neighbor_idxs = []
+        for j, (posj, radj) in enumerate(zip(all_coords, all_radii)):
+            if j == i:
+                continue
+
+            diff = posi - posj
+            dist_squared = diff @ diff
+            if dist_squared < (radi + radj) ** 2:
+                neighbor_idxs.append(j)
+
+        sphere = grid_points * radi + posi
+        for j in neighbor_idxs:
+            posj, radj = all_coords[j], all_radii[j]
+            left_overs = []
+            for k, posk in enumerate(sphere):
+                diff = posj - posk
+                dist_squared = diff @ diff
+                if dist_squared > radj ** 2:
+                    left_overs.append(posk)
+
+            sphere = np.empty((len(left_overs), 3), dtype=np.float64)
+            for k in range(len(left_overs)):
+                sphere[k] = left_overs[k]
+
+        atom_sasa[i] = len(sphere)
+
+    return np.sum(atom_sasa) * (4.0 * np.pi / npoints) * radi ** 2
+
+
+@njit(cache=True)
+def fibonacci_points(n):
+    phi = (3 - m.sqrt(5)) * np.pi * np.arange(n)
+    z = np.linspace(1 - 1.0/n, 1.0/n - 1, n)
+    radius = np.sqrt(1 - z*z)
+    coords = np.empty((n, 3))
+    coords[:, 0] = radius * np.cos(phi)
+    coords[:, 1] = radius * np.sin(phi)
+    coords[:, 2] = z
+    return coords

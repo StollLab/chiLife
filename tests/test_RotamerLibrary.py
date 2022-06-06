@@ -236,3 +236,8 @@ def test_dihedral_setter():
     np.testing.assert_allclose(R1C1.dihedrals, R1C2.dihedrals)
 
 
+def test_get_sasa():
+    R1C = chiLife.RotamerLibrary("R1C")
+    sasas = R1C.get_sasa()
+    sasans = np.load('test_data/sasas.npy')
+    np.testing.assert_allclose(sasas, sasans)

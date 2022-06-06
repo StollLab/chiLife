@@ -1,5 +1,4 @@
 from copy import deepcopy
-import pickle
 import logging
 import numpy as np
 from itertools import combinations
@@ -645,6 +644,21 @@ class RotamerLibrary:
     @property
     def ori(self):
         return np.squeeze(self.backbone[1])
+
+    def get_sasa(self):
+        atom_radii = chiLife.get_lj_rmin(self.atom_types)
+        if self.protein is not None:
+            environment_coords = self.protein.atoms[self.protein_clash_idx].positions
+            environment_radii = chiLife.get_lj_rmin(self.protein.atoms[self.protein_clash_idx].types)
+        else:
+            environment_coords = np.empty((0, 3))
+            environment_radii = np.empty(0)
+        SASAs = []
+        for atom_coords in self.coords:
+            SASAs.append(chiLife.numba_utils._get_sasa(atom_coords, atom_radii, environment_coords, environment_radii))
+
+        return np.array(SASAs)
+
 
 
 def assign_defaults(kwargs):

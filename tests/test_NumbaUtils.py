@@ -4,6 +4,7 @@ from scipy.special import kl_div
 from scipy.spatial.distance import cdist
 import pytest
 import chiLife.numba_utils as nu
+import chiLife as xl
 
 
 def test_compute_bin():
@@ -87,3 +88,31 @@ def test_pairwise_dist():
     print("numba time: ", t3 - t2)
 
     np.testing.assert_almost_equal(D_cdist, D_numba)
+
+
+def test_fib_points():
+    x = nu.fibonacci_points(10)
+    ans = np.array([[ 0.43588989,  0.        ,  0.9],
+                    [-0.52658671,  0.48239656,  0.7],
+                    [ 0.0757129 , -0.86270943,  0.5],
+                    [ 0.58041368,  0.75704687,  0.3],
+                    [-0.97977755, -0.17330885,  0.1],
+                    [ 0.83952592, -0.53403767, -0.1],
+                    [-0.24764672,  0.92123347, -0.3],
+                    [-0.39915719, -0.76855288, -0.5],
+                    [ 0.67080958,  0.24497858, -0.7],
+                    [-0.40291289,  0.16631658, -0.9]])
+
+    np.testing.assert_allclose(x, ans)
+
+def test_get_sasa():
+    ubq = xl.fetch('1ubq')
+    SL = xl.SpinLabel('R1A', 28, ubq)
+    atom_coords = SL.coords[0]
+    atom_radii = xl.get_lj_rmin(SL.atom_types)
+
+    environment_coords = SL.protein.atoms[SL.protein_clash_idx].positions
+    environment_radii = xl.get_lj_rmin(SL.protein.atoms[SL.protein_clash_idx].types)
+
+    area = nu._get_sasa(atom_coords, atom_radii, environment_coords, environment_radii)
+    assert area == 295.0740899884213

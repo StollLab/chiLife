@@ -786,7 +786,7 @@ def get_site(site: Union[int, str], label: str) -> Tuple[int, str]:
         chain = site.strip("0123456789")
 
     if chain:
-        resi = int(site[len(chain) :])
+        resi = int(site[len(chain):])
     else:
         resi = int(site)
         chain = "A"

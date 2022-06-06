@@ -14,11 +14,10 @@ git clone https://github.com/mtessmer/chiLife.git
 cd chiLife
 python setup.py install
 ```  
->NOTE: there is currently a conflict between `numba` (0.55.1) and `mdanalysis` (2.0.0) that may cause some issues. 
-> `mdanalysis` 2.0.0 on pypi appears to be built with `numpy` 1.22 but `numba` does not yet support `numpy>=1.21`. To 
-> overcome these conflicts `mdanalysis` can be built on installation with a fixed `numpy==1.21` version. 
+>NOTE: if you are using an older version of numpy you may have issues using `mdanalysis`, especially on windows. 
+> To  overcome this issue `mdanalysis` can be rebuilt on your local machine using whatever numpy you already have 
+> installed:
 > ```bash
-> pip install numpy==1.21.5
 > pip install mdanalysis --no-binary mdanalysis
 > ```
 > before running the χLife setup script. Note that this may requires system specific build tools.

@@ -749,7 +749,6 @@ def read_library(
     backbone_exists = Phi and Psi
 
     if backbone_exists:
-        res = res.upper()
         Phi = int((Phi // 10) * 10)
         Psi = int((Psi // 10) * 10)
 

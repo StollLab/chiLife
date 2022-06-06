@@ -1,5 +1,4 @@
 from .SpinLabel import SpinLabel
-import multiprocessing as mp
 from functools import partial
 import numpy as np
 

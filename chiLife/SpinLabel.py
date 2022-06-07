@@ -256,7 +256,7 @@ class dSpinLabel:
         self.superimposition_method = kwargs.setdefault(
             "superimposition_method", "bisect"
         ).lower()
-        self.dihedral_sigma = kwargs.setdefault("dihedral_sigma", 25)
+        self.dihedral_sigmas = kwargs.setdefault("dihedral_sigmas", 25)
         self.minimize = kwargs.pop("minimize", True)
         self.eval_clash = kwargs.pop("eval_clash", True)
         self.energy_func = kwargs.setdefault("energy_func", chiLife.get_lj_rep)

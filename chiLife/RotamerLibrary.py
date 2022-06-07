@@ -37,13 +37,11 @@ class RotamerLibrary:
         self.__dict__.update(lib)
         self._weights = self.weights / self.weights.sum()
 
-        if len(self.sigmas) == 0:
-            self.sigmas = (
-                np.ones((len(self._weights), len(self.dihedral_atoms)))
-                * self.dihedral_sigma
-            )
+        if len(self.sigmas) != 0 and 'dihedral_sigmas' not in kwargs:
+            self.sigmas[self.sigmas == 0] = self.dihedral_sigmas
+        else:
+            self.set_dihedral_sampling_sigmas(self.dihedral_sigmas)
 
-        self.sigmas[self.sigmas == 0] = self.dihedral_sigma
         self._rsigmas = np.deg2rad(self.sigmas)
         self._rkappas = 1 / self._rsigmas**2
         self.ic_mask = self.atom_names != "Z"
@@ -366,8 +364,8 @@ class RotamerLibrary:
         temp_rotlib = self.copy()
         for i, IC in enumerate(self.internal_coords):
             d0 = IC.get_dihedral(1, self.dihedral_atoms)
-            lb = d0 - np.deg2rad(self.dihedral_sigma) / 2
-            ub = d0 + np.deg2rad(self.dihedral_sigma) / 2
+            lb = d0 - np.deg2rad(self.sigmas[i])
+            ub = d0 + np.deg2rad(self.sigmas[i])
             bounds = np.c_[lb, ub]
 
             xopt = opt.minimize(
@@ -659,6 +657,17 @@ class RotamerLibrary:
 
         return np.array(SASAs)
 
+    def set_dihedral_sampling_sigmas(self, value):
+        value = np.asarray(value)
+        if value.shape == ():
+            self.sigmas = (np.ones((len(self._weights), len(self.dihedral_atoms))) * value)
+        elif len(value) == len(self.dihedral_atoms) and len(value.shape) == 1:
+            self.sigmas = np.tile(value, (len(self._weights), 1))
+        elif value.shape == (len(self._weights), len(self.dihedral_atoms)):
+            self.sigmas = value.copy()
+        else:
+            raise ValueError('`dihedral_sigmas` must be a scalar, an array the length of the `self.dihedral atoms` or '
+                             'an array with the shape of (len(self.weights), len(self.dihedral_atoms))')
 
 
 def assign_defaults(kwargs):
@@ -676,7 +685,7 @@ def assign_defaults(kwargs):
         "clash_radius": 14.0,
         "_clash_ori_inp": kwargs.pop("clash_ori", "cen"),
         "superimposition_method": "bisect",
-        "dihedral_sigma": 35,
+        "dihedral_sigmas": 35,
         "weighted_sampling": False,
         "eval_clash": False,
         "use_H": False,

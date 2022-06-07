@@ -241,3 +241,36 @@ def test_get_sasa():
     sasas = R1C.get_sasa()
     sasans = np.load('test_data/sasas.npy')
     np.testing.assert_allclose(sasas, sasans)
+
+def test_default_dihedral_sigmas():
+    rotlib = chiLife.read_bbdep('R1C', -60, -50)
+    SL = chiLife.SpinLabel('R1C')
+    np.testing.assert_allclose(rotlib['sigmas'][rotlib['sigmas'] != 0], SL.sigmas[SL.sigmas != 35.])
+
+def test_construct_with_dihedral_sigmas():
+    SL = chiLife.SpinLabel('R1C', dihedral_sigmas=25)
+    assert np.all(SL.sigmas == 25.)
+    assert SL.sigmas.shape == (len(SL), len(SL.dihedral_atoms))
+
+def test_construct_with_array_of_dihedral_sigmas():
+    set_sigmas = [10, 20, 30, 40, 50]
+    SL = chiLife.SpinLabel('R1C', dihedral_sigmas=set_sigmas)
+    for i in range(5):
+        assert np.all(SL.sigmas[:,i] == set_sigmas[i])
+
+    assert SL.sigmas.shape == (len(SL), len(SL.dihedral_atoms))
+
+def test_construct_with_full_array_of_dihedral_sigmas():
+    set_sigmas = np.random.rand(148, 5)
+    SL = chiLife.SpinLabel('R1C', dihedral_sigmas=set_sigmas)
+    np.testing.assert_allclose(set_sigmas, SL.sigmas)
+
+def test_dihedral_sigmas_fail():
+    with pytest.raises(ValueError):
+        SL = chiLife.SpinLabel('R1C', dihedral_sigmas=[5, 2, 1])
+
+def test_set_dihedral_sigmas():
+    SL = chiLife.SpinLabel('R1A')
+    assert np.all(SL.sigmas == 35.)
+    SL.set_dihedral_sampling_sigmas(25)
+    assert np.all(SL.sigmas == 25.)

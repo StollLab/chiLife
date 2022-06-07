@@ -214,7 +214,7 @@ def test_ProteinIC_save_pdb():
 
 def test_ic_to_site():
     backbone = ubq.select_atoms("resnum 28 and name N CA C").positions
-    r1c = mda.Universe(r"..\chiLife\data\rotamer_libraries\residue_pdbs\R1C.pdb")
+    r1c = mda.Universe("../chiLife/data/rotamer_libraries/residue_pdbs/R1C.pdb")
     R1ic = chiLife.get_internal_coords(r1c)
     R1ic.to_site(*backbone)
 

@@ -158,7 +158,8 @@ easy to add user spin labels. To add a user defined spin label, all that is need
 ```python
 xl.add_label(name='TRT',
              pdb='test_data/trt.pdb',
-             dihedral_atoms=[['CA', 'CB', 'SG', 'SD']
+             dihedral_atoms=[['N', 'CA', 'CB', 'SG'],
+                             ['CA', 'CB', 'SG', 'SD'],
                              ['CB', 'SG', 'SD', 'CAD'],
                              ['SG', 'SD', 'CAD', 'CAE'],
                              ['SD', 'CAD', 'CAE', 'OAC']],

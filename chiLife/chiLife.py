@@ -1222,6 +1222,7 @@ def add_label(
     spin_atoms: List[str] = None,
     dihedrals: ArrayLike = None,
     weights: ArrayLike = None,
+    sigmas: ArrayLike = None
 ):
     """
     Add a user defined SpinLabel from a pdb file.
@@ -1248,6 +1249,12 @@ def add_label(
 
     :param weights: ndarray, optional
         Weights associated with the dihedral angles provided by the `dihedrals` keyword argument
+
+    :param sigmas: ndarray, optional
+        Sigma paramter for disributions of dihedral angles.
+
+    :param skews: ndarray, optional
+        Skew parameter for disributions of dihedral angles.
     """
     struct = pre_add_label(name, pdb, spin_atoms)
     pdb_resname = struct.select_atoms(f"resnum {resi}").resnames[0]

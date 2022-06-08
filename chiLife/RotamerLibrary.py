@@ -3,6 +3,7 @@ import logging
 import numpy as np
 from itertools import combinations
 from scipy.spatial import cKDTree
+from scipy.stats import skewnorm
 import scipy.optimize as opt
 import MDAnalysis as mda
 import chiLife
@@ -329,26 +330,27 @@ class RotamerLibrary:
         :return:
         """
         new_weight = 0
-        if len(self.sigmas) > 0:
-            new_dihedrals = np.random.vonmises(
-                self._rdihedrals[idx, off_rotamer], self._rkappas[idx, off_rotamer]
-            )
-            # diff1 = (new_dihedrals - self._rdihedrals[idx, off_rotamer]) * self._rkappas[idx, off_rotamer]
-            # diff = (diff1 @ diff1) / len(diff1)
-            new_weight = self._weights[idx]  # * np.exp(-0.5 * 5e-2 * diff)
-        else:
+        # Use accessible volume sampling if only provided a single rotamer
+        if len(self._weights) == 0:
             new_dihedrals = np.random.random(len(off_rotamer)) * 2 * np.pi
             new_weight = 1.0
 
-        internal_coord = self.internal_coords[idx].copy().set_dihedral(
-            new_dihedrals, 1, self.dihedral_atoms[off_rotamer]
-        )
+        #  sample from von mises near rotamer unless more information is provided
+        elif self.skews is None:
+            new_dihedrals = np.random.vonmises(self._rdihedrals[idx, off_rotamer], self._rkappas[idx, off_rotamer])
 
-        coords = internal_coord.to_cartesian()
-        coords = coords[self.ic_mask]
+        # Sample from skewednorm if skews are provided
+        else:
+            deltas = skewnorm.rvs(a=self.skews[idx], loc=self.locs[idx], scale=self.sigmas[idx])
+            new_dihedrals = np.deg2rad(self.dihedrals[idx] + deltas)
+
+        new_weight = self._weights[idx]
+
+        int_coord = self.internal_coords[idx].copy().set_dihedral(new_dihedrals, 1, self.dihedral_atoms[off_rotamer])
+        coords = int_coord.coords[self.ic_mask]
 
         if kwargs.setdefault("return_dihedrals", False):
-            return coords, new_weight, internal_coord
+            return coords, new_weight, int_coord
         else:
             return coords, new_weight
 
@@ -475,6 +477,10 @@ class RotamerLibrary:
             lib['internal_coords'] = [a.copy() for a in lib['internal_coords']]
         lib['_coords'] = lib.pop('coords')
         lib['_dihedrals'] = lib.pop('dihedrals')
+
+        if 'skews' not in lib:
+            lib['skews'] = None
+
         return lib
 
     def protein_setup(self):

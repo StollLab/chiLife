@@ -206,11 +206,11 @@ def test_add_label():
     chiLife.add_label(
         name="TRT",
         pdb="test_data/trt_sorted.pdb",
-        dihedral_atoms=[
-            ["CB", "SG", "SD", "CAD"],
-            ["SG", "SD", "CAD", "CAE"],
-            ["SD", "CAD", "CAE", "OAC"],
-        ],
+        dihedral_atoms=[['N', 'CA', 'CB', 'SG'],
+                        ['CA', 'CB', 'SG', 'SD'],
+                        ["CB", "SG", "SD", "CAD"],
+                        ["SG", "SD", "CAD", "CAE"],
+                        ["SD", "CAD", "CAE", "OAC"]],
         spin_atoms="CAQ",
     )
 

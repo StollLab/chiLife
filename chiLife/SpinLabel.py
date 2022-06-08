@@ -195,7 +195,7 @@ class SpinLabel(RotamerLibrary):
             if i + len(sidx) >= to_find:
                 sidx = sidx[: to_find - i]
 
-            coords[i : i + len(sidx)] = sample[sidx]
+            coords[i: i + len(sidx)] = sample[sidx]
             internal_coords.append(internal_sample[sidx])
             i += len(sidx)
 

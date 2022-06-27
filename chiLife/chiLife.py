@@ -1258,6 +1258,7 @@ def add_label(
     """
     struct = pre_add_label(name, pdb, spin_atoms)
     pdb_resname = struct.select_atoms(f"resnum {resi}").resnames[0]
+    add_dihedral_def(name, dihedral_atoms)
 
     # Convert loaded rotamer library to internal coords
     internal_coords = [
@@ -1287,7 +1288,7 @@ def add_label(
         weights = np.ones(len(dihedrals))
         weights /= weights.sum()
 
-    store_new_restype(name, internal_coords, weights, dihedrals, dihedral_atoms)
+    store_new_restype(name, internal_coords, weights, dihedrals, dihedral_atoms, sigmas=sigmas)
 
 
 def add_dlabel(
@@ -1430,7 +1431,6 @@ def add_dlabel(
 
 
 def pre_add_label(name, pdb, spin_atoms):
-    # TODO: Add dihedral definitions to DihedralDefs.pkl
     # Sort the PDB for optimal dihedral definitions
     pdb_lines = sort_pdb(pdb)
 
@@ -1480,9 +1480,7 @@ def pre_add_label(name, pdb, spin_atoms):
     return struct
 
 
-def store_new_restype(
-    name, internal_coords, weights, dihedrals, dihedral_atoms, increment=None
-):
+def store_new_restype(name, internal_coords, weights, dihedrals, dihedral_atoms, sigmas=None, increment=None):
     # Extract coordinates and transform to the local frame
     bb_atom_idx = [
         i for i, atom in enumerate(internal_coords[0].atoms) if atom.name in ["N", "CA", "C"]
@@ -1518,15 +1516,42 @@ def store_new_restype(
     atom_types = np.array([atom.atype for atom in internal_coords[0].atoms])
     atom_names = np.array([atom.name for atom in internal_coords[0].atoms])
 
+    save_dict = {'coords': coords,
+                'internal_coords': internal_coords,
+                'weights': weights,
+                'atom_types': atom_types,
+                'atom_names': atom_names,
+                'dihedrals': dihedrals,
+                'dihedral_atoms': dihedral_atoms}
+
+    if sigmas is None:
+        pass
+    elif sigmas.shape == dihedrals.shape:
+        save_dict['sigmas'] = sigmas
+    elif sigmas.shape == (*dihedrals.shape, 3):
+        save_dict['sigmas'] = sigmas[..., 2]
+        save_dict['locs'] = sigmas[..., 1]
+        save_dict['skews'] = sigmas[..., 0]
+
+
     # Save rotamer library
     np.savez(
         DATA_DIR / f"UserRotlibs/{name}_rotlib.npz",
-        coords=coords,
-        internal_coords=internal_coords,
-        weights=weights,
-        atom_types=atom_types,
-        atom_names=atom_names,
-        dihedrals=dihedrals,
-        dihedral_atoms=dihedral_atoms,
+        **save_dict,
         allow_pickle=True,
     )
+
+
+def add_dihedral_def(name, dihedrals):
+
+    # Reload in case there were other changes
+    with open(os.path.join(os.path.dirname(__file__), "data/DihedralDefs.pkl"), "rb") as f:
+        local_dihedral_def = pickle.load(f)
+
+    # Add new label defs and write file
+    local_dihedral_def[name] = dihedrals
+    with open(os.path.join(os.path.dirname(__file__), "data/DihedralDefs.pkl"), "wb") as f:
+        pickle.dump(local_dihedral_def, f)
+
+    # Add to active dihedral def dict
+    chiLife.dihedral_defs[name] = dihedrals

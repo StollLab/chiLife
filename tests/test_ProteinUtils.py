@@ -12,7 +12,10 @@ resis = [
     (key, -90, 160)
     for key in chiLife.dihedral_defs
     if key
-    not in (chiLife.SUPPORTED_LABELS + ("R1B", "R1C", "CYR1", "MTN", "ALA", "GLY"))
+    not in (chiLife.SUPPORTED_LABELS +
+            ("R1B", "R1C", "CYR1", "MTN", "ALA", "GLY") +
+            tuple(chiLife.USER_LABELS) +
+            tuple(chiLife.USER_dLABELS))
 ]
 ICs = chiLife.get_internal_coords(ubq)
 gd_kwargs = [
@@ -122,6 +125,9 @@ def test_sort_manymodels():
     os.remove("test_data/msort_tmp.pdb")
 
     assert test == ans
+
+def test_sort_CrestResultNamed():
+    sorted_pdb = chiLife.sort_pdb('CrestResultsNamed.pdb')
 
 
 def test_makeics():
@@ -240,7 +246,10 @@ def test_polypro_IC():
 
 
 @pytest.mark.parametrize(
-    "res", set(chiLife.dihedral_defs.keys()) - {"CYR1", "MTN", "R1M", "R1C"}
+    "res", set(chiLife.dihedral_defs.keys()) -
+           {"CYR1", "MTN", "R1M", "R1C"} -
+           chiLife.USER_dLABELS -
+           chiLife.USER_LABELS
 )
 def test_sort_and_internal_coords(res):
     pdbfile = chiLife.DATA_DIR / f"residue_pdbs/{res.lower()}.pdb"
@@ -281,3 +290,6 @@ def test_ProteinIC_set_coords():
     np.testing.assert_allclose(R1A_IC.zmats[1], R1A_IC_c.zmats[1], rtol=1e-6)
     np.testing.assert_almost_equal(R1A_IC.coords, R1A_IC_c.coords, decimal=6)
 
+def test_protein_ic_M1A():
+    U = mda.Universe('M1A_sorted_ens.pdb')
+    ICs = [chiLife.get_internal_coords(U, resname='M1A') for ts in U.trajectory]

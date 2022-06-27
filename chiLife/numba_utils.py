@@ -252,8 +252,8 @@ def np_all_axis1(x):
         out = np.logical_and(out, x[:, i])
     return out
 
-
-@njit(cache=True)
+#
+# @njit(cache=True)
 def get_ICAtom_indices(k, index, bonds, angles, dihedrals, offset):
     found = False
     ordered = True

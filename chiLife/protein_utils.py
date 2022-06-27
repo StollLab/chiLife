@@ -1308,6 +1308,10 @@ def sort_pdb(pdbfile: Union[str, List], index=False) -> Union[List[str], List[in
                 appendid = []
                 # Go back to the first atom you added
                 for idx in sorted_args[-search_len:]:
+                    # skip hydrogen as base atom
+                    if lines[idx+start][76:79].strip() == 'H':
+                        continue
+
                     # Find anything bound to that atom that is not in already sorted
                     for pair in pairs:
                         if idx in pair:

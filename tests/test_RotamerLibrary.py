@@ -274,3 +274,7 @@ def test_set_dihedral_sigmas():
     assert np.all(SL.sigmas == 35.)
     SL.set_dihedral_sampling_sigmas(25)
     assert np.all(SL.sigmas == 25.)
+
+
+def test_sample_dihedral3():
+    SL = chiLife.SpinLabel('R1A', 27, ubq, sample=1000)

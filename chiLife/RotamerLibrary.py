@@ -338,13 +338,15 @@ class RotamerLibrary:
         #  sample from von mises near rotamer unless more information is provided
         elif self.skews is None:
             new_dihedrals = np.random.vonmises(self._rdihedrals[idx, off_rotamer], self._rkappas[idx, off_rotamer])
-
+            new_weight = 1.0
         # Sample from skewednorm if skews are provided
         else:
             deltas = skewnorm.rvs(a=self.skews[idx], loc=self.locs[idx], scale=self.sigmas[idx])
+            pdf = skewnorm.pdf(deltas, a=self.skews[idx], loc=self.locs[idx], scale=self.sigmas[idx])
             new_dihedrals = np.deg2rad(self.dihedrals[idx] + deltas)
+            new_weight = pdf.prod()
 
-        new_weight = self._weights[idx]
+        new_weight = self._weights[idx] * new_weight
 
         int_coord = self.internal_coords[idx].copy().set_dihedral(new_dihedrals, 1, self.dihedral_atoms[off_rotamer])
         coords = int_coord.coords[self.ic_mask]

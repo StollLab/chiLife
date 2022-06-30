@@ -227,13 +227,12 @@ class SpinLabel(RotamerLibrary):
 
 
 class dSpinLabel:
-    def __init__(self, label, site, increment, protein=None, chain=None, **kwargs):
+    def __init__(self, label, sites, protein=None, chain=None, **kwargs):
         """ """
         self.label = label
         self.res = label
-        self.site = site
-        self.site2 = site + increment
-        self.increment = increment
+        self.site, self.site2 = sorted(sites)
+        self.increment = self.site2 - self.site
         self.kwargs = kwargs
 
         self.protein = protein

@@ -115,4 +115,4 @@ def test_get_sasa():
     environment_radii = xl.get_lj_rmin(SL.protein.atoms[SL.protein_clash_idx].types)
 
     area = nu._get_sasa(atom_coords, atom_radii, environment_coords, environment_radii)
-    assert area == 295.0740899884213
+    assert area == 246.24294092688913

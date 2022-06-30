@@ -289,7 +289,3 @@ def test_ProteinIC_set_coords():
     R1A_IC.coords = coords
     np.testing.assert_allclose(R1A_IC.zmats[1], R1A_IC_c.zmats[1], rtol=1e-6)
     np.testing.assert_almost_equal(R1A_IC.coords, R1A_IC_c.coords, decimal=6)
-
-def test_protein_ic_M1A():
-    U = mda.Universe('M1A_sorted_ens.pdb')
-    ICs = [chiLife.get_internal_coords(U, resname='M1A') for ts in U.trajectory]

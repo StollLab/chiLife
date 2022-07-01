@@ -126,10 +126,6 @@ def test_sort_manymodels():
 
     assert test == ans
 
-def test_sort_CrestResultNamed():
-    sorted_pdb = chiLife.sort_pdb('CrestResultsNamed.pdb')
-
-
 def test_makeics():
     traj = mda.Universe("test_data/msort_ans.pdb")
     ICs = [chiLife.get_internal_coords(traj) for ts in traj.universe.trajectory]

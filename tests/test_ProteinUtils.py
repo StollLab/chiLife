@@ -5,8 +5,9 @@ import numpy as np
 import pytest
 import MDAnalysis as mda
 import chiLife
+import networkx as nx
 
-pdbids = ["1ubq", "1a2w"]
+pdbids = ["1ubq", "1a2w", '1az5']
 ubq = chiLife.fetch("1ubq")
 resis = [
     (key, -90, 160)
@@ -48,6 +49,7 @@ def test_read_dunbrack(res):
 @pytest.mark.parametrize("pdbid", pdbids)
 def test_get_internal_coordinates(pdbid):
     protein = chiLife.fetch(pdbid).select_atoms("protein and not altloc B")
+
     t1 = time.perf_counter()
     ICs = chiLife.get_internal_coords(protein)
     print(time.perf_counter() - t1)

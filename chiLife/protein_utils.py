@@ -14,6 +14,7 @@ import freesasa
 from .RotamerLibrary import RotamerLibrary
 import chiLife
 from .numba_utils import _ic_to_cart, get_ICAtom_indices
+import networkx as nx
 
 # TODO: Align Atom and ICAtom names with MDA
 # TODO: Implement Internal Coord Residue object
@@ -510,7 +511,7 @@ class ProteinIC:
 
 
 def get_ICAtom(
-    atom: mda.core.groups.Atom, offset: int = 0, preferred_dihedral: List = None
+    mol: mda.core.groups.Atom, dihedral: List[int], offset: int = 0, preferred_dihedral: List = None
 ) -> ICAtom:
     """
     Construct internal coordinates for an atom given that atom is linked to an MDAnalysis Universe.
@@ -527,86 +528,66 @@ def get_ICAtom(
     :return: ICAtom
         Atom with internal coordinates.
     """
-    U = atom.universe
-    bond_idxs = atom.bonds.indices
-    angle_idxs = atom.angles.indices
-    dihedral_idxs = atom.dihedrals.indices
-
-    if (atom.index - offset) == 0:
+    atom = mol.atoms[dihedral[-1]]
+    if len(dihedral) == 1:
         return ICAtom(
             atom.name,
             atom.type,
-            atom.index - offset,
+            dihedral[-1] - offset,
             atom.resname,
             atom.resid,
             (atom.name,),
         )
 
-    elif (atom.index - offset) == 1:
-        atom_names = (atom.name, U.atoms[bond_idxs[0][0]].name)
+    elif len(dihedral) == 2:
+        atom2 = mol.atoms[dihedral[-2]]
+        atom_names = (atom.name, atom2.name)
         return ICAtom(
             atom.name,
             atom.type,
-            atom.index - offset,
+            dihedral[-1] - offset,
             atom.resname,
             atom.resid,
             atom_names,
-            atom.bonds.indices[0][0] - offset,
-            atom.bonds.bonds()[0],
+            dihedral[-2] - offset,
+            np.linalg.norm(atom.position - atom2.position),
         )
 
-    elif (atom.index - offset) == 2:
+    elif len(dihedral) == 3:
+
+        atom2 = mol.atoms[dihedral[-2]]
+        atom3 = mol.atoms[dihedral[-3]]
+
         atom_names = (
             atom.name,
-            U.atoms[bond_idxs[0][0]].name,
-            U.atoms[atom.angles.indices[0][0]].name,
+            atom2.name,
+            atom3.name,
         )
         return ICAtom(
             atom.name,
             atom.type,
-            atom.index - offset,
+            dihedral[-1] - offset,
             atom.resname,
             atom.resid,
             atom_names,
-            atom.bonds.indices[0][0] - offset,
-            atom.bonds.bonds()[0],
-            atom.angles.indices[0][0] - offset,
-            atom.angles.angles()[0],
+            dihedral[-2] - offset,
+            np.linalg.norm(atom.position - atom2.position),
+            dihedral[-3] - offset,
+            chiLife.get_angle(mol.atoms[dihedral[-3:]].positions),
         )
 
     else:
 
-        # Skip dihedrals that are not preferred
-        k = 0
-        if preferred_dihedral is not None:
-            preferred_stems = [tuple(dh[:3]) for dh in preferred_dihedral]
-            for kidx, dh_idx in enumerate(dihedral_idxs):
-                if any(
-                    stem == tuple(U.atoms.names[dh_idx[:3]]) for stem in preferred_stems
-                ):
-                    if atom.name == U.atoms.names[dh_idx[-1]]:
-                        k = kidx
-                        break
+        atom4, atom3, atom2 = mol.atoms[dihedral[:-1]]
 
-        i, j, k = get_ICAtom_indices(
-            k, atom.index, bond_idxs, angle_idxs, dihedral_idxs, offset
-        )
-
-        k_idx, j_idx, i_idx = dihedral_idxs[k][:3]
-
-        atom_names = (
-            atom.name,
-            U.atoms[i_idx].name,
-            U.atoms[j_idx].name,
-            U.atoms[k_idx].name,
-        )
+        atom_names = (atom.name, atom2.name, atom3.name, atom4.name)
 
         if atom_names != ("N", "C", "CA", "N"):
             dihedral_resi = atom.resnum
         else:
             dihedral_resi = atom.resnum - 1
 
-        p1, p2, p3, p4 = U.atoms.positions[dihedral_idxs[k]]
+        p1, p2, p3, p4 = mol.atoms[dihedral].positions
 
         bl = np.linalg.norm(p3 - p4)
         al = chiLife.get_angle([p2, p3, p4])
@@ -618,15 +599,15 @@ def get_ICAtom(
         return ICAtom(
             atom.name,
             atom.type,
-            atom.index - offset,
+            dihedral[-1] - offset,
             atom.resname,
             atom.resnum,
             atom_names,
-            i_idx - offset,
+            dihedral[-2] - offset,
             bl,
-            j_idx - offset,
+            dihedral[-3] - offset,
             al,
-            k_idx - offset,
+            dihedral[-4] - offset,
             dl,
             dihedral_resi=dihedral_resi,
         )
@@ -643,6 +624,48 @@ def get_ICResidues(ICAtoms):
             residues[prev_res] = {atom.atom_names: atom}
 
     return residues
+
+
+def get_n_pred(G, node, n, inner=False):
+    """get the n predecessors of node i"""
+
+    # Check if node is new chain
+    if G.in_degree(node) == 0:
+        n = 0
+
+    # Try the most direct line
+    dihedral = [node]
+    for i in range(n):
+        active = dihedral[-1]
+        try:
+            dihedral.append(next(G.predecessors(active)))
+        except:
+            break
+
+    dihedral.reverse()
+
+    # Try all ordered lines
+    if len(dihedral) != n + 1:
+        dihedral = [node]
+        tmp = []
+        for p in G.predecessors(node):
+            tmp = get_n_pred(G, p, n-1, inner=True)
+            if len(tmp) == n:
+                break
+
+        dihedral = tmp + dihedral
+
+    # get any path or start a new segment
+    if len(dihedral) != n + 1 and not inner:
+        uG = G.to_undirected()
+        path = [node]
+        for i in nx.single_source_shortest_path_length(uG, node, cutoff=n):
+            if i < node:
+                path = nx.shortest_path(uG, i, node)
+
+        dihedral = path
+
+    return dihedral
 
 
 def get_internal_coords(
@@ -668,59 +691,77 @@ def get_internal_coords(
     :return ICs: ProteinIC
         An ProteinIC object of the supplied molecule
     """
+    mol = mol.select_atoms("not (byres name OH2 or resname HOH)")
     U = mol.universe
-    # Making things up to get the right results but vdwradii should not determine bond length so talk to the MDA devs
-    extra_radii = {"S": 2.0, "Br": 4.189, "Cu": 2.75}
-    if not hasattr(U, "bonds"):
-        U.add_TopologyAttr(
-            "bonds",
-            guessers.guess_bonds(U.atoms, U.atoms.positions, vdwradii=extra_radii),
-        )
-    elif len(U.bonds) < len(U.atoms):
-        U.add_TopologyAttr(
-            "bonds",
-            guessers.guess_bonds(U.atoms, U.atoms.positions, vdwradii=extra_radii),
-        )
-    if not hasattr(U, "angles"):
-        U.add_TopologyAttr("angles", guessers.guess_angles(U.bonds))
-    if not hasattr(U, "dihedrals"):
-        U.add_TopologyAttr("dihedrals", guessers.guess_dihedrals(U.angles))
-    # if not hasattr(U, 'impropers'):
-    #     U.add_TopologyAttr('impropers', guessers.guess_improper_dihedrals(U.angles))
 
-    if resname is not None:
-        protein = mol.select_atoms(
-            f'(protein or resname {" ".join(list(chiLife.SUPPORTED_RESIDUES) + [resname])})'
-            f" and not altloc B"
-        )
-    else:
-        protein = mol.select_atoms(
-            f'(protein or resname {" ".join(list(chiLife.SUPPORTED_RESIDUES))}) and not altloc B'
-        )
+    tree = cKDTree(mol.atoms.positions)
+    pairs = tree.query_pairs(5., output_type='ndarray')
+
+    a_atoms = pairs[:, 0]
+    b_atoms = pairs[:, 1]
+
+    a = chiLife.get_lj_rmin(mol.atoms[a_atoms].types)
+    b = chiLife.get_lj_rmin(mol.atoms[b_atoms].types)
+    join = chiLife.get_lj_rmin('join_protocol')[()]
+    ab = join(a, b, flat=True) * 0.6
+
+    dist = np.linalg.norm(mol.atoms.positions[a_atoms] - mol.atoms.positions[b_atoms], axis=1)
+    bonds = pairs[dist < ab]
+
+    G = nx.DiGraph()
+    G.add_edges_from(bonds)
+    dihedrals = [get_n_pred(G, node, np.minimum(node, 3)) for node in range(len(mol.atoms))]
+
+    if preferred_dihedrals is not None:
+        present = False
+        for dihe in preferred_dihedrals:
+            idx_of_interest = np.argwhere(mol.atoms.names == dihe[-1]).flatten()
+            for idx in idx_of_interest:
+                if np.all(mol.atoms[dihedrals[idx]].names == dihe):
+                    present = True
+                    continue
+
+                dihedral = [idx]
+                tmp = []
+                for p in G.predecessors(idx):
+                    tmp = get_n_pred(G, p, 2, inner=True)
+                    if np.all(mol.atoms[tmp].names == dihe[:-1]):
+                        dihedral = tmp + dihedral
+                        break
+
+                if len(dihedral) == 4:
+                    present = True
+                    dihedrals[dihedral[-1]] = dihedral
+        if not present:
+            raise ValueError(f'There is no dihedral `{dihe}` in the provided protien. Perhaps there is typo or the '
+                             f'atoms are not sorted correctly')
+
+
+    idxstop = [i for i, sub in enumerate(dihedrals) if len(sub) == 1]
+    dihedral_segs = [dihedrals[s:e] for s, e in zip(idxstop, (idxstop + [None])[1:])]
 
     all_ICAtoms = {}
     chain_operators = {}
-    offset = 0
     segid = 0
 
-    for seg in protein.segments:
-        segatoms = protein.atoms[protein.atoms.segids == seg.segid]
+    for seg in dihedral_segs:
+        if len(seg[4]) == 3:
+            seg[4] = list(reversed(seg[3][1:])) + seg[4][-1:]
+
+        offset = seg[0][0]
         segid += 1
-        offset = segatoms[0].index
-        mx, ori = chiLife.ic_mx(*U.atoms[offset : offset + 3].positions)
+        mx, ori = chiLife.ic_mx(*mol.atoms[seg[2]].positions)
 
         chain_operators[segid] = {"ori": ori, "mx": mx}
         #
         ICatoms = [
-            get_ICAtom(atom, offset=offset, preferred_dihedral=preferred_dihedrals)
-            for atom in segatoms
+            get_ICAtom(mol, dihedral, offset=offset, preferred_dihedral=preferred_dihedrals)
+            for dihedral in seg
         ]
         all_ICAtoms[segid] = get_ICResidues(ICatoms)
 
     # Get bonded pairs within selection
-    bonded_pairs = protein.bonds.to_indices()
-    mask = np.isin(bonded_pairs, protein.indices).prod(axis=1, dtype=bool)
-    bonded_pairs = bonded_pairs[mask]
+    bonded_pairs = bonds
 
     return ProteinIC.from_ICatoms(
         all_ICAtoms, chain_operators=chain_operators, bonded_pairs=bonded_pairs

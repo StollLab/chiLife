@@ -202,6 +202,13 @@ def test_repack():
     np.testing.assert_almost_equal(t2coords, t2ans, decimal=5)
 
 
+def test_repack_add_atoms():
+    omp = mda.Universe("test_data/1omp_H.pdb")
+    SL1 = chiLife.SpinLabel('R1M', 20, omp, use_H=True)
+    SL2 = chiLife.SpinLabel('R1M', 211, omp, use_H=True)
+    traj, de = chiLife.repack(omp, SL1, SL2, repetitions=10)
+
+
 def test_add_label():
     chiLife.add_label(
         name="TRT",

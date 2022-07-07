@@ -56,6 +56,8 @@ class RotamerLibrary:
             self.atom_types = self.atom_types[self.H_mask]
             self.atom_names = self.atom_names[self.H_mask]
 
+        self._lib_coords = self._coords.copy()
+
         # Parse important indices
         self.backbone_idx = np.argwhere(np.isin(self.atom_names, ["N", "CA", "C"]))
         self.side_chain_idx = np.argwhere(
@@ -307,7 +309,19 @@ class RotamerLibrary:
             off_rotamer = off_rotamer[: len(self.dihedral_atoms)]
 
         if not any(off_rotamer):
-            return np.squeeze(self._coords[idx]), np.squeeze(self.weights[idx])
+            if not np.allclose(np.squeeze(self._lib_coords[0, self.backbone_idx]), self.backbone):
+                N, CA, C = self.backbone
+                mx, ori = chiLife.global_mx(N, CA, C, method=self.superimposition_method)
+
+                N, CA, C = np.squeeze(self._lib_coords[0, self.backbone_idx])
+                old_ori, ori_mx = chiLife.local_mx(N, CA, C, method=self.superimposition_method)
+
+                self._lib_coords -= old_ori
+                mx = ori_mx @ mx
+
+                self._lib_coords = np.einsum("ijk,kl->ijl", self._lib_coords, mx) + ori
+
+            return np.squeeze(self._lib_coords[idx]), np.squeeze(self._weights[idx])
 
         if len(self.dihedral_atoms) == 0:
             return self._coords, self.weights, self.internal_coords
@@ -348,8 +362,9 @@ class RotamerLibrary:
             new_weight = pdf.prod()
 
         new_weight = self._weights[idx] * new_weight
-
-        int_coord = self.internal_coords[idx].copy().set_dihedral(new_dihedrals, 1, self.dihedral_atoms[off_rotamer])
+        dihedrals = self._rdihedrals[idx].copy()
+        dihedrals[off_rotamer] = new_dihedrals
+        int_coord = self.internal_coords[0].copy().set_dihedral(dihedrals, 1, self.dihedral_atoms)
         coords = int_coord.coords[self.ic_mask]
 
         if kwargs.setdefault("return_dihedrals", False):

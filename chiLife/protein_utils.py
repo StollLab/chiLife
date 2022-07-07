@@ -895,6 +895,7 @@ def mutate(
     *rotlibs: RotamerLibrary,
     add_missing_atoms: bool = True,
     random_rotamers: bool = False,
+    **kwargs
 ) -> MDAnalysis.Universe:
     """
     Create a new Universe where the native residue is replaced with the highest probability rotamer from a

@@ -1099,7 +1099,7 @@ def repack(
     spin_label_str = " or ".join(
         f"( {spin_label.selstr} )" for spin_label in spin_labels
     )
-    protein = mutate(protein, *spin_labels).atoms
+    protein = mutate(protein, *spin_labels, **kwargs).atoms
 
     # Determine the residues near the spin label that will be repacked
     repack_residues = protein.select_atoms(
@@ -1114,7 +1114,7 @@ def repack(
     ]
 
     # Create new labeled protein construct to fill in any missing atoms of repack residues
-    protein = mutate(protein, *repack_residue_libraries).atoms
+    protein = mutate(protein, *repack_residue_libraries, **kwargs).atoms
 
     repack_residues = protein.select_atoms(
         f"(around {repack_radius} {spin_label_str} ) " f"or {spin_label_str}"

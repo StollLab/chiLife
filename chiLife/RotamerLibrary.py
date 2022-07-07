@@ -32,6 +32,7 @@ class RotamerLibrary:
         self.site = int(site)
         self.chain = chain if chain is not None else guess_chain(self.protein, self.site)
         self.selstr = f"resid {self.site} and segid {self.chain} and not altloc B"
+        self.input_kwargs = kwargs
         self.__dict__.update(assign_defaults(kwargs))
 
         lib = self.get_lib()
@@ -642,9 +643,7 @@ class RotamerLibrary:
 
     @property
     def mx(self):
-        mx, ori = chiLife.global_mx(
-            *np.squeeze(self.backbone), method=self.superimposition_method
-        )
+        mx, ori = chiLife.global_mx(*np.squeeze(self.backbone), method=self.superimposition_method)
         return mx
 
     @property

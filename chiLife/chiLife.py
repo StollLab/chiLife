@@ -1105,8 +1105,10 @@ def repack(
     repack_residues = protein.select_atoms(
         f"(around {repack_radius} {spin_label_str} ) " f"or {spin_label_str}"
     ).residues
+
+    repack_res_kwargs = spin_labels[0].input_kwargs
     repack_residue_libraries = [
-        RotamerLibrary.from_mda(res)
+        RotamerLibrary.from_mda(res, **repack_res_kwargs)
         for res in repack_residues
         if res.resname not in ["GLY", "ALA"]
     ]
@@ -1119,7 +1121,7 @@ def repack(
     ).residues
 
     repack_residue_libraries = [
-        RotamerLibrary.from_mda(res)
+        RotamerLibrary.from_mda(res, **repack_res_kwargs)
         for res in repack_residues
         if res.resname not in ["GLY", "ALA"]
     ]

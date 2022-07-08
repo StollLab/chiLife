@@ -143,9 +143,8 @@ class RotamerLibrary:
         return cls(res, site, protein, chain, **kwargs)
 
     @classmethod
-    def from_trajectory(
-        cls, traj, site, chain=None, energy=None, burn_in=100, **kwargs
-    ):
+    def from_trajectory(cls, traj, site, chain=None, energy=None, burn_in=100, **kwargs):
+
         chain = guess_chain(traj, site) if chain is None else chain
 
         if hasattr(traj.universe._topology, "altLocs"):
@@ -158,16 +157,13 @@ class RotamerLibrary:
         coords = []
         for ts in traj.universe.trajectory[burn_in:]:
             coords.append(res.atoms.positions)
+
         coords = np.array(coords)
 
-        _, unique_idx, non_unique_idx = np.unique(
-            coords, axis=0, return_inverse=True, return_index=True
-        )
+        _, unique_idx, non_unique_idx = np.unique(coords, axis=0, return_inverse=True, return_index=True)
         coords = coords[unique_idx]
 
-        prelib = cls(
-            resname, site, chain=chain, protein=traj, eval_clash=False, **kwargs
-        )
+        prelib = cls(resname, site, chain=chain, protein=traj, eval_clash=False, **kwargs)
         prelib._coords = np.atleast_3d(coords)
 
         if energy is not None:
@@ -320,6 +316,17 @@ class RotamerLibrary:
                 mx = ori_mx @ mx
 
                 self._lib_coords = np.einsum("ijk,kl->ijl", self._lib_coords, mx) + ori
+
+                for atom in ["H", "O"]:
+                    mask = self.atom_names == atom
+                    if any(mask) and self.protein is not None:
+                        pos = self.protein.select_atoms(
+                            f"segid {self.chain} and resnum {self.site} "
+                            f"and name {atom} and not altloc B"
+                        ).positions
+                        if len(pos) > 0:
+                            self._lib_coords[:, mask] = pos[0]
+
 
             return np.squeeze(self._lib_coords[idx]), np.squeeze(self._weights[idx])
 

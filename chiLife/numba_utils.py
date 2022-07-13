@@ -1,10 +1,6 @@
 import numpy as np
 from numba import njit
 import math as m
-import chiLife as xl
-from numba.typed import Dict
-
-# TODO: Write tests for all numba utils
 
 
 @njit(cache=True)

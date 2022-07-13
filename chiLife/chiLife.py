@@ -1,30 +1,34 @@
-import numbers
-import shutil
-import tempfile
-import math
+import numbers, shutil, tempfile,  math, logging, pickle, os
+from pathlib import Path
 from collections.abc import Sized
 from io import StringIO
 from itertools import combinations, product
-
-from typing import Callable
+from typing import Callable, Tuple, Union, List
 from unittest import mock
 
-import MDAnalysis
-import MDAnalysis.core.topologyattrs
-import MDAnalysis.transformations
-import numpy as np
 from memoization import cached
-from scipy.signal import fftconvolve
-from scipy.stats import gaussian_kde
 from tqdm import tqdm
 
+import numpy as np
+from numpy.typing import ArrayLike
+from numba import njit
+
+from scipy.signal import fftconvolve
+from scipy.stats import gaussian_kde
+from scipy.spatial.distance import cdist
+
+import MDAnalysis as mda
+import MDAnalysis.core.topologyattrs
+import MDAnalysis.transformations
+
 import chiLife
+from .protein_utils import dihedral_defs, rotlib_indexes, local_mx, sort_pdb, mutate, save_pdb
+from .scoring import get_lj_rep, GAS_CONST
+from .numba_utils import get_delta_r, histogram, norm
 from .SpinLabel import SpinLabel, dSpinLabel
+from .RotamerLibrary import RotamerLibrary
 from .SpinLabelTraj import SpinLabelTraj
-from .numba_utils import *
-from .protein_utils import *
-from .scoring import *
-from .superimpositions import superimpositions
+
 
 # Define useful global variables
 SUPPORTED_LABELS = ("R1M", "R7M", "V1M", "I1M", "M1M", "R1C")
@@ -65,237 +69,6 @@ def read_distance_distribution(file_name: str) -> Tuple[ArrayLike, ArrayLike]:
     # Extract distance domain coordinates
     p = data[:, 1]
     return r, p
-
-
-def get_dihedral_rotation_matrix(theta: float, v: ArrayLike) -> ArrayLike:
-    """
-    Build a matrix that will rotate coordinates about a vector, v, by theta in radians.
-
-    :param theta: float
-        Rotation angle in radians.
-
-    :param v: numpy ndarray (1x3)
-        Three dimensional vector to rotate about.
-
-    :return rotation_matrix: numpy ndarray
-        Matrix that will rotate coordinates about the vector, V by angle theta.
-    """
-
-    # Normalize input vector
-    v = v / np.linalg.norm(v)
-
-    # Compute Vx matrix
-    Vx = np.zeros((3, 3))
-    Vx[[2, 0, 1], [1, 2, 0]] = v
-    Vx -= Vx.T
-
-    # Rotation matrix. See https://en.wikipedia.org/wiki/Rotation_matrix#Rotation_matrix_from_axis_and_angle
-    rotation_matrix = (
-        np.identity(3) * np.cos(theta)
-        + np.sin(theta) * Vx
-        + (1 - np.cos(theta)) * np.outer(v, v)
-    )
-
-    return rotation_matrix
-
-
-def get_dihedral(p: ArrayLike) -> float:
-    """
-    Calculates dihedral of a given set of atoms, p = [0, 1, 2, 3]. Returns value in degrees.
-
-                    3
-         ------>  /
-        1-------2
-      /
-    0
-
-    :param p: numpy ndarray (4x3)
-        matrix containing coordinates to be used to calculate dihedral.
-
-    :return: float
-        Dihedral angle in radians
-    """
-
-    p0 = p[0]
-    p1 = p[1]
-    p2 = p[2]
-    p3 = p[3]
-
-    # Define vectors from coordinates
-    b0 = -1.0 * (p1 - p0)
-    b1 = p2 - p1
-    b2 = p3 - p2
-
-    # Normalize dihedral bond vector
-    b1 /= np.linalg.norm(b1)
-
-    # Calculate dihedral projections orthogonal to the bond vector
-    v = b0 - np.dot(b0, b1) * b1
-    w = b2 - np.dot(b2, b1) * b1
-
-    # Calculate angle between projections
-    x = np.dot(v, w)
-    y = np.dot(np.cross(b1, v), w)
-
-    return math.atan2(y, x)
-
-
-def get_angle(p: ArrayLike) -> float:
-    p1, p2, p3 = p
-    v1 = p1 - p2
-    v2 = p3 - p2
-    X = v1 @ v2
-    Y = np.cross(v1, v2)
-    Y = math.sqrt(Y @ Y)
-    return math.atan2(Y, X)
-
-
-def set_dihedral(p: ArrayLike, angle: float, mobile: ArrayLike) -> ArrayLike:
-    """
-    Sets the dihedral angle by rotating all 'mobile' atoms from their current position about the dihedral bond defined
-    by the four atoms in p. Dihedral will be set to the value of 'angle' in degrees.
-
-    :param p: array-like int
-        Indices of atoms that define dihedral to rotate about.
-
-    :param angle: float
-        New angle to set the dihedral to (degrees).
-
-    :param mobile: ndarray
-        Atom coordinates to move by setting dihedral.
-
-    :returns: ndarray
-        New positions for the mobile atoms
-    """
-
-    current = get_dihedral(p)
-    angle = np.deg2rad(angle) - current
-    angle = angle
-
-    ori = p[1]
-    mobile -= ori
-    v = p[2] - p[1]
-    v /= np.linalg.norm(v)
-    R = get_dihedral_rotation_matrix(angle, v)
-
-    new_mobile = R.dot(mobile.T).T + ori
-
-    return new_mobile
-
-
-def local_mx(
-    N: ArrayLike, CA: ArrayLike, C: ArrayLike, method: str = "bisect"
-) -> Tuple[ArrayLike, ArrayLike]:
-    """
-    Calculates a translation vector and rotation matrix to transform the provided rotamer library from the global
-    coordinate frame to the local coordinate frame using the specified method.
-
-    :param N: ArrayLike
-        3D coordinates of the amino Nitrogen of the amino acid backbone
-
-    :parma CA: ArrayLike
-        3D coordinates of the alpha carbon of the amino acid backbone
-
-    :param C: ArrayLike
-        3D coordinates of the carboxyl carbon of the amino acid backbone
-
-    :param method: str
-        Method to use for generation of rotation matrix
-
-    :return origin, rotation_matrix: ndarray, ndarray
-        origin and rotation matrix for rotamer library
-    """
-
-    if method in {"fit"}:
-        rotation_matrix, _ = superimpositions[method](N, CA, C)
-    else:
-        # Transform coordinates such that the CA atom is at the origin
-        Nn = N - CA
-        Cn = C - CA
-        CAn = CA - CA
-
-        # Local Rotation matrix is the inverse of the global rotation matrix
-        rotation_matrix, _ = superimpositions[method](Nn, CAn, Cn)
-
-    rotation_matrix = rotation_matrix.T
-
-    # Set origin at C-alpha
-    origin = CA
-
-    return origin, rotation_matrix
-
-
-def global_mx(
-    N: ArrayLike, CA: ArrayLike, C: ArrayLike, method: str = "bisect"
-) -> Tuple[ArrayLike, ArrayLike]:
-    """
-        Calculates a translation vector and rotation matrix to transform the provided rotamer library from the local
-    coordinate frame to the global coordinate frame using the specified method.
-
-    :param N: ArrayLike
-        3D coordinates of the amino Nitrogen of the amino acid backbone
-
-    :parma CA: ArrayLike
-        3D coordinates of the alpha carbon of the amino acid backbone
-
-    :param C: ArrayLike
-        3D coordinates of the carboxyl carbon of the amino acid backbone
-
-    :param method: str
-        Method to use for generation of rotation matrix
-
-    :return rotation_matrix, origin: ndarray, ndarray
-        rotation matrix and origin for rotamer library
-    """
-    rotation_matrix, origin = superimpositions[method](N, CA, C)
-    return rotation_matrix, origin
-
-
-def ic_mx(
-    atom1: ArrayLike, atom2: ArrayLike, atom3: ArrayLike
-) -> Tuple[ArrayLike, ArrayLike]:
-    """
-    Calculates a rotation matrix and translation to transform a set of atoms to global coordinate frame from a local
-    coordinated frame defined by atom1, atom2 and atom 3. The X-vector is defined as the bond between atom1 and atom2
-    the Y-vector is defined as the vector orthogonal to the X vector in the atom1-atom2-atom3 plane and the Z-vector
-    is the cross product between the X and Y Vectors
-
-    :param atom1: numpy ndarray (1x3)
-        Backbone nitrogen coordinates
-
-    :param atom2: numpy ndarray (1x3)
-        Backbone carbonyl carbon coordinates
-
-    :param atom3: numpy ndarray (1x3)
-        Backbone C-alpha carbon coordinates
-
-    :return (rotation_matrix, origin) : (numpy ndarray (1x3), numpy ndarray (3x3))
-        rotation_matrix: rotation  matrix to rotate spin label to
-        origin: new origin position in 3 dimensional space
-    """
-
-    p1 = atom1
-    p2 = atom2
-    p3 = atom3
-
-    # Define new X axis
-    v12 = p2 - p1
-    v12 /= np.linalg.norm(v12)
-
-    # Define new Y axis
-    v23 = p3 - p2
-    p23_x_comp = v23.dot(v12)
-    v23 -= p23_x_comp * v12
-    v23 /= np.linalg.norm(v23)
-
-    # Define new z axis
-    z_axis = np.cross(v12, v23)
-
-    # Create rotation matrix
-    rotation_matrix = np.array([v12, v23, z_axis])
-    origin = p1
-
-    return rotation_matrix, origin
 
 
 def get_dd(
@@ -496,7 +269,6 @@ def filter_by_weight(
     return weights, idx
 
 
-@njit(cache=True)
 def filtered_dd(
     NO1: ArrayLike, NO2: ArrayLike, weights: ArrayLike, r: ArrayLike, sigma: float = 1.0
 ) -> ArrayLike:
@@ -622,8 +394,8 @@ def read_sl_library(label: str, user: bool = False) -> Tuple[ArrayLike, ...]:
         internal_coord information is available it will be returned in between coords and weights.
     """
     subdir = "UserRotlibs/" if user else "MMM_RotLibs/"
-    data = os.path.join(os.path.dirname(__file__), "data/rotamer_libraries/")
-    with np.load(data + subdir + label + "_rotlib.npz", allow_pickle=True) as files:
+    data = Path(__file__).parent / "data/rotamer_libraries/"
+    with np.load(data / subdir / (label + "_rotlib.npz"), allow_pickle=True) as files:
         lib = dict(files)
 
     del lib["allow_pickle"]

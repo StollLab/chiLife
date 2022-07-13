@@ -2,6 +2,18 @@ from itertools import groupby
 import numpy as np
 
 
+
+
+
+
+
+
+
+
+
+
+
+
 class Protein:
     def __init__(
         self, coords, atom_names, atom_types, atom_residues, atom_chain, res_names

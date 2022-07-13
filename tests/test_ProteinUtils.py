@@ -271,9 +271,6 @@ def test_PRO_ics():
     assert ("CD", "CG", "CB", "CA") in pro_ic.ICs[1][1]
 
 
-def test_guess_topology():
-    chiLife.guess_topology(ubq)
-
 def test_ProteinIC_set_coords():
     R1A = mda.Universe("../chiLife/data/rotamer_libraries/residue_pdbs/R1A.pdb")
     R1A_IC = chiLife.get_internal_coords(R1A)

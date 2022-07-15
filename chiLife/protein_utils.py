@@ -1504,7 +1504,7 @@ def sort_pdb(pdbfile: Union[str, List], index=False) -> Union[List[str], List[in
 
         if start_idxs != []:
             # Assume all models have the same atoms
-            idxs = sort_pdb(lines[start_idxs[0] : end_idxs[0]], index=True)
+            idxs = sort_pdb(lines[start_idxs[0]:end_idxs[0]], index=True)
             lines[:] = [
                 [
                     lines[idx + start][:6] + f"{i + 1:5d}" + lines[idx + start][11:]
@@ -1518,7 +1518,7 @@ def sort_pdb(pdbfile: Union[str, List], index=False) -> Union[List[str], List[in
         lines = pdbfile
 
     index_key = {line: i for i, line in enumerate(lines)}
-    lines = [line for line in lines if line.startswith("ATOM")]
+    lines = [line for line in lines if line.startswith(("ATOM"))]
 
     # Presort
     lines.sort(key=lambda x: atom_sort_key(x))
@@ -1562,23 +1562,27 @@ def sort_pdb(pdbfile: Union[str, List], index=False) -> Union[List[str], List[in
             # If you have already started adding atoms
             if "search_len" in locals():
                 appendid = []
+
                 # Go back to the first atom you added
                 for idx in sorted_args[-search_len:]:
+
                     # skip hydrogen as base atom
                     if lines[idx+start][76:79].strip() == 'H':
                         continue
 
                     # Find anything bound to that atom that is not in already sorted
-                    for pair in pairs:
-                        if idx in pair:
-                            ap = pair[0] if pair[0] != idx else pair[1]
-                            if ap not in sorted_args and ap not in appendid:
-                                appendid.append(ap)
+                    pairs_of_interest = pairs[np.any(pairs == idx, axis=1)]
+                    for pair in pairs_of_interest:
+                        ap = pair[0] if pair[0] != idx else pair[1]
+                        if ap not in sorted_args and ap not in appendid:
+                            appendid.append(ap)
 
                 # Add all the new atoms to the sorted list
                 if appendid != []:
                     sorted_args += appendid
                     search_len = len(appendid)
+                elif search_len > len(sorted_args):
+                    print('pause')
                 else:
                     search_len += 1
 

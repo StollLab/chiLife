@@ -1,5 +1,5 @@
 import operator
-from itertools import groupby
+from .protein_utils import sort_pdb
 import parse
 import numpy as np
 
@@ -12,7 +12,7 @@ class Protein:
         resnames: np.ndarray,
         resnums: np.ndarray,
         chains: np.ndarray,
-        coords: np.ndarray,
+        trajectory: np.ndarray,
         occupancies: np.ndarray,
         bs: np.ndarray,
         atypes: np.ndarray,
@@ -25,7 +25,7 @@ class Protein:
         self.resnames = resnames.copy()
         self.resnums = resnums.copy()
         self.chains = chains.copy()
-        self.coords = coords.copy()
+        self.trajectory = trajectory.copy()
         self.occupancies = occupancies.copy()
         self.bs = bs.copy()
         self.atypes = atypes.copy()
@@ -34,6 +34,7 @@ class Protein:
         self.n_atoms = len(self.atomids)
         self.n_residues = len(np.unique(self.resnums))
         self.n_chains = len(np.unique(self.chains))
+        self.frame = 0
 
         self.protein_keywords = {'id': self.atomids,
                                  'name': self.names,
@@ -53,6 +54,12 @@ class Protein:
         mask = process_statement(selstr, logic_keywords, self.protein_keywords)
         return AtomSelection(self, mask)
 
+    @property
+    def coords(self):
+        return self.trajectory[self.frame]
+
+
+
     @classmethod
     def from_pdb(cls, file_name):
         """reads a pdb file and returns a Protein object"""
@@ -64,13 +71,25 @@ class Protein:
         keys = ["skip", "atomids", "names", "altlocs", "resnames", "chains", "resnums",
                 "skip", "x", "y", "z", "occupancies", "bs", "atypes", "charges"]
 
-        with open(file_name, 'r') as f:
-            lines = f.readlines()
+        lines = sort_pdb(file_name)
 
-        PDB_data = [parse.parse(fmt_str, line) for line in lines if line.startswith(('ATOM', 'HETATM'))]
+        if isinstance(lines[0],  str):
+            lines = [lines]
+
+        PDB_data = [parse.parse(fmt_str, line) for line in lines[0]]
         pdb_dict = {key: np.array(data) for key, data in zip(keys, zip(*PDB_data)) if key != "skip"}
+        trajectory = [np.vstack([pdb_dict.pop(xyz) for xyz in 'xyz']).T]
 
-        pdb_dict['coords'] = np.vstack([pdb_dict.pop(xyz) for xyz in 'xyz']).T
+        if len(lines) > 1:
+            for struct in lines[1:]:
+                frame_coords = [parse.parse(fmt_str, line)[7:10] for line in struct]
+
+                if len(frame_coords) != len(PDB_data):
+                    raise ValueError('All models in a multistate PDB must have the same atoms')
+
+                trajectory.append(frame_coords)
+
+        pdb_dict['trajectory'] = np.array(trajectory)
 
         return cls(**pdb_dict)
 
@@ -217,9 +236,14 @@ class AtomSelection:
         self.protein = protein
         self.mask = mask
         prot_dict = {kw: self.protein.__dict__[kw][self.mask] for kw in
-                     ("atomids", "names", "altlocs", "resnames", "chains", "resnums",
-                      "coords", "occupancies", "bs", "atypes", "charges")}
+                     ("atomids", "names", "altlocs", "resnames", "chains",
+                      "resnums", "occupancies", "bs", "atypes", "charges")}
+        prot_dict['trajectory'] = self.protein.trajectory[:, self.mask]
         self.__dict__.update(prot_dict)
+
+    @property
+    def coords(self):
+        return self.trajectory[self.protein.frame]
 
     def select_atoms(self, selstr):
         output = process_statement(selstr, logic_keywords, self.protein_keywords)

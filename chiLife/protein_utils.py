@@ -1390,7 +1390,7 @@ def atom_sort_key(pdb_line: str, include_name=False) -> Tuple[str, int, int]:
     """
     chainid = pdb_line[21]
     res_name = pdb_line[17:20].strip()
-    resid = int(pdb_line[24:27].strip())
+    resid = int(pdb_line[22:26].strip())
     atom_name = pdb_line[12:17].strip()
     atom_type = pdb_line[76:79].strip()
     if res_name == "ACE":
@@ -1518,7 +1518,7 @@ def sort_pdb(pdbfile: Union[str, List], index=False) -> Union[List[str], List[in
         lines = pdbfile
 
     index_key = {line: i for i, line in enumerate(lines)}
-    lines = [line for line in lines if line.startswith(("ATOM"))]
+    lines = [line for line in lines if line.startswith(("ATOM", "HETATM"))]
 
     # Presort
     lines.sort(key=lambda x: atom_sort_key(x))
@@ -1528,15 +1528,15 @@ def sort_pdb(pdbfile: Union[str, List], index=False) -> Union[List[str], List[in
     )
 
     # get residue groups
-    chain, resi = lines[0][21], int(lines[0][24:27].strip())
+    chain, resi = lines[0][21], int(lines[0][22:26].strip())
     start = 0
     resdict = {}
     for curr, pdb_line in enumerate(lines):
 
-        if chain != pdb_line[21] or resi != int(pdb_line[24:27].strip()):
+        if chain != pdb_line[21] or resi != int(pdb_line[22:26].strip()):
             resdict[chain, resi] = start, curr
             start = curr
-            chain, resi = pdb_line[21], int(pdb_line[24:27].strip())
+            chain, resi = pdb_line[21], int(pdb_line[22:26].strip())
 
     resdict[chain, resi] = start, curr + 1
     midsort_key = []

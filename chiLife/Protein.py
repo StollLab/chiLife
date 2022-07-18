@@ -1,6 +1,5 @@
 import operator
 from .protein_utils import sort_pdb
-import parse
 import numpy as np
 
 class Protein:
@@ -15,6 +14,7 @@ class Protein:
         trajectory: np.ndarray,
         occupancies: np.ndarray,
         bs: np.ndarray,
+        segids: np.ndarray,
         atypes: np.ndarray,
         charges: np.ndarray,
     ):
@@ -28,6 +28,7 @@ class Protein:
         self.trajectory = trajectory.copy()
         self.occupancies = occupancies.copy()
         self.bs = bs.copy()
+        self.segids = segids.copy()
         self.atypes = atypes.copy()
         self.charges = charges.copy()
 
@@ -44,6 +45,7 @@ class Protein:
                                  'chain': self.chains,
                                  'occupancies': self.occupancies,
                                  'b': self.bs,
+                                 'segid': self.segids,
                                  'type': self.atypes,
                                  'charges': self.charges,
                                  '_len': self.n_atoms}
@@ -64,32 +66,33 @@ class Protein:
     def from_pdb(cls, file_name):
         """reads a pdb file and returns a Protein object"""
 
-        fmt_str = "{:6.6S}{:5.5d} {:4.4S}{:1.1}{:3.3} {:1.1S}{:4.4d}{:1.1}   " \
-                  "{:8.8f}{:8.8f}{:8.8f}{:6.6f}{:6.6f}          " \
-                  "{:2.2S}{:2.2}\n"
-
         keys = ["skip", "atomids", "names", "altlocs", "resnames", "chains", "resnums",
-                "skip", "x", "y", "z", "occupancies", "bs", "atypes", "charges"]
+                "skip", "coords", "occupancies", "bs", "segids", "atypes", "charges"]
 
         lines = sort_pdb(file_name)
 
         if isinstance(lines[0],  str):
             lines = [lines]
 
-        PDB_data = [parse.parse(fmt_str, line) for line in lines[0]]
+        PDB_data = [(line[:6].strip(), int(line[6:11]), line[12:16].strip(), line[16:17].strip(),
+                     line[17:20].strip(), line[21:22].strip(), int(line[22:26]), line[26:27].strip(),
+                     (float(line[30:38]), float(line[38:46]), float(line[46:54])), float(line[54:60]),
+                     float(line[60:66]), line[72:73].strip(), line[76:78].strip(), line[78:80].strip())
+                    for line in lines[0]]
+
         pdb_dict = {key: np.array(data) for key, data in zip(keys, zip(*PDB_data)) if key != "skip"}
-        trajectory = [np.vstack([pdb_dict.pop(xyz) for xyz in 'xyz']).T]
+        trajectory = [pdb_dict.pop('coords')]
 
         if len(lines) > 1:
             for struct in lines[1:]:
-                frame_coords = [parse.parse(fmt_str, line)[7:10] for line in struct]
+                frame_coords = [(line[30:38], line[38:46], line[46:54]) for line in struct]
 
                 if len(frame_coords) != len(PDB_data):
                     raise ValueError('All models in a multistate PDB must have the same atoms')
 
                 trajectory.append(frame_coords)
 
-        pdb_dict['trajectory'] = np.array(trajectory)
+        pdb_dict['trajectory'] = np.array(trajectory, dtype=float)
 
         return cls(**pdb_dict)
 

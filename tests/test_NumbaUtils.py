@@ -105,7 +105,7 @@ def test_fib_points():
 
     np.testing.assert_allclose(x, ans)
 
-def test_get_sasa():
+def test_get_sasa1():
     ubq = xl.fetch('1ubq')
     SL = xl.SpinLabel('R1A', 28, ubq)
     atom_coords = SL.coords[0]
@@ -114,5 +114,26 @@ def test_get_sasa():
     environment_coords = SL.protein.atoms[SL.protein_clash_idx].positions
     environment_radii = xl.get_lj_rmin(SL.protein.atoms[SL.protein_clash_idx].types)
 
-    area = nu._get_sasa(atom_coords, atom_radii, environment_coords, environment_radii)
-    assert area == 246.24294092688913
+    area = nu.get_sasa(atom_coords, atom_radii, environment_coords, environment_radii)
+
+    assert area == 289.17354084897187
+
+
+def test_get_sasa2():
+    ubq = xl.fetch('1ubq').select_atoms('protein')
+
+    atom_coords = ubq.atoms.positions
+    atom_radii = xl.get_lj_rmin(ubq.atoms.types)
+
+    area = nu.get_sasa(atom_coords, atom_radii, by_atom=True)
+
+
+
+    assert area.sum() == 4832.089121458064
+
+    ans = np.array([2.83037863, 27.47825921, 0., 0., 0.,
+                    0., 0., 0.14186254, 0., 30.89830006])
+
+    np.testing.assert_allclose(area[300:310], ans)
+
+

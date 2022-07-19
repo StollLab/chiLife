@@ -10,10 +10,9 @@ from scipy.spatial import cKDTree
 
 from MDAnalysis.core.topologyattrs import Atomindices, Resindices, Segindices, Segids
 import MDAnalysis as mda
-import freesasa
 
 import chiLife
-from .numba_utils import _ic_to_cart
+from .numba_utils import _ic_to_cart, get_sasa
 from .superimpositions import superimpositions
 from .RotamerLibrary import RotamerLibrary
 from .SpinLabel import SpinLabel, dSpinLabel
@@ -1324,31 +1323,14 @@ def get_sas_res(
     :return: SAResi
         Set of solvent accessible surface residues
     """
-    freesasa.setVerbosity(1)
-    # Create FreeSASA Structure from MDA structure
-    fSASA_structure = freesasa.Structure()
+    environment_coords = protein.atoms.positions
+    environment_radii = chiLife.get_lj_rmin(protein.atoms.types)
+    atom_sasa = get_sasa(environment_coords, environment_radii, by_atom=True)
 
-    [
-        fSASA_structure.addAtom(
-            atom.name, atom.resname, str(atom.resnum), atom.segid, *atom.position
-        )
-        for atom in protein.atoms
-    ]
+    SASAs = {(residue.resnum, residue.segid) for residue in protein.residues if
+             atom_sasa[residue.atoms.ix].sum() >= cutoff}
 
-    residues = [(resi.segid, resi.resnum) for resi in protein.residues]
-
-    # Calculate SASA
-    SASA = freesasa.calc(fSASA_structure)
-    SASA = freesasa.selectArea(
-        (f"{resi}_{chain}, resi {resi} and chain {chain}" for chain, resi in residues),
-        fSASA_structure,
-        SASA,
-    )
-
-    SAResi = [key.split("_") for key in SASA if SASA[key] >= cutoff]
-    SAResi = [(int(R), C) for R, C in SAResi]
-
-    return set(SAResi)
+    return SASAs
 
 
 def fetch(pdbid: str, save: bool = False) -> MDAnalysis.Universe:

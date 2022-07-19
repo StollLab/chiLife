@@ -17,13 +17,11 @@ setup(
                       'numba>=0.55.2',
                       'mdanalysis>=2.0.0',
                       'tqdm>=4.45.0',
-                      'matplotlib>=3.3.4',
-                      'freesasa>=2.0.5',
                       'pytest>=6.2.2',
                       'memoization>=0.3.1',
                       'argparse>=1.4.0',
                       'setuptools>=53.0.0'
-                      ],
+                      'networkx>=2.8'],
     description=''
 )
 

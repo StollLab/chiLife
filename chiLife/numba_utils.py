@@ -1,5 +1,5 @@
 import numpy as np
-from numba import njit
+from numba import njit, prange
 import math as m
 
 
@@ -282,15 +282,11 @@ def get_ICAtom_indices(k, index, bonds, angles, dihedrals, offset):
 
 
 @njit(cache=True)
-def _get_sasa(atom_coords, atom_radii, environment_coords, environment_radii, probe_radius=1.4, npoints=1024):
-    grid_points = fibonacci_points(npoints)
-    atom_radii = atom_radii.copy()
-    environment_radii = environment_radii.copy()
-
-    atom_radii += probe_radius
-    environment_radii += probe_radius
-    all_radii = np.hstack((atom_radii, environment_radii))
-    all_coords = np.vstack((atom_coords, environment_coords))
+def _get_sasa(atom_coords,
+              atom_radii,
+              all_coords,
+              all_radii,
+              grid_points):
 
     atom_sasa = np.zeros(len(atom_coords), dtype=np.int64)
     for i, (posi, radi) in enumerate(zip(atom_coords, atom_radii)):
@@ -321,10 +317,39 @@ def _get_sasa(atom_coords, atom_radii, environment_coords, environment_radii, pr
 
         atom_sasa[i] = len(sphere)
 
-    return np.sum(atom_sasa) * (4.0 * np.pi / npoints) * radi ** 2
+    atom_sasa = atom_sasa * (4.0 * np.pi / len(grid_points)) * atom_radii ** 2
+
+    return atom_sasa
+
+def get_sasa(atom_coords,
+              atom_radii,
+              environment_coords=None,
+              environment_radii=None,
+              probe_radius=1.4,
+              npoints=1024,
+              by_atom=False):
+
+    grid_points = fibonacci_points(npoints)
+    atom_radii = atom_radii.copy()
+
+    if environment_coords is None:
+        environment_coords = np.empty(shape=(0, 3), dtype=np.float64)
+        environment_radii = np.empty(shape=0, dtype=np.float64)
+
+    environment_radii = environment_radii.copy()
+
+    atom_radii += probe_radius
+    environment_radii += probe_radius
+
+    all_radii = np.hstack((atom_radii, environment_radii))
+    all_coords = np.vstack((atom_coords, environment_coords))
+    atom_sasa = _get_sasa(atom_coords, atom_radii, all_coords, all_radii, grid_points)
+    if by_atom:
+        return atom_sasa
+    else:
+        return np.sum(atom_sasa)
 
 
-@njit(cache=True)
 def fibonacci_points(n):
     phi = (3 - m.sqrt(5)) * np.pi * np.arange(n)
     z = np.linspace(1 - 1.0/n, 1.0/n - 1, n)

@@ -14,14 +14,6 @@ git clone https://github.com/mtessmer/chiLife.git
 cd chiLife
 python setup.py install
 ```  
->NOTE: if you are using an older version of numpy you may have issues using `mdanalysis`, especially on windows. 
-> To  overcome this issue `mdanalysis` can be rebuilt on your local machine using whatever numpy you already have 
-> installed:
-> ```bash
-> pip install mdanalysis --no-binary mdanalysis
-> ```
-> before running the χLife setup script. Note that this may requires system specific build tools.
-
 ***
 ## χLife Module
 χLife is most powerful when used as an API for your data analysis and protein modeling pipeline. The primary feature of 

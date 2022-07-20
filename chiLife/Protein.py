@@ -48,7 +48,21 @@ class Protein:
                                  'segid': self.segids,
                                  'type': self.atypes,
                                  'charges': self.charges,
-                                 '_len': self.n_atoms}
+
+                                 'resi': self.resnums,
+                                 'resid': self.resnums,
+                                 'i.': self.resnums,
+                                 's.': self.segids,
+                                 'c.': self.chains,
+                                 'r.': self.resnames,
+                                 'n.': self.names,
+                                 'resn': self.resnames,
+                                 'q': self.occupancies,
+                                 'elem': self.atypes,
+                                 'element': self.atypes,
+
+                                 '_len': self.n_atoms,
+                                 }
 
 
 
@@ -108,6 +122,7 @@ logic_keywords = {'and': operator.mul,
                   '<=': operator.le,
                   '>=': operator.ge,
                   "!=": operator.ne}
+
 
 def process_statement(statement, logickws, subjectkws):
     sub_statements = parse_paren(statement)

@@ -119,7 +119,7 @@ def test_from_wizard():
 
     np.testing.assert_almost_equal(SL.coords, SLans.coords, decimal=5)
     np.testing.assert_almost_equal(SL.weights, SLans.weights)
-    np.testing.assert_almost_equal(SL.dihedrals, SLans.dihedrals)
+    np.testing.assert_almost_equal(SL.dihedrals, SLans.dihedrals, decimal=5)
     assert len(SL) == len(SL.dihedrals) == len(SL.weights) == len(SL.coords)
 
 

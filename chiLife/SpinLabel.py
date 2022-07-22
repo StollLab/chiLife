@@ -73,8 +73,8 @@ class SpinLabel(RotamerLibrary):
             f"resid {self.site} and segid {self.chain}"
         ).ix
 
-        self.resindex = self.protein.select_atoms(self.selstr).residues[0].resindex
-        self.segindex = self.protein.select_atoms(self.selstr).residues[0].segindex
+        self.resindex = self.protein.select_atoms(self.selstr).resindices[0]
+        self.segindex = self.protein.select_atoms(self.selstr).segindices[0]
 
         if self.protein_tree is None:
             self.protein_tree = cKDTree(self.protein.atoms.positions)

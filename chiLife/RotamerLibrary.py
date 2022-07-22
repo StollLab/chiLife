@@ -103,7 +103,7 @@ class RotamerLibrary:
             self.eps = chiLife.get_lj_eps(self.atom_types[self.side_chain_idx])
 
         if hasattr(self.protein, "atoms") and isinstance(
-            self.protein.atoms, mda.AtomGroup
+            self.protein.atoms, (mda.AtomGroup, chiLife.BaseSystem)
         ):
             self.protein_setup()
 
@@ -510,8 +510,8 @@ class RotamerLibrary:
 
     def protein_setup(self):
         # Position library at selected residue
-        self.resindex = self.protein.select_atoms(self.selstr).residues[0].resindex
-        self.segindex = self.protein.select_atoms(self.selstr).residues[0].segindex
+        self.resindex = self.protein.select_atoms(self.selstr).resindices[0]
+        self.segindex = self.protein.select_atoms(self.selstr).segindices[0]
         self.protein = self.protein.select_atoms("not (byres name OH2 or resname HOH)")
 
         if self.protein_tree is None:

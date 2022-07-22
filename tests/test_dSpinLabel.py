@@ -62,14 +62,14 @@ def test_side_chain_idx():
     tc = SL3.coords
     tc[:, SL3.side_chain_idx] += 5
     ans = np.load("test_data/dSL_scidx.npy")
-    np.testing.assert_allclose(tc, ans)
+    np.testing.assert_almost_equal(tc, ans, decimal=5)
 
 
 def test_coords_setter():
     SL3 = xl.dSpinLabel("DHC", [28, 32], gb1)
     SL3.coords = SL3.coords + 5
     ans = np.load("test_data/dSL_csetter.npy")
-    np.testing.assert_allclose(SL3.coords, ans)
+    np.testing.assert_almost_equal(SL3.coords, ans, decimal=5)
 
 
 def test_coord_set_error():

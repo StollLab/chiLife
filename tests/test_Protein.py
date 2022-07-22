@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
+import chiLife
 from chiLife.Protein import Protein, parse_paren
+
 
 prot = Protein.from_pdb('test_data/1omp_H.pdb')
 
@@ -109,3 +111,18 @@ def test_AtomSelection_features(feature):
     B = m1.__getattribute__(feature)
 
     assert np.all(A == B)
+
+
+def test_byres():
+    prot.select_atoms('byres name OH2 or resname HOH')
+
+
+def test_unary_not():
+    asel = prot.select_atoms('not resid 5')
+    ans = prot.resnums != 5
+    assert np.all(asel.mask == ans)
+
+
+def test_SL_Protein():
+    omp = chiLife.Protein.from_pdb('test_data/1omp.pdb')
+    SL1 = chiLife.SpinLabel('R1M', 20, omp, sample=1000)

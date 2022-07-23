@@ -905,23 +905,17 @@ def get_n_pred(G, node, n, inner=False):
 
 def get_all_n_pred(G, node, n):
     if n == 0:
-        return [node]
+        return [[node]]
 
     if G.in_degree(node) == 0 and n > 0:
-        return [node]
+        return [[node]]
 
-    #preds = [[node] + sub for parent in G.predecessors(node) for sub in get_all_n_pred(G, parent, n-1)]
     preds = []
     for parent in G.predecessors(node):
         for sub in get_all_n_pred(G, parent, n-1):
-            if isinstance(sub, list):
-                preds.append([node] + sub)
-            else:
-                preds.append([node] + [sub])
+            preds.append([node] + sub)
 
     return preds
-
-
 
 
 

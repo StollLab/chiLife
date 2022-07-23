@@ -353,7 +353,7 @@ class RotamerLibrary:
         """
         new_weight = 0
         # Use accessible volume sampling if only provided a single rotamer
-        if len(self._weights) == 0:
+        if len(self._weights) == 1:
             new_dihedrals = np.random.random(len(off_rotamer)) * 2 * np.pi
             new_weight = 1.0
 

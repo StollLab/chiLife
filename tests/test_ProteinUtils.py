@@ -284,3 +284,16 @@ def test_ProteinIC_set_coords():
     R1A_IC.coords = coords
     np.testing.assert_allclose(R1A_IC.zmats[1], R1A_IC_c.zmats[1], rtol=1e-6)
     np.testing.assert_almost_equal(R1A_IC.coords, R1A_IC_c.coords, decimal=6)
+
+
+def test_preferred_dihedrals():
+    dih = [['N', 'CA', 'CB', 'CG'],
+           ['ND', 'CE3', 'CZ3', 'C31'],
+           ['C01', 'C11', 'C12', 'N12'],
+           ['C11', 'C12', 'N12', 'C13'],
+           ['C12', 'N12', 'C13', 'C14'],
+           ['N12', 'C13', 'C14', 'C15']]
+
+
+    chiLife.add_label('TEP', pdb='test_data/Tet4Ph_sTCO_TEP_lab.pdb', dihedral_atoms=dih, spin_atoms=['N1', 'O1'])
+

@@ -903,6 +903,27 @@ def get_n_pred(G, node, n, inner=False):
 
     return dihedral
 
+def get_all_n_pred(G, node, n):
+    if n == 0:
+        return [node]
+
+    if G.in_degree(node) == 0 and n > 0:
+        return [node]
+
+    #preds = [[node] + sub for parent in G.predecessors(node) for sub in get_all_n_pred(G, parent, n-1)]
+    preds = []
+    for parent in G.predecessors(node):
+        for sub in get_all_n_pred(G, parent, n-1):
+            if isinstance(sub, list):
+                preds.append([node] + sub)
+            else:
+                preds.append([node] + [sub])
+
+    return preds
+
+
+
+
 
 def get_internal_coords(
     mol: Union[MDAnalysis.Universe, MDAnalysis.AtomGroup],
@@ -951,18 +972,19 @@ def get_internal_coords(
     if preferred_dihedrals is not None:
         present = False
         for dihe in preferred_dihedrals:
+
+            # Get the index of the atom being defined by the prefered dihedral
             idx_of_interest = np.argwhere(mol.atoms.names == dihe[-1]).flatten()
+
             for idx in idx_of_interest:
                 if np.all(mol.atoms[dihedrals[idx]].names == dihe):
                     present = True
-                    continue
+                    break
 
                 dihedral = [idx]
-                tmp = []
-                for p in G.predecessors(idx):
-                    tmp = get_n_pred(G, p, 2, inner=True)
-                    if np.all(mol.atoms[tmp].names == dihe[:-1]):
-                        dihedral = tmp + dihedral
+                for p in get_all_n_pred(G, idx, 3):
+                    if np.all(mol.atoms[p[::-1]].names == dihe):
+                        dihedral = p[::-1]
                         break
 
                 if len(dihedral) == 4:

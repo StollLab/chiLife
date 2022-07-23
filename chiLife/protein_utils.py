@@ -607,7 +607,7 @@ class ProteinIC:
             else:
                 raise ValueError(
                     f"Dihedral with atoms {atoms} not found in chain {chain} on resi {resi} internal coordinates:\n"
-                    + "\n".join([ic for ic in self.ICs[chain][resi]])
+                    + "\n".join([str(ic) for ic in self.ICs[chain][resi]])
                 )
             dihedrals.append(self.zmats[chain][aidx, 2])
 

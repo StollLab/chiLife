@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 import chiLife
 from chiLife.Protein import Protein, parse_paren
-
+import MDAnalysis as mda
 
 prot = Protein.from_pdb('test_data/1omp_H.pdb')
 
@@ -103,6 +103,7 @@ def test_select_range():
     np.testing.assert_almost_equal(m1.mask, ans_mask)
     np.testing.assert_almost_equal(m2.mask, ans_mask)
 
+
 features = ("atomids", "names", "altlocs", "resnames", "chains", "resnums", "occupancies", "bs", "atypes", "charges")
 @pytest.mark.parametrize('feature', features)
 def test_AtomSelection_features(feature):
@@ -114,7 +115,8 @@ def test_AtomSelection_features(feature):
 
 
 def test_byres():
-    prot.select_atoms('byres name OH2 or resname HOH')
+    waters = prot.select_atoms('byres name OH2 or resname HOH')
+    assert np.all(np.unique(waters.resixs) == np.arange(370, 443, dtype=int))
 
 
 def test_unary_not():
@@ -125,4 +127,9 @@ def test_unary_not():
 
 def test_SL_Protein():
     omp = chiLife.Protein.from_pdb('test_data/1omp.pdb')
-    SL1 = chiLife.SpinLabel('R1M', 20, omp, sample=1000)
+    ompmda = mda.Universe('test_data/1omp.pdb')
+
+    SL1 = chiLife.SpinLabel('R1M', 20, omp)
+    SL2 = chiLife.SpinLabel('R1M', 20, ompmda)
+
+    assert SL1 == SL2

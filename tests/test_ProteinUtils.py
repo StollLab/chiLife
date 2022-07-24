@@ -287,13 +287,18 @@ def test_ProteinIC_set_coords():
 
 
 def test_preferred_dihedrals():
-    dih = [['N', 'CA', 'CB', 'CG'],
+    dih = [['N', 'CA', 'CB', 'CB2'],
+           ['CA', 'CB', 'CB2', 'CG'],
            ['ND', 'CE3', 'CZ3', 'C31'],
-           ['C01', 'C11', 'C12', 'N12'],
+           ['CZ1', 'C11', 'C12', 'N12'],
            ['C11', 'C12', 'N12', 'C13'],
            ['C12', 'N12', 'C13', 'C14'],
            ['N12', 'C13', 'C14', 'C15']]
 
+    TEP = mda.Universe('test_data/TEP.pdb')
+    IC = chiLife.get_internal_coords(TEP, resname='TEP', preferred_dihedrals=dih)
+    IC2 = chiLife.get_internal_coords(TEP, resname='TEP')
 
-    chiLife.add_label('TEP', pdb='test_data/Tet4Ph_sTCO_TEP_lab.pdb', dihedral_atoms=dih, spin_atoms=['N1', 'O1'])
-
+    IC.get_dihedral(1, dih)
+    with pytest.raises(ValueError):
+        IC2.get_dihedral(1, dih)

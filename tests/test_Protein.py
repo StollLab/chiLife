@@ -9,13 +9,13 @@ prot = Protein.from_pdb('test_data/1omp_H.pdb')
 
 def test_from_pdb():
 
-    ans = np.array([[ -0.07 , -24.223, -23.447],
-                    [ -1.924, -20.646, -23.898],
+    ans = np.array([[ -1.924, -20.646, -23.898],
                     [ -1.825, -19.383, -24.623],
                     [ -1.514, -19.5  , -26.1  ],
-                    [ -2.237, -20.211, -26.799]])
+                    [ -2.237, -20.211, -26.799],
+                    [ -0.696, -18.586, -23.89 ]])
 
-    np.testing.assert_almost_equal(prot.coords[20:25], ans)
+    np.testing.assert_almost_equal(prot.coords[18:23], ans)
 
 
 def test_from_multistate_pdb():

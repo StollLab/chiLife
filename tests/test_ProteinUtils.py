@@ -71,17 +71,15 @@ def test_icset_dihedral():
 def test_sort_pdb():
     pdbfile = "test_data/trt.pdb"
     x = chiLife.sort_pdb(pdbfile)
-    with open("test_data/trt_tmp.pdb", "w") as f:
-        for line in x:
-            f.write(line)
 
-    with open("test_data/trt_tmp.pdb", "r") as f:
-        test = hashlib.md5(f.read().encode("utf-8")).hexdigest()
+    linest = [line for line in x if line[76:79].strip() != 'H']
+    test = hashlib.md5("".join(linest).encode("utf-8")).hexdigest()
 
     with open("test_data/trt_sorted.pdb", "r") as f:
-        ans = hashlib.md5(f.read().encode("utf-8")).hexdigest()
+        lines = f.readlines()
+        linesa = [line for line in lines if line[76:79].strip() != 'H']
+        ans = hashlib.md5("".join(linesa).encode("utf-8")).hexdigest()
 
-    os.remove("test_data/trt_tmp.pdb")
     assert test == ans
 
 

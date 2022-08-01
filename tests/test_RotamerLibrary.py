@@ -7,6 +7,7 @@ import pytest
 ubq = chiLife.fetch("1ubq")
 U = chiLife.fetch("1omp")
 exou = chiLife.fetch("3tu3")
+
 hashes = {}
 with open("test_data/hashes.txt", "r") as f:
     for line in f:

@@ -92,3 +92,15 @@ def test_mutate():
     os.remove("mutate_dSL.pdb")
 
     assert test == ans
+
+
+def test_add_dlabel2():
+    Energies = np.loadtxt('test_data/HCS.energies')
+
+    P = np.exp(-Energies/ (xl.GAS_CONST * 278))
+    P /= P.sum()
+
+    dihedral_atoms = [[["N", "CA", "CB", "CG"], ["CA", "CB", "CG", "ND1"]],
+                      [["N", "CA", "CB", "CG"], ["CA", "CB", "CG", "ND1"]]]
+
+    xl.add_dlabel('HCS', 'test_data/HCS.pdb', resi=2, increment=2, dihedral_atoms=dihedral_atoms, spin_atoms='Cu1')

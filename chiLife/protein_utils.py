@@ -375,18 +375,7 @@ class ProteinIC:
 
         self.chain_operators = kwargs.get("chain_operators", None)
         self.bonded_pairs = np.array(kwargs.get("bonded_pairs", None))
-        self.nonbonded_pairs = kwargs.get('nonbonded_pairs', None)
-
-        if self.nonbonded_pairs is None and not (self.bonded_pairs is None or self.bonded_pairs.any() is None):
-            bonded_pairs = {(a, b) for a, b in self.bonded_pairs}
-            possible_bonds = itertools.combinations(range(len(self.atoms)), 2)
-            self.nonbonded_pairs = np.fromiter(
-                itertools.chain.from_iterable(
-                    nb for nb in possible_bonds if nb not in bonded_pairs
-                ),
-                dtype=int,
-            )
-            self.nonbonded_pairs.shape = (-1, 2)
+        self._nonbonded_pairs = kwargs.get('nonbonded_pairs', None)
 
         self.perturbed = False
         self._coords = self.to_cartesian()
@@ -448,7 +437,7 @@ class ProteinIC:
         zmat_idxs = {key: value.copy() for key, value in self.zmat_idxs.items()}
         kwargs = {"chain_operators": self.chain_operators,
                   "bonded_pairs": self.bonded_pairs,
-                  "nonbonded_pairs": self.nonbonded_pairs}
+                  "_nonbonded_pairs": self._nonbonded_pairs}
 
         return ProteinIC(zmats, zmat_idxs, self.atom_dict, self.ICs, **kwargs)
 
@@ -524,6 +513,21 @@ class ProteinIC:
 
         # Update the location of any atoms that weren't included (e.g. hydrogens or backbones)
         self._coords = self.to_cartesian()
+
+    @property
+    def nonbonded_pairs(self):
+        if self._nonbonded_pairs is None and not (self.bonded_pairs is None or self.bonded_pairs.any() is None):
+            bonded_pairs = {(a, b) for a, b in self.bonded_pairs}
+            possible_bonds = itertools.combinations(range(len(self.atoms)), 2)
+            self._nonbonded_pairs = np.fromiter(
+                itertools.chain.from_iterable(
+                    nb for nb in possible_bonds if nb not in bonded_pairs), dtype=int)
+
+            self._nonbonded_pairs.shape = (-1, 2)
+
+        return self._nonbonded_pairs
+
+
 
     def set_dihedral(self, dihedrals, resi, atom_list, chain=None):
         """
@@ -1547,7 +1551,6 @@ def sort_pdb(pdbfile: Union[str, List], uniform_topology=True, index=False) -> U
 
 
         if start_idxs != []:
-            print(end_idxs)
             if uniform_topology:
                 # Assume all models have the same topology
 
@@ -1595,7 +1598,6 @@ def sort_pdb(pdbfile: Union[str, List], uniform_topology=True, index=False) -> U
         start, stop = resdict[key]
         n_heavy = np.sum(atypes[start:stop] != 'H')
         sorted_args = list(range(np.minimum(4, n_heavy)))
-
         if len(sorted_args) != n_heavy:
             root_idx = 1 if len(sorted_args) == 4 else 0
 
@@ -1613,16 +1615,25 @@ def sort_pdb(pdbfile: Union[str, List], uniform_topology=True, index=False) -> U
             graph.add_edges_from(pairs)
 
             # Start stemming from CA atom
-
             CA_edges = [edge[1] for edge in nx.bfs_edges(graph, root_idx) if edge[1] not in sorted_args]
 
         elif stop - start > n_heavy:
+            # Assumes  non-heavy atoms come after the heavy atoms, which should be true because of the pre-sort
             CA_edges = list(range(n_heavy, n_heavy + (stop - start - len(sorted_args))))
 
         else:
             CA_edges = []
 
-        midsort_key += [x + start for x in sorted_args + CA_edges]
+        n_base = len(sorted_args)
+        sorted_args = sorted_args + CA_edges
+
+        # get any leftover hydrogen atoms (eg HN)
+        if len(sorted_args) != stop-start:
+            for i, idx in enumerate(range(n_heavy, stop-start)):
+                if idx not in sorted_args:
+                    sorted_args.insert(i+n_base, idx)
+
+        midsort_key += [x + start for x in sorted_args]
 
     lines[:] = [lines[i] for i in midsort_key]
     lines.sort(key=atom_sort_key)

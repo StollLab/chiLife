@@ -52,11 +52,13 @@ def test_user_label():
         "test_data/1ubq_28TRT_tmp.pdb", SL, protein="test_data/1ubq.pdb", KDE=False
     )
 
-    with open("test_data/1ubq_28TRT.pdb", "rb") as f:
-        ans = hashlib.md5(f.read()).hexdigest()
+    with open("test_data/1ubq_28TRT.pdb", "r") as f:
+        nohstring1 = "".join((line for line in f.readlines() if line[76:79].strip() != 'H'))
+        ans = hashlib.md5(nohstring1.encode('utf-8')).hexdigest()
 
-    with open("test_data/1ubq_28TRT_tmp.pdb", "rb") as f:
-        test = hashlib.md5(f.read()).hexdigest()
+    with open("test_data/1ubq_28TRT_tmp.pdb", "r") as f:
+        nohstring2 = "".join((line for line in f.readlines() if line[76:79].strip() != 'H'))
+        test = hashlib.md5(nohstring2.encode('utf-8')).hexdigest()
 
     os.remove("test_data/1ubq_28TRT_tmp.pdb")
 

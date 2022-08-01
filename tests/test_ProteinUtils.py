@@ -117,14 +117,16 @@ def test_sort_manymodels():
             f.write("ENDMDL\n")
 
     with open("test_data/msort_tmp.pdb", "r") as f:
-        test = hashlib.md5(f.read().encode("utf-8")).hexdigest()
+        heavy_test = [line for line in f.readlines() if line[76:79].strip() != 'H']
+
+        test = hashlib.md5("".join(heavy_test).encode("utf-8")).hexdigest()
 
     with open("test_data/msort_ans.pdb", "r") as f:
-        ans = hashlib.md5(f.read().encode("utf-8")).hexdigest()
+        heavy_ans = [line for line in f.readlines() if line[76:79].strip() != 'H']
 
-    os.remove("test_data/msort_tmp.pdb")
+        ans = hashlib.md5("".join(heavy_ans).encode("utf-8")).hexdigest()
 
-    assert test == ans
+        assert test == ans
 
 def test_makeics():
     traj = mda.Universe("test_data/msort_ans.pdb")

@@ -15,7 +15,7 @@ def test_from_pdb():
                     [ -2.237, -20.211, -26.799],
                     [ -0.696, -18.586, -23.89 ]])
 
-    np.testing.assert_almost_equal(prot.coords[18:23], ans)
+    np.testing.assert_almost_equal(prot.coords[21:26], ans)
 
 
 def test_from_multistate_pdb():

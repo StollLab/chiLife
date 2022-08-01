@@ -568,7 +568,7 @@ class ProteinIC:
             else:
                 raise ValueError(
                     f"Dihedral with atoms {atoms} not found in chain {chain} on resi {resi} internal coordinates:\n"
-                    + "\n".join([ic for ic in self.ICs[chain][resi]])
+                    + "\n".join([str(ic) for ic in self.ICs[chain][resi]])
                 )
 
             if idxs:
@@ -961,6 +961,7 @@ def get_internal_coords(
 
     G = nx.DiGraph()
     G.add_edges_from(bonds)
+
     dihedrals = [get_n_pred(G, node, np.minimum(node, 3)) for node in range(len(mol.atoms))]
 
     if preferred_dihedrals is not None:
@@ -984,7 +985,7 @@ def get_internal_coords(
                 if len(dihedral) == 4:
                     present = True
                     dihedrals[dihedral[-1]] = dihedral
-        if not present:
+        if not present and preferred_dihedrals != []:
             raise ValueError(f'There is no dihedral `{dihe}` in the provided protien. Perhaps there is typo or the '
                              f'atoms are not sorted correctly')
 
@@ -1473,7 +1474,51 @@ def pose2mda(pose):
     return mda_protein
 
 
-def sort_pdb(pdbfile: Union[str, List], index=False) -> Union[List[str], List[int]]:
+def guess_bonds(coords, atom_types):
+    kdtree = cKDTree(coords)
+    pairs = kdtree.query_pairs(5., output_type='ndarray')
+
+    a_atoms = pairs[:, 0]
+    b_atoms = pairs[:, 1]
+    a = chiLife.get_lj_rmin(atom_types[a_atoms])
+    b = chiLife.get_lj_rmin(atom_types[b_atoms])
+
+    join = chiLife.get_lj_rmin('join_protocol')[()]
+    ab = join(a, b, flat=True) * 0.6
+
+    dist = np.linalg.norm(coords[a_atoms] - coords[b_atoms], axis=1)
+    bonds = pairs[dist < ab]
+    return bonds
+
+
+def get_min_topol(lines, start_idxs, end_idxs):
+    bonds_list = []
+
+    for start, end in zip(start_idxs, end_idxs):
+        sublines = lines[start:end]
+
+        coords = np.array([[float(line[30:38]), float(line[38:46]), float(line[46:54])]
+                           for line in sublines
+                            if line.startswith(('ATOM', 'HETATOM'))])
+
+        atypes = np.array([line[76:78].strip()
+                           for line in sublines
+                            if line.startswith(('ATOM', 'HETATOM'))])
+
+        bonds = set(tuple(sorted((a, b))) for a, b in guess_bonds(coords, atypes))
+        bonds_list.append(bonds)
+
+    minimal_bond_list = bonds_list[0]
+    idx = 0
+    for i, alternative in enumerate(bonds_list[1:]):
+        if alternative.issubset(minimal_bond_list):
+            idx = i
+            minimal_bond_list = alternative
+
+    return minimal_bond_list, idx
+
+
+def sort_pdb(pdbfile: Union[str, List], uniform_topology=True, index=False) -> Union[List[str], List[int]]:
     """
     Read ATOM lines of a pdb and sort the atoms according to chain, residue index, backbone atoms and side chain atoms.
     Side chain atoms are sorted by distance to each other/backbone atoms with atoms closest to the backbone coming
@@ -1495,21 +1540,27 @@ def sort_pdb(pdbfile: Union[str, List], index=False) -> Union[List[str], List[in
         end_idxs = []
 
         for i, line in enumerate(lines):
-            if "MODEL" in line:
+            if line.startswith('MODEL'):
                 start_idxs.append(i)
-            elif "ENDMDL" in line:
+            elif line.startswith("ENDMDL"):
                 end_idxs.append(i)
 
+
         if start_idxs != []:
-            # Assume all models have the same atoms
-            idxs = sort_pdb(lines[start_idxs[0]:end_idxs[0]], index=True)
-            lines[:] = [
-                [
-                    lines[idx + start][:6] + f"{i + 1:5d}" + lines[idx + start][11:]
-                    for i, idx in enumerate(idxs)
-                ]
-                for start in start_idxs
-            ]
+            print(end_idxs)
+            if uniform_topology:
+                # Assume all models have the same topology
+
+                idxs = sort_pdb(lines[start_idxs[0]:end_idxs[0]], index=True)
+
+            else:
+                min_bonds_list, idx = get_min_topol(lines, start_idxs, end_idxs)
+                idxs = sort_pdb(lines[start_idxs[idx]:end_idxs[idx]], index=True)
+
+            lines[:] = [[lines[idx + start][:6] + f"{i + 1:5d}" + lines[idx + start][11:]
+                        for i, idx in enumerate(idxs)]
+                       for start in start_idxs]
+
             return lines
 
     elif isinstance(pdbfile, list):
@@ -1524,6 +1575,8 @@ def sort_pdb(pdbfile: Union[str, List], index=False) -> Union[List[str], List[in
     coords = np.array(
         [[float(line[30:38]), float(line[38:46]), float(line[46:54])] for line in lines]
     )
+
+    atypes = np.array([line[76:78].strip() for line in lines])
 
     # get residue groups
     chain, resi = lines[0][21], int(lines[0][22:26].strip())
@@ -1540,74 +1593,36 @@ def sort_pdb(pdbfile: Union[str, List], index=False) -> Union[List[str], List[in
     midsort_key = []
     for key in resdict:
         start, stop = resdict[key]
-        kdtree = cKDTree(coords[start:stop])
+        n_heavy = np.sum(atypes[start:stop] != 'H')
+        sorted_args = list(range(np.minimum(4, n_heavy)))
 
-        # Get all nearest neighbors and sort by distance
-        pairs = kdtree.query_pairs(2.2, output_type="ndarray")
-        distances = np.linalg.norm(
-            kdtree.data[pairs[:, 0]] - kdtree.data[pairs[:, 1]], axis=1
-        )
-        distances = np.around(distances, decimals=3)
-        idx_sort = np.lexsort((pairs[:, 0], pairs[:, 1], distances))
-        pairs = pairs[idx_sort]
+        if len(sorted_args) != n_heavy:
+            root_idx = 1 if len(sorted_args) == 4 else 0
 
-        # Start steming from CA atom
-        idx = 1
-        sorted_args = list(range(np.minimum(4, stop - start)))
-        i = 0
+            bonds = guess_bonds(coords[start:stop], atypes[start:stop])
 
-        while len(sorted_args) < stop - start:
-            # If you have already started adding atoms
-            if "search_len" in locals():
-                appendid = []
+            # Get all nearest neighbors and sort by distance
+            distances = np.linalg.norm(coords[start:stop][bonds[:, 0]] - coords[start:stop][bonds[:, 1]], axis=1)
+            distances = np.around(distances, decimals=3)
+            idx_sort = np.lexsort((bonds[:, 0], bonds[:, 1], distances))
+            pairs = bonds[idx_sort]
 
-                # Go back to the first atom you added
-                for idx in sorted_args[-search_len:]:
+            pairs = [pair for pair in pairs if np.any(~np.isin(pair, sorted_args))]
 
-                    # skip hydrogen as base atom
-                    if lines[idx+start][76:79].strip() == 'H':
-                        continue
+            graph = nx.Graph()
+            graph.add_edges_from(pairs)
 
-                    # Find anything bound to that atom that is not in already sorted
-                    pairs_of_interest = pairs[np.any(pairs == idx, axis=1)]
-                    for pair in pairs_of_interest:
-                        ap = pair[0] if pair[0] != idx else pair[1]
-                        if ap not in sorted_args and ap not in appendid:
-                            appendid.append(ap)
+            # Start stemming from CA atom
 
-                # Add all the new atoms to the sorted list
-                if appendid != []:
-                    sorted_args += appendid
-                    search_len = len(appendid)
-                elif search_len > len(sorted_args):
-                    print('pause')
-                else:
-                    search_len += 1
+            CA_edges = [edge[1] for edge in nx.bfs_edges(graph, root_idx) if edge[1] not in sorted_args]
 
-            # If you have not added any atoms yet
-            else:
-                appendid = []
-                # Look at the closest atoms
-                for pair in pairs:
-                    # Get atoms bound to this atom
-                    if idx in pair:
-                        ap = pair[0] if pair[0] != idx else pair[1]
-                        if ap not in sorted_args:
-                            appendid.append(ap)
+        elif stop - start > n_heavy:
+            CA_edges = list(range(n_heavy, n_heavy + (stop - start - len(sorted_args))))
 
-                # If there are atoms bound
-                if appendid != []:
-                    # Add them to the list of sorted atoms and keep track of where you left off
-                    sorted_args += appendid
-                    search_len = len(appendid)
-                else:
-                    pass
-                    # idx += 1
-        midsort_key += [x + start for x in sorted_args]
+        else:
+            CA_edges = []
 
-        # Delete search length to start new on the next residue
-        if "search_len" in locals():
-            del search_len
+        midsort_key += [x + start for x in sorted_args + CA_edges]
 
     lines[:] = [lines[i] for i in midsort_key]
     lines.sort(key=atom_sort_key)

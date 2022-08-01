@@ -24,7 +24,7 @@ import MDAnalysis.transformations
 import chiLife
 from .protein_utils import dihedral_defs, rotlib_indexes, local_mx, sort_pdb, mutate, save_pdb
 from .scoring import get_lj_rep, GAS_CONST
-from .numba_utils import get_delta_r, histogram, norm
+from .numba_utils import get_delta_r, histogram, norm, jaccard, dirichlet
 from .SpinLabel import SpinLabel, dSpinLabel
 from .RotamerLibrary import RotamerLibrary
 from .SpinLabelTraj import SpinLabelTraj
@@ -1121,7 +1121,7 @@ def add_dlabel(
             "residue number"
         )
 
-    struct = pre_add_label(name, pdb, spin_atoms)
+    struct = pre_add_label(name, pdb, spin_atoms, uniform_topology=True)
     pdb_resname = struct.select_atoms(f"resnum {resi}").resnames[0]
 
     IC1 = [
@@ -1204,9 +1204,9 @@ def add_dlabel(
     )
 
 
-def pre_add_label(name, pdb, spin_atoms):
+def pre_add_label(name, pdb, spin_atoms, uniform_topology=False):
     # Sort the PDB for optimal dihedral definitions
-    pdb_lines = sort_pdb(pdb)
+    pdb_lines = sort_pdb(pdb, uniform_topology=uniform_topology)
 
     # Store spin atoms if provided
     if spin_atoms is not None:

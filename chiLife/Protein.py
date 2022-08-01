@@ -3,6 +3,7 @@ import operator
 from functools import partial
 from .protein_utils import sort_pdb
 import numpy as np
+from scipy.spatial import cKDTree
 
 
 class BaseSystem:
@@ -415,3 +416,8 @@ def byres(mask, protein):
 
 def unot(mask):
     return ~mask
+
+def within(mask1, mask2, atom_selection, distance):
+    tree1 = cKDTree(atom_selection.coords)
+    tree2 = cKDTree(atom_selection.protein.coords[mask2])
+    tree2.query_ball_tree()

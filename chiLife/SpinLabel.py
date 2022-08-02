@@ -327,18 +327,23 @@ class dSpinLabel:
         )
 
         with open(
-            chiLife.DATA_DIR / f"residue_internal_coords/{self.label}_ic.pkl", "rb"
+            chiLife.DATA_DIR / f"residue_internal_coords/{self.label}ip{self.increment}C_ic.pkl", "rb"
         ) as f:
             self.cst_idxs, self.csts = pickle.load(f)
+
         self.kwargs["eval_clash"] = False
-        self.SL1 = chiLife.SpinLabel(self.label + "i", self.site, self.protein, self.chain, **self.kwargs)
-        self.SL2 = chiLife.SpinLabel(
-            self.label + f"ip{self.increment}",
-            self.site2,
-            self.protein,
-            self.chain,
-            **self.kwargs,
-        )
+
+        self.SL1 = chiLife.SpinLabel(self.label + f"ip{self.increment}A",
+                                     self.site,
+                                     self.protein,
+                                     self.chain,
+                                     **self.kwargs)
+
+        self.SL2 = chiLife.SpinLabel(self.label + f"ip{self.increment}B",
+                                     self.site2,
+                                     self.protein,
+                                     self.chain,
+                                     **self.kwargs)
 
     def save_pdb(self, name=None):
         if name is None:

@@ -2939,7 +2939,7 @@ ATOM      5 OG1  THR A 238     -20.225  11.236   6.693  1.00  0.84           O
 ATOM      6 CG2  THR A 238     -18.685  11.656   4.974  1.00  0.84           C  
 TER
 ENDMDL
-HEADER 318DHCi_A
+HEADER 318DHCip4A_A
 MODEL 0
 ATOM      0  N   DHC A 318      -2.132  13.757  -4.418  1.00 76.31           N  
 ATOM      1  CA  DHC A 318      -0.822  14.317  -4.126  1.00 76.31           C  
@@ -2994,7 +2994,7 @@ ATOM     22  O4  DHC A 318       7.745  19.696  -2.362  1.00 23.69           O
 ATOM     23  O1  DHC A 318       5.665  18.931  -2.460  1.00 23.69           O  
 TER
 ENDMDL
-HEADER 322DHCip4_A
+HEADER 322DHCip4B_A
 MODEL 0
 ATOM      0  N   DHC A 322       2.865  11.569  -1.496  1.00 76.31           N  
 ATOM      1  CA  DHC A 322       3.793  12.159  -0.570  1.00 76.31           C  
@@ -3025,7 +3025,7 @@ HEADER 20R1C_A_density
 ATOM      0 NEN  R1C A  20      -4.431  -1.584 -13.081  1.00 57.80           N  
 ATOM      1 NEN  R1C A  20      -4.471  -0.575 -14.172  1.00 42.20           N  
 TER
-HEADER 318DHCi_A_density
+HEADER 318DHCip4A_A_density
 ATOM      0 NEN  DHC A 318       4.515  16.990  -3.669  1.00 76.31           N  
 ATOM      1 NEN  DHC A 318       4.314  17.421  -3.394  1.00 23.69           N  
 TER

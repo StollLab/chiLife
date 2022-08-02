@@ -41,7 +41,7 @@ with open(DATA_DIR / "spin_atoms.txt", "r") as f:
     SPIN_ATOMS = {x.split(":")[0]: eval(x.split(":")[1]) for x in lines}
 
 USER_LABELS = {key for key in SPIN_ATOMS if key not in SUPPORTED_LABELS}
-USER_dLABELS = {f.name[:3] for f in (DATA_DIR / "UserRotlibs").glob("*i_*.npz")}
+USER_dLABELS = {f.name[:3] for f in (DATA_DIR / "UserRotlibs").glob("*ip*.npz")}
 SUPPORTED_RESIDUES = set(
     list(SUPPORTED_LABELS) + list(USER_LABELS) + list(dihedral_defs.keys())
 )
@@ -1178,9 +1178,9 @@ def add_dlabel(
     csts = [cst_pairs, constraint_distances]
 
     # Add internal_coords to data dir
-    for suffix, save_data in zip(["", "i", f"ip{increment}"], [csts, IC1, IC2]):
+    for suffix, save_data in zip(["A", "B", "C"], [IC1, IC2, csts]):
         with open(
-            DATA_DIR / f"residue_internal_coords/{name}{suffix}_ic.pkl", "wb"
+            DATA_DIR / f"residue_internal_coords/{name}ip{increment}{suffix}_ic.pkl", "wb"
         ) as f:
             pickle.dump(save_data, f)
 
@@ -1198,10 +1198,8 @@ def add_dlabel(
         weights = np.ones(len(IC1))
 
     weights /= weights.sum()
-    store_new_restype(name, IC1, weights, dihedrals[0], dihedral_atoms[0], increment=0)
-    store_new_restype(
-        name, IC2, weights, dihedrals[1], dihedral_atoms[1], increment=increment
-    )
+    store_new_restype(name + f'ip{increment}A', IC1, weights, dihedrals[0], dihedral_atoms[0])
+    store_new_restype(name + f'ip{increment}B', IC2, weights, dihedrals[1], dihedral_atoms[1], resi=1 + increment)
 
 
 def pre_add_label(name, pdb, spin_atoms, uniform_topology=False):
@@ -1254,7 +1252,7 @@ def pre_add_label(name, pdb, spin_atoms, uniform_topology=False):
     return struct
 
 
-def store_new_restype(name, internal_coords, weights, dihedrals, dihedral_atoms, sigmas=None, increment=None):
+def store_new_restype(name, internal_coords, weights, dihedrals, dihedral_atoms, sigmas=None, resi=1):
     # Extract coordinates and transform to the local frame
     bb_atom_idx = [
         i for i, atom in enumerate(internal_coords[0].atoms) if atom.name in ["N", "CA", "C"]
@@ -1263,26 +1261,13 @@ def store_new_restype(name, internal_coords, weights, dihedrals, dihedral_atoms,
     ori, mx = local_mx(*coords[bb_atom_idx])
     coords = (coords - ori) @ mx
 
-    if increment == 0:
-        name += "i"
-    elif increment is None:
-        increment = 0
-
-    if increment > 0:
-        name += f"ip{increment}"
-
     # Save pdb structure
     save_pdb(DATA_DIR / f"residue_pdbs/{name}.pdb", internal_coords[0].atoms, coords)
 
     if len(internal_coords) > 1:
         coords = np.array([(IC.coords - ori) @ mx for IC in internal_coords])
     elif len(dihedrals) > 1:
-        coords = np.array(
-            [
-                internal_coords.set_dihedral(dihe, 1 + increment, dihedral_atoms)
-                for dihe in dihedrals
-            ]
-        )
+        coords = np.array([internal_coords.set_dihedral(dihe, resi, dihedral_atoms) for dihe in dihedrals])
     else:
         if coords.ndim == 2:
             coords = np.expand_dims(coords, axis=0)

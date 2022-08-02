@@ -103,4 +103,10 @@ def test_add_dlabel2():
     dihedral_atoms = [[["N", "CA", "CB", "CG"], ["CA", "CB", "CG", "ND1"]],
                       [["N", "CA", "CB", "CG"], ["CA", "CB", "CG", "ND1"]]]
 
-    xl.add_dlabel('HCS', 'test_data/HCS.pdb', resi=2, increment=2, dihedral_atoms=dihedral_atoms, spin_atoms='Cu1')
+    xl.add_dlabel('DHC', 'test_data/HCS.pdb', resi=2, increment=2, dihedral_atoms=dihedral_atoms, spin_atoms='Cu1')
+
+    SL1 = xl.dSpinLabel("DHC", [6, 8], gb1)
+    r = np.linspace(15, 80, 256)
+    dd = xl.get_dd(SL1, SL2, r, sigma=0.5)
+
+    assert r[np.argmax(dd)] == 23.41176470588235

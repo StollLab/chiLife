@@ -741,8 +741,10 @@ class ProteinIC:
 
         for segid in self.ICs:
             for resi in list(self.ICs[segid].keys()):
-                self.ICs[segid][resi + delta] = self.ICs[segid][resi]
-                del self.ICs[segid][resi]
+                if abs(delta) > 0:
+                    self.ICs[segid][resi + delta] = self.ICs[segid][resi]
+                    del self.ICs[segid][resi]
+
                 for atom in self.ICs[segid][resi + delta].values():
                     atom.resi += delta
                     atom.dihedral_resi += delta
@@ -948,20 +950,7 @@ def get_internal_coords(
     """
     mol = mol.select_atoms("not (byres name OH2 or resname HOH)")
     U = mol.universe
-
-    tree = cKDTree(mol.atoms.positions)
-    pairs = tree.query_pairs(5., output_type='ndarray')
-
-    a_atoms = pairs[:, 0]
-    b_atoms = pairs[:, 1]
-
-    a = chiLife.get_lj_rmin(mol.atoms[a_atoms].types)
-    b = chiLife.get_lj_rmin(mol.atoms[b_atoms].types)
-    join = chiLife.get_lj_rmin('join_protocol')[()]
-    ab = join(a, b, flat=True) * 0.6
-
-    dist = np.linalg.norm(mol.atoms.positions[a_atoms] - mol.atoms.positions[b_atoms], axis=1)
-    bonds = pairs[dist < ab]
+    bonds = guess_bonds(mol.atoms.positions, mol.atoms.types)
 
     G = nx.DiGraph()
     G.add_edges_from(bonds)
@@ -1000,6 +989,9 @@ def get_internal_coords(
     all_ICAtoms = {}
     chain_operators = {}
     segid = 0
+
+    if len(dihedral_segs) > 1:
+        print('pause')
 
     for seg in dihedral_segs:
         if len(seg[4]) == 3:
@@ -1495,34 +1487,23 @@ def guess_bonds(coords, atom_types):
     return bonds
 
 
-def get_min_topol(lines, start_idxs, end_idxs):
+def get_min_topol(lines):
     bonds_list = []
 
-    for start, end in zip(start_idxs, end_idxs):
-        sublines = lines[start:end]
+    for struct in lines:
 
-        coords = np.array([[float(line[30:38]), float(line[38:46]), float(line[46:54])]
-                           for line in sublines
-                            if line.startswith(('ATOM', 'HETATOM'))])
+        coords = np.array([(line[30:38], line[38:46], line[46:54]) for line in struct], dtype=float)
+        atypes = np.array([line[76:78].strip() for line in struct])
 
-        atypes = np.array([line[76:78].strip()
-                           for line in sublines
-                            if line.startswith(('ATOM', 'HETATOM'))])
-
-        bonds = set(tuple(sorted((a, b))) for a, b in guess_bonds(coords, atypes))
+        bonds = set(tuple(pair) for pair in guess_bonds(coords, atypes))
         bonds_list.append(bonds)
 
-    minimal_bond_list = bonds_list[0]
-    idx = 0
-    for i, alternative in enumerate(bonds_list[1:]):
-        if alternative.issubset(minimal_bond_list):
-            idx = i
-            minimal_bond_list = alternative
+    minimal_bond_list = set.intersection(*bonds_list)
 
-    return minimal_bond_list, idx
+    return minimal_bond_list
 
 
-def sort_pdb(pdbfile: Union[str, List], uniform_topology=True, index=False) -> Union[List[str], List[int]]:
+def sort_pdb(pdbfile: Union[str, List], uniform_topology=True, index=False, bonds=None) -> Union[List[str], List[int]]:
     """
     Read ATOM lines of a pdb and sort the atoms according to chain, residue index, backbone atoms and side chain atoms.
     Side chain atoms are sorted by distance to each other/backbone atoms with atoms closest to the backbone coming
@@ -1549,20 +1530,21 @@ def sort_pdb(pdbfile: Union[str, List], uniform_topology=True, index=False) -> U
             elif line.startswith("ENDMDL"):
                 end_idxs.append(i)
 
-
         if start_idxs != []:
-            if uniform_topology:
-                # Assume all models have the same topology
 
-                idxs = sort_pdb(lines[start_idxs[0]:end_idxs[0]], index=True)
-
-            else:
-                min_bonds_list, idx = get_min_topol(lines, start_idxs, end_idxs)
-                idxs = sort_pdb(lines[start_idxs[idx]:end_idxs[idx]], index=True)
-
+            # Assume all models have the same topology
+            idxs = sort_pdb(lines[start_idxs[0]:end_idxs[0]], index=True)
             lines[:] = [[lines[idx + start][:6] + f"{i + 1:5d}" + lines[idx + start][11:]
                         for i, idx in enumerate(idxs)]
                        for start in start_idxs]
+
+            if not uniform_topology:
+                min_bonds_list = get_min_topol(lines)
+                idxs = sort_pdb(lines[0], index=True, bonds=min_bonds_list)
+
+                lines[:] = [[struct[idx][:6] + f"{i + 1:5d}" + struct[idx][11:]
+                            for i, idx in enumerate(idxs)]
+                           for struct in lines]
 
             return lines
 
@@ -1574,7 +1556,7 @@ def sort_pdb(pdbfile: Union[str, List], uniform_topology=True, index=False) -> U
 
     # Presort
     lines.sort(key=lambda x: atom_sort_key(x))
-
+    parent_bonds = set(tuple(bond) for bond in bonds) if bonds is not None else set()
     coords = np.array(
         [[float(line[30:38]), float(line[38:46]), float(line[46:54])] for line in lines]
     )
@@ -1603,6 +1585,10 @@ def sort_pdb(pdbfile: Union[str, List], uniform_topology=True, index=False) -> U
 
             bonds = guess_bonds(coords[start:stop], atypes[start:stop])
 
+            if len(parent_bonds) > 0:
+                bonds = [bond for bond in bonds if tuple(bond + start) in parent_bonds]
+
+            bonds = np.asarray(bonds)
             # Get all nearest neighbors and sort by distance
             distances = np.linalg.norm(coords[start:stop][bonds[:, 0]] - coords[start:stop][bonds[:, 1]], axis=1)
             distances = np.around(distances, decimals=3)

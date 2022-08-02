@@ -1121,7 +1121,7 @@ def add_dlabel(
             "residue number"
         )
 
-    struct = pre_add_label(name, pdb, spin_atoms, uniform_topology=True)
+    struct = pre_add_label(name, pdb, spin_atoms, uniform_topology=False)
     pdb_resname = struct.select_atoms(f"resnum {resi}").resnames[0]
 
     IC1 = [
@@ -1202,7 +1202,7 @@ def add_dlabel(
     store_new_restype(name + f'ip{increment}B', IC2, weights, dihedrals[1], dihedral_atoms[1], resi=1 + increment)
 
 
-def pre_add_label(name, pdb, spin_atoms, uniform_topology=False):
+def pre_add_label(name, pdb, spin_atoms, uniform_topology=True):
     # Sort the PDB for optimal dihedral definitions
     pdb_lines = sort_pdb(pdb, uniform_topology=uniform_topology)
 

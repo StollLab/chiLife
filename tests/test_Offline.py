@@ -29,3 +29,14 @@ def test_add_dlabel():
         ],
         spin_atoms=["Cu1"],
     )
+#
+# def test_add_HIN():
+#     xl.add_dlabel(name='HIN',
+#                   pdb='comp_sorted.pdb',
+#                   increment=2,
+#                   dihedral_atoms=[[['N', 'CA', 'C13', 'C5'],
+#                                    ['CA', 'C13', 'C5', 'C6']],
+#                                   [['N', 'CA', 'C12', 'C2'],
+#                                    ['CA', 'C12', 'C2', 'C3']]],
+#                   resi=1,
+#                   spin_atoms='Cu1')

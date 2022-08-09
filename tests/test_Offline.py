@@ -22,14 +22,12 @@ def test_add_dlabel():
 
 def test_polyproII():
     PPII = mda.Universe('test_data/PolyProII.pdb')
-    PPII = mda.Universe('test_data/xtbopt.pdb')
     PPII_IC = xl.get_internal_coords(PPII)
 
     for i in range(2, 13):
         assert ("C", "CA", "N", "C") in PPII_IC.ICs[1][i]
 
 
-#
 # def test_add_HIN():
 #     xl.add_dlabel(name='HIN',
 #                   pdb='comp_sorted.pdb',

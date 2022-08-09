@@ -194,6 +194,15 @@ def test_mutate4():
     np.testing.assert_almost_equal(S238A._coords[0], S238A_pos, decimal=6)
 
 
+def test_mutate5():
+    PPII = mda.Universe('test_data/PolyProII.pdb')
+    TOC = chiLife.SpinLabel('TOC', 8, PPII)
+
+    PPIIm = chiLife.mutate(PPII, TOC)
+    assert PPIIm.residues[-1].resname == 'NHH'
+
+
+
 @pytest.mark.parametrize(["inp", "ans"], zip(gd_kwargs, gd_ans))
 def test_get_dihedral(inp, ans):
     dihedral = ICs.get_dihedral(**inp)

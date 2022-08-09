@@ -1203,7 +1203,7 @@ def mutate(
     }
 
     protein = protein.select_atoms(
-        f'(protein or resname {" ".join(chiLife.SUPPORTED_RESIDUES)}) and not altloc B'
+        f'(not altloc B) and (not (byres name OH2 or resname HOH))'
     )
     label_selstr = " or ".join([f"({label.selstr})" for label in rotlibs])
     other_atoms = protein.select_atoms(f"not ({label_selstr})")

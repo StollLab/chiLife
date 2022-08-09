@@ -7,6 +7,7 @@ from collections import Counter
 import MDAnalysis
 import numpy as np
 from scipy.spatial import cKDTree
+from scipy.spatial.distance import cdist
 
 from MDAnalysis.core.topologyattrs import Atomindices, Resindices, Segindices, Segids
 import MDAnalysis as mda
@@ -1470,7 +1471,7 @@ def pose2mda(pose):
     return mda_protein
 
 
-def guess_bonds(coords, atom_types):
+def guess_bonds(coords, atom_types, include_ionic=True):
     kdtree = cKDTree(coords)
     pairs = kdtree.query_pairs(5., output_type='ndarray')
 
@@ -1479,8 +1480,16 @@ def guess_bonds(coords, atom_types):
     a = chiLife.get_lj_rmin(atom_types[a_atoms])
     b = chiLife.get_lj_rmin(atom_types[b_atoms])
 
+    if include_ionic:
+        ionic_bond_dist = {'Cu': 2.6, 'Gd': 2.9}
+        keys = np.fromiter(ionic_bond_dist.keys(), dtype='U2')
+        a_mask = np.isin(atom_types[a_atoms], keys)
+        b_mask = np.isin(atom_types[b_atoms], keys)
+        a[a_mask] = [ionic_bond_dist[atype] for atype in atom_types[a_atoms][a_mask]]
+        b[b_mask] = [ionic_bond_dist[atype] for atype in atom_types[b_atoms][b_mask]]
+
     join = chiLife.get_lj_rmin('join_protocol')[()]
-    ab = join(a, b, flat=True) * 0.6
+    ab = join(a, b, flat=True) * 0.55
 
     dist = np.linalg.norm(coords[a_atoms] - coords[b_atoms], axis=1)
     bonds = pairs[dist < ab]
@@ -1602,6 +1611,19 @@ def sort_pdb(pdbfile: Union[str, List], uniform_topology=True, index=False, bond
 
             # Start stemming from CA atom
             CA_edges = [edge[1] for edge in nx.bfs_edges(graph, root_idx) if edge[1] not in sorted_args]
+
+            # check for disconnected parts of residue
+            if not nx.is_connected(graph):
+                for g in nx.connected_components(graph):
+                    if np.any(arg in g for arg in sorted_args):
+                        continue
+
+                    g_nodes = [idx for idx in g if atypes[start + idx] != 'H']
+                    near_root = cdist(coords[start:stop][CA_edges], coords[start:stop][g_nodes]).argmin()
+                    # xidx = near_root// len(g_nodes)
+                    yidx = near_root % len(g_nodes)
+                    CA_edges += [edge[1] for edge in nx.bfs_edges(graph, yidx) if edge[1]]
+
 
         elif stop - start > n_heavy:
             # Assumes  non-heavy atoms come after the heavy atoms, which should be true because of the pre-sort

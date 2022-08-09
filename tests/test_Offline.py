@@ -1,17 +1,6 @@
+import MDAnalysis as mda
 import numpy as np
 import chiLife as xl
-
-def test_add_dlabel2():
-    Energies = np.loadtxt('test_data/HCS.energies')
-
-    P = np.exp(-Energies/ (xl.GAS_CONST * 278))
-    P /= P.sum()
-
-    dihedral_atoms = [[["N", "CA", "CB", "CG"], ["CA", "CB", "CG", "ND1"]],
-                      [["N", "CA", "CB", "CG"], ["CA", "CB", "CG", "ND1"]]]
-
-    xl.add_dlabel('HCS', 'test_data/HCS.pdb', resi=2, increment=2, dihedral_atoms=dihedral_atoms, spin_atoms='Cu1')
-
 
 def test_add_dlabel():
     Energies = np.loadtxt("test_data/DHC.energies")[:, 1]
@@ -29,6 +18,17 @@ def test_add_dlabel():
         ],
         spin_atoms=["Cu1"],
     )
+
+
+def test_polyproII():
+    PPII = mda.Universe('test_data/PolyProII.pdb')
+    PPII = mda.Universe('test_data/xtbopt.pdb')
+    PPII_IC = xl.get_internal_coords(PPII)
+
+    for i in range(2, 13):
+        assert ("C", "CA", "N", "C") in PPII_IC.ICs[1][i]
+
+
 #
 # def test_add_HIN():
 #     xl.add_dlabel(name='HIN',

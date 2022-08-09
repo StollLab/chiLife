@@ -7,8 +7,8 @@ import matplotlib.pyplot as plt
 
 labels = ["R1M", "R7M", "V1M", "M1M", "I1M"]
 atom_names = ["C", "H", "N", "O", "S", "SE", "Br"]
-rmin_params = [2.0000, 0.2245, 1.8500, 1.7000, 2.0000, 2.0000, 1.9800]
-eps_params = [-0.110, -0.046, -0.200, -0.120, -0.450, -0.450, -0.320]
+rmin_params = [2.0000, 1.27, 1.8500, 1.7000, 2.0000, 2.0000, 1.9800]
+eps_params = [-0.110, -0.022, -0.200, -0.120, -0.450, -0.450, -0.320]
 U = mda.Universe("test_data/m1omp.pdb")
 protein = U.select_atoms("protein")
 r = np.linspace(0, 100, 2**8)

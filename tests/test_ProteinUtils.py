@@ -270,6 +270,12 @@ def test_PRO_ics():
     pro_ic = chiLife.get_internal_coords(pro)
     assert ("CD", "CG", "CB", "CA") in pro_ic.ICs[1][1]
 
+def test_PRO_ics2():
+    ubq_IC = chiLife.get_internal_coords(ubq)
+
+    assert ("C", "CA", "N", "C") in ubq_IC.ICs[1][37]
+    assert ("C", "CA", "N", "C") in ubq_IC.ICs[1][38]
+
 
 def test_ProteinIC_set_coords():
     R1A = mda.Universe("../chiLife/data/rotamer_libraries/residue_pdbs/R1A.pdb")

@@ -260,6 +260,7 @@ class RotamerLibrary:
         self.ICs_to_site()
 
     def ICs_to_site(self):
+        # Update chain operators
         ic_backbone = np.squeeze(self.internal_coords[0].coords[:3])
         self.ic_ori, self.ic_mx = chiLife.local_mx(
             *ic_backbone, method=self.superimposition_method
@@ -275,6 +276,30 @@ class RotamerLibrary:
 
         for IC in self.internal_coords:
             IC.chain_operators = op
+
+        # Update backbone conf
+        atom = "O"
+        mask = self.internal_coords[0].atom_names == atom
+        if any(mask) and self.protein is not None:
+
+            ICatom = self.internal_coords[0].atoms[self.internal_coords[0].atom_names == atom][0]
+            dihe_def = tuple(reversed(ICatom.atom_names))
+
+            p = self.protein.select_atoms(
+                f"segid {self.chain} and resnum {self.site} and name {' '.join(dihe_def)} and not altloc B"
+            ).positions
+
+            dihe = chiLife.get_dihedral(p)
+            ang = chiLife.get_angle(p[1:])
+            bond = np.linalg.norm(p[-1] - p[-2])
+            idx = np.squeeze(np.argwhere(mask))
+            additional_idxs = list(self.internal_coords[0].atom_dict['dihedrals'][1][(1, ('CA', 'C', 'O'))].values())
+
+            for IC in self.internal_coords:
+                delta = IC.zmats[1][idx][2] - dihe
+                IC.zmats[1][idx] = bond, ang, dihe
+                IC.zmats[1][additional_idxs, 2] -= delta
+
 
     def backbone_to_site(self):
         # Keep protein backbone dihedrals for oxygen and hydrogens
@@ -372,6 +397,7 @@ class RotamerLibrary:
         dihedrals = self._rdihedrals[idx].copy()
         dihedrals[off_rotamer] = new_dihedrals
         int_coord = self.internal_coords[0].copy().set_dihedral(dihedrals, 1, self.dihedral_atoms)
+
         coords = int_coord.coords[self.ic_mask]
 
         if kwargs.setdefault("return_dihedrals", False):

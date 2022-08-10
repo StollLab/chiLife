@@ -702,6 +702,13 @@ def write_protein(
     file: str, protein: Union[mda.Universe, mda.AtomGroup], **kwargs
 ) -> None:
 
+    # Change chain identifier if longer than 1
+    available_segids = iter('ABCDEFGHIJKLMNOPQRSTUVWXYZ')
+    for seg in protein.segments:
+        if len(seg.segid) > 1:
+            seg.segid = next(available_segids)
+
+
     fmt_str = "ATOM  {:5d} {:^4s} {:3s} {:1s}{:4d}    {:8.3f}{:8.3f}{:8.3f}{:6.2f}{:6.2f}          {:>2s}  \n"
     with open(file, "w") as f:
         f.write(f'HEADER {file.rstrip(".pdb")}\n')

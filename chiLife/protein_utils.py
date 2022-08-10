@@ -356,23 +356,23 @@ class ProteinIC:
         self.zmat_idxs = zmat_idxs
         self.atom_dict = atom_dict
         self.ICs = ICs
-        self.atoms = [
+        self.atoms = np.array([
             ic
             for chain in self.ICs.values()
             for resi in chain.values()
             for ic in resi.values()
-        ]
+        ])
 
-        self.atom_types = [atom.atype for atom in self.atoms]
-        self.atom_names = [atom.name for atom in self.atoms]
+        self.atom_types = np.array([atom.atype for atom in self.atoms])
+        self.atom_names = np.array([atom.name for atom in self.atoms])
 
-        self.resis = [key for i in self.ICs for key in self.ICs[i]]
+        self.resis = np.array([key for i in self.ICs for key in self.ICs[i]])
         self.resnames = {
             j: next(iter(self.ICs[i][j].values())).resn
             for i in self.ICs
             for j in self.ICs[i]
         }
-        self.chains = [name for name in ICs]
+        self.chains = np.array([name for name in ICs])
 
         self.chain_operators = kwargs.get("chain_operators", None)
         self.bonded_pairs = np.array(kwargs.get("bonded_pairs", None))

@@ -278,27 +278,40 @@ class RotamerLibrary:
             IC.chain_operators = op
 
         # Update backbone conf
-        atom = "O"
-        mask = self.internal_coords[0].atom_names == atom
-        if any(mask) and self.protein is not None:
+        alist = ["O"] if not self.use_H else ["H", 'O']
+        for atom in alist:
+            mask = self.internal_coords[0].atom_names == atom
+            if any(mask) and self.protein is not None:
 
-            ICatom = self.internal_coords[0].atoms[self.internal_coords[0].atom_names == atom][0]
-            dihe_def = tuple(reversed(ICatom.atom_names))
+                ICatom = self.internal_coords[0].atoms[self.internal_coords[0].atom_names == atom][0]
+                dihe_def = tuple(reversed(ICatom.atom_names))
 
-            p = self.protein.select_atoms(
-                f"segid {self.chain} and resnum {self.site} and name {' '.join(dihe_def)} and not altloc B"
-            ).positions
+                p = self.protein.select_atoms(
+                    f"segid {self.chain} and resnum {self.site} and name {' '.join(dihe_def)} and not altloc B"
+                ).positions
 
-            dihe = chiLife.get_dihedral(p)
-            ang = chiLife.get_angle(p[1:])
-            bond = np.linalg.norm(p[-1] - p[-2])
-            idx = np.squeeze(np.argwhere(mask))
-            additional_idxs = list(self.internal_coords[0].atom_dict['dihedrals'][1][(1, ('CA', 'C', 'O'))].values())
+                if len(p) > 4:
+                    # Guess that the closest H to the nitrogen is the H we are looking for
+                    HN_idx = np.argmin(np.linalg.norm(p[3:] - p[0], axis=1)) + 3
+                    p = p[[0, 1, 2, HN_idx]]
 
-            for IC in self.internal_coords:
-                delta = IC.zmats[1][idx][2] - dihe
-                IC.zmats[1][idx] = bond, ang, dihe
-                IC.zmats[1][additional_idxs, 2] -= delta
+                if atom == 'H':
+                    # Reorder
+                    p = p[[2, 1, 0, 3]]
+
+                dihe = chiLife.get_dihedral(p)
+                ang = chiLife.get_angle(p[1:])
+                bond = np.linalg.norm(p[-1] - p[-2])
+                idx = np.squeeze(np.argwhere(mask))
+
+                if atom == 'O':
+                    additional_idxs = list(self.internal_coords[0].atom_dict['dihedrals'][1][(1, ('CA', 'C', 'O'))].values())
+
+                for IC in self.internal_coords:
+                    delta = IC.zmats[1][idx][2] - dihe
+                    IC.zmats[1][idx] = bond, ang, dihe
+                    if atom == "O":
+                        IC.zmats[1][additional_idxs, 2] -= delta
 
 
     def backbone_to_site(self):

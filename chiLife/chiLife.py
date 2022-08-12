@@ -33,15 +33,17 @@ from .SpinLabelTraj import SpinLabelTraj
 # Define useful global variables
 SUPPORTED_LABELS = ("R1M", "R7M", "V1M", "I1M", "M1M", "R1C")
 SUPPORTED_BB_LABELS = ("R1C",)
-DATA_DIR = Path(__file__).parent.absolute() / "data/rotamer_libraries/"
+DATA_DIR = Path(__file__).parent.absolute() / "data/"
+RL_DIR = Path(__file__).parent.absolute() / "data/rotamer_libraries/"
+
 logging.captureWarnings(True)
 
-with open(DATA_DIR / "spin_atoms.txt", "r") as f:
+with open(RL_DIR / "spin_atoms.txt", "r") as f:
     lines = f.readlines()
     SPIN_ATOMS = {x.split(":")[0]: eval(x.split(":")[1]) for x in lines}
 
 USER_LABELS = {key for key in SPIN_ATOMS if key not in SUPPORTED_LABELS}
-USER_dLABELS = {f.name[:3] for f in (DATA_DIR / "UserRotlibs").glob("*ip*.npz")}
+USER_dLABELS = {f.name[:3] for f in (RL_DIR / "UserRotlibs").glob("*ip*.npz")}
 SUPPORTED_RESIDUES = set(
     list(SUPPORTED_LABELS) + list(USER_LABELS) + list(dihedral_defs.keys())
 )
@@ -400,7 +402,7 @@ def read_sl_library(label: str, user: bool = False) -> Tuple[ArrayLike, ...]:
 
     del lib["allow_pickle"]
 
-    with open(chiLife.DATA_DIR / f"residue_internal_coords/{label}_ic.pkl", "rb") as f:
+    with open(chiLife.RL_DIR / f"residue_internal_coords/{label}_ic.pkl", "rb") as f:
         IC = pickle.load(f)
         if isinstance(IC, list):
             ICn = IC
@@ -444,7 +446,7 @@ def read_bbdep(res: str, Phi: float, Psi: float) -> Tuple[ArrayLike, ...]:
     Phi, Psi = str(Phi), str(Psi)
 
     # Read residue internal coordinate structure
-    with open(DATA_DIR / f"residue_internal_coords/{res.lower()}_ic.pkl", "rb") as f:
+    with open(RL_DIR / f"residue_internal_coords/{res.lower()}_ic.pkl", "rb") as f:
         ICs = pickle.load(f)
 
     atom_types = ICs.atom_types.copy()
@@ -457,7 +459,7 @@ def read_bbdep(res: str, Phi: float, Psi: float) -> Tuple[ArrayLike, ...]:
         library = "R1C.lib" if res in SUPPORTED_BB_LABELS else "ALL.bbdep.rotamers.lib"
         start, length = rotlib_indexes[f"{res}  {Phi:>4}{Psi:>5}"]
 
-        with open(DATA_DIR / library, "rb") as f:
+        with open(RL_DIR / library, "rb") as f:
             f.seek(start)
             rotlib_string = f.read(length).decode()
             s = StringIO(rotlib_string)
@@ -1056,7 +1058,7 @@ def add_label(
         ic.chain_operators = None
 
     # Add internal_coords to data dir
-    with open(DATA_DIR / f"residue_internal_coords/{name}_ic.pkl", "wb") as f:
+    with open(RL_DIR / f"residue_internal_coords/{name}_ic.pkl", "wb") as f:
         pickle.dump(internal_coords, f)
 
     # If multi-state pdb extract rotamers from pdb
@@ -1187,7 +1189,7 @@ def add_dlabel(
     # Add internal_coords to data dir
     for suffix, save_data in zip(["A", "B", "C"], [IC1, IC2, csts]):
         with open(
-            DATA_DIR / f"residue_internal_coords/{name}ip{increment}{suffix}_ic.pkl", "wb"
+                RL_DIR / f"residue_internal_coords/{name}ip{increment}{suffix}_ic.pkl", "wb"
         ) as f:
             pickle.dump(save_data, f)
 
@@ -1218,7 +1220,7 @@ def pre_add_label(name, pdb, spin_atoms, uniform_topology=True):
         if isinstance(spin_atoms, str):
             spin_atoms = spin_atoms.split()
 
-        with open(DATA_DIR / "spin_atoms.txt", "r+") as f:
+        with open(RL_DIR / "spin_atoms.txt", "r+") as f:
             lines = f.readlines()
             spin_dict = {x.split(":")[0]: eval(x.split(":")[1]) for x in lines}
             if name in spin_dict:
@@ -1269,7 +1271,7 @@ def store_new_restype(name, internal_coords, weights, dihedrals, dihedral_atoms,
     coords = (coords - ori) @ mx
 
     # Save pdb structure
-    save_pdb(DATA_DIR / f"residue_pdbs/{name}.pdb", internal_coords[0].atoms, coords)
+    save_pdb(RL_DIR / f"residue_pdbs/{name}.pdb", internal_coords[0].atoms, coords)
 
     if len(internal_coords) > 1:
         coords = np.array([(IC.coords - ori) @ mx for IC in internal_coords])
@@ -1302,7 +1304,7 @@ def store_new_restype(name, internal_coords, weights, dihedrals, dihedral_atoms,
 
     # Save rotamer library
     np.savez(
-        DATA_DIR / f"UserRotlibs/{name}_rotlib.npz",
+        RL_DIR / f"UserRotlibs/{name}_rotlib.npz",
         **save_dict,
         allow_pickle=True,
     )
@@ -1311,12 +1313,12 @@ def store_new_restype(name, internal_coords, weights, dihedrals, dihedral_atoms,
 def add_dihedral_def(name, dihedrals):
 
     # Reload in case there were other changes
-    with open(os.path.join(os.path.dirname(__file__), "data/DihedralDefs.pkl"), "rb") as f:
+    with open(DATA_DIR / "DihedralDefs.pkl", "rb") as f:
         local_dihedral_def = pickle.load(f)
 
     # Add new label defs and write file
     local_dihedral_def[name] = dihedrals
-    with open(os.path.join(os.path.dirname(__file__), "data/DihedralDefs.pkl"), "wb") as f:
+    with open(DATA_DIR/ "DihedralDefs.pkl", "wb") as f:
         pickle.dump(local_dihedral_def, f)
 
     # Add to active dihedral def dict

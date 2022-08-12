@@ -327,7 +327,7 @@ class dSpinLabel:
         )
 
         with open(
-            chiLife.DATA_DIR / f"residue_internal_coords/{self.label}ip{self.increment}C_ic.pkl", "rb"
+                chiLife.RL_DIR / f"residue_internal_coords/{self.label}ip{self.increment}C_ic.pkl", "rb"
         ) as f:
             self.cst_idxs, self.csts = pickle.load(f)
 

@@ -92,7 +92,7 @@ class dRotamerLibrary(RotamerLibrary):
         )
 
         with open(
-            chiLife.DATA_DIR / f"residue_internal_coords/{self.label}_ic.pkl", "rb"
+                chiLife.RL_DIR / f"residue_internal_coords/{self.label}_ic.pkl", "rb"
         ) as f:
             self.cst_idxs, self.csts = pickle.load(f)
 

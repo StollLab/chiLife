@@ -300,7 +300,7 @@ def join_arith(x, y, flat=False):
 
 rmin_charmm = {
     "C": 2.0000,
-    "H": 0.7000,
+    "H": 1.27000,
     "N": 1.8500,
     "O": 1.7000,
     "S": 2.0000,

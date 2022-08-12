@@ -1,4 +1,5 @@
 import logging, os, urllib, pickle, itertools, math
+from functools import partial
 from pathlib import Path
 from typing import Set, List, Union, Tuple
 from numpy.typing import ArrayLike
@@ -17,7 +18,6 @@ from .numba_utils import _ic_to_cart, get_sasa
 from .superimpositions import superimpositions
 from .RotamerLibrary import RotamerLibrary
 from .SpinLabel import SpinLabel, dSpinLabel
-
 
 import networkx as nx
 
@@ -1473,26 +1473,25 @@ def pose2mda(pose):
 
 def guess_bonds(coords, atom_types, include_ionic=True):
     kdtree = cKDTree(coords)
-    pairs = kdtree.query_pairs(5., output_type='ndarray')
-
+    pairs = kdtree.query_pairs(4., output_type='ndarray')
+    pair_names = atom_types[pairs]
+    bond_lengths = chiLife.bond_hmax(pair_names)
     a_atoms = pairs[:, 0]
     b_atoms = pairs[:, 1]
-    a = chiLife.get_lj_rmin(atom_types[a_atoms])
-    b = chiLife.get_lj_rmin(atom_types[b_atoms])
 
-    if include_ionic:
-        ionic_bond_dist = {'Cu': 2.6, 'Gd': 2.9}
-        keys = np.fromiter(ionic_bond_dist.keys(), dtype='U2')
-        a_mask = np.isin(atom_types[a_atoms], keys)
-        b_mask = np.isin(atom_types[b_atoms], keys)
-        a[a_mask] = [ionic_bond_dist[atype] for atype in atom_types[a_atoms][a_mask]]
-        b[b_mask] = [ionic_bond_dist[atype] for atype in atom_types[b_atoms][b_mask]]
-
-    join = chiLife.get_lj_rmin('join_protocol')[()]
-    ab = join(a, b, flat=True) * 0.55
+    # if include_ionic:
+    #     ionic_bond_dist = {('Cu', 'O'): 2.3 * 1.1, ('O', 'Cu'): 2.3 * 1.1,
+    #                        ('Cu', 'N'): 2.3 * 1.1, ('N', 'Cu'): 2.3 * 1.1,
+    #                        ('Gd', 'N'): 2.8 * 1.1, ('N', 'Gd'): 2.8 * 1.1,
+    #                        ('Gd', 'O'): 2.5 * 1.1, ('O', 'Gd'): 2.5 * 1.1}
+    #
+    #     r_idx = np.argwhere((pair_names[:, None, :] == np.array(list(ionic_bond_dist.keys()))[None, ...]).all(axis=-1).any(axis=-1))
+    #     if r_idx:
+    #         bond_lengths[r_idx] = [ionic_bond_dist.get(tuple(i for i in pair_names[idx]), 0.) for idx in r_idx]
 
     dist = np.linalg.norm(coords[a_atoms] - coords[b_atoms], axis=1)
-    bonds = pairs[dist < ab]
+    bonds = pairs[dist < bond_lengths]
+
     return bonds
 
 
@@ -1656,14 +1655,19 @@ def sort_pdb(pdbfile: Union[str, List], uniform_topology=True, index=False, bond
     return lines
 
 
+DATA_DIR = Path(__file__).parent.absolute() / "data/"
+RL_DIR = Path(__file__).parent.absolute() / "data/rotamer_libraries/"
+
 # Define rotamer dihedral angle atoms
-with open(os.path.join(os.path.dirname(__file__), "data/DihedralDefs.pkl"), "rb") as f:
+with open(DATA_DIR / "DihedralDefs.pkl", "rb") as f:
     dihedral_defs = pickle.load(f)
 
-with open(
-    os.path.join(os.path.dirname(__file__), "data/rotamer_libraries/RotlibIndexes.pkl"),
-    "rb",
-) as f:
+with open(RL_DIR / "RotlibIndexes.pkl", "rb") as f:
     rotlib_indexes = pickle.load(f)
+
+with open(DATA_DIR / 'BondDefs.pkl', 'rb') as f:
+    _bond_hmax = {key: (val + 0.4 if 'H' in key else val + 0.3) for key, val in pickle.load(f).items()}
+    def bond_hmax(a): return _bond_hmax.get(tuple(i for i in a), 0)
+    bond_hmax = np.vectorize(bond_hmax, signature="(n)->()")
 
 atom_order = {"N": 0, "CA": 1, "C": 2, "O": 3}

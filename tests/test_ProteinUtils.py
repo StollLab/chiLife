@@ -259,7 +259,7 @@ def test_polypro_IC():
            chiLife.USER_LABELS
 )
 def test_sort_and_internal_coords(res):
-    pdbfile = chiLife.DATA_DIR / f"residue_pdbs/{res.lower()}.pdb"
+    pdbfile = chiLife.RL_DIR / f"residue_pdbs/{res.lower()}.pdb"
     lines = chiLife.sort_pdb(str(pdbfile))
     anames = [line[13:16] for line in lines if "H" not in line[12:16]]
 
@@ -301,19 +301,19 @@ def test_ProteinIC_set_coords():
     np.testing.assert_almost_equal(R1A_IC.coords, R1A_IC_c.coords, decimal=6)
 
 
-def test_preferred_dihedrals():
-    dih = [['N', 'CA', 'CB', 'CB2'],
-           ['CA', 'CB', 'CB2', 'CG'],
-           ['ND', 'CE3', 'CZ3', 'C31'],
-           ['CZ1', 'C11', 'C12', 'N12'],
-           ['C11', 'C12', 'N12', 'C13'],
-           ['C12', 'N12', 'C13', 'C14'],
-           ['N12', 'C13', 'C14', 'C15']]
-
-    TEP = mda.Universe('test_data/TEP.pdb')
-    IC = chiLife.get_internal_coords(TEP, resname='TEP', preferred_dihedrals=dih)
-    IC2 = chiLife.get_internal_coords(TEP, resname='TEP')
-
-    IC.get_dihedral(1, dih)
-    with pytest.raises(ValueError):
-        IC2.get_dihedral(1, dih)
+# def test_preferred_dihedrals():
+#     dih = [['N', 'CA', 'CB', 'CB2'],
+#            ['CA', 'CB', 'CB2', 'CG'],
+#            ['ND', 'CE3', 'CZ3', 'C31'],
+#            ['CZ1', 'C11', 'C12', 'N12'],
+#            ['C11', 'C12', 'N12', 'C13'],
+#            ['C12', 'N12', 'C13', 'C14'],
+#            ['N12', 'C13', 'C14', 'C15']]
+#
+#     TEP = mda.Universe('test_data/TEP.pdb')
+#     IC = chiLife.get_internal_coords(TEP, resname='TEP', preferred_dihedrals=dih)
+#     IC2 = chiLife.get_internal_coords(TEP, resname='TEP')
+#
+#     IC.get_dihedral(1, dih)
+#     with pytest.raises(ValueError):
+#         IC2.get_dihedral(1, dih)

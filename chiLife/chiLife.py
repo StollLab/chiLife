@@ -75,7 +75,7 @@ def read_distance_distribution(file_name: str) -> Tuple[ArrayLike, ArrayLike]:
 
 def get_dd(
     *args,
-    r: ArrayLike = (0, 100),
+    r: ArrayLike = None,
     sigma: float = 1.0,
     prune: bool = False,
     uq: bool = False,
@@ -115,6 +115,9 @@ def get_dd(
     if not isinstance(args[-1], (SpinLabel, SpinLabelTraj, mock.Mock)):
         r = args[-1]
         args = args[:-1]
+
+    if r is None:
+        raise ValueError('Use must supply a distance domain')
 
     if any(not hasattr(arg, atr) for arg in args for atr in ["spin_coords", "weights"]):
         raise TypeError(

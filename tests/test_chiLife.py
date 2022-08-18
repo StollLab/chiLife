@@ -109,6 +109,7 @@ def test_filtered_dd():
 
 @pytest.mark.parametrize("args, kws, expected", zip(args, kws, ans))
 def test_get_dd(args, kws, expected):
+    kws.setdefault('r', (0, 100))
     y_ans = expected
     y = chiLife.get_dd(*args, **kws)
 

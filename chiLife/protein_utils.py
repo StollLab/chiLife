@@ -1479,16 +1479,6 @@ def guess_bonds(coords, atom_types, include_ionic=True):
     a_atoms = pairs[:, 0]
     b_atoms = pairs[:, 1]
 
-    # if include_ionic:
-    #     ionic_bond_dist = {('Cu', 'O'): 2.3 * 1.1, ('O', 'Cu'): 2.3 * 1.1,
-    #                        ('Cu', 'N'): 2.3 * 1.1, ('N', 'Cu'): 2.3 * 1.1,
-    #                        ('Gd', 'N'): 2.8 * 1.1, ('N', 'Gd'): 2.8 * 1.1,
-    #                        ('Gd', 'O'): 2.5 * 1.1, ('O', 'Gd'): 2.5 * 1.1}
-    #
-    #     r_idx = np.argwhere((pair_names[:, None, :] == np.array(list(ionic_bond_dist.keys()))[None, ...]).all(axis=-1).any(axis=-1))
-    #     if r_idx:
-    #         bond_lengths[r_idx] = [ionic_bond_dist.get(tuple(i for i in pair_names[idx]), 0.) for idx in r_idx]
-
     dist = np.linalg.norm(coords[a_atoms] - coords[b_atoms], axis=1)
     bonds = pairs[dist < bond_lengths]
 
@@ -1614,14 +1604,14 @@ def sort_pdb(pdbfile: Union[str, List], uniform_topology=True, index=False, bond
             # check for disconnected parts of residue
             if not nx.is_connected(graph):
                 for g in nx.connected_components(graph):
-                    if np.any(arg in g for arg in sorted_args):
+                    if np.any([arg in g for arg in sorted_args]):
                         continue
-
+                    CA_nodes = [idx for idx in CA_edges if atypes[start + idx] != 'H']
                     g_nodes = [idx for idx in g if atypes[start + idx] != 'H']
-                    near_root = cdist(coords[start:stop][CA_edges], coords[start:stop][g_nodes]).argmin()
-                    # xidx = near_root// len(g_nodes)
+                    near_root = cdist(coords[start:stop][CA_nodes], coords[start:stop][g_nodes]).argmin()
+                    # xidx = near_root // len(g_nodes)
                     yidx = near_root % len(g_nodes)
-                    CA_edges += [edge[1] for edge in nx.bfs_edges(graph, yidx) if edge[1]]
+                    CA_edges += [g_nodes[yidx]] + [edge[1] for edge in nx.bfs_edges(graph, g_nodes[yidx]) if edge[1]]
 
 
         elif stop - start > n_heavy:
@@ -1666,7 +1656,7 @@ with open(RL_DIR / "RotlibIndexes.pkl", "rb") as f:
     rotlib_indexes = pickle.load(f)
 
 with open(DATA_DIR / 'BondDefs.pkl', 'rb') as f:
-    _bond_hmax = {key: (val + 0.4 if 'H' in key else val + 0.3) for key, val in pickle.load(f).items()}
+    _bond_hmax = {key: (val + 0.4 if 'H' in key else val + 0.35) for key, val in pickle.load(f).items()}
     def bond_hmax(a): return _bond_hmax.get(tuple(i for i in a), 0)
     bond_hmax = np.vectorize(bond_hmax, signature="(n)->()")
 

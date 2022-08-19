@@ -1342,7 +1342,7 @@ def get_sas_res(
     atom_sasa = get_sasa(environment_coords, environment_radii, by_atom=True)
 
     SASAs = {(residue.resnum, residue.segid) for residue in protein.residues if
-             atom_sasa[residue.atoms.ix].sum() >= cutoff}
+             atom_sasa[0, residue.atoms.ix].sum() >= cutoff}
 
     return SASAs
 

@@ -2,7 +2,7 @@ from functools import wraps
 import numpy as np
 from scipy.spatial import cKDTree
 from scipy.spatial.distance import cdist
-from numba import njit
+from numba import njit, prange
 import chiLife
 
 
@@ -95,7 +95,7 @@ def get_lj_energy(r, rmin, eps, forgive=1, cap=10, rmax=10):
     rmin_lower = forgive * rmin
 
     # Piecewise function for flat lj potential near rmin
-    for i in range(len(r)):
+    for i in prange(len(r)):
         if r[i] < rmin_lower[i]:
             lj = rmin_lower[i] / r[i]
             lj = lj * lj * lj
@@ -142,7 +142,7 @@ def get_lj_scwrl(r, rmin, eps, forgive=1):
     rmin_lower = rmin * forgive
 
     # Piecewise function for flat lj potential near rmin
-    for i in range(len(r)):
+    for i in prange(len(r)):
         rat = r[i] / (rmin_lower[i] / 1.12246204831)
         if rat < 0.8254:
             lj_energy[i] = 10 * eps[i]
@@ -187,13 +187,51 @@ def get_lj_rep(r, rmin, eps, forgive=0.9, cap=10):
     rmin_lower = forgive * rmin
 
     # Piecewise function for flat lj potential near rmin
-    for i in range(len(r)):
+    for i in prange(len(r)):
         lj = rmin_lower[i] / r[i]
         lj = lj * lj * lj
         lj = lj * lj
         lj_energy[i] = np.minimum(eps[i] * lj**2, cap * eps[i])
 
     return lj_energy
+
+@clash_only
+@njit(cache=True, parallel=True)
+def get_lj_attr(r, rmin, eps, forgive=0.9, floor=-2):
+    """
+    Calculate only repulsive terms of lennard jones potential.
+
+    :param r: numpy ndarray
+        vector of distances
+
+    :param rmin: numpy ndarray
+        vector of rmin values corresponding to atoms pairs of r
+
+    :param eps: numpy ndarray
+        vector of epsilon values corresponding to atom pairs of r
+
+    :param forgive: numpy ndarray
+        fraction of
+
+    :return lj_energy: numpy ndarray
+        vector of energies calculated using the modified lj potential function.
+    """
+    lj_energy = np.empty_like(r)
+
+    # Unit convert
+    eps = eps.copy()
+
+    rmin_lower = forgive * rmin
+
+    # Piecewise function for flat lj potential near rmin
+    for i in prange(len(r)):
+        lj = rmin_lower[i] / r[i]
+        lj = lj * lj * lj
+        lj = lj * lj
+        lj_energy[i] = np.maximum(-2 * eps[i] * lj, eps[i] * floor)
+
+    return lj_energy
+
 
 
 # @njit(cache=True, parallel=True)

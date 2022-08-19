@@ -719,9 +719,8 @@ class RotamerLibrary:
         else:
             environment_coords = np.empty((0, 3))
             environment_radii = np.empty(0)
-        SASAs = []
-        for atom_coords in self.coords:
-            SASAs.append(chiLife.numba_utils.get_sasa(atom_coords, atom_radii, environment_coords, environment_radii))
+
+        SASAs = chiLife.numba_utils.get_sasa(self.coords, atom_radii, environment_coords, environment_radii)
 
         return np.array(SASAs)
 

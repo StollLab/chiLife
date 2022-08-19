@@ -116,7 +116,7 @@ def test_get_sasa1():
 
     area = nu.get_sasa(atom_coords, atom_radii, environment_coords, environment_radii)
 
-    assert area == 289.17354084897187
+    assert area[0] == 289.17354084897187
 
 
 def test_get_sasa2():
@@ -134,6 +134,6 @@ def test_get_sasa2():
     ans = np.array([2.83037863, 27.47825921, 0., 0., 0.,
                     0., 0., 0.14186254, 0., 30.89830006])
 
-    np.testing.assert_allclose(area[300:310], ans)
+    np.testing.assert_allclose(area[0, 300:310], ans)
 
 

@@ -1,6 +1,7 @@
 import numpy as np
 from numba import njit, prange
 import math as m
+from memoization import cached
 
 
 @njit(cache=True)
@@ -281,6 +282,22 @@ def get_ICAtom_indices(k, index, bonds, angles, dihedrals, offset):
     return i, j, k
 
 
+# @njit(cache=True, parallel=True)
+def _get_sasas(atom_coords,
+              atom_radii,
+              env_coords,
+              all_radii,
+              grid_points):
+
+    all_sasa = np.zeros(atom_coords.shape[:2], dtype=np.float64)
+    for staten in range(len(atom_coords)):
+        atc = atom_coords[staten]
+        alc = np.vstack((atc, env_coords))
+        all_sasa[staten] = _get_sasa(atc, atom_radii, alc, all_radii, grid_points)
+
+    return all_sasa
+
+@cached
 @njit(cache=True)
 def _get_sasa(atom_coords,
               atom_radii,
@@ -289,7 +306,8 @@ def _get_sasa(atom_coords,
               grid_points):
 
     atom_sasa = np.zeros(len(atom_coords), dtype=np.int64)
-    for i, (posi, radi) in enumerate(zip(atom_coords, atom_radii)):
+    for i in range(len(atom_radii)):
+        posi, radi = atom_coords[i], atom_radii[i]
 
         neighbor_idxs = []
         for j, (posj, radj) in enumerate(zip(all_coords, all_radii)):
@@ -311,11 +329,11 @@ def _get_sasa(atom_coords,
                 if dist_squared > radj ** 2:
                     left_overs.append(posk)
 
-            sphere = np.empty((len(left_overs), 3), dtype=np.float64)
+            sphere = np.zeros((len(left_overs), 3), dtype=np.float64)
             for k in range(len(left_overs)):
                 sphere[k] = left_overs[k]
 
-        atom_sasa[i] = len(sphere)
+        atom_sasa[i] = sphere.shape[0]
 
     atom_sasa = atom_sasa * (4.0 * np.pi / len(grid_points)) * atom_radii ** 2
 
@@ -330,24 +348,26 @@ def get_sasa(atom_coords,
               by_atom=False):
 
     grid_points = fibonacci_points(npoints)
-    atom_radii = atom_radii.copy()
 
     if environment_coords is None:
         environment_coords = np.empty(shape=(0, 3), dtype=np.float64)
         environment_radii = np.empty(shape=0, dtype=np.float64)
 
+    atom_radii = atom_radii.copy()
     environment_radii = environment_radii.copy()
 
     atom_radii += probe_radius
     environment_radii += probe_radius
 
+    atom_coords = atom_coords[None, ...] if len(atom_coords.shape) == 2 else atom_coords.copy()
     all_radii = np.hstack((atom_radii, environment_radii))
-    all_coords = np.vstack((atom_coords, environment_coords))
-    atom_sasa = _get_sasa(atom_coords, atom_radii, all_coords, all_radii, grid_points)
+
+    atom_sasa = _get_sasas(atom_coords, atom_radii, environment_coords, all_radii, grid_points)
+
     if by_atom:
         return atom_sasa
     else:
-        return np.sum(atom_sasa)
+        return np.sum(atom_sasa, axis=1)
 
 
 def fibonacci_points(n):

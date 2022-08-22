@@ -22,7 +22,7 @@ import MDAnalysis.core.topologyattrs
 import MDAnalysis.transformations
 
 import chiLife
-from .protein_utils import dihedral_defs, rotlib_indexes, local_mx, sort_pdb, mutate, save_pdb
+from .protein_utils import dihedral_defs, rotlib_indexes, local_mx, sort_pdb, mutate, save_pdb, ProteinIC
 from .scoring import get_lj_rep, GAS_CONST
 from .numba_utils import get_delta_r, histogram, norm, jaccard, dirichlet
 from .SpinLabel import SpinLabel, dSpinLabel
@@ -50,7 +50,7 @@ SUPPORTED_RESIDUES = set(
 [SUPPORTED_RESIDUES.remove(lab) for lab in ("CYR1", "MTN")]
 
 
-def read_distance_distribution(file_name: str) -> Tuple[ArrayLike, ArrayLike]:
+def read_distance_distribution(file_name: str) -> Tuple[np.ndarray, np.ndarray]:
     """
     Reads a DEER distance distribution file in the DeerAnalysis format.
 
@@ -79,8 +79,7 @@ def get_dd(
     sigma: float = 1.0,
     prune: bool = False,
     uq: bool = False,
-    **kwargs,
-) -> ArrayLike:
+) -> np.ndarray:
     """
     Wrapper function to calculate distance distribution using arbitrary function and arbitrary inputs
 
@@ -103,10 +102,6 @@ def get_dd(
         Perform uncertainty quantification by subsampling rotamer libraries used to calculate the distance distribution.
         if uq is an int than that will be the number of subsamples defaulting to 100.
 
-    :Keyword Arguments:
-        * *size* (``int``) --
-          Number of points in the distance domain
-
     :return P: ndarray
         The probability density of the distance distribution corresponding to r
     """
@@ -124,17 +119,7 @@ def get_dd(
             "Arguments other than spin labels must be passed as a keyword argument"
         )
 
-    size = kwargs.get("size", 1024)
-    if isinstance(r, numbers.Number):
-        r = np.linspace(0, r, size)
-
-    elif isinstance(r, Sized):
-        if len(r) == 2:
-            r = np.linspace(*r, size)
-        elif len(r) == 3:
-            r = np.linspace(*r)
-        else:
-            r = np.asarray(r)
+    r = np.asarray(r)
 
     if any(isinstance(SL, SpinLabelTraj) for SL in args):
         return traj_dd(*args, r=r, sigma=sigma, prune=prune, **kwargs)
@@ -157,7 +142,7 @@ def get_dd(
                 dummy_SL.weights /= dummy_SL.weights.sum()
                 dummy_labels.append(dummy_SL)
 
-            Ps.append(get_dd(*dummy_labels, r=r, sigma=sigma, prune=prune, **kwargs))
+            Ps.append(get_dd(*dummy_labels, r=r, sigma=sigma, prune=prune))
         Ps = np.array(Ps)
         return Ps
 
@@ -187,23 +172,20 @@ def get_dd(
     return P
 
 
-def unfiltered_dd(*args, r: ArrayLike, sigma: float = 1.0) -> ArrayLike:
+def unfiltered_dd(*args, r: ArrayLike, sigma: float = 1.0) -> np.ndarray:
     """
     Obtain the pairwise distance distribution from two rotamer libraries, NO1, NO2 with corresponding weights w1, w2.
     The distribution is calculated by convolving the weighted histogram of pairwise distances between NO1 and NO2 with
     a normal distribution of sigma.
 
-    :param NO1, NO2: ndarray
-        Electron coordinates of each rotamer library
-
-    :param w1, w2: ndarray
-        rotamer weights for each rotamer library
+    :param *args: SpinLabels
+        SpinLabels to use when calculating the distance distribution
 
     :param r: ndarray
         Domain to compute distance distribution over
 
     :param sigma: float
-    standard deviation of normal distribution used for convolution
+        standard deviation of normal distribution used for convolution
 
     :return P: ndarray
         x and y coordinates of normalized distance distribution
@@ -244,9 +226,7 @@ def unfiltered_dd(*args, r: ArrayLike, sigma: float = 1.0) -> ArrayLike:
     return P
 
 
-def filter_by_weight(
-    w1: ArrayLike, w2: ArrayLike, cutoff: float = 0.001
-) -> Tuple[ArrayLike, ArrayLike]:
+def filter_by_weight(w1: ArrayLike, w2: ArrayLike, cutoff: float = 0.001) -> Tuple[np.ndarray, np.ndarray]:
     """
     Pre-calculates weights for each rotamer pair and returns a weight vector for corresponding to the weights for each
     significant pair and their coordinate indices.
@@ -276,9 +256,9 @@ def filter_by_weight(
 
 def filtered_dd(
     NO1: ArrayLike, NO2: ArrayLike, weights: ArrayLike, r: ArrayLike, sigma: float = 1.0
-) -> ArrayLike:
+) -> np.ndarray:
     """
-    Calculates the distance distribution for two sets of NO midpoints.
+    Calculates the distance distribution for two sets of NO midpoints after filtering out low weight pairs.
 
     :param NO1, NO2: ndarray
         coordinates of spin label's NO midpoints
@@ -344,7 +324,7 @@ def traj_dd(
     sigma: float,
     filter: Union[bool, float],
     **kwargs,
-) -> ArrayLike:
+) -> np.ndarray:
     """
     Calculate a distance distribution from a trajectory of spin labels
 
@@ -359,16 +339,16 @@ def traj_dd(
 
     :param filter: float, bool
         Option to prune out negligible population rotamer pairs from distance distribution calculation. The fraction
-        ommited can be specified by assigning a float to `prune`
+        omitted can be specified by assigning a float to `prune`
 
     :param kwargs: dict
         Additional keyword arguments.
 
     :return P: ndarray
-        Disctance distribution calculated from the provided SpinLabelTrajectories
+        Distance distribution calculated from the provided SpinLabelTrajectories
     """
 
-    # Ensure that the SpinLabelTrajectories have the same numebr of frames.
+    # Ensure that the SpinLabelTrajectories have the same number of frames.
     if len(SL1) != len(SL2):
         raise ValueError("SpinLabelTraj objects must have the same length")
 
@@ -384,12 +364,12 @@ def traj_dd(
 
 
 @cached
-def read_sl_library(label: str, user: bool = False) -> Tuple[ArrayLike, ...]:
+def read_sl_library(label: str, user: bool = False) -> Tuple[np.ndarray, ...]:
     """
     Reads RotamerLibrary for stored spin labels.
 
     :param label: str
-        3 character abbreviation for desired spin label
+        3-character abbreviation for desired spin label
 
     :param user: bool
         Specifies if the library was defined by a user or if it is a precalculated library
@@ -429,17 +409,17 @@ def read_sl_library(label: str, user: bool = False) -> Tuple[ArrayLike, ...]:
 
 
 @cached
-def read_bbdep(res: str, Phi: float, Psi: float) -> Tuple[ArrayLike, ...]:
+def read_bbdep(res: str, Phi: int, Psi: int) -> Tuple[np.ndarray, ...]:
     """
-    Read the dunbrack rotamer library for for the provided residue and backbone conformation.
+    Read the Dunbrack rotamer library for the provided residue and backbone conformation.
 
     :param res: str
-        3 letter residue code
+        3-letter residue code
 
-    :param Phi: float
+    :param Phi: int
         Protein backbone Phi dihedral angle for the provided residue
 
-    :param Psi: float
+    :param Psi: int
         Protein backbone Psi dihedral angle for the provided residue
 
     :return coords, internal_coords, weights, atom_types, atom_names: numpy.ndarray
@@ -507,7 +487,7 @@ def read_bbdep(res: str, Phi: float, Psi: float) -> Tuple[ArrayLike, ...]:
 
 def read_library(
     res: str, Phi: float = None, Psi: float = None
-) -> Tuple[ArrayLike, ...]:
+) -> Tuple[np.ndarray, ...]:
     """
     Generalized wrapper function to aid selection of rotamer library reading function.
 
@@ -538,39 +518,7 @@ def read_library(
     else:
         return read_bbdep(res, -60, -50)
 
-
-def get_site(site: Union[int, str], label: str) -> Tuple[int, str]:
-    """
-    Function to obtain site information from a (user provided) string
-
-    :param site: int, str
-        residue number and possibly chain and label of site
-
-    :param label: str
-         default label if none is provided by site
-
-    :return resi, chain: int, str
-        The residue number and chain identifier of the provided site
-    """
-    chain = None
-    if isinstance(site, str):
-        # Check for explicit label
-        if site.endswith(SUPPORTED_LABELS):
-            label = site[-3:]
-            site = site[:-3]
-
-        # Extract Chain if it exists
-        chain = site.strip("0123456789")
-
-    if chain:
-        resi = int(site[len(chain):])
-    else:
-        resi = int(site)
-        chain = "A"
-
-    return resi, chain, label
-
-
+# TODO: Move int examples
 @njit(cache=True)
 def optimize_weights(
     ensemble: ArrayLike,
@@ -636,7 +584,7 @@ def save(
     **kwargs,
 ) -> None:
     """
-    Save a pdb file of the provided labels
+    Save a pdb file of the provided labels and proteins
 
     :param file_name: str
         Desired file name for output file. Will be automatically made based off of protein name and labels if not
@@ -703,9 +651,16 @@ def save(
         write_labels(file_name, *labels, **kwargs)
 
 
-def write_protein(
-    file: str, protein: Union[mda.Universe, mda.AtomGroup], **kwargs
-) -> None:
+def write_protein(file: str, protein: Union[mda.Universe, mda.AtomGroup]) -> None:
+    """
+    Helper function to write protein pdbs from mdanalysis objects.
+
+    :param file: str
+        Name of file to save the protein to
+
+    :param protein: MDAnalysis.Universe, MDAnalysis.AtomGroup
+        MDAnalyiss object to save
+    """
 
     # Change chain identifier if longer than 1
     available_segids = iter('ABCDEFGHIJKLMNOPQRSTUVWXYZ')
@@ -741,18 +696,18 @@ def write_protein(
 
 def write_labels(file: str, *args: SpinLabel, KDE: bool = True, **kwargs) -> None:
     """
-    Lower level helper function for save. Loops over SpinLabel objects and appends atoms and electron coordinates to the
-    provided file.
+    Lower level helper function for saving SpinLabels and RotamerLibrarys. Loops over SpinLabel objects and appends
+    atoms and electron coordinates to the provided file.
 
     :param file: string
         File name to write to.
 
     :param *args: SpinLabel(s)
-        SpinLabel objects to write to file
+        SpinLabel or RotamerLibrary objects to write to file.
 
     :param KDE: bool
         Switch to perform Kernel Density Estimate (KDE) on spin label weights to produce a smooth surface to
-        visualize pseudo-spin density with b-factor
+        visualize pseudo-spin density with b-factor.
     """
 
     # Check for dSpinLables
@@ -809,14 +764,14 @@ def write_labels(file: str, *args: SpinLabel, KDE: bool = True, **kwargs) -> Non
                 continue
 
             f.write(f"HEADER {label.name}_density\n".format(label.label, k + 1))
-            NO = np.atleast_2d(label.spin_coords)
+            spin_coords = np.atleast_2d(label.spin_coords)
 
-            if KDE and np.all(np.linalg.eigh(np.cov(NO.T))[0] > 0) and len(NO) > 5:
+            if KDE and np.all(np.linalg.eigh(np.cov(spin_coords.T))[0] > 0) and len(spin_coords) > 5:
                 # Perform gaussian KDE to determine electron density
-                gkde = gaussian_kde(NO.T, weights=label.weights)
+                gkde = gaussian_kde(spin_coords.T, weights=label.weights)
 
                 # Map KDE density to pseudoatoms
-                vals = gkde.pdf(NO.T)
+                vals = gkde.pdf(spin_coords.T)
             else:
                 vals = label.weights
 
@@ -828,7 +783,7 @@ def write_labels(file: str, *args: SpinLabel, KDE: bool = True, **kwargs) -> Non
                         label.label[:3],
                         label.chain,
                         int(label.site),
-                        *NO[i],
+                        *spin_coords[i],
                         1.00,
                         vals[i] * 100,
                         "N",
@@ -842,37 +797,38 @@ def write_labels(file: str, *args: SpinLabel, KDE: bool = True, **kwargs) -> Non
 
 def repack(
     protein: Union[mda.Universe, mda.AtomGroup],
-    *spin_labels: SpinLabel,
+    *spin_labels: RotamerLibrary,
     repetitions: int = 200,
     temp: float = 1,
     energy_func: Callable = get_lj_rep,
     **kwargs,
 ) -> Tuple[mda.Universe, ArrayLike, Tuple[SpinLabel, ...]]:
     """
-    Given a protein and a SpinLabel object, repack the local environment using monte carlo sampling.
+    Markov chain Monte Carlo repack a protein around any numberof SpinLabel or RotamerLibrary objects.
 
     :param protein: MDAnalysis.Universe or MDAnalysis.AtomGroup
         Protein to be repacked
 
-    :param spin_labels: SpinLabel
-        SpinLabel placed at site of interest.
+    :param spin_labels: RotamerLibrary
+        RotamerLibrary or SpinLabel object placed at site of interest.
 
     :param repetitions: int
         Number of successful MC samples to perform before terminating the MC sampling loop
 
-    :param temp: float
-        Temperature (Kelvin) for both clash evaluation and metropolis-hastings acceptance criteria.
+    :param temp: float, ArrayLike
+        Temperature (Kelvin) for both clash evaluation and metropolis-hastings acceptance criteria. Accepts a list or
+        array like object of temperatures if a temperature schedule is desired.
 
     :param energy_func: function
-        Energy function to be used for clash evaluation
+        Energy function to be used for clash evaluation. Must accept a protein and RotmerLibrary object and return an
+        array of potentials in kcal/mol, with one energy per rotamer in the rotamer library.
 
     :param kwargs: dict
         Additional keyword arguments to be passed to downstream functions.
 
-    :return opt_protein, deltaEs, SLs: MDAnalysis.Universe, ndarray, tuple
-        opt_protein: MCMC trajectory of local repack
+    :return protein, deltaEs: MDAnalysis.Universe, ndarray
+        protein: MCMC trajectory of local repack
         deltaEs: Change in energy_func score at each accept of MCMC trajectory
-        SLs: tuple of spin label objects attached to the lowest energy structure of the trajectory for each input label
     """
     temp = np.atleast_1d(temp)
     KT = {t: GAS_CONST * t for t in temp}
@@ -1014,15 +970,15 @@ def add_label(
     Add a user defined SpinLabel from a pdb file.
 
     :param name: str
-        Name for the user defined label.
+        Name for the user defined label. Should be a 3-letter residue code.
 
     :param pdb: str
         Name of (and path to) pdb file containing the user defined spin label structure. This pdb file should contain
         only the desired spin label and no additional residues.
 
     :param dihedral_atoms: list
-        list of rotatable dihedrals. List should contain lists of 4 atom names. Atom names must be the same as defined
-        in the pdb file eg:
+        List of rotatable dihedrals. List should contain sublists of 4 atom names. Atom names must be the same as
+        defined in the pdb file eg:
         [ ['CA', 'CB', 'SG', 'SD'],
           ['CB', 'SG', 'SD', 'CE']...]
 
@@ -1031,16 +987,19 @@ def add_label(
 
     :param dihedrals: ndarray, optional
         Array of dihedral angles. If provided the new label object will be stored as a rotamer library with the
-        dihedrals provided.
+        dihedrals provided. Array should be n x m where n is the number of rotamers and m is the number of dihedrals.
 
     :param weights: ndarray, optional
-        Weights associated with the dihedral angles provided by the `dihedrals` keyword argument
+        Weights associated with the dihedral angles provided by the `dihedrals` keyword argument. There should be one
+        weight per rotamer and the rotamer weights should sum to 1.
 
     :param sigmas: ndarray, optional
-        Sigma paramter for disributions of dihedral angles.
+        Sigma parameter for distributions of dihedral angles. Should be n x m matrix where n is the number of rotamers
+        and m is the number of dihedrals. This feature will be used when performing off rotamer samplings.
 
     :param skews: ndarray, optional
-        Skew parameter for disributions of dihedral angles.
+        Skew parameter for distributions of dihedral angles. Should be n x m matrix where n is the number of rotamers
+        and m is the number of dihedrals. This feature will be used when performing off rotamer samplings.
     """
     struct = pre_add_label(name, pdb, spin_atoms)
     pdb_resname = struct.select_atoms(f"resnum {resi}").resnames[0]
@@ -1088,10 +1047,10 @@ def add_dlabel(
     weights: ArrayLike = None,
 ):
     """
-    Add a user defined SpinLabel from a pdb file.
+    Add a user defined dSpinLabel from a pdb file.
 
     :param name: str
-        Name for the user defined label.
+        Name for the user defined label. Should be a 3-letter code.
 
     :param increment: int
         The number of residues the second site away from the first site.
@@ -1214,7 +1173,27 @@ def add_dlabel(
     store_new_restype(name + f'ip{increment}B', IC2, weights, dihedrals[1], dihedral_atoms[1], resi=1 + increment)
 
 
-def pre_add_label(name, pdb, spin_atoms, uniform_topology=True):
+def pre_add_label(name: str, pdb: str, spin_atoms: List[str], uniform_topology: bool = True) -> MDAnalysis.Universe:
+    """
+    Helper function to sort pdbs, save spin atoms, update lists, etc when adding a SpinLabel or dSpinLabel.
+
+    :param name: str
+        Name of the label being added. Should be a 3-letter code.
+
+    :param pdb: str
+        Name (and path) of the pdb containing the new label.
+
+    :param spin_atoms: List[str]
+        Atoms of the SpinLabel where the unpaired electron is located.
+
+    :param uniform_topology: bool
+        Assume all rotamers of the library have the same topology (i.e. no differences in atom bonding). If false
+        chiLife will attempt to find the minimal topology shared between all rotamers for defining internal coordinates.
+
+    :return struct: MDAnalyiss.Universe
+        MDAnalyiss Universe object containing the rotamer library with each rotamer as a frame. All atoms should be
+        properly sorted for consistent construction of internal coordinates.
+    """
     # Sort the PDB for optimal dihedral definitions
     pdb_lines = sort_pdb(pdb, uniform_topology=uniform_topology)
 
@@ -1264,7 +1243,39 @@ def pre_add_label(name, pdb, spin_atoms, uniform_topology=True):
     return struct
 
 
-def store_new_restype(name, internal_coords, weights, dihedrals, dihedral_atoms, sigmas=None, resi=1):
+def store_new_restype(name: str,
+                      internal_coords: List[ProteinIC],
+                      weights: ArrayLike,
+                      dihedrals: ArrayLike,
+                      dihedral_atoms: ArrayLike,
+                      sigmas: ArrayLike = None,
+                      resi: int = 1):
+    """
+    Helper function to add new residue types to chiLife
+
+    :param name: str
+        Name of residue to be stored.
+
+    :param internal_coords: List[ProteinIC]
+        list of internal coordinates of the new residue type.
+
+    :param weights: ArrayLike
+        Array of weights corresponding to each rotamer of the library
+
+    :param dihedrals: ArrayLike
+        Array of mobile dihedral angles for each rotamer fo the library
+
+    :param dihedral_atoms: ArrayLike
+        Definition of mobile dihedral angles for a single structure. Should be a list of 4 string lists where the
+        four strings are the names of the atoms that define the dihedral.
+
+    :param sigmas: ArrayLike
+        Array of sigma values for each dihedral of each rotamer.
+
+    param resi: int
+        The residue number to be stored.
+
+    """
     # Extract coordinates and transform to the local frame
     bb_atom_idx = [
         i for i, atom in enumerate(internal_coords[0].atoms) if atom.name in ["N", "CA", "C"]
@@ -1304,7 +1315,6 @@ def store_new_restype(name, internal_coords, weights, dihedrals, dihedral_atoms,
         save_dict['locs'] = sigmas[..., 1]
         save_dict['skews'] = sigmas[..., 0]
 
-
     # Save rotamer library
     np.savez(
         RL_DIR / f"UserRotlibs/{name}_rotlib.npz",
@@ -1313,7 +1323,16 @@ def store_new_restype(name, internal_coords, weights, dihedrals, dihedral_atoms,
     )
 
 
-def add_dihedral_def(name, dihedrals):
+def add_dihedral_def(name: str, dihedrals: ArrayLike):
+    """
+    Helper function to add the dihedral definitions of user defined labels and libraries to the chiLife knowledge base.
+
+    :param name: str
+        Name of the residue.
+
+    :param dihedrals: ArrayLike
+        List of lists of atom names defining the dihedrals.
+    """
 
     # Reload in case there were other changes
     with open(DATA_DIR / "DihedralDefs.pkl", "rb") as f:

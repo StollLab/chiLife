@@ -25,8 +25,8 @@ for SL in labels:
     [args.append([SL1, SL2]) for i in range(6)]
 
     kws.append({"prune": True})
-    kws.append({"r": 80, "prune": True})
-    kws.append({"r": (20, 80), "prune": True})
+    kws.append({"r": np.linspace(0, 80, 1024), "prune": True})
+    kws.append({"r": np.linspace(20, 80, 1024), "prune": True})
     kws.append({"r": r, "prune": True})
     kws.append({"prune": True})
     kws.append({"prune": 0.0001})
@@ -109,7 +109,7 @@ def test_filtered_dd():
 
 @pytest.mark.parametrize("args, kws, expected", zip(args, kws, ans))
 def test_get_dd(args, kws, expected):
-    kws.setdefault('r', (0, 100))
+    kws.setdefault('r', np.linspace(0, 100, 1024))
     y_ans = expected
     y = chiLife.get_dd(*args, **kws)
 

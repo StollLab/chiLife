@@ -12,39 +12,28 @@ import chiLife
 
 class SpinLabel(RotamerLibrary):
     """
-    Base object for spin labeling experiments.
+    A RotamerLibrary made from a side chain with one or more unpaired electrons.
 
-    Parameters
-    ----------
-        :param label: str
-            Name of desired spin label, e.g. R1A.
-        :param site: int
-            Protein residue number to attach spin label to.
-        :param chain: str
-            Protein chain identifier to attach spin label to.
-        :param protein: MDAnalysis.Universe, MDAnalysis.AtomGroup
-            Object containing all protein information (coords, atom types, etc.)
-        :param protein_tree: cKDtree
-            k-dimensional tree object associated with the protein coordinates.
+    :param label: str
+        Name of desired spin label, e.g. R1A.
+
+    :param site: int
+        Protein residue number to attach spin label to.
+
+    :param chain: str
+        Protein chain identifier to attach spin label to.
+
+    :param protein: MDAnalysis.Universe, MDAnalysis.AtomGroup
+        Object containing all protein information (coords, atom types, etc.)
+
+    :param protein_tree: cKDtree
+        k-dimensional tree object associated with the protein coordinates.
     """
 
     backbone_atoms = ["H", "N", "CA", "HA", "C", "O"]
 
     def __init__(self, label, site=1, protein=None, chain=None, **kwargs):
-        """
-        Create new SpinLabel object.
 
-        :param label: str
-            Name of desired spin label, e.g. R1A.
-        :param site: int
-            Protein residue number to attach spin label to.
-        :param chain: str
-            Protein chain identifier to attach spin label to.
-        :param protein: MDAnalysis.Universe, MDAnalysis.AtomGroup
-            Object containing all protein information (coords, atom types, etc.)
-        :param protein_tree: cKDtree
-            k-dimensional tree object associated with the protein coordinates.
-        """
         # Overide RotamerLibrary default of not evaluating clashes
         kwargs.setdefault("eval_clash", True)
         super().__init__(label, site, protein=protein, chain=chain, **kwargs)
@@ -52,9 +41,7 @@ class SpinLabel(RotamerLibrary):
         self.label = label
 
         # Parse important indices
-        self.spin_idx = np.argwhere(
-            np.isin(self.atom_names, chiLife.SPIN_ATOMS[label[:3]])
-        )
+        self.spin_idx = np.argwhere(np.isin(self.atom_names, chiLife.SPIN_ATOMS[label[:3]]))
 
     @property
     def spin_coords(self):
@@ -63,6 +50,7 @@ class SpinLabel(RotamerLibrary):
 
     @property
     def spin_centroid(self):
+        """Average location of all the label's `spin_coords` weighted based off of the rotamer weights"""
         return np.average(self.spin_coords, weights=self.weights, axis=0)
 
     def protein_setup(self):
@@ -91,9 +79,8 @@ class SpinLabel(RotamerLibrary):
 
     @classmethod
     def from_mmm(cls, label, site, protein=None, chain=None, **kwargs):
-        """
-        Create a SpinLabel object using the default MMM protocol with any modifications passed via kwargs
-        """
+        """Create a SpinLabel object using the default MMM protocol with any modifications passed via kwargs"""
+
         MMM_maxdist = {
             "R1M": 9.550856367392733,
             "R7M": 9.757254987175209,
@@ -149,6 +136,8 @@ class SpinLabel(RotamerLibrary):
         clashes=5,
         **kwargs,
     ):
+        """Create a SpinLabel object using the default MTSSLWizard protocol with any modifications passed via kwargs"""
+
         prelib = cls(label, site, protein, chain, eval_clash=False, **kwargs)
         prelib.sigmas = np.array([])
 

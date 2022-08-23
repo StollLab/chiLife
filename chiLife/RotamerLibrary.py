@@ -10,22 +10,23 @@ import chiLife
 
 
 class RotamerLibrary:
+    """
+    Create new RotamerLibrary object.
+
+    :param res: string
+        Name of desired residue, e.g. R1A.
+    :param site: int
+        Protein residue number to attach library to.
+    :param protein: MDAnalysis.Universe, MDAnalysis.AtomGroup
+        Object containing all protein information (coords, atom types, etc.)
+    :param chain: str
+        Protein chain identifier to attach spin label to.
+    """
 
     backbone_atoms = ["H", "N", "CA", "HA", "C", "O"]
 
     def __init__(self, res, site=1, protein=None, chain=None, **kwargs):
-        """
-        Create new RotamerLibrary object.
 
-        :param res: string
-            Name of desired residue, e.g. R1A.
-        :param site: int
-            Protein residue number to attach library to.
-        :param protein: MDAnalysis.Universe, MDAnalysis.AtomGroup
-            Object containing all protein information (coords, atom types, etc.)
-        :param chain: str
-            Protein chain identifier to attach spin label to.
-        """
 
         self.res = res
         self.protein = protein
@@ -211,6 +212,7 @@ class RotamerLibrary:
     def set_site(self, site):
         """
         Assign SpinLabel to a site.
+
         :param site: int
             residue number to assign SpinLabel to.
         """
@@ -239,6 +241,7 @@ class RotamerLibrary:
 
     def to_site(self, site_pos=None):
         """Move spin label to new site
+
         :param site_pos: array-like
             3x3 array of ordered backbone atom coordinates of new site (N CA C)
         """

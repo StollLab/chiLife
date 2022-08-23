@@ -5,6 +5,7 @@ from typing import Set, List, Union, Tuple
 from numpy.typing import ArrayLike
 from dataclasses import dataclass, replace
 from collections import Counter
+from memoization import cached
 import MDAnalysis
 import numpy as np
 from scipy.spatial import cKDTree
@@ -632,6 +633,8 @@ class ProteinIC:
             IC_idx_array, ICArray = self.zmat_idxs[segid], self.zmats[segid]
             cart_coords = _ic_to_cart(IC_idx_array, ICArray)
 
+
+
             # Apply chain operations if any exist
             if ~np.allclose(
                 self.chain_operators[segid]["mx"], np.identity(3)
@@ -640,7 +643,12 @@ class ProteinIC:
                     cart_coords @ self.chain_operators[segid]["mx"]
                     + self.chain_operators[segid]["ori"]
                 )
+            has_nan = False
+            if np.any(np.isnan(cart_coords)):
+                has_nan = True
 
+            if has_nan:
+                breakpoint()
             coord_arrays.append(cart_coords)
 
         return np.concatenate(coord_arrays)
@@ -930,6 +938,7 @@ def get_internal_coords(
     mol: Union[MDAnalysis.Universe, MDAnalysis.AtomGroup],
     resname: str = None,
     preferred_dihedrals: List = None,
+    bonds: ArrayLike = None,
 ) -> ProteinIC:
     """
     Gather a list of Internal
@@ -951,7 +960,7 @@ def get_internal_coords(
     """
     mol = mol.select_atoms("not (byres name OH2 or resname HOH)")
     U = mol.universe
-    bonds = guess_bonds(mol.atoms.positions, mol.atoms.types)
+    bonds = bonds if bonds is not None else guess_bonds(mol.atoms.positions, mol.atoms.types)
 
     G = nx.DiGraph()
     G.add_edges_from(bonds)
@@ -1484,9 +1493,11 @@ def guess_bonds(coords, atom_types, include_ionic=True):
 
     return bonds
 
-
+@cached
 def get_min_topol(lines):
     bonds_list = []
+    if isinstance(lines[0], str):
+        lines = [lines]
 
     for struct in lines:
 
@@ -1501,7 +1512,10 @@ def get_min_topol(lines):
     return minimal_bond_list
 
 
-def sort_pdb(pdbfile: Union[str, List], uniform_topology=True, index=False, bonds=None) -> Union[List[str], List[int]]:
+def sort_pdb(pdbfile: Union[str, List],
+             uniform_topology: bool =True,
+             index: bool = False,
+             bonds: ArrayLike = None) -> Union[List[str], List[int]]:
     """
     Read ATOM lines of a pdb and sort the atoms according to chain, residue index, backbone atoms and side chain atoms.
     Side chain atoms are sorted by distance to each other/backbone atoms with atoms closest to the backbone coming

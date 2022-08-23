@@ -1,3 +1,4 @@
+from __future__ import annotations
 import numbers, shutil, tempfile,  math, logging, pickle, os
 from pathlib import Path
 from collections.abc import Sized
@@ -22,7 +23,7 @@ import MDAnalysis.core.topologyattrs
 import MDAnalysis.transformations
 
 import chiLife
-from .protein_utils import dihedral_defs, rotlib_indexes, local_mx, sort_pdb, mutate, save_pdb, ProteinIC
+from .protein_utils import dihedral_defs, rotlib_indexes, local_mx, sort_pdb, mutate, save_pdb, ProteinIC, get_min_topol
 from .scoring import get_lj_rep, GAS_CONST
 from .numba_utils import get_delta_r, histogram, norm, jaccard, dirichlet
 from .SpinLabel import SpinLabel, dSpinLabel
@@ -83,7 +84,7 @@ def get_dd(
     """
     Wrapper function to calculate distance distribution using arbitrary function and arbitrary inputs
 
-    :param *args:
+    :param \*args:
         Variable length list of SpinLabel objects
 
     :param r: ndarray, tuple float
@@ -122,7 +123,7 @@ def get_dd(
     r = np.asarray(r)
 
     if any(isinstance(SL, SpinLabelTraj) for SL in args):
-        return traj_dd(*args, r=r, sigma=sigma, prune=prune, **kwargs)
+        return traj_dd(*args, r=r, sigma=sigma, prune=prune)
 
     if uq:
         if prune:
@@ -178,7 +179,7 @@ def unfiltered_dd(*args, r: ArrayLike, sigma: float = 1.0) -> np.ndarray:
     The distribution is calculated by convolving the weighted histogram of pairwise distances between NO1 and NO2 with
     a normal distribution of sigma.
 
-    :param *args: SpinLabels
+    :param \*args: SpinLabels
         SpinLabels to use when calculating the distance distribution
 
     :param r: ndarray
@@ -702,7 +703,7 @@ def write_labels(file: str, *args: SpinLabel, KDE: bool = True, **kwargs) -> Non
     :param file: string
         File name to write to.
 
-    :param *args: SpinLabel(s)
+    :param \*args: SpinLabel(s)
         SpinLabel or RotamerLibrary objects to write to file.
 
     :param KDE: bool
@@ -979,8 +980,11 @@ def add_label(
     :param dihedral_atoms: list
         List of rotatable dihedrals. List should contain sublists of 4 atom names. Atom names must be the same as
         defined in the pdb file eg:
-        [ ['CA', 'CB', 'SG', 'SD'],
-          ['CB', 'SG', 'SD', 'CE']...]
+
+        .. code-block:: python
+
+            [['CA', 'CB', 'SG', 'SD'],
+             ['CB', 'SG', 'SD', 'CE']...]
 
     :param spin_atoms: list
         List of atom names on which the spin density is localized.
@@ -1011,6 +1015,7 @@ def add_label(
             struct.select_atoms(f"resnum {resi}"),
             resname=pdb_resname,
             preferred_dihedrals=dihedral_atoms,
+            bonds=struct.bonds.indices
         )
         for ts in struct.trajectory
     ]
@@ -1062,8 +1067,11 @@ def add_dlabel(
     :param dihedral_atoms: list
         list of rotatable dihedrals. List should contain lists of 4 atom names. Atom names must be the same as defined
         in the pdb file eg:
-        [ ['CA', 'CB', 'SG', 'SD'],
-          ['CB', 'SG', 'SD', 'CE']...]
+
+        .. code-block:: python
+
+            [['CA', 'CB', 'SG', 'SD'],
+             ['CB', 'SG', 'SD', 'CE']...]
 
     :param spin_atoms: list
         List of atom names on which the spin density is localized.
@@ -1196,6 +1204,7 @@ def pre_add_label(name: str, pdb: str, spin_atoms: List[str], uniform_topology: 
     """
     # Sort the PDB for optimal dihedral definitions
     pdb_lines = sort_pdb(pdb, uniform_topology=uniform_topology)
+    bonds = get_min_topol(pdb_lines)
 
     # Store spin atoms if provided
     if spin_atoms is not None:
@@ -1239,6 +1248,7 @@ def pre_add_label(name: str, pdb: str, spin_atoms: List[str], uniform_topology: 
 
     # Load sorted atom pdb using MDAnalysis and remove tempfile
     struct = mda.Universe(tmpfile.name, in_memory=True)
+    struct.universe.add_bonds(bonds)
     os.remove(tmpfile.name)
     return struct
 
@@ -1294,6 +1304,10 @@ def store_new_restype(name: str,
     else:
         if coords.ndim == 2:
             coords = np.expand_dims(coords, axis=0)
+
+    if np.any(np.isnan(coords)):
+        idxs = np.argwhere(np.isnan(coords, np.sum(axis=(1, 2))))
+        raise(ValueError(f'Coords of rotamer {" ".join((str(idx) for idx in idxs))} cannot be converted to internal coords'))
 
     atom_types = np.array([atom.atype for atom in internal_coords[0].atoms])
     atom_names = np.array([atom.name for atom in internal_coords[0].atoms])

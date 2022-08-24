@@ -1354,7 +1354,7 @@ def add_dihedral_def(name: str, dihedrals: ArrayLike):
 
     # Add new label defs and write file
     local_dihedral_def[name] = dihedrals
-    with open(DATA_DIR/ "DihedralDefs.pkl", "wb") as f:
+    with open(DATA_DIR / "DihedralDefs.pkl", "wb") as f:
         pickle.dump(local_dihedral_def, f)
 
     # Add to active dihedral def dict

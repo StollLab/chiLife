@@ -1479,12 +1479,12 @@ def pose2mda(pose):
 
     return mda_protein
 
-
-def guess_bonds(coords, atom_types, include_ionic=True):
+from operator import itemgetter
+def guess_bonds(coords, atom_types):
     kdtree = cKDTree(coords)
     pairs = kdtree.query_pairs(4., output_type='ndarray')
-    pair_names = atom_types[pairs]
-    bond_lengths = chiLife.bond_hmax(pair_names)
+    pair_names = [tuple(x) for x in atom_types[pairs].tolist()]
+    bond_lengths = itemgetter(*pair_names)(chiLife.bond_hmax_dict)
     a_atoms = pairs[:, 0]
     b_atoms = pairs[:, 1]
 
@@ -1493,7 +1493,7 @@ def guess_bonds(coords, atom_types, include_ionic=True):
 
     return bonds
 
-@cached
+# @cached
 def get_min_topol(lines):
     bonds_list = []
     if isinstance(lines[0], str):
@@ -1503,8 +1503,8 @@ def get_min_topol(lines):
 
         coords = np.array([(line[30:38], line[38:46], line[46:54]) for line in struct], dtype=float)
         atypes = np.array([line[76:78].strip() for line in struct])
-
-        bonds = set(tuple(pair) for pair in guess_bonds(coords, atypes))
+        pairs = guess_bonds(coords, atypes)
+        bonds = set(tuple(pair) for pair in pairs)
         bonds_list.append(bonds)
 
     minimal_bond_list = set.intersection(*bonds_list)
@@ -1670,8 +1670,8 @@ with open(RL_DIR / "RotlibIndexes.pkl", "rb") as f:
     rotlib_indexes = pickle.load(f)
 
 with open(DATA_DIR / 'BondDefs.pkl', 'rb') as f:
-    _bond_hmax = {key: (val + 0.4 if 'H' in key else val + 0.35) for key, val in pickle.load(f).items()}
-    def bond_hmax(a): return _bond_hmax.get(tuple(i for i in a), 0)
+    bond_hmax_dict = {key: (val + 0.4 if 'H' in key else val + 0.35) for key, val in pickle.load(f).items()}
+    def bond_hmax(a): return bond_hmax_dict.get(tuple(i for i in a), 0)
     bond_hmax = np.vectorize(bond_hmax, signature="(n)->()")
 
 atom_order = {"N": 0, "CA": 1, "C": 2, "O": 3}

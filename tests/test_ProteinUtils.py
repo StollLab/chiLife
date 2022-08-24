@@ -301,6 +301,32 @@ def test_ProteinIC_set_coords():
     np.testing.assert_almost_equal(R1A_IC.coords, R1A_IC_c.coords, decimal=6)
 
 
+def test_get_min_topol():
+    with open('test_data/DHC.pdb', 'r') as f:
+        lines = f.readlines()
+
+    all_lines = []
+    for line in lines:
+        if line.startswith('MODEL'):
+            newlines = []
+        elif line.startswith(('ATOM', 'HETATOM')):
+            newlines.append(line)
+        elif line.startswith('ENDMDL'):
+            all_lines.append(newlines)
+
+    min_bonds = chiLife.get_min_topol(all_lines)
+    ans = {(0, 1), (0, 2), (0, 6), (2, 3), (2, 4), (2, 5), (6, 7), (6, 16), (7, 8), (7, 10), (7, 17), (8, 9), (8, 23),
+           (10, 11), (10, 18), (10, 19), (11, 12), (11, 13), (12, 15), (12, 20), (13, 14), (13, 21), (14, 15), (14, 22),
+           (15, 77), (23, 24), (23, 27), (24, 25), (24, 28), (24, 29), (25, 26), (25, 30), (30, 31), (30, 34), (31, 32),
+           (31, 35), (31, 36), (32, 33), (32, 37), (37, 38), (37, 41), (38, 39), (38, 42), (38, 43), (39, 40), (39, 44),
+           (44, 45), (44, 54), (45, 46), (45, 48), (45, 55), (46, 47), (46, 61), (48, 49), (48, 56), (48, 57), (49, 50),
+           (49, 51), (50, 53), (50, 58), (51, 52), (51, 60), (52, 53), (52, 59), (53, 77), (61, 62), (61, 63), (64, 73),
+           (64, 77), (65, 75), (66, 75), (66, 77), (67, 73), (68, 71), (68, 72), (68, 74), (68, 77), (69, 76), (70, 76),
+           (71, 73), (71, 78), (71, 79), (72, 76), (72, 82), (72, 83), (74, 75), (74, 80), (74, 81)}
+
+    assert min_bonds == ans
+
+
 # def test_preferred_dihedrals():
 #     dih = [['N', 'CA', 'CB', 'CB2'],
 #            ['CA', 'CB', 'CB2', 'CG'],

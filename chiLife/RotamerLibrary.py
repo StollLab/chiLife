@@ -297,7 +297,8 @@ class RotamerLibrary:
                     # Guess that the closest H to the nitrogen is the H we are looking for
                     HN_idx = np.argmin(np.linalg.norm(p[3:] - p[0], axis=1)) + 3
                     p = p[[0, 1, 2, HN_idx]]
-
+                elif len(p) == 3:
+                    continue
                 if atom == 'H':
                     # Reorder
                     p = p[[2, 1, 0, 3]]

@@ -1000,9 +1000,6 @@ def get_internal_coords(
     chain_operators = {}
     segid = 0
 
-    if len(dihedral_segs) > 1:
-        print('pause')
-
     for seg in dihedral_segs:
         if len(seg[4]) == 3:
             seg[4] = list(reversed(seg[3][1:])) + seg[4][-1:]

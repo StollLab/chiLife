@@ -960,7 +960,7 @@ def repack(
 def add_label(
     name: str,
     pdb: str,
-    dihedral_atoms: List[str],
+    dihedral_atoms: List[List[str]],
     resi: int = 1,
     spin_atoms: List[str] = None,
     dihedrals: ArrayLike = None,
@@ -1008,20 +1008,23 @@ def add_label(
     struct = pre_add_label(name, pdb, spin_atoms)
     pdb_resname = struct.select_atoms(f"resnum {resi}").resnames[0]
     add_dihedral_def(name, dihedral_atoms)
+    resi_selection = struct.select_atoms(f"resnum {resi}")
+    bonds = resi_selection.intra_bonds.indices - resi_selection.atoms[0].ix
 
     # Convert loaded rotamer library to internal coords
     internal_coords = [
         chiLife.get_internal_coords(
-            struct.select_atoms(f"resnum {resi}"),
+            resi_selection,
             resname=pdb_resname,
             preferred_dihedrals=dihedral_atoms,
-            bonds=struct.bonds.indices
+            bonds=bonds
         )
         for ts in struct.trajectory
     ]
 
-    # Remove chain operators so all rotamers are in the ic coordinate frame
+    # set resnum to 1 and remove chain operators so all rotamers are in the ic coordinate frame
     for ic in internal_coords:
+        ic.shift_resnum(-(resi - 1))
         ic.chain_operators = None
 
     # Add internal_coords to data dir

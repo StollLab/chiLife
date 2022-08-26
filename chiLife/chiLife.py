@@ -108,7 +108,7 @@ def get_dd(
     """
 
     # Allow r to be passed as that last non-keyword argument
-    if not isinstance(args[-1], (SpinLabel, SpinLabelTraj, mock.Mock)):
+    if r is None and np.ndim(args[-1]) != 0:
         r = args[-1]
         args = args[:-1]
 

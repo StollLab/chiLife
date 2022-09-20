@@ -977,6 +977,9 @@ def add_label(
         Name of (and path to) pdb file containing the user defined spin label structure. This pdb file should contain
         only the desired spin label and no additional residues.
 
+    :param resi: int
+        The residue number of the side chain in the pdb file you would like to add.
+
     :param dihedral_atoms: list
         List of rotatable dihedrals. List should contain sublists of 4 atom names. Atom names must be the same as
         defined in the pdb file eg:
@@ -1066,6 +1069,9 @@ def add_dlabel(
     :param pdb: str
         Name of (and path to) pdb file containing the user defined spin label structure. This pdb file should contain
         only the desired spin label and no additional residues.
+
+    :param resi: int
+        The residue number of the first side chain in the pdb file you would like to add.
 
     :param dihedral_atoms: list
         list of rotatable dihedrals. List should contain lists of 4 atom names. Atom names must be the same as defined

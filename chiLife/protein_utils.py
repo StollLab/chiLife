@@ -72,10 +72,8 @@ def get_dihedral(p: ArrayLike) -> float:
         Dihedral angle in radians
     """
 
-    p0 = p[0]
-    p1 = p[1]
-    p2 = p[2]
-    p3 = p[3]
+    # Unpack p
+    p0, p1, p2, p3 = p
 
     # Define vectors from coordinates
     b0 = -1.0 * (p1 - p0)
@@ -97,12 +95,25 @@ def get_dihedral(p: ArrayLike) -> float:
 
 
 def get_angle(p: ArrayLike) -> float:
+    """
+    Calculate the angle created by 3 points.
+         p2
+       / θ \
+    p1      p3
+
+    :param p: ArrayLike
+        array of three points to calculate the angle between.
+
+    :returns angle: float
+        angle created by the three points
+    """
     p1, p2, p3 = p
     v1 = p1 - p2
     v2 = p3 - p2
     X = v1 @ v2
     Y = np.cross(v1, v2)
     Y = math.sqrt(Y @ Y)
+
     return math.atan2(Y, X)
 
 
@@ -111,8 +122,8 @@ def set_dihedral(p: ArrayLike, angle: float, mobile: ArrayLike) -> ArrayLike:
     Sets the dihedral angle by rotating all 'mobile' atoms from their current position about the dihedral bond defined
     by the four atoms in p. Dihedral will be set to the value of 'angle' in degrees.
 
-    :param p: array-like int
-        Indices of atoms that define dihedral to rotate about.
+    :param p: ArrayLike
+        Coordinates of atoms that define dihedral to rotate about.
 
     :param angle: float
         New angle to set the dihedral to (degrees).
@@ -139,21 +150,13 @@ def set_dihedral(p: ArrayLike, angle: float, mobile: ArrayLike) -> ArrayLike:
     return new_mobile
 
 
-def local_mx(
-    N: ArrayLike, CA: ArrayLike, C: ArrayLike, method: str = "bisect"
-) -> Tuple[ArrayLike, ArrayLike]:
+def local_mx(*p, method: str = "bisect") -> Tuple[ArrayLike, ArrayLike]:
     """
     Calculates a translation vector and rotation matrix to transform the provided rotamer library from the global
     coordinate frame to the local coordinate frame using the specified method.
 
-    :param N: ArrayLike
-        3D coordinates of the amino Nitrogen of the amino acid backbone
-
-    :parma CA: ArrayLike
-        3D coordinates of the alpha carbon of the amino acid backbone
-
-    :param C: ArrayLike
-        3D coordinates of the carboxyl carbon of the amino acid backbone
+    :param p: ArrayLike
+        3D coordinates of the three points defining the coordinate system (Usually N, CA, C).
 
     :param method: str
         Method to use for generation of rotation matrix
@@ -162,40 +165,34 @@ def local_mx(
         origin and rotation matrix for rotamer library
     """
 
+    p1, p2, p3 = p
+
     if method in {"fit"}:
-        rotation_matrix, _ = superimpositions[method](N, CA, C)
+        rotation_matrix, _ = superimpositions[method](p1, p2, p3)
     else:
         # Transform coordinates such that the CA atom is at the origin
-        Nn = N - CA
-        Cn = C - CA
-        CAn = CA - CA
+        p1n = p1 - p2
+        p3n = p3 - p2
+        p2n = p2 - p2
 
         # Local Rotation matrix is the inverse of the global rotation matrix
-        rotation_matrix, _ = superimpositions[method](Nn, CAn, Cn)
+        rotation_matrix, _ = superimpositions[method](p1n, p2n, p3n)
 
     rotation_matrix = rotation_matrix.T
 
     # Set origin at C-alpha
-    origin = CA
+    origin = p2
 
     return origin, rotation_matrix
 
 
-def global_mx(
-    N: ArrayLike, CA: ArrayLike, C: ArrayLike, method: str = "bisect"
-) -> Tuple[ArrayLike, ArrayLike]:
+def global_mx(*p: ArrayLike, method: str = "bisect") -> Tuple[ArrayLike, ArrayLike]:
     """
         Calculates a translation vector and rotation matrix to transform the provided rotamer library from the local
     coordinate frame to the global coordinate frame using the specified method.
 
-    :param N: ArrayLike
-        3D coordinates of the amino Nitrogen of the amino acid backbone
-
-    :parma CA: ArrayLike
-        3D coordinates of the alpha carbon of the amino acid backbone
-
-    :param C: ArrayLike
-        3D coordinates of the carboxyl carbon of the amino acid backbone
+    :param p: ArrayLike
+        3D coordinates of the three points used to define the new coordinate system (Usually N, CA, C)
 
     :param method: str
         Method to use for generation of rotation matrix
@@ -203,36 +200,26 @@ def global_mx(
     :return rotation_matrix, origin: ndarray, ndarray
         rotation matrix and origin for rotamer library
     """
-    rotation_matrix, origin = superimpositions[method](N, CA, C)
+
+    rotation_matrix, origin = superimpositions[method](*p)
     return rotation_matrix, origin
 
 
-def ic_mx(
-    atom1: ArrayLike, atom2: ArrayLike, atom3: ArrayLike
-) -> Tuple[ArrayLike, ArrayLike]:
+def ic_mx(*p: ArrayLike) -> Tuple[ArrayLike, ArrayLike]:
     """
     Calculates a rotation matrix and translation to transform a set of atoms to global coordinate frame from a local
-    coordinated frame defined by atom1, atom2 and atom 3. The X-vector is defined as the bond between atom1 and atom2
-    the Y-vector is defined as the vector orthogonal to the X vector in the atom1-atom2-atom3 plane and the Z-vector
-    is the cross product between the X and Y Vectors
+    coordinated frame defined by p. This function is a wrapper to quickly and easily transform cartesian coordinates
+    ,made from internal coordinates, to their appropriate location in the gloabl frame.
 
-    :param atom1: numpy ndarray (1x3)
-        Backbone nitrogen coordinates
-
-    :param atom2: numpy ndarray (1x3)
-        Backbone carbonyl carbon coordinates
-
-    :param atom3: numpy ndarray (1x3)
-        Backbone C-alpha carbon coordinates
+    :param p: ArrayLike
+        Coordinates of the three atoms defining the local coordinate frame of the IC object
 
     :return (rotation_matrix, origin) : (numpy ndarray (1x3), numpy ndarray (3x3))
         rotation_matrix: rotation  matrix to rotate spin label to
         origin: new origin position in 3 dimensional space
     """
 
-    p1 = atom1
-    p2 = atom2
-    p3 = atom3
+    p1, p2, p3 = p
 
     # Define new X axis
     v12 = p2 - p1

@@ -1,22 +1,25 @@
+from typing import Tuple
+import math as m
 import numpy as np
 from numba import njit, prange
-import math as m
 from memoization import cached
 
 
 @njit(cache=True)
-def compute_bin(x, bin_edges):
-    """
-    Compute determine bin for a given observation, x
+def compute_bin(x: float, bin_edges: np.ndarray) -> int:
+    """Compute determine bin for a given observation, x
 
-    :param x: float
-        Observation
+    Parameters
+    ----------
+    x : float
+        Observation.
+    bin_edges : np.ndarray
+        Available bins.
 
-    :param bin_edges: numpy ndarray
-        Available bins
-
-    :return bin: int
-        index of bin to add observation to
+    Returns
+    -------
+    bin : int
+        Index of bin to add observation to.
     """
 
     # Assuming uniform bins for now
@@ -24,20 +27,23 @@ def compute_bin(x, bin_edges):
     a_min = bin_edges[0]
     a_max = bin_edges[-1]
 
-    _bin = int(n * (x - a_min) / (a_max - a_min))
-    return _bin
+    bin = int(n * (x - a_min) / (a_max - a_min))
+    return bin
 
 
 @njit(cache=True)
-def dirichlet(x):
-    """
-    Dirichlet distribution sampler
+def dirichlet(x: np.ndarray) -> np.ndarray:
+    """Dirichlet distribution sampler
 
-    :param x: numpy ndarray
-        Parameters of dirichlet distribution to sample from
+    Parameters
+    ----------
+    x : np.ndarray
+        Parameters of dirichlet distribution to sample from.
 
-    :return dist: numpy ndarray
-         Random sample from dirichlet distribution with parameters x
+    Returns
+    -------
+    dist : np.ndarray
+        Random sample from dirichlet distribution with parameters x.
     """
     dist = np.zeros_like(x)
     for i, xi in enumerate(x):
@@ -48,29 +54,43 @@ def dirichlet(x):
 
 
 @njit(cache=True)
-def get_delta_r(r):
-    """Calculates increment of a sorted array with evenly distributed floats"""
+def get_delta_r(r: np.ndarray) -> float:
+    """Calculates increment of a sorted array with evenly distributed floats
+
+    Parameters
+    ----------
+    r : np.ndarray
+        Array of equally spaced consecutive numbers.
+
+    Returns
+    -------
+    delta_r : float
+        Distance between numbers in r.
+
+    """
     delta_r = (r[-1] - r[0]) / len(r)
     return delta_r
 
 
 @njit(cache=True)
-def histogram(a, weights, r):
-    """
-    Calculate histogram for observations, a, with weights over the domain, r, as precursor for KDE of distance
+def histogram(a: np.ndarray, weights: np.ndarray, r: np.ndarray) -> np.ndarray:
+    """Calculate histogram for observations, ``a`` , with weights over the domain, r, as precursor for KDE of distance
     distribution.
 
-    :param a: numpy ndarray
-        Array of relevant pairwise distances between NO midpoint libraries
-
-    :param weights: numpy ndarray
-        Weights array corresponding to distances in a
-
-    :param r: numpy ndarray
+    Parameters
+    ----------
+    a : np.ndarray
+        Array of relevant pairwise distances between NO midpoint libraries.
+    weights : np.ndarray
+        Weights array corresponding to distances in ``a`` .
+    r : np.ndarray
         Domain of distance distribution.
 
-    :return hist: numpy ndarray
-        Weighted histogram of pairwise distances
+    Returns
+    -------
+    hist : np.ndarray
+        Weighted histogram of pairwise distances.
+
     """
     # Calculate bin size
     delta_r = get_delta_r(r)
@@ -96,59 +116,63 @@ def histogram(a, weights, r):
 
 
 @njit(cache=True)
-def jaccard(x, y):
+def jaccard(p: np.ndarray, q: np.ndarray) -> float:
+    """Calculate the jaccard index between the two provided vectors (distance distributions)
+
+    Parameters
+    ----------
+    p, q : np.ndarray
+        Sets to calculate the jaccard index between.
+
+    Returns
+    -------
+    jac : float
+        Jaccard index between ``q`` and ``p`` .
     """
-    Calculate the jaccard index between the two provided vectors (distance distributions)
-
-    :param x: numpy ndarray
-        1d vector of length n
-
-    :param y: numpy ndarray
-        1d vector of length n
-
-    :return jaccard(x,y): float
-        jaccard index of the two vectors x and y
-
-    """
-    overlap = np.minimum(x, y).sum()
-    union = np.maximum(x, y).sum()
-    return overlap / union
+    overlap = np.minimum(p, q).sum()
+    union = np.maximum(p, q).sum()
+    jac = overlap / union
+    return jac
 
 
 @njit(cache=True)
-def kl_divergence(p, q):
+def kl_divergence(p: np.ndarray, q: np.ndarray) -> float:
+    """Compute the Kullback–Leibler divergence (KLD) of ``p`` and ``q`` .
+
+    Parameters
+    ----------
+    p, q : np.ndarray
+        The distributions to calculate the KLD between.
+
+    Returns
+    -------
+    kld: float
+        The Kullback–Leibler divergence between ``p`` and ``q`` .
+
     """
-    Compute the Kullback–Leibler divergence of P and Q
-
-    :param p: numpy ndarray
-        First pdf
-
-    :param q:
-        Second pdf
-
-    :return:
-        Kullback–Leibler divergence between P and Q
-    """
-
-    return np.sum(np.where(p != 0, p * np.log(p / q), 0))
+    kld = np.sum(np.where(p != 0, p * np.log(p / q), 0))
+    return kld
 
 
 @njit(cache=True)
-def norm(delta_r, mu=0.0, sigma=1.0):
-    """
-    Calculate normal distribution for convolution with histogram of distances between two spin label ensembles
+def norm(delta_r: float, mu: float = 0.0, sigma: float = 1.0) -> Tuple[np.ndarray, np.ndarray]:
+    """Calculate normal distribution for convolution with histogram of distances between two spin label ensembles
 
-    :param delta_r: float
-        "Space between points in distance domain"
+    Parameters
+    ----------
+    delta_r : float
+        Space between points in distance domain.
+    mu : float
+        Mean for normal distribution.
+    sigma : float
+        Standard deviation of normal distribution.
 
-    :param mu: float
-        Mean for normal distribution
-
-    :param sigma: float
-        Standard deviation of normal distribution
-
-    :return x, y: ndarray
-        Distance domain points and corresponding normal distribution values
+    Returns
+    -------
+        x : np.ndarray
+            Domain of the distribution.
+        y : np.ndarray
+            PDF values of the distribution.
     """
 
     # Calculate normal distribution
@@ -163,34 +187,65 @@ def norm(delta_r, mu=0.0, sigma=1.0):
 
 
 @njit(cache=True)
-def pairwise_dist(X, Y):
-    M = X.shape[0]
-    N = Y.shape[0]
-    L = X.shape[1]
-    D = np.empty((M, N), dtype=np.float64)
+def pairwise_dist(x: np.ndarray, y:np.ndarray) -> np.ndarray:
+    """
+    Calculate the pairwise (euclidean) distance between the coordinate sets.
+
+    Parameters
+    ----------
+    x, y : np.ndarray
+        Coordinate sets to calcualte the distance between
+
+    Returns
+    -------
+    d : np.ndarray
+        Pairwise distance matrix between coordinates of x and y.
+    """
+    M = x.shape[0]
+    N = y.shape[0]
+    L = x.shape[1]
+    d = np.empty((M, N), dtype=np.float64)
     for i in range(M):
         for j in range(N):
             d = 0
             for l in range(L):
-                tmp = X[i, l] - Y[j, l]
+                tmp = x[i, l] - y[j, l]
                 tmp = tmp * tmp
                 d += tmp
 
-            D[i, j] = m.sqrt(d)
+            d[i, j] = m.sqrt(d)
 
-    return D
+    return d
 
 
 @njit(cache=True)
-def _ic_to_cart(IC_idx_Array, ICArray):
-    """
-    Convert internal coordinates into cartesian coordinates
+def _ic_to_cart(IC_idx_Array: np.ndarray, ICArray: np.ndarray) -> np.ndarray:
+    """Convert internal coordinates into cartesian coordinates.
 
-    :param ICs: dict of ICAtoms
-        dictionary of ICAtoms containing internal coordinates
+    Parameters
+    ----------
+    IC_idx_Array : np.ndarray
+        Array of indexes corresponding to the atoms defining the internal coordinate.
 
-    :return coord: numpy.ndarray
-        array of cartesian coordinates corresponding to ICAtom list atoms
+        IC_idx_Array[i, 0] # index of the atom that atom ``i`` is bonded to.
+        IC_idx_Array[i, 1] # index of the atom that atom ``i`` creates an angle with.
+        IC_idx_Array[i, 2] # index of the atom that atom ``i`` creates a dihedral angle with.
+
+        A value of -1 indicates that there is no precursor atom to define the bond, angle or dihedral and that atom
+        ``i`` is one of the coordinate system defining atoms.
+
+    ICArray :
+        Internal coordinate values
+
+        IC_idx_Array[i, 0] # bond distance of the atom that atom ``i`` and one of its precursor atoms.
+        IC_idx_Array[i, 1] # bond angle between atom ``i`` two of its precursor atoms.
+        IC_idx_Array[i, 2] # index of the atom that atom ``i`` creates a dihedral angle with three of it's precursor
+        atoms.
+
+    Returns
+    -------
+    coords : np.ndarray
+        Array of cartesian coordinates corresponding to ICAtom list atoms
     """
 
     coords = np.zeros((len(ICArray), 3))
@@ -242,52 +297,56 @@ def _ic_to_cart(IC_idx_Array, ICArray):
 
 
 @njit(cache=True)
-def np_all_axis1(x):
-    """Numba compatible version of np.all(x, axis=1)."""
+def np_all_axis1(x: np.ndarray) -> np.ndarray:
+    """Numba compatible version of np.all(x, axis=1).
+
+    Parameters
+    ----------
+    x : (M, N) np.ndarray
+        Boolean input array.
+
+    Returns
+    -------
+    out : (M,) np.ndarray
+        Boolean array indicating if all values in the second axis of ``x`` are true.
+
+    """
     out = np.ones(x.shape[0], dtype=np.bool8)
     for i in range(x.shape[1]):
         out = np.logical_and(out, x[:, i])
     return out
 
-#
-# @njit(cache=True)
-def get_ICAtom_indices(k, index, bonds, angles, dihedrals, offset):
-    found = False
-    ordered = True
-    k0 = k
-
-    while not found:
-        dk = dihedrals[k]
-        condition = np.all(dk >= offset)
-        condition = condition and dk[-1] == index
-
-        if ordered:
-            srted = np.array([dk[i] < dk[i + 1] for i in range(3)])
-            condition = condition and np.all(srted)
-
-        else:
-            condition = condition and np.all(dk[:3] < dk[3])
-
-        if condition:
-            j = np.argwhere(np_all_axis1(angles == dk[-3:]))[0, 0]
-            i = np.argwhere(np_all_axis1(bonds == dk[-2:]))[0, 0]
-
-            found = True
-        elif k + 1 == len(dihedrals):
-            k = k0
-            ordered = False
-        else:
-            k += 1
-
-    return i, j, k
-
 
 # @njit(cache=True, parallel=True)
-def _get_sasas(atom_coords,
-              atom_radii,
-              env_coords,
-              all_radii,
-              grid_points):
+def _get_sasas(
+    atom_coords: np.ndarray,
+    atom_radii: np.ndarray,
+    env_coords: np.ndarray,
+    all_radii: np.ndarray,
+    grid_points: np.ndarray
+) -> np.ndarray:
+    """
+    Get the solvent accessible surface areas (SASA) over all frames and aotms of ``atom_coords`` in the provided
+    environment.
+
+    Parameters
+    ----------
+    atom_coords : (M, N, 3) np.ndarray
+        M frames of the 3D cartesian coordinates of the N atoms to calculate the SASA of.
+    atom_radii : (N,) np.ndarray
+        vdW radii + solvent radii of the atoms in ``atom_coords``
+    env_coords : (L, 3) np.ndarray
+        3D cartesian coordinates of the atoms nearby the atoms for which the SASA is desired.
+    all_radii : (L,) np.ndarray
+        vdW radii + solvent radii of the atoms in ``env_coords``
+    grid_points : (K,) np.ndarray
+        Spherical points to use for SASA calculation.
+
+    Returns
+    -------
+    all_sasa: (M, N) np.ndarray
+        Calculated SASA of each atom in each frame.
+    """
 
     all_sasa = np.zeros(atom_coords.shape[:2], dtype=np.float64)
     for staten in range(len(atom_coords)):
@@ -299,11 +358,34 @@ def _get_sasas(atom_coords,
 
 @cached
 @njit(cache=True)
-def _get_sasa(atom_coords,
-              atom_radii,
-              all_coords,
-              all_radii,
-              grid_points):
+def _get_sasa(
+    atom_coords: np.ndarray,
+    atom_radii: np.ndarray,
+    all_coords: np.ndarray,
+    all_radii: np.ndarray,
+    grid_points: np.ndarray
+) -> np.ndarray:
+    """
+    Get the solvent accessible surface area of ``atom_coords`` in the  provided environment.
+
+    Parameters
+    ----------
+    atom_coords : (N, 3) np.ndarray
+        3D cartesian coordinates of the N atoms to calculate the SASA of.
+    atom_radii : (N,) np.ndarray
+        vdW radii + solvent radii of the atoms in ``atom_coords``
+    all_coords : (M, 3), np.ndarray
+        3D cartesian coordinates of the atoms of ``atom_coords`` and the nearby atoms.
+    all_radii : (M,) np.ndarray
+        vdW radii + solvent radii of the atoms in ``all_coords`
+    grid_points : (K,) np.ndarray
+        Spherical points to use for SASA calculation.
+
+    Returns
+    -------
+    atom_sasa: (N,) np.ndarray
+        Array of SASAs for each atom in  atom_coords
+    """
 
     atom_sasa = np.zeros(len(atom_coords), dtype=np.int64)
     for i in range(len(atom_radii)):
@@ -339,13 +421,39 @@ def _get_sasa(atom_coords,
 
     return atom_sasa
 
-def get_sasa(atom_coords,
-              atom_radii,
-              environment_coords=None,
-              environment_radii=None,
-              probe_radius=1.4,
-              npoints=1024,
-              by_atom=False):
+def get_sasa(
+    atom_coords: np.ndarray,
+    atom_radii: np.ndarray,
+    environment_coords: np.ndarray = None,
+    environment_radii: np.ndarray = None,
+    probe_radius: float = 1.4,
+    npoints: int = 1024,
+    by_atom: bool = False
+) -> np.ndarray:
+    """
+
+    Parameters
+    ----------
+    atom_coords : (M, N, 3) np.ndarray
+        M frames of the 3D cartesian coordinates of the N atoms to calculate the SASA of.
+    atom_radii : (N,) np.ndarray
+        vdW radii + solvent radii of the atoms in ``atom_coords``
+    environment_coords : (L, 3) np.ndarray
+        3D cartesian coordinates of the atoms nearby the atoms for which the SASA is desired.
+    environment_radii : (L,) np.ndarray
+        vdW radii + solvent radii of the atoms in ``env_coords``
+    probe_radius : flaot
+         Radius of the solvent probe.
+    npoints : int
+         Number of points to use in sphere used for SASA calculation
+    by_atom : bool
+        Return SASA of each atom rather than the set of atoms
+
+    Returns
+    -------
+    sasa : np.ndarray:
+        Solvent accessible surface areas of the provided coords in the provided environment.
+    """
 
     grid_points = fibonacci_points(npoints)
 
@@ -370,7 +478,22 @@ def get_sasa(atom_coords,
         return np.sum(atom_sasa, axis=1)
 
 
-def fibonacci_points(n):
+def fibonacci_points(n: int) -> np.ndarray:
+    """
+    Get ``n`` evenly spaced points on the unit sphere using the fibonacci method.
+
+    Parameters
+    ----------
+    n : int
+        Number of points to return.
+        
+
+    Returns
+    -------
+        coords: np.ndarray
+            3D coordinates of the points on the unit sphere.
+
+    """
     phi = (3 - m.sqrt(5)) * np.pi * np.arange(n)
     z = np.linspace(1 - 1.0/n, 1.0/n - 1, n)
     radius = np.sqrt(1 - z*z)

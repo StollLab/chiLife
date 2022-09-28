@@ -157,11 +157,11 @@ def test_superimposition_method(method):
             f"A28R1_{method}_superimposition.pdb", SL, "test_data/1ubq.pdb", KDE=False
         )
 
-        with open(f"A28R1_{method}_superimposition.pdb", "rb") as f:
-            test = hashlib.md5(f.read()).hexdigest()
+        with open(f"A28R1_{method}_superimposition.pdb", "r") as f:
+            test = hashlib.md5(f.read().encode('utf-8')).hexdigest()
 
-        with open(f"test_data/A28R1_{method}_superimposition.pdb", "rb") as f:
-            ans = hashlib.md5(f.read()).hexdigest()
+        with open(f"test_data/A28R1_{method}_superimposition.pdb", "r") as f:
+            ans = hashlib.md5(f.read().encode('utf-8')).hexdigest()
 
         os.remove(f"A28R1_{method}_superimposition.pdb")
         assert ans == test

@@ -187,7 +187,7 @@ def norm(delta_r: float, mu: float = 0.0, sigma: float = 1.0) -> Tuple[np.ndarra
 
 
 @njit(cache=True)
-def pairwise_dist(x: np.ndarray, y:np.ndarray) -> np.ndarray:
+def pairwise_dist(x: np.ndarray, y: np.ndarray) -> np.ndarray:
     """
     Calculate the pairwise (euclidean) distance between the coordinate sets.
 
@@ -198,13 +198,13 @@ def pairwise_dist(x: np.ndarray, y:np.ndarray) -> np.ndarray:
 
     Returns
     -------
-    d : np.ndarray
+    distances : np.ndarray
         Pairwise distance matrix between coordinates of x and y.
     """
     M = x.shape[0]
     N = y.shape[0]
     L = x.shape[1]
-    d = np.empty((M, N), dtype=np.float64)
+    distances = np.empty((M, N), dtype=np.float64)
     for i in range(M):
         for j in range(N):
             d = 0
@@ -213,9 +213,9 @@ def pairwise_dist(x: np.ndarray, y:np.ndarray) -> np.ndarray:
                 tmp = tmp * tmp
                 d += tmp
 
-            d[i, j] = m.sqrt(d)
+            distances[i, j] = m.sqrt(d)
 
-    return d
+    return distances
 
 
 @njit(cache=True)

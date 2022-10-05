@@ -162,11 +162,26 @@ def test_sas_res(cutoff, expected):
     assert sasres == expected
 
 
-def test_fetch():
+def test_fetch_PDB():
     U1 = mda.Universe("test_data/m1omp.pdb", in_memory=True)
     U2 = chiLife.fetch("1omp")
 
     assert np.all(U1.atoms.positions == U2.atoms.positions)
+
+def test_fetch_AF():
+
+    U = chiLife.fetch('AF-O34208')
+    ans = np.array([[-38.834, -52.705, 45.698],
+                    [-38.5,   -54.236, 47.741],
+                    [-38.903, -51.597, 46.216],
+                    [-38.123, -55.685, 48.115],
+                    [-38.65,  -56.141, 49.474],
+                    [-38.411, -57.378, 49.85 ],
+                    [-39.277, -55.422, 50.23 ],
+                    [-39.532, -53.088, 44.618],
+                    [-40.791, -52.617, 43.986],
+                    [-42.008, -52.46,  44.944]])
+    np.testing.assert_allclose(U.atoms.positions[100:110], ans)
 
 
 IDs = ["1anf", "1omp.pdb", "3TU3"]

@@ -1,13 +1,13 @@
-# χLife
-chiLife is a python module for the simulation and analysis of protein EPR experiments. The primary purpose 
-of χLife is to perform *in silico* Site Directed Spin Labeling (SDSL) to simulate experimental results. Rapid, 
+# chiLife
+chiLife (or χLife) is a python module for the simulation and analysis of protein EPR experiments. The primary purpose 
+of chiLife is to perform *in silico* Site Directed Spin Labeling (SDSL) to simulate experimental results. Rapid, 
 accurate and scriptable experimental simulations are necessary for the conversion of experimental data into high quality 
-protein models. χLife aims to achieve this by combining standard side chain modeling methods with commonly used spin 
-labels. Furthermore, χLife offers a scriptable environment allowing users to develop novel protocols unique to their 
+protein models. chiLife aims to achieve this by combining standard side chain modeling methods with commonly used spin 
+labels. Furthermore, chiLife offers a scriptable environment allowing users to develop novel protocols unique to their 
 protein modeling tasks.
  
 ## Getting Started
-χLife can be installed by downloading and unpacking the GitHub repository, or using `git clone` followed by a standard 
+chiLife can be installed by downloading and unpacking the GitHub repository, or using `git clone` followed by a standard 
 python setuptools installation.
 ```bash
 git clone https://github.com/mtessmer/chiLife.git
@@ -15,10 +15,10 @@ cd chiLife
 python setup.py install
 ```  
 ***
-## χLife Module
-χLife is most powerful when used as an API for your data analysis and protein modeling pipeline. The primary feature of 
-χLife is the `SpinLabel` object. `SpinLabel`s can be created and attached to protein models easily and quickly, allowing for 
-on the fly simulation of distance distributions while modeling. Because χLife is written in python, in can be easily 
+## chiLife Module
+chiLife is most powerful when used as an API for your data analysis and protein modeling pipeline. The primary feature of 
+chiLife is the `SpinLabel` object. `SpinLabel`s can be created and attached to protein models easily and quickly, allowing for 
+on the fly simulation of distance distributions while modeling. Because chiLife is written in python, in can be easily 
 integrated into many python based modeling workflows. Creating a SpinLabel object is easy:
 
 ### Simple rotamer-library based SpinLabel modeling
@@ -60,7 +60,7 @@ xl.save('MBP_L20R1_S238R1.pdb', SL1, SL2, protein=MBP)
 
 
 ### Mimicking MMM and MTSSLWizard
-In addition to its own features, χLife offers spin label modeling methods that mimic the popular MMM and MTSSLWizard 
+In addition to its own features, chiLife offers spin label modeling methods that mimic the popular MMM and MTSSLWizard 
 modeling applications.
 
 ```python
@@ -75,7 +75,7 @@ SLWiz = xl.SpinLabel.from_wizard('R1M', site=238, protein=MBP,
 ```
 
 ### Local repacking and off-rotamer sampling 
-One of the benefits of χLife is the variety and customizable nature of spin label modeling methods. This includes 
+One of the benefits of chiLife is the variety and customizable nature of spin label modeling methods. This includes 
 methods to repack a SpinLabel, and it's neighboring amino acids, and to sample side chain conformations that deviate from
 canonical dihedral angles and fixed rotamer libraries.
 
@@ -109,7 +109,7 @@ traj, de, SLs = xl.repack(SL1, SL2, protein=MBP, off_rotamer=True)
 SL1 = xl.SpinLabel.from_trajectory(traj, site=238)
 ```
 
-Off rotamer sampling can be controlled on a per dihedral basis when repacking with χLife by passing a list of bools to 
+Off rotamer sampling can be controlled on a per dihedral basis when repacking with chiLife by passing a list of bools to 
 the off_rotamer variable. For example, passing `off_rotamer = [False, False, False, True, True]` will allow for off 
 rotamer sampling of only &chi;<sub>4</sub> and &chi;<sub>5</sub>.
 
@@ -127,7 +127,7 @@ MBP_S238R1 = xl.mutate(MBP, SL)
 xl.save('MBP_S238R1.pdb', MBP_S238R1)
 ```
 
-χLife can actually mutate several sites at once, and can mutate canonical amino acids as well.
+chiLife can actually mutate several sites at once, and can mutate canonical amino acids as well.
 
 ```python
 SL1 = xl.SpinLabel('R1C', 20, protein=MBP)
@@ -143,7 +143,7 @@ MBP_L284V_L20R1_S238R1, _, _ = xl.repack(SL1, SL2, L284V, protein=MBP)
 ```
 
 ### Adding user defined spin labels
-Site directed spin labels, and other site directed labels, are constantly being developed. To this end χLife makes it 
+Site directed spin labels, and other site directed labels, are constantly being developed. To this end chiLife makes it 
 easy to add user spin labels. To add a user defined spin label, all that is needed is (1) a pdb file of the spin label
 (2) A list of the rotatable dihedral bonds, and (3) a list of the atoms where the spin is.
 
@@ -160,11 +160,11 @@ xl.add_label(name='TRT',
 
 User defined labels can be constructed from a single state pdb file or a multi-state pdb file. If constructed from a 
 single state pdb file a list of dihedral angles and weights can be passed via the `dihedrals` and `weigts` keyword
-arguments. For each set of dihedral angles, χLife create a rotamer and store the whole library using the specified 
+arguments. For each set of dihedral angles, chiLife create a rotamer and store the whole library using the specified 
 name. Once a label is added it can be used the same as any other label. e.g.
 
 ```python
 xl.SpinLabel('TRT', site=238, protein=MBP, sample=5000)
 ```
 
-For more information on how to use χLife as a python module, see [examples](#examples/)
+For more information on how to use chiLife as a python module, see [examples](#examples/)

@@ -831,8 +831,9 @@ def repack(
     repetitions: int = 200,
     temp: float = 1,
     energy_func: Callable = get_lj_rep,
+    off_rotamer=False,
     **kwargs,
-) -> Tuple[mda.Universe, ArrayLike, Tuple[SpinLabel, ...]]:
+) -> Tuple[mda.Universe, ArrayLike]:
     """Markov chain Monte Carlo repack a protein around any number of SpinLabel or RotamerLibrary objects.
 
     Parameters
@@ -849,6 +850,8 @@ def repack(
     energy_func : Callabale
         Energy function to be used for clash evaluation. Must accept a protein and RotmerLibrary object and return an
         array of potentials in kcal/mol, with one energy per rotamer in the rotamer library
+    off_rotamer : bool
+        Boolean argument that decides whether off rotamer sampling is used when repacking the provided residues.
     kwargs : dict
         Additional keyword arguments to be passed to ``mutate`` .
 
@@ -933,9 +936,7 @@ def repack(
 
             DummyLabel = SiteLibrary.dummy_label
 
-            coords, weight = SiteLibrary.sample(
-                off_rotamer=kwargs.get("off_rotamer", False)
-            )
+            coords, weight = SiteLibrary.sample(off_rotamer=off_rotamer)
 
             with np.errstate(divide="ignore"):
                 DummyLabel._coords = np.atleast_3d([coords])
@@ -1045,7 +1046,6 @@ def add_label(
     internal_coords = [
         chiLife.get_internal_coords(
             resi_selection,
-            resname=pdb_resname,
             preferred_dihedrals=dihedral_atoms,
             bonds=bonds
         )
@@ -1141,7 +1141,6 @@ def add_dlabel(
     IC1 = [
         chiLife.get_internal_coords(
             struct.select_atoms(f"resnum {resi}"),
-            resname=pdb_resname,
             preferred_dihedrals=dihedral_atoms[0],
         )
         for ts in struct.trajectory
@@ -1150,7 +1149,6 @@ def add_dlabel(
     IC2 = [
         chiLife.get_internal_coords(
             struct.select_atoms(f"resnum {resi + increment}"),
-            resname=pdb_resname,
             preferred_dihedrals=dihedral_atoms[1],
         )
         for ts in struct.trajectory

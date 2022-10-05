@@ -1,7 +1,7 @@
 import logging, os, urllib, pickle, itertools, math
-from functools import partial
+from operator import itemgetter
 from pathlib import Path
-from typing import Set, List, Union, Tuple
+from typing import Set, List, Union, Tuple, Dict
 from numpy.typing import ArrayLike
 from dataclasses import dataclass, replace
 from collections import Counter
@@ -24,17 +24,19 @@ import networkx as nx
 
 
 def get_dihedral_rotation_matrix(theta: float, v: ArrayLike) -> ArrayLike:
-    """
-    Build a matrix that will rotate coordinates about a vector, v, by theta in radians.
+    """Build a matrix that will rotate coordinates about a vector, v, by theta in radians.
 
-    :param theta: float
+    Parameters
+    ----------
+    theta : float
         Rotation angle in radians.
-
-    :param v: numpy ndarray (1x3)
+    v : (3,) ArrayLike
         Three dimensional vector to rotate about.
 
-    :return rotation_matrix: numpy ndarray
-        Matrix that will rotate coordinates about the vector, V by angle theta.
+    Returns
+    -------
+    rotation_matrix : np.ndarray
+            Matrix that will rotate coordinates about the vector, V by angle theta.
     """
 
     # Normalize input vector
@@ -56,20 +58,25 @@ def get_dihedral_rotation_matrix(theta: float, v: ArrayLike) -> ArrayLike:
 
 
 def get_dihedral(p: ArrayLike) -> float:
-    """
-    Calculates dihedral of a given set of atoms, p = [0, 1, 2, 3]. Returns value in degrees.
+    """Calculates dihedral of a given set of atoms, ``p`` . Returns value in degrees.
 
-                    3
-         ------>  /
-        1-------2
-      /
-    0
+     .. code-block:: python
 
-    :param p: numpy ndarray (4x3)
-        matrix containing coordinates to be used to calculate dihedral.
+                         3
+              ------>  /
+             1-------2
+           /
+         0
 
-    :return: float
-        Dihedral angle in radians
+    Parameters
+    ----------
+    p : (4, 3) ArrayLike
+        Matrix containing coordinates to be used to calculate dihedral.
+
+    Returns
+    -------
+    dihedral : float
+        Dihedral angle in radians.
     """
 
     # Unpack p
@@ -91,21 +98,30 @@ def get_dihedral(p: ArrayLike) -> float:
     x = np.dot(v, w)
     y = np.dot(np.cross(b1, v), w)
 
-    return math.atan2(y, x)
+    dihedral = math.atan2(y, x)
+
+    return dihedral
 
 
 def get_angle(p: ArrayLike) -> float:
-    """
-    Calculate the angle created by 3 points.
-         p2
-       / θ \
-    p1      p3
+    r"""Calculate the angle created by 3 points.
 
-    :param p: ArrayLike
-        array of three points to calculate the angle between.
+     .. code-block:: python
 
-    :returns angle: float
-        angle created by the three points
+               p2
+             / θ \
+          p1      p3
+
+    Parameters
+    ----------
+    p: ArrayLike :
+        Array of three points to calculate the angle between.
+
+    Returns
+    -------
+    angle : float
+        Angle created by the three points.
+
     """
     p1, p2, p3 = p
     v1 = p1 - p2
@@ -114,24 +130,27 @@ def get_angle(p: ArrayLike) -> float:
     Y = np.cross(v1, v2)
     Y = math.sqrt(Y @ Y)
 
-    return math.atan2(Y, X)
+    angle = math.atan2(Y, X)
+
+    return angle
 
 
 def set_dihedral(p: ArrayLike, angle: float, mobile: ArrayLike) -> ArrayLike:
-    """
-    Sets the dihedral angle by rotating all 'mobile' atoms from their current position about the dihedral bond defined
-    by the four atoms in p. Dihedral will be set to the value of 'angle' in degrees.
+    """Sets the dihedral angle by rotating all ``mobile`` atoms from their current position about the dihedral bond
+    defined by the four atoms in ``p`` . Dihedral will be set to the value of ``angle`` in degrees.
 
-    :param p: ArrayLike
+    Parameters
+    ----------
+    p : ArrayLike
         Coordinates of atoms that define dihedral to rotate about.
-
-    :param angle: float
+    angle : float
         New angle to set the dihedral to (degrees).
-
-    :param mobile: ndarray
+    mobile : np.ndarray
         Atom coordinates to move by setting dihedral.
 
-    :returns: ndarray
+    Returns
+    -------
+    new_mobile : np.ndarray
         New positions for the mobile atoms
     """
 
@@ -151,18 +170,22 @@ def set_dihedral(p: ArrayLike, angle: float, mobile: ArrayLike) -> ArrayLike:
 
 
 def local_mx(*p, method: str = "bisect") -> Tuple[ArrayLike, ArrayLike]:
-    """
-    Calculates a translation vector and rotation matrix to transform the provided rotamer library from the global
-    coordinate frame to the local coordinate frame using the specified method.
+    """Calculates a translation vector and rotation matrix to transform a set of coordinates from the global
+    coordinate frame to a local coordinate frame defined by ``p`` , using the specified method.
 
-    :param p: ArrayLike
+    Parameters
+    ----------
+    p : ArrayLike
         3D coordinates of the three points defining the coordinate system (Usually N, CA, C).
-
-    :param method: str
+    method : str
         Method to use for generation of rotation matrix
 
-    :return origin, rotation_matrix: ndarray, ndarray
-        origin and rotation matrix for rotamer library
+    Returns
+    -------
+    origin : np.ndarray
+        Cartesian coordinate of the origin to be subtracted from the coordinates before applying the rotation matrix.
+    rotation_matrix : np.ndarray
+        Rotation matrix to transform a set of coordinates to the local frame defined by p and the selected method.
     """
 
     p1, p2, p3 = p
@@ -187,18 +210,22 @@ def local_mx(*p, method: str = "bisect") -> Tuple[ArrayLike, ArrayLike]:
 
 
 def global_mx(*p: ArrayLike, method: str = "bisect") -> Tuple[ArrayLike, ArrayLike]:
-    """
-        Calculates a translation vector and rotation matrix to transform the provided rotamer library from the local
+    """Calculates a translation vector and rotation matrix to transform the a set of coordinates from the local
     coordinate frame to the global coordinate frame using the specified method.
 
-    :param p: ArrayLike
+    Parameters
+    ----------
+    p : ArrayLike
         3D coordinates of the three points used to define the new coordinate system (Usually N, CA, C)
-
-    :param method: str
+    method : str
         Method to use for generation of rotation matrix
 
-    :return rotation_matrix, origin: ndarray, ndarray
-        rotation matrix and origin for rotamer library
+    Returns
+    -------
+    rotation_matrix : np.ndarray
+        Rotation matrix to be applied to the set of coordinates before translating
+    origin : np.ndarray
+        Vector to be added to the coordinates after rotation to translate the coordinates to the global frame.
     """
 
     rotation_matrix, origin = superimpositions[method](*p)
@@ -206,17 +233,21 @@ def global_mx(*p: ArrayLike, method: str = "bisect") -> Tuple[ArrayLike, ArrayLi
 
 
 def ic_mx(*p: ArrayLike) -> Tuple[ArrayLike, ArrayLike]:
-    """
-    Calculates a rotation matrix and translation to transform a set of atoms to global coordinate frame from a local
-    coordinated frame defined by p. This function is a wrapper to quickly and easily transform cartesian coordinates
-    ,made from internal coordinates, to their appropriate location in the gloabl frame.
+    """Calculates a rotation matrix and translation to transform a set of atoms to global coordinate frame from a local
+    coordinated frame defined by ``p``. This function is a wrapper to quickly and easily transform cartesian
+    coordinates, made from internal coordinates, to their appropriate location in the global frame.
 
-    :param p: ArrayLike
+    Parameters
+    ----------
+    p : ArrayLike
         Coordinates of the three atoms defining the local coordinate frame of the IC object
 
-    :return (rotation_matrix, origin) : (numpy ndarray (1x3), numpy ndarray (3x3))
-        rotation_matrix: rotation  matrix to rotate spin label to
-        origin: new origin position in 3 dimensional space
+    Returns
+    -------
+    rotation_matrix : np.ndarray
+        Rotation  matrix to rotate from the internal coordinate frame to the global frame
+    origin : np.ndarray
+        New origin position in 3 dimensional space
     """
 
     p1, p2, p3 = p
@@ -247,34 +278,35 @@ def ic_mx(*p: ArrayLike) -> Tuple[ArrayLike, ArrayLike]:
 
 @dataclass
 class ICAtom:
-    """
-    Internal coordinate atom class. Used for building the ProteinIC (internal coordinate proteine).
+    """Internal coordinate atom class. Used for building the ProteinIC (internal coordinate protein).
 
-    :param name: str
+    Attributes
+    ----------
+    name : str
         Atom name
-    :param atype: str
+    atype : str
         Atom type
-    :param index: int
+    index : int
         Atom number
-    :param resn: str
+    resn : str
         Name of the residue that the atom belongs to
-    :param resi: int
+    resi : int
         The residue index/number that the atom belongs to
-    :param atom_names: tuple
+    atom_names : tuple
         The names of the atoms that define the Bond-Angle-Torsion coordinates of the atom
-    :param bond_idx: int
+    bond_idx : int
         Index of the coordinate atom bonded to this atom
-    :param bond: float
+    bond : float
         Distance of the bond in angstroms
-    :param angle_idx: int
+    angle_idx : int
         Index of the atom that creates an angle with this atom and the bonded atom.
-    :param angle: float
+    angle : float
         The value of the angle between this atom, the bonded atom and the angle atom in radians.
-    :param dihedral_idx: int
+    dihedral_idx : int
         The index of the atom that defines the dihedral with this atom, the bonded atom and the angled atom.
-    :param dihedral: float
+    dihedral : float
         The value of the dihedral angle defined above in radians.
-    :param dihederal_resi: int
+    dihederal_resi : int
         The residues index of the residue that the dihedral angle belongs to. Note that this is not necessarily the same
         residue as the atom, e.g. the location of the nitrogen atom of the i+1 residue often defines the phi dihedral
         angle of the ith residue.
@@ -303,7 +335,23 @@ class ICAtom:
 
 @dataclass
 class Atom:
-    """Atom class for atoms in cartesian space."""
+    """Atom class for atoms in cartesian space.
+
+    Attributes
+    ----------
+    name : str
+        Atom name
+    atype : str
+        Atom type
+    index : int
+        Atom number
+    resn : str
+        Name of the residue that the atom belongs to
+    resi : int
+        The residue index/number that the atom belongs to
+    coords : np.ndarray
+        The cartesian coordinates of the Atom
+    """
 
     name: str
     atype: str
@@ -312,34 +360,72 @@ class Atom:
     resi: int
     coords: np.ndarray
 
-    @property
-    def x(self):
-        return self.coords[0]
-
-    @x.setter
-    def x(self, x):
-        self.coords[0] = x
-
-    @property
-    def y(self):
-        return self.coords[1]
-
-    @y.setter
-    def y(self, y):
-        self.coords[1] = y
-
-    @property
-    def z(self):
-        return self.coords[1]
-
-    @z.setter
-    def z(self, z):
-        self.coords[1] = z
-
 
 class ProteinIC:
+    """
+    A class for protein internal coordinates.
 
-    def __init__(self, zmats, zmat_idxs, atom_dict, ICs, **kwargs):
+    Attributes
+    ----------
+    zmats : dict[np.ndarray]
+        Dictionary of Z-matrices of the molecule. Each entry corresponds to a contiguous segment of bonded atoms.
+    zmat_idxs : dict[np.ndarray]
+        Dictionary of Z-matrix indices.
+    atom_dict : dict
+        Nested dictionaries containing indices of the atoms that define the coordinates (bond, angle dihedral) objects.
+        Nesting pattern: [coord_type][chain][resi, stem][name] where coord_type is one of 'bond', 'angle' or 'dihedral',
+        chain is the chainid, resi is the residue number, stem is a tuple of the names of the 3 atoms preceding the atom
+        coordinate being defined.
+    ICS : dict
+        Nested dictionaries containing AtomIC objects. Nesting pattern: [chain][resi][stem][name] where chain is the
+        chainid, resi is the residue number, stem is a tuple of the names of the 3 atoms preceding the atom coordinate
+        being defined.
+    atoms : np.ndarray[AtomIC]
+        List of AtomIC objects making up the protein in order of their indices.
+    atom_types : np.ndarray
+        Array of atom types (elements) corresponding to the atom indices.
+    atom_names : np.ndarray
+        Array of atom names corresponding to the atom indices.
+    resis : np.ndarray
+        Ordered array of residue numbers.
+    resnames : dict[int]:str
+        Dictionary mapping residue numbers to their residue names.
+    chains : np.ndarray
+        Array of chainids
+    bonded_pairs : np.ndarray
+        Array of index pairs corresponding to atoms that are bonded.
+    perturbed : bool
+        Indicates if any internal coordinates have changed since the last time cartesian coordinates were calculated.
+    dihedral_defs : list
+        List of major side chain and backbone dihedral definitions as defined by user defined and supported residues.
+    """
+
+    def __init__(self, zmats: Dict, zmat_idxs: Dict, atom_dict: Dict, ICs: Dict, **kwargs: object):
+        """
+        ProteinIC constructor method.
+
+        Parameters
+        ----------
+        zmats : dict
+            Dictionary of Z-matrix indices.
+        zmat_idxs : dict
+            Dictionary of Z-matrix indices.
+        atom_dict : dict
+            Nested dictionaries containing indices of the atoms that define the coordinates (bond, angle dihedral) objects.
+            Nesting pattern: [coord_type][chain][resi, stem][name] where coord_type is one of 'bond', 'angle' or 'dihedral',
+            chain is the chainid, resi is the residue number, stem is a tuple of the names of the 3 atoms preceding the atom
+            coordinate being defined.
+        ICS : dict
+            Nested dictionaries containing AtomIC objects. Nesting pattern: [chain][resi][stem][name] where chain is the
+            chainid, resi is the residue number, stem is a tuple of the names of the 3 atoms preceding the atom coordinate
+            being defined.
+
+        **kwargs : dict
+            Aditional arguments.
+            - chain_operators
+            - bonded_pairs
+            - nonbonded_pairs
+        """
         self.zmats = zmats
         self.zmat_idxs = zmat_idxs
         self.atom_dict = atom_dict
@@ -372,11 +458,26 @@ class ProteinIC:
 
     @classmethod
     def from_ICatoms(cls, ICs, **kwargs):
-        """
-        Object collecting internal coords of atoms making up a protein.
-        :param ICs: dict
+        """Constructs a ProteinIC object from a collection of internal coords of atoms.
+
+        Parameters
+        ----------
+        ICs : dict
             dictionary of dicts, of dicts containing ICAtom objects. Top dict specifies chain, middle dict specifies
             residue and bottom dict holds ICAtom objects.
+
+        **kwargs : dict
+            Aditional arguments.
+
+            - ``chain_operators`` : Dictionary of tranlation vectors and rotation matrices that can transform chains from the
+              internal coordinate frame to a global coordinate frame.
+            - ``bonded_pairs`` : Array of atom index pairs indicating which atoms are bonded
+            - ``nonbonded_pairs`` : Array of atom index pairs indicating which atoms are not bonded
+
+        Returns
+        -------
+        ProteinIC
+            A protein internal coords object
         """
 
         dihedral_dict, angle_dict, bond_dict = {}, {}, {}
@@ -432,18 +533,26 @@ class ProteinIC:
 
     @property
     def chain_operators(self):
-        """Chain_operators are a set of coordinate transformations that can orient multiple chains that are not
-        covalently linked. e.g. structures with missing residues or protein complexes"""
+        """dict: A set of coordinate transformations that can orient multiple chains that are not covalently linked. e.g.
+        structures with missing residues or protein complexes. The ``chain_operator`` property is a dictionary mapping
+        chainIDs to a sub-dictionary containing a translation vector, ``ori``  and rotation matrix ``mx`` that will
+        transform the protein coordinates from tie internal coordinate frame to some global frame.
+        """
         return self._chain_operators
 
     @chain_operators.setter
-    def chain_operators(self, op):
-        """
-        Assign or calculate operators for all chains.
+    def chain_operators(self, op: Dict):
+        """Assign or calculate operators for all chains.
 
-        :param op: dict
+        Parameters
+        ----------
+        op : dict
             Dictionary containing an entry for each chain in the ProteinIC molecule. Each entry must contain a
             rotation matrix, 'mx' and translation vector 'ori'.
+
+        Returns
+        -------
+        None
         """
         if op is None:
             logging.info(
@@ -459,13 +568,25 @@ class ProteinIC:
 
     @property
     def coords(self):
+        """np.ndarray : The cartesian coordinates of the protein"""
         if (self._coords is None) or self.perturbed:
             self._coords = self.to_cartesian()
             self.perturbed = False
         return self._coords
 
     @coords.setter
-    def coords(self, coords):
+    def coords(self, coords: ArrayLike):
+        """Setter to update the internal coords when the cartesian coords are altered
+
+        Parameters
+        ----------
+        coords : ArrayLike
+            cartesian coords to use to update.
+
+        Returns
+        -------
+        None
+        """
         coords = np.asarray(coords)
         if coords.shape != self._coords.shape:
             raise ValueError('the coordinate array supplied does not match the ProteinIC object coords array')
@@ -505,6 +626,7 @@ class ProteinIC:
 
     @property
     def nonbonded_pairs(self):
+        """np.ndarray: Array of atom index pairs of atoms that are not bonded"""
         if self._nonbonded_pairs is None and not (self.bonded_pairs is None or self.bonded_pairs.any() is None):
             bonded_pairs = {(a, b) for a, b in self.bonded_pairs}
             possible_bonds = itertools.combinations(range(len(self.atoms)), 2)
@@ -516,22 +638,31 @@ class ProteinIC:
 
         return self._nonbonded_pairs
 
+    def set_dihedral(
+        self,
+        dihedrals: Union[int, ArrayLike],
+        resi: int,
+        atom_list: ArrayLike,
+        chain: Union[int, str] = None
+    ):
+        """Set one or more dihedral angles of a single residue in internal coordinates for the atoms defined in atom
+        list.
 
-
-    def set_dihedral(self, dihedrals, resi, atom_list, chain=None):
-        """
-        Set one or more dihedral angles of a single residue in internal coordinates for the atoms defined in atom list.
-
-        :param dihedrals: float, ndarray
-            Angle or array of angles to set the dihedral(s) to
-
-        :param resi: int
+        Parameters
+        ----------
+        dihedrals : float, ArrayLike
+            Angle or array of angles to set the dihedral(s) to.
+        resi : int
             Residue number of the site being altered
-
-        :param atom_list: ndarray, list, tuple
+        atom_list : ArrayLike
             Names or array of names of atoms involved in the dihedral(s)
+        chain : int, str, optional
+            Chain containing the atoms that are defined by the dihedrals that are being set. Only necessary when there
+            is more than one chain in the proteinIC object.
 
-        :return coords: ndarray
+        Returns
+        -------
+        self : ProteinIC
             ProteinIC object with new dihedral angle(s)
         """
         self.perturbed = True
@@ -569,19 +700,25 @@ class ProteinIC:
 
         return self
 
-    def get_dihedral(self, resi, atom_list, chain=None):
-        """
-        Get the dihedral angle(s) of one or more atom sets at the specified residue. Dihedral angles are returned in
+    def get_dihedral(self, resi: int, atom_list: ArrayLike, chain: Union[int, str] = None):
+        """Get the dihedral angle(s) of one or more atom sets at the specified residue. Dihedral angles are returned in
         radians
 
-        :param resi: int
+        Parameters
+        ----------
+        resi : int
             Residue number of the site being altered
-
-        :param atom_list: ndarray, list, tuple
+        atom_list : ArrayLike
             Names or array of names of atoms involved in the dihedral(s)
-
-        :return angles: ndarray
+            
+            :return angles: ndarray
             array of dihedral angles corresponding to the atom sets in atom list
+        chain :
+             (Default value = None)
+
+        Returns
+        -------
+
         """
 
         if chain is None and len(self.ICs) == 1:
@@ -607,10 +744,11 @@ class ProteinIC:
         return dihedrals[0] if len(dihedrals) == 1 else np.array(dihedrals)
 
     def to_cartesian(self):
-        """
-        Convert internal coordinates into cartesian coordinates.
+        """Convert internal coordinates into cartesian coordinates.
 
-        :return coord: ndarray
+        Returns
+        -------
+        coords_array : np.ndarray
             Array of cartesian coordinates corresponding to ICAtom list atoms
         """
         coord_arrays = []
@@ -640,9 +778,24 @@ class ProteinIC:
 
         return np.concatenate(coord_arrays)
 
-    def to_site(self, N, CA, C, method="bisect"):
+    def to_site(self, *p: ArrayLike, method="bisect"):
+        """
+        Move the ProteinIC object to a site defined by ``p`` . Usually ``p`` Will be the coordinates of the N, CA, C
+        backbone atoms. Alignment to this sight will be done by aligning the first residues (the internal coordinate
+        frame) to the coordinates of ``p`` using the provided method.
+
+        Parameters
+        ----------
+        p : ArrayLike
+            Three 3D cartesian coordinates defining the site to move the ProteinIC object to.
+        method : str
+            Alignment method to use. See :mod:`Alignment Methods <chiLife.superimpositions>` .
+
+        """
+        p1, p2, p3 = p
+
         new_co = {}
-        gmx, gori = global_mx(N, CA, C)
+        gmx, gori = global_mx(p1, p2, p3)
         lori, lmx = local_mx(*np.squeeze(self.coords[:3]), method=method)
         m2m3 = lmx @ gmx
         for segid in self.chain_operators:
@@ -655,14 +808,14 @@ class ProteinIC:
         self.perturbed = True
 
     def save_pdb(self, filename: str, mode="w"):
-        """
-        Save a pdb structure file from a ProteinIC object
+        """Save a pdb structure file from a ProteinIC object
 
-        :param filename: str
+        Parameters
+        ----------
+        filename : str
             Name of file to save
-
-        :param mode: str
-            file open mode
+        mode : str
+            file open mode (Default value = "w")
         """
         if "a" in mode:
             with open(str(filename), mode, newline="\n") as f:
@@ -673,13 +826,17 @@ class ProteinIC:
         else:
            save_pdb(filename, self.atoms, self.to_cartesian(), mode=mode)
 
-    def has_clashes(self, distance=1.5):
-        """
-        Checks for an internal clash between nonbonded atoms
-        :param distance: float
-            Minimum distance allowed between non-bonded atoms
+    def has_clashes(self, distance: float = 1.5) -> bool:
+        """Checks for an internal clash between non-bonded atoms.
 
-        :return:
+        Parameters
+        ----------
+        distance : float
+            Minimum distance allowed between non-bonded atoms in angstroms. (Default value = 1.5).
+
+        Returns
+        -------
+
         """
         diff = (
             self.coords[self.nonbonded_pairs[:, 0]]
@@ -689,12 +846,19 @@ class ProteinIC:
         has_clashes = np.any(dist < distance)
         return has_clashes
 
-    def get_resi_dihs(self, resi: int):
-        """
-        Gets the list of heavy atom dihedral definitions for the provided residue.
+    def get_resi_dihs(self, resi: int) -> List[List[str]]:
+        """Gets the list of heavy atom dihedral definitions for the provided residue as defined by preexisting and user
+        defined rotamer libraries.
 
-        :param resi: int
+        Parameters
+        ----------
+        resi : int
             Index of the residue whose dihedrals will be returned
+
+        Returns
+        -------
+        dihedral_defs : List[List[str]]
+            Lists of atom names defining the dihedrals of residue ``resi``.
         """
 
         if resi == 0 or resi == list(self.ICs[1].keys())[-1]:
@@ -709,12 +873,14 @@ class ProteinIC:
             dihedral_defs = [["C", "N", "CA", "C"], ["N", "CA", "C", "N"]]
         return dihedral_defs
 
-    def collect_dih_list(self) -> list:
-        """
-        Returns a list of all heavy atom dihedrals
+    def collect_dih_list(self) -> List:
+        """Returns a list of all heavy atom dihedrals as defined by preexisting and user defined rotamer libraries.
 
-        :return dihs: list
-            list of protein heavy atom dihedrals
+        Returns
+        -------
+        List[Tuple[int, List[str]]]
+            List of all heavy atom dihedrals. Each element of the list contains a tuple with an int corresponding to the
+            residue number and a list of dihedral definitions corresponding to the dihedrals of the residue.
         """
         dihs = []
 
@@ -727,7 +893,15 @@ class ProteinIC:
 
         return dihs
 
-    def shift_resnum(self, delta):
+    def shift_resnum(self, delta: int):
+        """Shift all residue numbers of the proteinIC object by some integer, ``delta`` .
+
+        Parameters
+        ----------
+        delta : int
+            Integer by which you wish to shift the residue numbers of the ProteinIC object. Can be positive or
+            negative.
+        """
         for key in self.atom_dict:
             for chain in self.atom_dict[key]:
 
@@ -749,33 +923,30 @@ class ProteinIC:
 
 
 def get_ICAtom(
-    mol: mda.core.groups.Atom, dihedral: List[int], offset: int = 0, preferred_dihedral: List = None
+    mol: mda.core.groups.Atom,
+    dihedral: List[int],
+    offset: int = 0
 ) -> ICAtom:
-    """
-    Construct internal coordinates for an atom given that atom is linked to an MDAnalysis Universe.
+    """Construct internal coordinates for an atom given that atom is linked to an MDAnalysis Universe.
 
-    :param atom: MDAnalysis.Atom
-        Atom object to obtain internal coordinates for.
-
-    :param offset: int
+    Parameters
+    ----------
+     mol : mda.core.groups.Atom
+        Atom group object containing the atom of interest and the preceding atoms that define the dihedral.
+    dihedral : List[int]
+        Dihedral defining the coordination of the atom being constructred
+    offset : int
         Index offset used to construct internal coordinates for separate chains.
 
-    :param preferred_dihedral: list
-        Atom names defining the preferred dihedral to be use in the bond-angle-torsion coordinate system.
-
-    :return: ICAtom
+    Returns
+    -------
+    ICAtom
         Atom with internal coordinates.
+
     """
     atom = mol.atoms[dihedral[-1]]
     if len(dihedral) == 1:
-        return ICAtom(
-            atom.name,
-            atom.type,
-            dihedral[-1] - offset,
-            atom.resname,
-            atom.resid,
-            (atom.name,),
-        )
+        return ICAtom(atom.name, atom.type, dihedral[-1] - offset, atom.resname, atom.resid, (atom.name,))
 
     elif len(dihedral) == 2:
         atom2 = mol.atoms[dihedral[-2]]
@@ -792,15 +963,10 @@ def get_ICAtom(
         )
 
     elif len(dihedral) == 3:
-
         atom2 = mol.atoms[dihedral[-2]]
         atom3 = mol.atoms[dihedral[-3]]
+        atom_names = (atom.name, atom2.name, atom3.name)
 
-        atom_names = (
-            atom.name,
-            atom2.name,
-            atom3.name,
-        )
         return ICAtom(
             atom.name,
             atom.type,
@@ -815,24 +981,19 @@ def get_ICAtom(
         )
 
     else:
-
         atom4, atom3, atom2 = mol.atoms[dihedral[:-1]]
-
         atom_names = (atom.name, atom2.name, atom3.name, atom4.name)
 
-        if atom_names != ("N", "C", "CA", "N"):
-            dihedral_resi = atom.resnum
-        else:
+        if atom_names == ("N", "C", "CA", "N"):
             dihedral_resi = atom.resnum - 1
+        else:
+            dihedral_resi = atom.resnum
 
         p1, p2, p3, p4 = mol.atoms[dihedral].positions
 
         bl = np.linalg.norm(p3 - p4)
         al = get_angle([p2, p3, p4])
         dl = get_dihedral([p1, p2, p3, p4])
-
-        if any(np.isnan(np.array([bl, al, dl]))):
-            print("bd")
 
         return ICAtom(
             atom.name,
@@ -851,7 +1012,20 @@ def get_ICAtom(
         )
 
 
-def get_ICResidues(ICAtoms):
+def get_ICResidues(ICAtoms: List[ICAtom]) -> Dict:
+    """Create a collection of ICAtoms grouped by residue. This function will create a dictionary where the keys are
+    residues and the values are the lists of ICAtoms of that residues.
+
+    Parameters
+    ----------
+    ICAtoms : List[ICAtom]
+        List of internal coordinate atoms  to seperate into groups
+
+    Returns
+    -------
+    residues : Dict
+        Dictionary where the keys are residues and the values are the lists of ICAtoms of that residues.
+    """
     residues = {}
     prev_res = None
     for atom in ICAtoms:
@@ -864,48 +1038,84 @@ def get_ICResidues(ICAtoms):
     return residues
 
 
-def get_n_pred(G, node, n, inner=False):
-    """get the n predecessors of node i"""
+def get_n_pred(G : nx.DiGraph, node: int, n: int, inner: bool = False):
+    """Given a directed graph, ``G`` and a ``node`` , find the ``n`` predecessors of ``node`` and
+    return them as a list. The returned list will include ``node`` and be of length ``n + 1`` . For pathways with less
+    than ``n`` predecessors the function will return all predecessors.
+
+    Parameters
+    ----------
+    G : networkx.DiGraph
+        The directed graph containing ``node`` .
+    node : int
+        The node of ``G`` for which you would like the predecessors of.
+    n : int
+        The number of predecessors to find.
+    inner :
+         (Default value = False)
+
+    Returns
+    -------
+    predecessors : List[int]
+        List of nodes that come before ``node``.
+    """
 
     # Check if node is new chain
     if G.in_degree(node) == 0:
         n = 0
 
     # Try the most direct line
-    dihedral = [node]
+    predecessors = [node]
     for i in range(n):
-        active = dihedral[-1]
+        active = predecessors[-1]
         try:
-            dihedral.append(next(G.predecessors(active)))
+            predecessors.append(next(G.predecessors(active)))
         except:
             break
 
-    dihedral.reverse()
+    predecessors.reverse()
 
     # Try all ordered lines
-    if len(dihedral) != n + 1:
-        dihedral = [node]
+    if len(predecessors) != n + 1:
+        predecessors = [node]
         tmp = []
         for p in G.predecessors(node):
             tmp = get_n_pred(G, p, n-1, inner=True)
             if len(tmp) == n:
                 break
 
-        dihedral = tmp + dihedral
+        predecessors = tmp + predecessors
 
     # get any path or start a new segment
-    if len(dihedral) != n + 1 and not inner:
+    if len(predecessors) != n + 1 and not inner:
         uG = G.to_undirected()
         path = [node]
         for i in nx.single_source_shortest_path_length(uG, node, cutoff=n):
             if i < node:
                 path = nx.shortest_path(uG, i, node)
 
-        dihedral = path
+        predecessors = path
 
-    return dihedral
+    return predecessors
 
-def get_all_n_pred(G, node, n):
+
+def get_all_n_pred(G :nx.DiGraph, node: int, n: int) -> List[List[int]]:
+    """ Get all possible permutations of ``n`` (or less) predecessors of ``node`` of the directed graph ``G`` .
+
+    Parameters
+    ----------
+    G : networkx.DiGraph
+        Directed graph containing ``node``.
+    node : int
+        Node you wish to find all predecessors of.
+    n : int
+        Max number of predecessors to find.
+
+    Returns
+    -------
+    preds : List[List[int]]
+        List of lists containing all permutations of ``n`` predecessors of ``node`` of ``G`` .
+    """
     if n == 0:
         return [[node]]
 
@@ -920,30 +1130,32 @@ def get_all_n_pred(G, node, n):
     return preds
 
 
-
 def get_internal_coords(
     mol: Union[MDAnalysis.Universe, MDAnalysis.AtomGroup],
-    resname: str = None,
     preferred_dihedrals: List = None,
     bonds: ArrayLike = None,
 ) -> ProteinIC:
-    """
-    Gather a list of Internal
+    """Gather a list of internal coordinate atoms ( ``ICAtom`` ) from and MDAnalysis ``Universe`` of ``AtomGroup`` and
+    create a ``ProteinIC`` object from them. If ``preferred_dihedrals`` is passed then any atom that can be defineid by
+    a dihedral present in ``preferred_dihedrals`` will be.
 
-    :param mol: MDAnalysis.Universe, MDAnalysis.AtomGroup
+    Parameters
+    ----------
+    mol : MDAnalysis.Universe, MDAnalysis.AtomGroup
         Molecule to convert into internal coords.
-
-    :param resname: str
+    resname : str
         Residue name (3-letter code) of any non-canonical or otherwise unsupported amino acid that should be included in
         the ProteinIC object.
-
-    :param preferred_dihedrals: list
+    preferred_dihedrals : list
         Atom names of  preffered dihedral definitions to be used in the bond-angle-torsion coordinate system. Often
         used to specify dihedrals of user defined or unsupported amino acids that the user wishes to directly interact
         with.
 
-    :return ICs: ProteinIC
-        An ProteinIC object of the supplied molecule
+    Returns
+    -------
+    ProteinIC
+        An ``ProteinIC`` object of the supplied molecule.
+
     """
     mol = mol.select_atoms("not (byres name OH2 or resname HOH)")
     U = mol.universe
@@ -997,10 +1209,7 @@ def get_internal_coords(
 
         chain_operators[segid] = {"ori": ori, "mx": mx}
         #
-        ICatoms = [
-            get_ICAtom(mol, dihedral, offset=offset, preferred_dihedral=preferred_dihedrals)
-            for dihedral in seg
-        ]
+        ICatoms = [get_ICAtom(mol, dihedral, offset=offset) for dihedral in seg]
         all_ICAtoms[segid] = get_ICResidues(ICatoms)
 
     # Get bonded pairs within selection
@@ -1012,16 +1221,15 @@ def get_internal_coords(
 
 
 def save_rotlib(name: str, atoms: ArrayLike, coords: ArrayLike = None) -> None:
-    """
-    Save a rotamer library as multiple states of the same molecule.
+    """Save a rotamer library as multiple states of the same molecule.
 
-    :param name: str
+    Parameters
+    ----------
+    name : str
         file name to save rotamer library to
-
-    :param atoms: list, tuple
+    atoms : ArrayLike
         list of Atom objects
-
-    :param coords: np.ndarray
+    coords : ArrayLike
         Array of atom coordinates corresponding to Atom objects
     """
 
@@ -1055,22 +1263,18 @@ def save_rotlib(name: str, atoms: ArrayLike, coords: ArrayLike = None) -> None:
         save_pdb(name, atoms, coords)
 
 
-def save_pdb(
-    name: Union[str, Path], atoms: ArrayLike, coords: ArrayLike, mode: str = "w"
-) -> None:
-    """
-    Save a single state pdb structure of the provided atoms and coords
+def save_pdb(name: Union[str, Path], atoms: ArrayLike, coords: ArrayLike, mode: str = "w") -> None:
+    """Save a single state pdb structure of the provided atoms and coords
 
-    :param name: str
-        Name of file to save
-
-    :param atoms: list, tuple
+    Parameters
+    ----------
+    name : str, Path
+        Name or Path object of file to save
+    atoms : ArrayLike
         List of Atom objects to be saved
-
-    :param coords: np.ndarray
-         Array of atom coordinates corresponding to atoms
-
-    :param mode: str
+    coords : ArrayLike
+        Array of atom coordinates corresponding to atoms
+    mode : str
         File open mode. Usually used to specify append ("a") when you want to add structures to a PDB rather than
         overwrite that pdb.
     """
@@ -1090,17 +1294,22 @@ def get_missing_residues(
     ignore: Set[int] = None,
     use_H: bool = False,
 ) -> List:
-    """
-    Get a list of RotamerLibrary objects corresponding to the residues of the provided protein that are missing heavy
+    """Get a list of RotamerLibrary objects corresponding to the residues of the provided protein that are missing heavy
     atoms
-    :param protein: MDAnalysis.Universe, MDAnalysis.AtomGroup
+
+    Parameters
+    ----------
+    protein : MDAnalysis.Universe, MDAnalysis.AtomGroup
         Protein to search for residues with missing atoms.
-    :param ignore: ArrayLike
+    ignore : set
         List of residue numbers to ignore. Usually sites you plan to label or mutate.
-    :param use_H: bool
-        Whether the new side chain should have hydrogen atoms
-    :return: ArrayLike
-        List of RotamerLibrary objects corresponding to residues with missing heavy atoms
+    use_H : bool
+        Whether the new side chain should have hydrogen atoms.
+
+    Returns
+    -------
+    missing_residues : list
+        List of RotamerLibrary objects corresponding to residues with missing heavy atoms.
     """
     ignore = set() if ignore is None else ignore
     missing_residues = []
@@ -1138,25 +1347,24 @@ def mutate(
     *rotlibs: RotamerLibrary,
     add_missing_atoms: bool = True,
     random_rotamers: bool = False,
-    **kwargs
 ) -> MDAnalysis.Universe:
-    """
-    Create a new Universe where the native residue is replaced with the highest probability rotamer from a
+    """Create a new Universe where the native residue is replaced with the highest probability rotamer from a
     RotamerLibrary or SpinLabel object.
 
-    :param protein: MDAnalysis.Universe
+    Parameters
+    ----------
+    protein : MDAnalysis.Universe
         Universe containing protein to be spin labeled
-
-    :param rotlibs: RotamerLibrary, SpinLabel
+    rotlibs : RotamerLibrary, SpinLabel
         Precomputed RotamerLibrary or SpinLabel object to use for selecting and replacing the spin native amino acid
-
-    :param random_rotamers: bool
+    random_rotamers :bool
         Randomize rotamer conformations
+    add_missing_atoms : bool
+        Model side chains missing atoms if they are not present in the provided structure.
 
-    :param add_missing_atoms:
-        Remodel side chains missing atoms
-
-    :return U: MDAnalysis.Universe
+    Returns
+    -------
+    U : MDAnalysis.Universe
         New Universe with a copy of the spin labeled protein with the highest probability rotamer
     """
 
@@ -1300,14 +1508,16 @@ def randomize_rotamers(
     rotamer_libraries: List[RotamerLibrary],
     **kwargs,
 ) -> None:
-    """
-    Modify a protein object in place to randomize side chain conformations.
+    """Modify a protein object in place to randomize side chain conformations.
 
-    :param protein: MDAnalysis.Universe, MDAnalysis.AtomGroup
+    Parameters
+    ----------
+    protein : MDAnalysis.Universe, MDAnalysis.AtomGroup
         Protein object to modify.
-
-    :param rotamer_libraries: list
+    rotamer_libraries : list
         RotamerLibrary objects attached to the protein corresponding to the residues to be repacked/randomized.
+    **kwargs : dict
+        Additional Arguments to pass to ``sample`` method. See :mod:`sample <chiLife.RotamerLibrary.sample>` .
     """
     for rotamer in rotamer_libraries:
         coords, weight = rotamer.sample(off_rotamer=kwargs.get("off_rotamer", False))
@@ -1318,17 +1528,20 @@ def randomize_rotamers(
 def get_sas_res(
     protein: Union[mda.Universe, mda.AtomGroup], cutoff: float = 30
 ) -> Set[Tuple[int, str]]:
-    """
-    Run FreeSASA to get solvent accessible surface residues in the provided protein
+    """Run FreeSASA to get solvent accessible surface residues in the provided protein
 
-    :param protein: MDAnalysis.Universe, MDAnalysis.AtomGroup
+    Parameters
+    ----------
+    protein : MDAnalysis.Universe, MDAnalysis.AtomGroup
         Protein object to measure Solvent Accessible Surfaces (SAS) area of and report the SAS residues.
-
-    :param cutoff:
+    cutoff : float
         Exclude residues from list with SASA below cutoff in angstroms squared.
 
-    :return: SAResi
-        Set of solvent accessible surface residues
+    Returns
+    -------
+    SAResi : set
+        Set of solvent accessible surface residues.
+
     """
     environment_coords = protein.atoms.positions
     environment_radii = chiLife.get_lj_rmin(protein.atoms.types)
@@ -1340,41 +1553,52 @@ def get_sas_res(
     return SASAs
 
 
-def fetch(pdbid: str, save: bool = False) -> MDAnalysis.Universe:
-    """
-    Fetch pdb file from the protein data bank and optionally save to disk.
+def fetch(accession_number: str, save: bool = False) -> MDAnalysis.Universe:
+    """Fetch pdb file from the protein data bank or the AlphaFold Database and optionally save to disk.
 
-    :param pdbid: str
-        4 letter structure ID
-
-    :param save: bool
+    Parameters
+    ----------
+    accession_number : str
+        4 letter structure PDBID or alpha fold accession number. Note that AlphaFold accession numbers must begin with
+        'AF-'.
+    save : bool
         If true the fetched PDB will be saved to the disk.
 
-    :return U: MDAnalysis.Universe
-        MDAnalysis Universe object of the protein corresponding to the provided PDB ID
+    Returns
+    -------
+    U : MDAnalysis.Universe
+        MDAnalysis Universe object of the protein corresponding to the provided PDB ID or AlphaFold accession number
+
     """
+    accession_number = accession_number.split('.pdb')[0]
+    pdb_name = accession_number + '.pdb'
 
-    if not pdbid.endswith(".pdb"):
-        pdbid += ".pdb"
+    if accession_number.startswith('AF-'):
+        print(f"https://alphafold.ebi.ac.uk/files/{accession_number}-F1-model_v3.pdb")
+        urllib.request.urlretrieve(f"https://alphafold.ebi.ac.uk/files/{accession_number}-F1-model_v3.pdb", pdb_name)
+    else:
+        urllib.request.urlretrieve(f"http://files.rcsb.org/download/{pdb_name}", pdb_name)
 
-    urllib.request.urlretrieve(f"http://files.rcsb.org/download/{pdbid}", pdbid)
-
-    U = mda.Universe(pdbid, in_memory=True)
+    U = mda.Universe(pdb_name, in_memory=True)
 
     if not save:
-        os.remove(pdbid)
+        os.remove(pdb_name)
 
     return U
 
 
-def atom_sort_key(pdb_line: str, include_name=False) -> Tuple[str, int, int]:
-    """
-    Assign a base rank to sort atoms of a pdb.
+def atom_sort_key(pdb_line: str) -> Tuple[str, int, int]:
+    """Assign a base rank to sort atoms of a pdb.
 
-    :param pdb_line: str
+    Parameters
+    ----------
+    pdb_line : str
         ATOM line from a pdb file as a string.
 
-    :return: chainid, resid, name_order
+    Returns
+    -------
+    tuple :
+        chainid, resid, name_order.
         ordered ranking of atom for sorting the pdb.
     """
     chainid = pdb_line[21]
@@ -1389,19 +1613,20 @@ def atom_sort_key(pdb_line: str, include_name=False) -> Tuple[str, int, int]:
     else:
         name_order = atom_order.get(atom_name, 4) if atom_type != "H" else 5
 
-    if include_name:
-        return chainid, resid, name_order, atom_name[-1]
-    else:
-        return chainid, resid, name_order
+    return chainid, resid, name_order
 
 
-def pose2mda(pose):
-    """
-    Create an MDAnalysis universe from a pyrosetta pose
-    :param pose: pyrosetta.rosetta.core.Pose
+def pose2mda(pose) -> MDAnalysis.Universe:
+    """Create an MDAnalysis universe from a pyrosetta pose
+
+    Parameters
+    ----------
+    pose : pyrosetta.rosetta.core.Pose
         pyrosetta pose object.
 
-    :return mda_protein: MDAnalysis.Universe
+    Returns
+    -------
+    mda_protein : MDAnalysis.Universe
         Copy of the input pose as an MDAnalysis Universe object
     """
     coords = np.array(
@@ -1463,8 +1688,23 @@ def pose2mda(pose):
 
     return mda_protein
 
-from operator import itemgetter
-def guess_bonds(coords, atom_types):
+
+def guess_bonds(coords: ArrayLike, atom_types: ArrayLike) -> np.ndarray:
+    """ Given a set of coordinates and their atom types (elements) guess the bonds based off an empirical metric.
+
+    Parameters
+    ----------
+    coords : ArrayLike
+        Array of three-dimensional coordinates of the atoms of a molecule or set of molecules for which you would like
+        to guess the bonds of.
+    atom_types : ArrayLike
+        Array of the element symbols corresponding to the atoms of ``coords``
+
+    Returns
+    -------
+    bonds : np.ndarray
+        An array of the atom index pairs corresponding to the atom pairs that are thought ot form bonds.
+    """
     kdtree = cKDTree(coords)
     pairs = kdtree.query_pairs(4., output_type='ndarray')
     pair_names = [tuple(x) for x in atom_types[pairs].tolist()]
@@ -1477,8 +1717,23 @@ def guess_bonds(coords, atom_types):
 
     return bonds
 
-# @cached
-def get_min_topol(lines):
+
+def get_min_topol(lines: List[List[str]]) -> Set[Tuple[int, int]]:
+    """ Git the minimum topology shared by all the states/models a PDB ensemble. This is to ensure a consistent
+    internal coordinate system between all conformers of an ensemble even when there are minor differences in topology.
+    e.g. when dHis-Cu-NTA has the capping ligand in different bond orientations.
+
+    Parameters
+    ----------
+    lines : List[List[str]]
+        List of lists corresponding to individual states/models of a pdb file. All models must have the same stoma in
+        the same order and only the coordinates should differ.
+
+    Returns
+    -------
+    minimal_bond_set : Set[Tuple[int, int]]
+        A set of tuples holding the indices of atom pairs which are thought to be bonded in all states/models.
+    """
     bonds_list = []
     if isinstance(lines[0], str):
         lines = [lines]
@@ -1491,25 +1746,35 @@ def get_min_topol(lines):
         bonds = set(tuple(pair) for pair in pairs)
         bonds_list.append(bonds)
 
-    minimal_bond_list = set.intersection(*bonds_list)
+    minimal_bond_set = set.intersection(*bonds_list)
 
-    return minimal_bond_list
+    return minimal_bond_set
 
 
-def sort_pdb(pdbfile: Union[str, List],
-             uniform_topology: bool =True,
+def sort_pdb(pdbfile: Union[str, List[str], List[List[str]]],
+             uniform_topology: bool = True,
              index: bool = False,
-             bonds: ArrayLike = None) -> Union[List[str], List[int]]:
-    """
-    Read ATOM lines of a pdb and sort the atoms according to chain, residue index, backbone atoms and side chain atoms.
+             bonds: ArrayLike = None) -> Union[List[str], List[List[str]], List[int]]:
+    """Read ATOM lines of a pdb and sort the atoms according to chain, residue index, backbone atoms and side chain atoms.
     Side chain atoms are sorted by distance to each other/backbone atoms with atoms closest to the backbone coming
     first and atoms furthest from the backbone coming last. This sorting is essential to making internal-coordinates
     with consistent and preferred dihedral definitions.
 
-    :param pdbfile: str, list
-        Name of the PDB file or a list of strings containing ATOM lines of a PDB file
+    Parameters
+    ----------
+    pdbfile : str, List[str], List[List[str]]
+        Name of the PDB file, a list of strings containing ATOM lines of a PDB file or a list of lists containing
+        ATOM lines of a PDB file, where each sublist corresponds to a state/model of a multi-state pdb.
+    uniform_topology: bool
+        When given a multi-state pdb, assume that all states have the same topology (bonds) as the first state.
+    index: bool :
+         Return the sorted index rather than the sorted lines.
+    bonds: ArrayLike :
+         When sorting the PDB, use the provided bond list to as the topology rather than guessing the bonds.
 
-    :return lines: list
+    Returns
+    -------
+    lines : List[str], List[List[str]]
         Sorted list of strings corresponding to the ATOM entries of a PDB file.
     """
 
@@ -1551,7 +1816,7 @@ def sort_pdb(pdbfile: Union[str, List],
     lines = [line for line in lines if line.startswith(("ATOM", "HETATM"))]
 
     # Presort
-    lines.sort(key=lambda x: atom_sort_key(x))
+    lines.sort(key=atom_sort_key)
     parent_bonds = set(tuple(bond) for bond in bonds) if bonds is not None else set()
     coords = np.array(
         [[float(line[30:38]), float(line[38:46]), float(line[46:54])] for line in lines]
@@ -1641,7 +1906,6 @@ def sort_pdb(pdbfile: Union[str, List],
     lines = [line[:6] + f"{i + 1:5d}" + line[11:] for i, line in enumerate(lines)]
 
     return lines
-
 
 DATA_DIR = Path(__file__).parent.absolute() / "data/"
 RL_DIR = Path(__file__).parent.absolute() / "data/rotamer_libraries/"

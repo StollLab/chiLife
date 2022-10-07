@@ -121,6 +121,9 @@ class RotamerLibrary:
 
         self._lib_coords = self._coords.copy()
 
+        if self.clash_radius is None:
+            self.clash_radius = np.linalg.norm(self.clash_ori - self.coords, axis=-1).max() + 5
+
         # Parse important indices
         self.backbone_idx = np.argwhere(np.isin(self.atom_names, ["N", "CA", "C"]))
         self.side_chain_idx = np.argwhere(
@@ -149,7 +152,6 @@ class RotamerLibrary:
 
         # Allocate variables for clash evaluations
         self.atom_energies = None
-        self.clash_ignore_coords = None
         self.clash_ignore_idx = None
         self.partition = 1
 
@@ -1052,7 +1054,7 @@ def assign_defaults(kwargs):
         "protein_tree": None,
         "forgive": 1.0,
         "temp": 298,
-        "clash_radius": 14.0,
+        "clash_radius": None,
         "_clash_ori_inp": kwargs.pop("clash_ori", "cen"),
         "superimposition_method": "bisect",
         "dihedral_sigmas": 35,

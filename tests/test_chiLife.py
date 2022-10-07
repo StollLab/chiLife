@@ -114,7 +114,7 @@ def test_get_dd(args, kws, expected):
     y = chiLife.get_dd(*args, **kws)
 
     # Stored values normalized to 1 while get_dd normalizes to r
-    np.testing.assert_almost_equal(y_ans, y / y.sum())
+    np.testing.assert_almost_equal(y_ans, y / y.sum(), decimal=4)
 
 
 def test_get_dd_uq():

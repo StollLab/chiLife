@@ -10,27 +10,89 @@ import chiLife
 
 
 class RotamerLibrary:
-    """
-    Create new RotamerLibrary object.
+    """Create new RotamerLibrary object.
 
-    :param res: string
-        Name of desired residue, e.g. R1A.
-    :param site: int
+    Attributes
+    ----------
+    name : str
+
+    res : string
+        3-character name of desired residue, e.g. R1A.
+    site : int
         Protein residue number to attach library to.
-    :param protein: MDAnalysis.Universe, MDAnalysis.AtomGroup
+    protein : MDAnalysis.Universe, MDAnalysis.AtomGroup
         Object containing all protein information (coords, atom types, etc.)
-    :param chain: str
+    protein_tree : scipy.spatial.cKDTree
+        None
+    chain : str
         Protein chain identifier to attach spin label to.
+
+    internal_coords
+
+    selstr : str
+
+    input_kwargs : dict
+    eval_clash : bool
+        False
+    energy_func : Callable
+        chiLife.get_lj_rep
+    clash_ignore_coords : np.ndarray
+        None
+    clash_ignore_idx : np.ndarray
+        None
+    forgive : float
+        1.0
+    temp : float
+        298
+    clash_radius : float
+        14.0
+    superimposition_method : str
+        "bisect",
+    dihedral_sigmas : float
+        35
+    weighted_sampling : bool
+        False
+    use_H : bool
+        False
+    sample_size : int, bool
+        kwargs.pop("sample", False)
+
+    atom_types : np.ndarray
+
+    atom_names : np.ndarray
+
+    atom_energies = None
+
+    partition = 1
+
+
+    Returns
+    -------
+
     """
 
     backbone_atoms = ["H", "N", "CA", "HA", "C", "O"]
 
     def __init__(self, res, site=1, protein=None, chain=None, **kwargs):
+        """Create new RotamerLibrary object.
 
+        Parameters
+        ----------
+        res : string
+            3-character name of desired residue, e.g. R1A.
+        site : int
+            Protein residue number to attach library to.
+        protein : MDAnalysis.Universe, MDAnalysis.AtomGroup
+            Object containing all protein information (coords, atom types, etc.)
+        chain : str
+            Protein chain identifier to attach spin label to.
+        **kwargs : dict
+
+        """
 
         self.res = res
-        self.protein = protein
         self.site = int(site)
+        self.protein = protein
         self.chain = chain if chain is not None else guess_chain(self.protein, self.site)
         self.selstr = f"resid {self.site} and segid {self.chain} and not altloc B"
         self.input_kwargs = kwargs
@@ -125,16 +187,44 @@ class RotamerLibrary:
         protein=None,
         chain=None,
     ):
+        """
+
+        Parameters
+        ----------
+        pdb_file :
+            
+        res :
+             (Default value = None)
+        site :
+             (Default value = None)
+        protein :
+             (Default value = None)
+        chain :
+             (Default value = None)
+
+        Returns
+        -------
+
+        """
         # TODO: create pdb reader and impliment from_pdb method
         return cls(res, site, protein, chain)
 
     @classmethod
     def from_mda(cls, residue, **kwargs):
-        """
-        Create RotamerLibrary from the MDAnalysis.Residue
-        :param residue: MDAnalysis.Residue
+        """Create RotamerLibrary from the MDAnalysis.Residue
 
-        :return: RotamerLibrary
+        Parameters
+        ----------
+        residue :
+            MDAnalysis.Residue
+        **kwargs :
+            
+
+        Returns
+        -------
+        type
+            RotamerLibrary
+
         """
 
         res = residue.resname
@@ -145,6 +235,27 @@ class RotamerLibrary:
 
     @classmethod
     def from_trajectory(cls, traj, site, chain=None, energy=None, burn_in=100, **kwargs):
+        """
+
+        Parameters
+        ----------
+        traj :
+            
+        site :
+            
+        chain :
+             (Default value = None)
+        energy :
+             (Default value = None)
+        burn_in :
+             (Default value = 100)
+        **kwargs :
+            
+
+        Returns
+        -------
+
+        """
 
         chain = guess_chain(traj, site) if chain is None else chain
 
@@ -196,7 +307,7 @@ class RotamerLibrary:
         return prelib
 
     def __eq__(self, other):
-        """Equivalence measurement between a spin alebl and another object. A SpinLabel cannot be equivalent to a
+        """Equivalence measurement between a spin label and another object. A SpinLabel cannot be equivalent to a
         non-SpinLabel Two SpinLabels are considered equivalent if they have the same coordinates and weights
         TODO: Future consideration -- different orders (argsort weights)"""
 
@@ -210,17 +321,35 @@ class RotamerLibrary:
         )
 
     def set_site(self, site):
-        """
-        Assign SpinLabel to a site.
+        """Assign SpinLabel to a site.
 
-        :param site: int
+        Parameters
+        ----------
+        site :
+            int
             residue number to assign SpinLabel to.
+
+        Returns
+        -------
+
         """
         self.site = site
         self.to_site()
 
     def copy(self, site=None, chain=None):
-        """Create a deep copy of the spin label. Assign new site and chain information if desired"""
+        """Create a deep copy of the spin label. Assign new site and chain information if desired
+
+        Parameters
+        ----------
+        site :
+             (Default value = None)
+        chain :
+             (Default value = None)
+
+        Returns
+        -------
+
+        """
         new_copy = deepcopy(self)
         if site is not None:
             new_copy.site = site
@@ -242,8 +371,15 @@ class RotamerLibrary:
     def to_site(self, site_pos=None):
         """Move spin label to new site
 
-        :param site_pos: array-like
-            3x3 array of ordered backbone atom coordinates of new site (N CA C)
+        Parameters
+        ----------
+        site_pos :
+            array-like
+            3x3 array of ordered backbone atom coordinates of new site (N CA C) (Default value = None)
+
+        Returns
+        -------
+
         """
         if site_pos is None:
             N, CA, C = chiLife.parse_backbone(self, kind="global")
@@ -263,6 +399,7 @@ class RotamerLibrary:
         self.ICs_to_site()
 
     def ICs_to_site(self):
+        """ """
         # Update chain operators
         ic_backbone = np.squeeze(self.internal_coords[0].coords[:3])
         self.ic_ori, self.ic_mx = chiLife.local_mx(
@@ -274,7 +411,7 @@ class RotamerLibrary:
             new_mx = self.internal_coords[0].chain_operators[segid]["mx"] @ m2m3
             new_ori = (
                 self.internal_coords[0].chain_operators[segid]["ori"] - self.ic_ori
-            ) @ m2m3 + self.ori
+            ) @ m2m3 + self.origin
             op[segid] = {"mx": new_mx, "ori": new_ori}
 
         for IC in self.internal_coords:
@@ -317,8 +454,8 @@ class RotamerLibrary:
                     if atom == "O":
                         IC.zmats[1][additional_idxs, 2] -= delta
 
-
     def backbone_to_site(self):
+        """ """
         # Keep protein backbone dihedrals for oxygen and hydrogens
         for atom in ["H", "O"]:
             mask = self.atom_names == atom
@@ -331,7 +468,21 @@ class RotamerLibrary:
                     self._coords[:, mask] = pos[0]
 
     def sample(self, n=1, off_rotamer=False, **kwargs):
-        """Randomly sample a rotamer in the library."""
+        """Randomly sample a rotamer in the library.
+
+        Parameters
+        ----------
+        n :
+             (Default value = 1)
+        off_rotamer :
+             (Default value = False)
+        **kwargs :
+            
+
+        Returns
+        -------
+
+        """
         if not self.weighted_sampling:
             idx = np.random.randint(len(self._weights), size=n)
         else:
@@ -390,8 +541,18 @@ class RotamerLibrary:
     def _off_rotamer_sample(self, idx, off_rotamer, **kwargs):
         """
 
-        :param idx:
-        :return:
+        Parameters
+        ----------
+        idx :
+            return:
+        off_rotamer :
+            
+        **kwargs :
+            
+
+        Returns
+        -------
+
         """
         new_weight = 0
         # Use accessible volume sampling if only provided a single rotamer
@@ -423,10 +584,35 @@ class RotamerLibrary:
             return coords, new_weight
 
     def update_weight(self, weight):
+        """
+
+        Parameters
+        ----------
+        weight :
+            
+
+        Returns
+        -------
+
+        """
         self.current_weight = weight
 
     def minimize(self):
+        """ """
         def objective(dihedrals, ic):
+            """
+
+            Parameters
+            ----------
+            dihedrals :
+                
+            ic :
+                
+
+            Returns
+            -------
+
+            """
             coords = ic.set_dihedral(dihedrals, 1, self.dihedral_atoms).to_cartesian()
             temp_rotlib._coords = np.atleast_3d([coords[self.ic_mask]])
             return self.energy_func(temp_rotlib.protein, temp_rotlib)
@@ -451,7 +637,17 @@ class RotamerLibrary:
         self.trim()
 
     def trim(self, tol=0.005):
-        """Remove insignificant rotamers from Library"""
+        """Remove insignificant rotamers from Library
+
+        Parameters
+        ----------
+        tol :
+             (Default value = 0.005)
+
+        Returns
+        -------
+
+        """
         old_len = len(self.weights)
         arg_sort_weights = np.argsort(self.weights)[::-1]
         sorted_weights = self.weights[arg_sort_weights]
@@ -495,6 +691,17 @@ class RotamerLibrary:
         self.trim()
 
     def save_pdb(self, name=None):
+        """
+
+        Parameters
+        ----------
+        name :
+             (Default value = None)
+
+        Returns
+        -------
+
+        """
         if name is None:
             name = self.name
         chiLife.save_rotlib(name, self.atoms, self._coords)
@@ -505,10 +712,16 @@ class RotamerLibrary:
         return np.squeeze(self._coords[0][self.backbone_idx])
 
     def get_lib(self):
-        """
-        Parse backbone information from protein and fetch the appropriate rotamer library
-
+        """Parse backbone information from protein and fetch the appropriate rotamer library
+        
         :return:
+
+        Parameters
+        ----------
+
+        Returns
+        -------
+
         """
 
         PhiSel, PsiSel = None, None
@@ -552,6 +765,7 @@ class RotamerLibrary:
         return lib
 
     def protein_setup(self):
+        """ """
         # Position library at selected residue
         self.resindex = self.protein.select_atoms(self.selstr).resindices[0]
         self.segindex = self.protein.select_atoms(self.selstr).segindices[0]
@@ -591,6 +805,7 @@ class RotamerLibrary:
 
     @property
     def bonds(self):
+        """ """
         if not hasattr(self, "_bonds"):
             bond_tree = cKDTree(self._coords[0])
             bonds = bond_tree.query_pairs(2.0)
@@ -599,6 +814,17 @@ class RotamerLibrary:
 
     @bonds.setter
     def bonds(self, inp):
+        """
+
+        Parameters
+        ----------
+        inp :
+            
+
+        Returns
+        -------
+
+        """
         self._bonds = set(tuple(i) for i in inp)
         idxs = np.arange(len(self.atom_names))
         all_pairs = set(combinations(idxs, 2))
@@ -606,6 +832,7 @@ class RotamerLibrary:
 
     @property
     def non_bonded(self):
+        """ """
         if not hasattr(self, "_non_bonded"):
             idxs = np.arange(len(self.atom_names))
             all_pairs = set(combinations(idxs, 2))
@@ -615,6 +842,17 @@ class RotamerLibrary:
 
     @non_bonded.setter
     def non_bonded(self, inp):
+        """
+
+        Parameters
+        ----------
+        inp :
+            
+
+        Returns
+        -------
+
+        """
         self._non_bonded = set(tuple(i) for i in inp)
         idxs = np.arange(len(self.atom_names))
         all_pairs = set(combinations(idxs, 2))
@@ -625,6 +863,7 @@ class RotamerLibrary:
 
     @property
     def clash_ori(self):
+        """ """
         if isinstance(self._clash_ori_inp, (np.ndarray, list)):
             if len(self._clash_ori_inp) == 3:
                 return self._clash_ori_inp
@@ -643,14 +882,37 @@ class RotamerLibrary:
 
     @clash_ori.setter
     def clash_ori(self, inp):
+        """
+
+        Parameters
+        ----------
+        inp :
+            
+
+        Returns
+        -------
+
+        """
         self._clash_ori_inp = inp
 
     @property
     def coords(self):
+        """ """
         return self._coords
 
     @coords.setter
     def coords(self, coords):
+        """
+
+        Parameters
+        ----------
+        coords :
+            
+
+        Returns
+        -------
+
+        """
         # Allow users to input a single rotamer
         coords = coords if coords.ndim == 3 else coords[None, :, :]
 
@@ -686,10 +948,22 @@ class RotamerLibrary:
 
     @property
     def dihedrals(self):
+        """ """
         return self._dihedrals
 
     @dihedrals.setter
     def dihedrals(self, dihedrals):
+        """
+
+        Parameters
+        ----------
+        dihedrals :
+            
+
+        Returns
+        -------
+
+        """
         dihedrals = dihedrals if dihedrals.ndim == 2 else dihedrals[None, :]
         if dihedrals.shape[1] != self.dihedrals.shape[1]:
             raise ValueError('The input array does not have the correct number of dihedrals')
@@ -708,14 +982,17 @@ class RotamerLibrary:
 
     @property
     def mx(self):
+        """ """
         mx, ori = chiLife.global_mx(*np.squeeze(self.backbone), method=self.superimposition_method)
         return mx
 
     @property
-    def ori(self):
+    def origin(self):
+        """ """
         return np.squeeze(self.backbone[1])
 
     def get_sasa(self):
+        """ """
         atom_radii = chiLife.get_lj_rmin(self.atom_types)
         if self.protein is not None:
             environment_coords = self.protein.atoms[self.protein_clash_idx].positions
@@ -729,6 +1006,17 @@ class RotamerLibrary:
         return np.array(SASAs)
 
     def set_dihedral_sampling_sigmas(self, value):
+        """
+
+        Parameters
+        ----------
+        value :
+            
+
+        Returns
+        -------
+
+        """
         value = np.asarray(value)
         if value.shape == ():
             self.sigmas = (np.ones((len(self._weights), len(self.dihedral_atoms))) * value)
@@ -742,6 +1030,17 @@ class RotamerLibrary:
 
 
 def assign_defaults(kwargs):
+    """
+
+    Parameters
+    ----------
+    kwargs :
+        
+
+    Returns
+    -------
+
+    """
 
     # Make all string arguments lowercase
     for key, value in kwargs.items():
@@ -776,8 +1075,20 @@ def assign_defaults(kwargs):
 
     return kwargs_filled.items()
 
-
 def guess_chain(protein, site):
+    """
+
+    Parameters
+    ----------
+    protein :
+        
+    site :
+        
+
+    Returns
+    -------
+
+    """
     if protein is None:
         chain = "A"
     elif len(set(protein.segments.segids)) == 1:

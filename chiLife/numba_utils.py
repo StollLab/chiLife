@@ -356,7 +356,6 @@ def _get_sasas(
 
     return all_sasa
 
-@cached
 @njit(cache=True)
 def _get_sasa(
     atom_coords: np.ndarray,

@@ -58,7 +58,7 @@ def get_dihedral_rotation_matrix(theta: float, v: ArrayLike) -> ArrayLike:
 
 
 def get_dihedral(p: ArrayLike) -> float:
-    """Calculates dihedral of a given set of atoms, ``p`` . Returns value in degrees.
+    """Calculates dihedral of a given set of atoms, ``p`` . Returns value in radians.
 
      .. code-block:: python
 

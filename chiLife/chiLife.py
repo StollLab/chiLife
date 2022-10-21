@@ -1267,7 +1267,7 @@ def pre_add_label(name: str, pdb: str, spin_atoms: List[str], uniform_topology: 
 
     # Update USER_LABELS to include the new label
     global USER_LABELS
-    USER_LABELS = tuple(key for key in SPIN_ATOMS if key not in SUPPORTED_LABELS)
+    USER_LABELS = {tuple(}key for key in SPIN_ATOMS if key not in SUPPORTED_LABELS}
 
     # Write a temporary file with the sorted atoms
     if isinstance(pdb_lines[0], list):

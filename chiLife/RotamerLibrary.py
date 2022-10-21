@@ -15,7 +15,8 @@ class RotamerLibrary:
     Attributes
     ----------
     name : str
-
+        String identifying RotamerLibrary. Defaults to [site][res]_[chain] but chan be changed by the user if desired.
+        This string will be used to name structures when saving PDBs.
     res : string
         3-character name of desired residue, e.g. R1A.
     site : int
@@ -23,27 +24,33 @@ class RotamerLibrary:
     protein : MDAnalysis.Universe, MDAnalysis.AtomGroup
         Object containing all protein information (coords, atom types, etc.)
     protein_tree : scipy.spatial.cKDTree
-        None
+        K-dimensional tree of the protein coordinates used internally for fast neighbor and distance calculations.
     chain : str
-        Protein chain identifier to attach spin label to.
-
-    internal_coords
-
+        Protein chain identifier to attach spin label to. Defaults to 'A' if no protein is provided.
+    internal_coords : List[ProteinIC]
+        List of internal coordinate objects for each rotamer in the ensemble.
     selstr : str
-
+        Selection string that can be used with MDAnalysis ``select_atom`` method to select the site that the
+        RotamerLibrary is attached to.
     input_kwargs : dict
+        Stored copy of the keword arguments used when the object was created. ``input_kwargs`` is generally used for
+        generating similar RotamerLibraries.
     eval_clash : bool
-        False
+        Boolean argument to instruct the RotamerLibrary to evaluate clashes and trim rotamers on construction. If False
+        The starting RotamerLibrary is attached to the specified site and no clashes are evaluated. Post-construction
+        clash evaluations can be performed using the ``evaluate`` method. Defaults to False.
     energy_func : Callable
-        chiLife.get_lj_rep
-    clash_ignore_coords : np.ndarray
-        None
+        Desired energy function to be used by the ``evaluate`` method when called by the user or when ``eval_clash``
+        is set to True. ``energy_func`` must be a callable object and accept two arguments: ``protein`` and ``rotlib``
+        Deafults to ``chiLife.get_lj_rep``.
     clash_ignore_idx : np.ndarray
-        None
+        Array of atom indices of the ``protein`` attribute that should be ignored when the ``evaluate`` method is
+        invoked. i.e. the atom indices of the native residue the RotamerLibrary is being attached to.
     forgive : float
-        1.0
+        The "forgive-factor" to be used by the ``energy_func`` when the ``evaluate`` meth is invoked. If ``energy_func``
+        does not use a forgive-factor this value will be ignored. Defaults to 1.0.
     temp : float
-        298
+        Temperature (in Kelvin) to use when re-evaluating rotamer weights using ``energy_func``. Defaults to 298 K.
     clash_radius : float
         14.0
     superimposition_method : str
@@ -1076,6 +1083,7 @@ def assign_defaults(kwargs):
         )
 
     return kwargs_filled.items()
+
 
 def guess_chain(protein, site):
     """

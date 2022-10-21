@@ -1404,3 +1404,43 @@ def add_dihedral_def(name: str, dihedrals: ArrayLike) -> None:
 
     # Add to active dihedral def dict
     chiLife.dihedral_defs[name] = dihedrals
+
+
+def remove_label(name, prompt=True):
+    global USER_LABELS, USER_dLABELS
+    if (name not in USER_LABELS) and (name not in USER_dLABELS):
+        raise ValueError(f'{name} is not in the set of user labels or user dLables. Check to make sure you have the '
+                         f'right label. Note that only user labels can be removed.')
+
+    if prompt:
+        ans = input(f'WARNING: You have requested the permanent removal of the {name} label/rotamer library. \n'
+                    f'Are you sure you want to do this? (y/n)')
+        if ans.lower().startswith('y'):
+            pass
+        elif ans.lower().startswith('n'):
+            print('Canceling label removal')
+            return None
+        else:
+            print(f'"{ans}" is not an intelligible answer. Canceling label removal')
+
+    files = list((RL_DIR / 'UserRotlibs').glob(f'{name}*')) + \
+            list((RL_DIR / 'residue_internal_coords').glob(f'{name}*')) + \
+            list((RL_DIR / 'residue_pdbs').glob(f'{name}*'))
+
+    for file in files:
+        os.remove(str(file))
+
+    if name in USER_dLABELS:
+        USER_dLABELS.remove(name)
+
+    if name in USER_LABELS:
+        USER_LABELS.remove(name)
+
+    if name in SPIN_ATOMS:
+        del SPIN_ATOMS[name]
+
+    with open(RL_DIR / 'spin_atoms.txt', 'w') as f:
+        joinstr = "', '"
+        for name, spin_atoms in SPIN_ATOMS.items():
+            line = f"{name}: ['{joinstr.join(spin_atoms)}']\n"
+            f.write(line)

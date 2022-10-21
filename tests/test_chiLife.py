@@ -227,7 +227,7 @@ def test_repack_add_atoms():
 
 def test_add_label():
     chiLife.add_label(
-        name="TRT",
+        name="___",
         pdb="test_data/trt_sorted.pdb",
         dihedral_atoms=[['N', 'CA', 'CB', 'SG'],
                         ['CA', 'CB', 'SG', 'SD'],
@@ -239,6 +239,7 @@ def test_add_label():
 
     assert "TRT" in chiLife.USER_LABELS
     assert "TRT" in chiLife.SPIN_ATOMS
+    chiLife.remove_label('___', prompt=False)
 
 def test_single_chain_error():
     with pytest.raises(ValueError):

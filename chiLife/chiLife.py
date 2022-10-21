@@ -1056,6 +1056,11 @@ def add_label(
     for ic in internal_coords:
         ic.shift_resnum(-(resi - 1))
         ic.chain_operators = None
+        if len(ic.chains) > 1:
+            raise ValueError('The PDB of the label supplied appears to have a chain break. Please check your PDB and '
+                             'make sure there are no chain breaks in the desired label and that there are no other '
+                             'chains in the pdb file. If the error persists, check to be sure all atoms are the correct '
+                             'element as chiLife uses the elements to determine if atoms are bonded.')
 
     # Add internal_coords to data dir
     with open(RL_DIR / f"residue_internal_coords/{name}_ic.pkl", "wb") as f:
@@ -1134,6 +1139,8 @@ def add_dlabel(
             "each dihedral should be defined by exactly four unique atom names that belong to the same "
             "residue number"
         )
+    global USER_dLABELS
+    USER_dLABELS.add(name)
 
     struct = pre_add_label(name, pdb, spin_atoms, uniform_topology=False)
     pdb_resname = struct.select_atoms(f"resnum {resi}").resnames[0]

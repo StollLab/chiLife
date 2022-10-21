@@ -111,4 +111,17 @@ def test_add_dlabel2():
 
     assert r[np.argmax(dd)] == 23.41176470588235
 
+def test_single_chain_error():
+    with pytest.raises(ValueError):
+        xl.add_dlabel(name='___',
+                      pdb='test_data/chain_broken_dlabel.pdb',
+                      increment=2,
+                      dihedral_atoms=[[['N', 'CA', 'C13', 'C5'],
+                                       ['CA', 'C13', 'C5', 'C6']],
+                                      [['N', 'CA', 'C12', 'C2'],
+                                       ['CA', 'C12', 'C2', 'C3']]],
+                      resi=15,
+                      spin_atoms='Cu1')
 
+
+    print('pause')

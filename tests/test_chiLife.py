@@ -240,6 +240,15 @@ def test_add_label():
     assert "TRT" in chiLife.USER_LABELS
     assert "TRT" in chiLife.SPIN_ATOMS
 
+def test_single_chain_error():
+    with pytest.raises(ValueError):
+        chiLife.add_dlabel(name='___',
+                           pdb='test_data/chain_broken_dlabel.pdb',
+                           increment=2,
+                           dihedral_atoms=[['N', 'CA', 'C13', 'C5'],
+                                           ['CA', 'C13', 'C5', 'C6']],
+                           resi=15,
+                           spin_atoms='Cu1')
 
 def test_set_params():
     chiLife.set_lj_params("uff")

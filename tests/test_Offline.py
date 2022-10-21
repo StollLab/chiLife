@@ -7,7 +7,7 @@ def test_add_dlabel():
     P = np.exp(-Energies / (xl.GAS_CONST * 298))
     P /= P.sum()
     xl.add_dlabel(
-        "DHC",
+        "___",
         "test_data/DHC.pdb",
         4,
         resi=2,
@@ -18,6 +18,7 @@ def test_add_dlabel():
         ],
         spin_atoms=["Cu1"],
     )
+    xl.remove_label('___')
 
 
 def test_polyproII():

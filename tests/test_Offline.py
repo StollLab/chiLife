@@ -18,7 +18,7 @@ def test_add_dlabel():
         ],
         spin_atoms=["Cu1"],
     )
-    xl.remove_label('___')
+    xl.remove_label('___', prompt=False)
 
 
 def test_polyproII():

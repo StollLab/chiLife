@@ -29,9 +29,11 @@ test:3.10:
     #   <<: *test_definition
 
 test:win:
-  image: python:3.10-windowsservercore-ltsc2022
+  image: python:3.10-windowsservercore-ltsc1809
   tags: 
-    - windows
+  - shared-windows
+  - windows
+  - windows-1809
   <<: *test_definition
 
 .build_template: &build_definition

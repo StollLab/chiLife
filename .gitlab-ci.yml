@@ -24,6 +24,14 @@ test:3.10:
   image: python:3.10
   <<: *test_definition
 
+test:3.11:
+  image python:3.11
+  <<: *test_definition
+
+test:win:
+  image python:3.11-windowsservercore
+  <<: *test_definition
+
 .build_template: &build_definition
   script:
     - python setup.py bdist_wheel

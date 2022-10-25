@@ -30,6 +30,8 @@ test:3.10:
 
 test:win:
   image: python:3.10-windowsservercore-ltsc2022
+  tags: 
+    - windows
   <<: *test_definition
 
 .build_template: &build_definition

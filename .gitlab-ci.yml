@@ -25,11 +25,11 @@ test:3.10:
   <<: *test_definition
 
 test:3.11:
-  image python:3.11
+  image: python:3.11
   <<: *test_definition
 
 test:win:
-  image python:3.11-windowsservercore
+  image: python:3.11-windowsservercore
   <<: *test_definition
 
 .build_template: &build_definition

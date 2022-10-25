@@ -29,7 +29,7 @@ test:3.11:
   <<: *test_definition
 
 test:win:
-  image: python:3.11-windowsservercore
+  image: python:windowsservercore-ltsc2022
   <<: *test_definition
 
 .build_template: &build_definition

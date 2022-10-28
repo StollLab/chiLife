@@ -866,8 +866,9 @@ def repack(
     temp = np.atleast_1d(temp)
     KT = {t: GAS_CONST * t for t in temp}
 
-    repack_radius = kwargs.get("repack_radius", 10)  # Angstroms
-
+    repack_radius = kwargs.pop("repack_radius") if "repack_radius" in kwargs else None  # Angstroms
+    if repack_radius is None:
+            repack_radius = max([SL.clash_radius for SL in spin_labels])
     # Construct a new spin labeled protein and preallocate variables to retain monte carlo trajectory
     spin_label_str = " or ".join(
         f"( {spin_label.selstr} )" for spin_label in spin_labels

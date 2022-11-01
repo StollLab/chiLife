@@ -1142,7 +1142,7 @@ def add_dlabel(
         )
     global USER_dLABELS
     USER_dLABELS.add(name)
-
+    add_dihedral_def(name, dihedral_atoms)
     struct = pre_add_label(name, pdb, spin_atoms, uniform_topology=False)
     pdb_resname = struct.select_atoms(f"resnum {resi}").resnames[0]
 

@@ -1607,9 +1607,13 @@ def atom_sort_key(pdb_line: str) -> Tuple[str, int, int]:
     atom_name = pdb_line[12:17].strip()
     atom_type = pdb_line[76:79].strip()
     if res_name == "ACE":
+        if atom_type != 'H' and atom_name not in ('CH3', 'C', 'O'):
+            raise ValueError(f'"{atom_name}" is not canonical name of an ACE residue atom. \n'
+                             f'Please rename to "CH3", "C", or "O"')    
         name_order = (
             {"CH3": 0, "C": 1, "O": 2}.get(atom_name, 4) if atom_type != "H" else 5
         )
+
     else:
         name_order = atom_order.get(atom_name, 4) if atom_type != "H" else 5
 

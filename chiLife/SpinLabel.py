@@ -241,6 +241,7 @@ class dSpinLabel:
         self.forgive = kwargs.setdefault("forgive", 1.0)
         self.clash_radius = kwargs.setdefault("clash_radius", 14.0)
         self._clash_ori_inp = kwargs.setdefault("clash_ori", "cen")
+        self.restraint_weight = kwargs.get("restraint_weight", 200)     # kcal/mol/A^2
         self.superimposition_method = kwargs.setdefault(
             "superimposition_method", "bisect"
         ).lower()
@@ -383,7 +384,7 @@ class dSpinLabel:
         scores /= len(self.cst_idxs)
         scores -= scores.min()
 
-        self.weights *= np.exp(-scores) / np.exp(-scores).sum()
+        self.weights *= np.exp(-scores * self.restraint_weight /(chiLife.GAS_CONST * self.temp) / np.exp(-scores).sum())
         self.weights /= self.weights.sum()
 
     @property

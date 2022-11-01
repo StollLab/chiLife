@@ -1445,3 +1445,7 @@ def remove_label(name, prompt=True):
         for name, spin_atoms in SPIN_ATOMS.items():
             line = f"{name}: ['{joinstr.join(spin_atoms)}']\n"
             f.write(line)
+
+    del dihedral_defs[name]
+    with open(DATA_DIR / 'DihedralDefs.pkl', 'wb') as f:
+        pickle.dump(dihedral_defs, f)

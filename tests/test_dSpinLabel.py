@@ -124,3 +124,10 @@ def test_single_chain_error():
                       resi=15,
                       spin_atoms='Cu1')
     xl.remove_label('___', prompt=False)
+
+def test_restraint_weight():
+    SL3 = xl.dSpinLabel("DHC", [28, 32], gb1, restraint_weight=0.5)
+    ans = np.array([0.42903695, 0.40503261, 0.16593044])
+
+    np.testing.assert_allclose(SL3.weights, ans)
+    assert SL2.weights != SL3.weights

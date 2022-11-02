@@ -2,7 +2,7 @@ from functools import wraps
 import numpy as np
 from scipy.spatial import cKDTree
 from scipy.spatial.distance import cdist
-from numba import njit, prange
+from numba import njit
 import chiLife
 
 
@@ -68,7 +68,7 @@ def clash_only(func):
 
 
 @clash_only
-@njit(cache=True, parallel=True)
+@njit(cache=True)
 def get_lj_energy(r, rmin, eps, forgive=1, cap=10, rmax=10):
     """
     Return a vector with the energy values for the flat bottom lenard-jones potential from a set of atom pairs with
@@ -95,7 +95,7 @@ def get_lj_energy(r, rmin, eps, forgive=1, cap=10, rmax=10):
     rmin_lower = forgive * rmin
 
     # Piecewise function for flat lj potential near rmin
-    for i in prange(len(r)):
+    for i in range(len(r)):
         if r[i] < rmin_lower[i]:
             lj = rmin_lower[i] / r[i]
             lj = lj * lj * lj
@@ -114,7 +114,7 @@ def get_lj_energy(r, rmin, eps, forgive=1, cap=10, rmax=10):
 
 
 @clash_only
-@njit(cache=True, parallel=True)
+@njit(cache=True)
 def get_lj_scwrl(r, rmin, eps, forgive=1):
     """
     Return a vector with the energy values for the flat bottom lenard-jones potential from a set of atom pairs with
@@ -142,7 +142,7 @@ def get_lj_scwrl(r, rmin, eps, forgive=1):
     rmin_lower = rmin * forgive
 
     # Piecewise function for flat lj potential near rmin
-    for i in prange(len(r)):
+    for i in range(len(r)):
         rat = r[i] / (rmin_lower[i] / 1.12246204831)
         if rat < 0.8254:
             lj_energy[i] = 10 * eps[i]
@@ -159,7 +159,7 @@ def get_lj_scwrl(r, rmin, eps, forgive=1):
 
 
 @clash_only
-@njit(cache=True, parallel=True)
+@njit(cache=True)
 def get_lj_rep(r, rmin, eps, forgive=0.9, cap=10):
     """
     Calculate only repulsive terms of lennard jones potential.
@@ -187,7 +187,7 @@ def get_lj_rep(r, rmin, eps, forgive=0.9, cap=10):
     rmin_lower = forgive * rmin
 
     # Piecewise function for flat lj potential near rmin
-    for i in prange(len(r)):
+    for i in range(len(r)):
         lj = rmin_lower[i] / r[i]
         lj = lj * lj * lj
         lj = lj * lj
@@ -196,7 +196,7 @@ def get_lj_rep(r, rmin, eps, forgive=0.9, cap=10):
     return lj_energy
 
 @clash_only
-@njit(cache=True, parallel=True)
+@njit(cache=True)
 def get_lj_attr(r, rmin, eps, forgive=0.9, floor=-2):
     """
     Calculate only repulsive terms of lennard jones potential.
@@ -224,7 +224,7 @@ def get_lj_attr(r, rmin, eps, forgive=0.9, floor=-2):
     rmin_lower = forgive * rmin
 
     # Piecewise function for flat lj potential near rmin
-    for i in prange(len(r)):
+    for i in range(len(r)):
         lj = rmin_lower[i] / r[i]
         lj = lj * lj * lj
         lj = lj * lj
@@ -234,7 +234,7 @@ def get_lj_attr(r, rmin, eps, forgive=0.9, floor=-2):
 
 
 
-# @njit(cache=True, parallel=True)
+# @njit(cache=True)
 # def get_lj_LR90(r, rmin, eps, forgive=0.9, cap=10):
 
 

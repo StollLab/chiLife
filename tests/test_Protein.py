@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 import chiLife
-from chiLife.Protein import Protein, parse_paren
+from chiLife.Protein import Protein, parse_paren, Residue, ResidueSelection, Segment, SegmentSelection, AtomSelection
 import MDAnalysis as mda
 
 prot = Protein.from_pdb('test_data/1omp_H.pdb')
@@ -108,8 +108,8 @@ features = ("atomids", "names", "altlocs", "resnames", "chains", "resnums", "occ
 @pytest.mark.parametrize('feature', features)
 def test_AtomSelection_features(feature):
     m1 = prot.select_atoms('resname LYS ARG PRO and (name CA or (type C and resname PRO)) or resnum 5')
-    A = prot.__getattribute__(feature)[m1.mask]
-    B = m1.__getattribute__(feature)
+    A = prot.__getattr__(feature)[m1.mask]
+    B = m1.__getattr__(feature)
 
     assert np.all(A == B)
 
@@ -133,3 +133,56 @@ def test_SL_Protein():
     SL2 = chiLife.SpinLabel('R1M', 20, ompmda)
 
     assert SL1 == SL2
+
+def test_trajectory():
+    p = chiLife.Protein.from_pdb('test_data/2klf.pdb')
+    ans = np.array([[41.068,  2.309,  0.296],
+                    [39.431,  5.673,  2.669],
+                    [39.041,  6.607,  2.738],
+                    [39.385,  5.41 ,  3.503],
+                    [35.887,  7.796,  3.6  ],
+                    [34.155,  6.464,  8.545],
+                    [39.874,  3.395,  2.951],
+                    [35.945,  5.486,  1.808],
+                    [39.028,  4.272,  1.541],
+                    [40.395,  3.852,  9.391]])
+    test = []
+    for _ in p.trajectory:
+        test.append(p.coords[0])
+    test = np.array(test)
+
+    np.testing.assert_allclose(test, ans)
+
+
+def test_trajectory_set():
+    p = chiLife.Protein.from_pdb('test_data/2klf.pdb')
+    p.trajectory[5]
+    np.testing.assert_allclose([34.155,  6.464,  8.545], p.coords[0])
+
+
+def test_selection_traj():
+    p = chiLife.Protein.from_pdb('test_data/2klf.pdb')
+    s = p.select_atoms('resi 10 and name CB')
+    np.testing.assert_allclose(s.coords, [16.569, -1.406, 11.158])
+    p.trajectory[5]
+    np.testing.assert_allclose(s.coords, [16.195, -1.233, 11.306])
+
+def test_ResidueSelection():
+    p = chiLife.Protein.from_pdb('test_data/1omp.pdb')
+    r = p.residues[10:12]
+    assert isinstance(r, ResidueSelection)
+    assert len(r) == 2
+    assert np.all(r.resnums == [11, 12])
+
+    r2 = p.residues[10]
+    assert isinstance(r2, Residue)
+    assert r2.resname == 'ILE'
+    assert r2.resnum == 11
+
+
+
+def test_save_Protein():
+    p = chiLife.Protein.from_pdb('test_data/1omp.pdb')
+    chiLife.save('my_protein.pdb', p)
+    print('wait')
+

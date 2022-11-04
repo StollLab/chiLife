@@ -708,11 +708,13 @@ def write_protein(file: str, protein: Union[mda.Universe, mda.AtomGroup], mode='
         if len(seg.segid) > 1:
             seg.segid = next(available_segids)
 
+    traj = protein.universe.trajectory if isinstance(protein, mda.AtomGroup) else protein.trajectory
+
 
     fmt_str = "ATOM  {:5d} {:^4s} {:3s} {:1s}{:4d}    {:8.3f}{:8.3f}{:8.3f}{:6.2f}{:6.2f}          {:>2s}  \n"
     with open(file, mode) as f:
         f.write(f'HEADER {file.rstrip(".pdb")}\n')
-        for mdl, ts in enumerate(protein.universe.trajectory):
+        for mdl, ts in enumerate(traj):
             f.write(f"MODEL {mdl}\n")
             [
                 f.write(

@@ -334,7 +334,7 @@ class ICAtom:
 
 
 @dataclass
-class Atom:
+class FreeAtom:
     """Atom class for atoms in cartesian space.
 
     Attributes

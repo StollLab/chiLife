@@ -49,7 +49,7 @@ def test_with_sample():
 def test_user_label():
     SL = chiLife.SpinLabel("TRT", 28, ubq, "A")
     chiLife.save(
-        "test_data/1ubq_28TRT_tmp.pdb", SL, protein="test_data/1ubq.pdb", KDE=False
+        "test_data/1ubq_28TRT_tmp.pdb", SL, protein_path="test_data/1ubq.pdb", KDE=False
     )
 
     with open("test_data/1ubq_28TRT.pdb", "r") as f:

@@ -181,7 +181,7 @@ class RotamerLibrary:
 
         # Store atom information as atom objects
         self.atoms = [
-            chiLife.Atom(name, atype, idx, self.res, self.site, coord)
+            chiLife.FreeAtom(name, atype, idx, self.res, self.site, coord)
             for idx, (coord, atype, name) in enumerate(
                 zip(self._coords[0], self.atom_types, self.atom_names)
             )
@@ -473,8 +473,15 @@ class RotamerLibrary:
                     f"segid {self.chain} and resnum {self.site} "
                     f"and name {atom} and not altloc B"
                 ).positions
-                if len(pos) > 0:
-                    self._coords[:, mask] = pos[0]
+                if pos.shape == (1, 3):
+                    self._coords[:, mask] = np.squeeze(pos)
+                elif pos.shape == (3,):
+                    self._coords[:, mask] = np.squeeze(pos)
+                elif pos.shape[0] > 1:
+                    idx = np.argmin(np.linalg.norm(pos - self.backbone[0], axis=1))
+                    self._coords[:, mask] = np.squeeze(pos[idx])
+                else:
+                    pass
 
     def sample(self, n=1, off_rotamer=False, **kwargs):
         """Randomly sample a rotamer in the library.

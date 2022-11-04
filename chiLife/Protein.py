@@ -300,7 +300,6 @@ def parse_paren(string):
     end_idx = 0
     results = []
 
-
     for i, c in enumerate(string):
         if c == '(':
             if stack == 0:

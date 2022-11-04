@@ -55,7 +55,7 @@ def test_bbdep_construction1():
         "R1C", site=295, chain="A", protein=U, energy_func=efunc, forgive=0.5
     )
 
-    chiLife.save("bbdep.pdb", SL1, SL2, protein="test_data/1omp.pdb")
+    chiLife.save("bbdep.pdb", SL1, SL2, protein_path="test_data/1omp.pdb")
 
     with open("bbdep.pdb", "r") as f:
         test = hashlib.md5(f.read().encode('utf-8')).hexdigest()

@@ -306,6 +306,10 @@ def test_save_fail():
     with pytest.raises(TypeError):
         chiLife.save("tmp", np.array([1, 2, 3]))
 
+# def test_save_Protein():
+#     p = chiLife.
+
+
 # class TestProtein:
 #
 #     def test_load(self):

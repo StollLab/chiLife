@@ -600,8 +600,8 @@ def optimize_weights(
 
 def save(
     file_name: str,
-    *labels: SpinLabel,
-    protein: Union[mda.Universe, mda.AtomGroup, str] = None,
+    *molecules: Union[RotamerLibrary, chiLife.Protein, mda.Universe, mda.AtomGroup, str],
+    protein_path: Union[str, Path] = None,
     **kwargs,
 ) -> None:
     """Save a pdb file of the provided labels and proteins
@@ -611,10 +611,9 @@ def save(
     file_name : str
         Desired file name for output file. Will be automatically made based off of protein name and labels if not
         provided.
-    *labels : SpinLabel
-        SpinLabel object(s) to save. Can add as many as desired.
-    protein : mda.Universe, mda.AtomGroup, str
-        Protein structure or file name of protein structure file SpinLabels were attached to.
+    *molecules : RotmerLibrary, chiLife.Protein, mda.Universe, mda.AtomGroup, str
+        Object(s) to save. Includes RotamerLibraries, SpinLabels, dRotamerLibraries, proteins, or path to protein pdb.
+        Can add as many as desired, except for path, for which only one can be given.
     **kwargs :
         Additional arguments to pass to ``write_labels``
 
@@ -623,58 +622,72 @@ def save(
     None
     """
     # Check for filename at the beginning of args
-    labels = list(labels)
-    if isinstance(file_name, (SpinLabel, dSpinLabel)):
-        labels.insert(0, file_name)
-        file_name = None
-    elif hasattr(file_name, "atoms"):
-        labels.insert(-1, file_name)
+    molecules = list(molecules)
+    if isinstance(file_name, (RotamerLibrary, SpinLabel, dSpinLabel,
+                              mda.Universe, mda.AtomGroup,
+                              chiLife.Protein, chiLife.AtomSelection)):
+        molecules.insert(0, file_name)
         file_name = None
 
-    # Check for protein structures at the end of args
-    if protein is None:
-        if (
-            isinstance(labels[-1], str)
-            or isinstance(labels[-1], mda.Universe)
-            or isinstance(labels[-1], MDAnalysis.AtomGroup)
-        ):
-            protein = labels.pop(-1)
+    # Separate out proteins and spin labels
+    proteins, labels = [], []
+    protein_path = [] if protein_path is None else [protein_path]
+    for mol in molecules:
+        if isinstance(mol, (RotamerLibrary, SpinLabel, dSpinLabel)):
+            labels.append(mol)
+        elif isinstance(mol, (mda.Universe, mda.AtomGroup, chiLife.Protein, chiLife.AtomSelection)):
+            proteins.append(mol)
+        elif isinstance(mol, (str, Path)):
 
-    # Create a file name from spin label and protein information
-    if file_name is None:
-        if isinstance(protein, str):
-            f = Path(protein)
-            file_name = f.name[:-4]
-        elif getattr(protein, "filename", None) is not None:
-            file_name = protein.filename[:-4]
+            protein_path.append(mol)
         else:
+            raise TypeError('chiLife can only save RotamerLibrarys and Proteins. Plese check that your input is '
+                             'compatible')
+
+    # Ensure only one protein path was provided (for now)
+    if len(protein_path) > 1:
+        raise ValueError('More than one protein path was provided. C')
+    elif len(protein_path) == 1:
+        protein_path = protein_path[0]
+    else:
+        protein_path = None
+
+    # Create a file name from protein information
+    if file_name is None:
+        if protein_path is not None:
+            f = Path(protein_path)
+            file_name = f.name[:-4]
+        else:
+            file_name = ""
+            for protein in proteins:
+                if getattr(protein, "filename", None):
+                    file_name += ' ' + getattr(protein, "filename", None)
+                    file_name = file_name[:-4]
+
+        if file_name == '':
             file_name = "No_Name_Protein"
 
+        # Add spin label information to file name
         if 0 < len(labels) < 3:
             for label in labels:
                 file_name += f"_{label.site}{label.res}"
         else:
             file_name += "_many_labels"
+
         file_name += ".pdb"
 
-    if protein is not None:
-        if isinstance(protein, str):
-            print(protein, file_name)
-            shutil.copy(protein, file_name)
-        elif isinstance(protein, mda.Universe) or isinstance(
-            protein, MDAnalysis.AtomGroup
-        ):
-            write_protein(file_name, protein)
-        else:
-            raise TypeError(
-                "`protein` must be a string or an MDAnalysis Universe/AtomGroup object"
-            )
+    if protein_path is not None:
+        print(protein_path, file_name)
+        shutil.copy(protein_path, file_name)
+
+    for protein in proteins:
+        write_protein(file_name, protein, mode='a+')
 
     if len(labels) > 0:
         write_labels(file_name, *labels, **kwargs)
 
 
-def write_protein(file: str, protein: Union[mda.Universe, mda.AtomGroup]) -> None:
+def write_protein(file: str, protein: Union[mda.Universe, mda.AtomGroup], mode='a+') -> None:
     """Helper function to write protein pdbs from mdanalysis objects.
 
     Parameters
@@ -697,7 +710,7 @@ def write_protein(file: str, protein: Union[mda.Universe, mda.AtomGroup]) -> Non
 
 
     fmt_str = "ATOM  {:5d} {:^4s} {:3s} {:1s}{:4d}    {:8.3f}{:8.3f}{:8.3f}{:6.2f}{:6.2f}          {:>2s}  \n"
-    with open(file, "w") as f:
+    with open(file, mode) as f:
         f.write(f'HEADER {file.rstrip(".pdb")}\n')
         for mdl, ts in enumerate(protein.universe.trajectory):
             f.write(f"MODEL {mdl}\n")
@@ -953,6 +966,7 @@ def repack(
 
             acount += 1
             # Metropolis-Hastings criteria
+
             if (
                 E1 < DummyLabel.E0
                 or np.exp(-deltaE / KT[temp[bidx]]) > np.random.rand()

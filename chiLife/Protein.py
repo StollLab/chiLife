@@ -371,16 +371,15 @@ class AtomSelection(BaseSystem):
         new_mask = np.zeros_like(self.mask, dtype=bool)
         new_mask[new_args] = True
 
-        if isinstance(item, int):
+        if np.issubdtype(type(item), int):
             return Atom(self.protein, new_mask)
         elif isinstance(item, slice):
             return AtomSelection(self.protein, new_mask)
-        else:
-            return TypeError('Only integer and slice type arguments are supported at this time')
+        elif hasattr(item, '__iter__'):
+            if all([np.issubdtype(type(x), int) for x in item]):
+                return AtomSelection(self.protein, new_mask)
 
-
-
-        return AtomSelection(self.protein, new_mask)
+        raise TypeError('Only integer and slice type arguments are supported at this time')
 
     def __len__(self):
         return self.mask.sum()
@@ -408,12 +407,15 @@ class ResidueSelection(BaseSystem):
         resixs = np.unique(self.protein.resixs[self.mask])
         new_resixs = resixs[item]
         new_mask = np.isin(self.protein.resixs, new_resixs)
-        if isinstance(item, int):
+        if np.issubdtype(type(item), int):
             return Residue(self.protein, new_mask)
         elif isinstance(item, slice):
             return ResidueSelection(self.protein, new_mask)
-        else:
-            return TypeError('Only integer and slice type arguments are supported at this time')
+        elif hasattr(item, '__iter__'):
+            if all([np.issubdtype(type(x), int) for x in item]):
+                return ResidueSelection(self.protein, new_mask)
+
+        raise TypeError('Only integer and slice type arguments are supported at this time')
 
     def __len__(self):
         return len(self.first_ix)
@@ -437,12 +439,15 @@ class SegmentSelection(BaseSystem):
         new_segixs = segixs[item]
         new_mask = np.isin(self.protein.segixs, new_segixs)
 
-        if isinstance(item, int):
+        if np.issubdtype(type(item), int):
             return Segment(self.protein, new_mask)
         elif isinstance(item, slice):
             return SegmentSelection(self.protein, new_mask)
-        else:
-            return TypeError('Only integer and slice type arguments are supported at this time')
+        elif hasattr(item, '__iter__'):
+            if all([np.issubdtype(type(x), int) for x in item]):
+                return SegmentSelection(self.protein, new_mask)
+
+        raise TypeError('Only integer and slice type arguments are supported at this time')
 
     def __len__(self):
         return len(self.first_ix)

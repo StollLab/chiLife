@@ -1927,3 +1927,12 @@ with open(DATA_DIR / 'BondDefs.pkl', 'rb') as f:
     bond_hmax = np.vectorize(bond_hmax, signature="(n)->()")
 
 atom_order = {"N": 0, "CA": 1, "C": 2, "O": 3}
+
+
+nataa_codes = {'ALA': 'A', 'CYS': 'C', 'ASP': 'D', 'GLU': 'E', 'PHE': 'F', 'GLY': 'G', 'HIS': 'H', 'ILE': 'I',
+               'LYS': 'K', 'LEU': 'L', 'MET': 'M', 'ASN': 'N', 'PRO': 'P', 'GLN': 'Q', 'ARG': 'R', 'SER': 'S',
+               'THR': 'T', 'VAL': 'V', 'TRP': 'W', 'TYR': 'Y'}
+inataa = {val: key for key, val in nataa_codes.items()}
+
+nataa_codes.update(inataa)
+del inataa

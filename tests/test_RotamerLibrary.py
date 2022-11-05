@@ -286,3 +286,7 @@ def test_sample_dihedral3():
 def test_clash_radius():
     RL = chiLife.SpinLabel('TRT')
     assert RL.clash_radius == np.linalg.norm(RL.coords - RL.clash_ori, axis=-1).max() + 5
+
+def test_nataa():
+    SL = chiLife.SpinLabel('R1A', 28, ubq)
+    assert SL.nataa == 'A'

@@ -100,6 +100,7 @@ class RotamerLibrary:
         self.res = res
         self.site = int(site)
         self.protein = protein
+        self.nataa = ""
         self.chain = chain if chain is not None else guess_chain(self.protein, self.site)
         self.selstr = f"resid {self.site} and segid {self.chain} and not altloc B"
         self.input_kwargs = kwargs
@@ -178,6 +179,8 @@ class RotamerLibrary:
             self.protein.atoms, (mda.AtomGroup, chiLife.BaseSystem)
         ):
             self.protein_setup()
+            resname = self.protein.atoms[self.clash_ignore_idx[0]].resname
+            self.nataa = chiLife.nataa_codes.get(resname, resname)
 
         # Store atom information as atom objects
         self.atoms = [

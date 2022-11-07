@@ -53,7 +53,7 @@ plt.show()
 
 ```
 # Save structure
-xl.save('MBP_L20R1_S238R1.pdb', SL1, SL2, protein=MBP)
+xl.save('MBP_L20R1_S238R1.pdb', SL1, SL2, MBP)
 ```
 
 ![MBP L20R1 S238R1 Structure](img/L20R1_S238R1_Structure.png)

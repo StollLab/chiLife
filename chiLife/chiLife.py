@@ -614,6 +614,8 @@ def save(
     *molecules : RotmerLibrary, chiLife.Protein, mda.Universe, mda.AtomGroup, str
         Object(s) to save. Includes RotamerLibraries, SpinLabels, dRotamerLibraries, proteins, or path to protein pdb.
         Can add as many as desired, except for path, for which only one can be given.
+    protein_path : str, Path
+        Path to a pdb file to use as the protein object.
     **kwargs :
         Additional arguments to pass to ``write_labels``
 

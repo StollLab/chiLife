@@ -9,6 +9,35 @@ import chiLife
 def clash_only(func):
     @wraps(func)
     def energy_func(protein, rotlib=None, **kwargs):
+        """decorator to convert a Lennard-Jones style clash evaluation function into a chiLife compatible energy func.
+
+    Parameters
+    ----------
+    func : callable
+        Python function object that computes the (modified) Lennard-Jones potential given arrays of atom pair
+        distances, `r`, rmin values `rmin`, energies, `eps`, and additional keyword arguments.
+
+    Returns
+    -------
+    energy_func: callable
+        The original input function now wrapped to accept a protein object and, optionally, a RotamerLibrary/SpinLabel
+         object.
+    """
+        """
+
+        Parameters
+        ----------
+        protein :
+            param rotlib:  (Default value = None)
+        rotlib :
+             (Default value = None)
+        **kwargs :
+            
+
+        Returns
+        -------
+
+        """
 
         rmax = kwargs.get("rmax", 10)
         forgive = kwargs.get("forgive", 1)
@@ -24,7 +53,7 @@ def clash_only(func):
                 protein.atoms.positions[pairs[:, 0]]
                 - protein.atoms.positions[pairs[:, 1]],
                 axis=1,
-            )
+                )
 
             lj_radii_1 = chiLife.get_lj_rmin(protein.atoms.types[pairs[:, 0]])
             lj_radii_2 = chiLife.get_lj_rmin(protein.atoms.types[pairs[:, 1]])
@@ -70,24 +99,34 @@ def clash_only(func):
 @clash_only
 @njit(cache=True)
 def get_lj_energy(r, rmin, eps, forgive=1, cap=10, rmax=10):
-    """
-    Return a vector with the energy values for the flat bottom lenard-jones potential from a set of atom pairs with
-    distance r, rmin values of rmin and epsilon values of eps. In the absence of solvent this energy function will
-    overestimate attractive forces.
-    :param r: numpy ndarray
-        vector of distances
+    """Return a vector with the energy values for the flat bottom lenard-jones potential from a set of atom pairs with
+    distance `r`, rmin values of `rmin` and epsilon values of `eps`.
 
-    :param rmin: numpy ndarray
-        vector of rmin values corresponding to atoms pairs of r
+    Parameters
+    ----------
+    r : numpy.ndarray
+        Vector of inter-atomic distances between non-bonded atoms of a system.
+    rmin : numpy.ndarray
+        Vector of rmin parameters, in angstoms,  corresponding to atoms pairs of r.
+    eps : numpy.ndarray
+        Vector of epsilon parameters corresponding to atom pairs of r
+    forgive : numpy.ndarray
+        The `forgive` factor is a softening term to mitigate rigid body artifacts. It is set to a value between 0 1nd 1
+        and modifies the rmin parameter of all atom pairs in `r` to be the fraction, `forgive` of the thair original
+        value. This allows atoms to be closer than otherwise allowed to prevent explosion of the jennard-jones repulsion
+        in situations that would otherwise be resolved with minor atomic displacements.
+    cap : flaot
+        Maximum allowed energy factor. Sets a cap on the maximum energy contribution of one atom pair interaction as
+        another mechanism for softening. `cap` is sets the actual max value as a multiple of the `eps` parameter. i.e.
+        the maximum allowed energy from a single atom pair interaction is the `eps` parameter multiplied by `cap`.
+    rmax : float
+        Maximum distance to consider for potential calculation. Any atom pairs with r > rmax will be set to 0.
 
-    :param eps: numpy ndarray
-        vector of epsilon values corresponding to atom pairs of r
+    Returns
+    -------
+    lj_energy: numpy.ndarray
+        Vector of atom pair energies calculated using the modified lj potential function.
 
-    :param forgive: numpy ndarray
-        fraction of
-
-    :return lj_energy: numpy ndarray
-        vector of energies calculated using the modified lj potential function.
     """
     lj_energy = np.zeros_like(r)
 
@@ -116,25 +155,27 @@ def get_lj_energy(r, rmin, eps, forgive=1, cap=10, rmax=10):
 @clash_only
 @njit(cache=True)
 def get_lj_scwrl(r, rmin, eps, forgive=1):
-    """
-    Return a vector with the energy values for the flat bottom lenard-jones potential from a set of atom pairs with
-    distance r, rmin values of rmin and epsilon values of eps. In the absence of solvent this energy function will
-    overestimate attractive forces.
+    """Calculate a scwrl-like lenard-jones potential from a set of atom pairs with distance `r`, rmin values of `rmin`
+    and epsilon values of `eps`.
 
-    :param r: numpy ndarray
-        vector of distances
+    Parameters
+    ----------
+    r : numpy.ndarray
+        Vector of inter-atomic distances between non-bonded atoms of a system.
+    rmin : numpy.ndarray
+        Vector of rmin parameters, in angstoms,  corresponding to atoms pairs of r.
+    eps : numpy.ndarray
+        Vector of epsilon parameters corresponding to atom pairs of r
+    forgive : numpy.ndarray
+        The `forgive` factor is a softening term to mitigate rigid body artifacts. It is set to a value between 0 1nd 1
+        and modifies the rmin parameter of all atom pairs in `r` to be the fraction, `forgive` of the thair original
+        value. This allows atoms to be closer than otherwise allowed to prevent explosion of the jennard-jones repulsion
+        in situations that would otherwise be resolved with minor atomic displacements.
 
-    :param rmin: numpy ndarray
-        vector of rmin values corresponding to atoms pairs of r
-
-    :param eps: numpy ndarray
-        vector of epsilon values corresponding to atom pairs of r
-
-    :param forgive: numpy ndarray
-        fraction of
-
-    :return lj_energy: numpy ndarray
-        vector of energies calculated using the modified lj potential function.
+    Returns
+    -------
+    lj_energy: numpy.ndarray
+        Vector of atom pair energies calculated using the modified lj potential function.
     """
     lj_energy = np.empty_like(r)
 
@@ -161,23 +202,31 @@ def get_lj_scwrl(r, rmin, eps, forgive=1):
 @clash_only
 @njit(cache=True)
 def get_lj_rep(r, rmin, eps, forgive=0.9, cap=10):
-    """
-    Calculate only repulsive terms of lennard jones potential.
+    """Calculate only the repulsive terms of the lenard-jones potential from a set of atom pairs with distance `r`,
+    rmin values of `rmin` and epsilon values of `eps`.
 
-    :param r: numpy ndarray
-        vector of distances
+    Parameters
+    ----------
+    r : numpy.ndarray
+        Vector of inter-atomic distances between non-bonded atoms of a system.
+    rmin : numpy.ndarray
+        Vector of rmin parameters, in angstoms,  corresponding to atoms pairs of r.
+    eps : numpy.ndarray
+        Vector of epsilon parameters corresponding to atom pairs of r
+    forgive : numpy.ndarray
+        The `forgive` factor is a softening term to mitigate rigid body artifacts. It is set to a value between 0 1nd 1
+        and modifies the rmin parameter of all atom pairs in `r` to be the fraction, `forgive` of the thair original
+        value. This allows atoms to be closer than otherwise allowed to prevent explosion of the jennard-jones repulsion
+        in situations that would otherwise be resolved with minor atomic displacements.
+    cap : flaot
+        Maximum allowed energy factor. Sets a cap on the maximum energy contribution of one atom pair interaction as
+        another mechanism for softening. `cap` is sets the actual max value as a multiple of the `eps` parameter. i.e.
+        the maximum allowed energy from a single atom pair interaction is the `eps` parameter multiplied by `cap`.
 
-    :param rmin: numpy ndarray
-        vector of rmin values corresponding to atoms pairs of r
-
-    :param eps: numpy ndarray
-        vector of epsilon values corresponding to atom pairs of r
-
-    :param forgive: numpy ndarray
-        fraction of
-
-    :return lj_energy: numpy ndarray
-        vector of energies calculated using the modified lj potential function.
+    Returns
+    -------
+    lj_energy: numpy.ndarray
+        Vector of atom pair energies calculated using the modified lj potential function.
     """
     lj_energy = np.empty_like(r)
 
@@ -198,24 +247,32 @@ def get_lj_rep(r, rmin, eps, forgive=0.9, cap=10):
 @clash_only
 @njit(cache=True)
 def get_lj_attr(r, rmin, eps, forgive=0.9, floor=-2):
-    """
-    Calculate only repulsive terms of lennard jones potential.
+    """Calculate only the attractive terms of the lenard-jones potential from a set of atom pairs with distance `r`,
+      rmin values of `rmin` and epsilon values of `eps`.
 
-    :param r: numpy ndarray
-        vector of distances
+      Parameters
+      ----------
+      r : numpy.ndarray
+          Vector of inter-atomic distances between non-bonded atoms of a system.
+      rmin : numpy.ndarray
+          Vector of rmin parameters, in angstoms,  corresponding to atoms pairs of r.
+      eps : numpy.ndarray
+          Vector of epsilon parameters corresponding to atom pairs of r
+      forgive : numpy.ndarray
+          The `forgive` factor is a softening term to mitigate rigid body artifacts. It is set to a value between 0 1nd 1
+          and modifies the rmin parameter of all atom pairs in `r` to be the fraction, `forgive` of the thair original
+          value. This allows atoms to be closer than otherwise allowed to prevent explosion of the jennard-jones repulsion
+          in situations that would otherwise be resolved with minor atomic displacements.
+      cap : flaot
+          Maximum allowed energy factor. Sets a cap on the maximum energy contribution of one atom pair interaction as
+          another mechanism for softening. `cap` is sets the actual max value as a multiple of the `eps` parameter. i.e.
+          the maximum allowed energy from a single atom pair interaction is the `eps` parameter multiplied by `cap`.
 
-    :param rmin: numpy ndarray
-        vector of rmin values corresponding to atoms pairs of r
-
-    :param eps: numpy ndarray
-        vector of epsilon values corresponding to atom pairs of r
-
-    :param forgive: numpy ndarray
-        fraction of
-
-    :return lj_energy: numpy ndarray
-        vector of energies calculated using the modified lj potential function.
-    """
+      Returns
+      -------
+      lj_energy: numpy.ndarray
+          Vector of atom pair energies calculated using the modified lj potential function.
+      """
     lj_energy = np.empty_like(r)
 
     # Unit convert
@@ -233,12 +290,25 @@ def get_lj_attr(r, rmin, eps, forgive=0.9, floor=-2):
     return lj_energy
 
 
-
-# @njit(cache=True)
-# def get_lj_LR90(r, rmin, eps, forgive=0.9, cap=10):
-
-
 def prep_external_clash(rotlib):
+    """ Helper function to prepare the lj parameters of a rotamer library, presumably with an associated protein.
+
+    Parameters
+    ----------
+    rotlib : RotamerLibrary
+        The RotamerLibrary to prepare the clash parameters for. The RotamerLibrary should have an associated protein.
+
+    Returns
+    -------
+        dist : numpy.ndarray
+            Array of pairwise distances between atoms in the RotamerLibrary and atoms in the associated protein.
+        rmin_ij :  numpy.ndarray
+            ``rmin`` parameters of the lj potential associated with the atom ``i`` and atom ``j`` pair.
+        eps_ij : numpy.ndarray
+            ``eps`` parameters of the lj potential associated with the atom ``i`` and atom ``j`` pair.
+        shape : Tuple[int]
+            Shape the array should be so that the energy is evaluated for each rotamer of the library separately.
+    """
 
     # Calculate rmin and epsilon for all atoms in protein that may clash
     rmin_ij, eps_ij = get_lj_params(rotlib)
@@ -257,6 +327,24 @@ def prep_external_clash(rotlib):
 
 
 def prep_internal_clash(rotlib):
+    """ Helper function to prepare the lj parameters of a rotamer library to evaluate internal clashes.
+
+        Parameters
+        ----------
+        rotlib : RotamerLibrary
+            The RotamerLibrary to prepare the clash parameters for.
+
+        Returns
+        -------
+            dist : numpy.ndarray
+                Array of pairwise distances between atoms in the RotamerLibrary and atoms in the associated protein.
+            rmin_ij :  numpy.ndarray
+                ``rmin`` parameters of the lj potential associated with the atom ``i`` and atom ``j`` pair.
+            eps_ij : numpy.ndarray
+                ``eps`` parameters of the lj potential associated with the atom ``i`` and atom ``j`` pair.
+            shape : Tuple[int]
+                Shape the array should be so that the energy is evaluated for each rotamer of the library separately.
+        """
 
     a, b = [list(x) for x in zip(*rotlib.non_bonded)]
     a_eps = chiLife.get_lj_eps(rotlib.atom_types[a])
@@ -277,20 +365,27 @@ def prep_internal_clash(rotlib):
 
 
 def reweight_rotamers(probabilities, weights, return_partition=False):
-    """
-    Adjust rotamer population frequencies based on energy calculated from clashes.
+    """Adjust rotamer population frequencies based on energy calculated from clashes.
 
-    :param probabilities: numpy ndarray
+    Parameters
+    ----------
+    probabilities : numpy.ndarray
         Array of Boltzmann weighted probabilities from lennard jones potential
-
-    :param weights: numpy ndarray
+    weights : numpy.ndarray
         Current weights of rotamers
+    return_partition : bool
+        Optionally return an additional argument, ``partition`` described below
 
-    :return new_weights: numpy ndarray
+    Returns
+    -------
+    new_weights : numpy.ndarray
         New weights adjusted by rotamer interaction energies.
+    partition : float (optional)
+        The partition function relative to the free label. A small partition function suggests the interactions with
+        neighboring atoms are unfavorable while a large partition function suggests the opposite.
     """
-    partition = sum(probabilities * weights) / sum(weights)
-    new_weights = (probabilities / sum(probabilities)) * weights
+    partition = np.sum(probabilities * weights) / weights.sum()
+    new_weights = (probabilities / probabilities.sum()) * weights
     new_weights /= new_weights.sum()
 
     if return_partition:
@@ -300,8 +395,21 @@ def reweight_rotamers(probabilities, weights, return_partition=False):
 
 
 def get_lj_params(rotlib):
-    """
-    rotlib
+    """ calculate the lennard jones parameters between atoms of a rotamer library and associated protein.
+
+    Parameters
+    ----------
+    rotlib : RotamerLibrary
+        The RotamerLibrary to get the lj params for. Should have an associated protein object.
+
+    Returns
+    -------
+    rmin_ij : nummpy.ndarray
+        Vector of ``rmin`` lennard-jones parameters corresponding to atoms i and j of the RotamerLibrary and the
+        associated protein respectively.
+    eps_ij : numpy.ndarray
+        Vector of ``eps`` lennard-jones parameters corresponding to atoms i and j of the RotamerLibrary and the
+        associated protein respectively.
     """
     environment_atypes = rotlib.protein.atoms.types[rotlib.protein_clash_idx]
     protein_lj_radii = chiLife.get_lj_rmin(environment_atypes)
@@ -322,18 +430,53 @@ def get_lj_params(rotlib):
     return rmin_ij, eps_ij
 
 
-def join_geom(x, y, flat=False):
+def join_geom(a, b, flat=False):
+    """ Function to join Lennard-Jones parameters (``rmin`` or ``eps``) using their geometric mean. Parameters can be
+    joined in two different ways (see keyword argument ``flat``)
+
+    Parameters
+    ----------
+    a : numpy.ndarray
+        Single atom parameters of atoms of group a
+    b : numpy.ndarray
+        Single atom parameters of atoms of group b
+    flat : bool
+        Only join parameters i of group a and j of group b if i=j. If false all combinations of i,j are computed.
+
+    Returns
+    -------
+    param : numpy.ndarray
+        The joined parameters of group a and b
+    """
+
     if flat:
-        return np.sqrt(x * y)
+        return np.sqrt(a * b)
     else:
-        return np.sqrt(np.outer(x, y))
+        return np.sqrt(np.outer(a, b))
 
 
-def join_arith(x, y, flat=False):
+def join_arith(a, b, flat=False):
+    """ Function to join Lennard-Jones parameters (``rmin`` or ``eps``) using their arithmatic mean. Parameters can be
+    joined in two different ways (see keyword argument ``flat``)
+
+    Parameters
+    ----------
+    a : numpy.ndarray
+        Single atom parameters of atoms of group a
+    b : numpy.ndarray
+        Single atom parameters of atoms of group b
+    flat : bool
+        Only join parameters i of group a and j of group b if i=j. If false all combinations of i,j are computed.
+
+    Returns
+    -------
+    param : numpy.ndarray
+        The joined parameters of group a and b
+    """
     if flat:
-        return x + y
+        return a + b
     else:
-        return np.add.outer(x, y)
+        return np.add.outer(a, b)
 
 
 rmin_charmm = {
@@ -386,6 +529,16 @@ lj_params = {"uff": [rmin_uff, eps_uff], "charmm": [rmin_charmm, eps_charmm]}
 
 
 def set_lj_params(forcefield):
+    """
+        Global setting for using different atom type parameterization for clash evaluations. Running this function
+        once will set the parameters for the whole session.
+
+    Parameters
+    ----------
+    forcefield : str
+        Name of the forcefield to be used.
+
+    """
     chiLife.using_lj_param = forcefield
     rmin_func, eps_func = lj_params[forcefield]
     chiLife.get_lj_rmin = np.vectorize(rmin_func.__getitem__)

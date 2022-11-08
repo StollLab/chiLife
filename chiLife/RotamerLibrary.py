@@ -27,8 +27,14 @@ class RotamerLibrary:
         K-dimensional tree of the protein coordinates used internally for fast neighbor and distance calculations.
     chain : str
         Protein chain identifier to attach spin label to. Defaults to 'A' if no protein is provided.
+    coords : numpy.ndarray
+        Cartesian coordinates of each rotamer in the ensemble.
     internal_coords : List[ProteinIC]
         List of internal coordinate objects for each rotamer in the ensemble.
+    atom_types : np.ndarray
+        Array of atom types, usually just element symbols, of each atom in the rotamer.
+    atom_names : np.ndarray
+        Array of atom names for each atom in the rotamer.
     selstr : str
         Selection string that can be used with MDAnalysis ``select_atom`` method to select the site that the
         RotamerLibrary is attached to.
@@ -52,30 +58,25 @@ class RotamerLibrary:
     temp : float
         Temperature (in Kelvin) to use when re-evaluating rotamer weights using ``energy_func``. Defaults to 298 K.
     clash_radius : float
-        14.0
+        Cutoff distance (angstroms) for inclusion of atoms in clash evaluations. This distance is measured from
+        ``clash_ori`` Defaults to the longest distance between any two atoms in the rotamer library plus 5 angstroms.
     superimposition_method : str
-        "bisect",
-    dihedral_sigmas : float
-        35
+        Method to use when attaching or aligning the rotamer library backbone with the protein backbone. Defaults to
+        ``'bisect'`` which aligns the CA atom, the vectors bisecting the N-CA-C angle and the N-CA-C plane.
+    dihedral_sigmas : float, numpy.ndarray
+        Standard deviations of dihedral angles (degrees) for off rotamer sampling. Can be a single numebr for isotropic
+        sampling, a vector to define each dihedral individually or a matrix to define a value for each rotamer and each
+        dihedral. Defaults to 35 degrees)
     weighted_sampling : bool
-        False
+        Determines whether the rotamer library is sampled uniformly or based off of their intrinsic weights. Defaults
+        to False.
     use_H : bool
-        False
-    sample_size : int, bool
-        kwargs.pop("sample", False)
-
-    atom_types : np.ndarray
-
-    atom_names : np.ndarray
-
-    atom_energies = None
-
-    partition = 1
-
-
-    Returns
-    -------
-
+        Determines if hydrogen atoms are used or not. Defaults to False.
+    atom_energies : numpy.ndarray
+        Per atom energy (kcal/mol) value calculated suing ``self.energy_func``.
+    partition : float
+        Partition function value indicative of how much the ensemble has changed with respect to the original rotamer
+        library. Only useful when not performing sampling.
     """
 
     backbone_atoms = ["H", "N", "CA", "HA", "C", "O"]
@@ -94,7 +95,42 @@ class RotamerLibrary:
         chain : str
             Protein chain identifier to attach spin label to.
         **kwargs : dict
-
+            protein_tree : Scipy.spatial.cKDTree
+                KDTree of atom positions for fast distance calculations and neighbor detection. Defaults to None
+            forgive : float
+                Softening factor to be passed to ``energy_func``. Only used if ``energy_func`` uses a softening factor.
+                Defaults to 1.0. See :mod:`Scoring <chiLife.scoring>` .
+            temp : float
+                Temperature to use when running ``energy_func``. Only used if ``energy_func`` accepts a temperature
+                argument  Defaults to 298 K.
+            clash_radius : float
+                Cutoff distance (angstroms) for inclusion of atoms in clash evaluations. This distance is measured from
+                ``clash_ori`` Defaults to the longest distance between any two atoms in the rotamer library plus 5
+                angstroms.
+            clash_ori : str
+                Atom selection to use as the origin when finding atoms within the ``clash_radius``. Defaults to 'cen',
+                the centroid of the rotamer library heavy atoms.
+            superimposition_method : str
+                Method to use when attaching or aligning the rotamer library backbone with the protein backbone.
+                Defaults to ``'bisect'`` which aligns the CA atom, the vectors bisecting the N-CA-C angle and the
+                N-CA-C plane.
+            dihedral_sigmas : float, numpy.ndarray
+                Standard deviations of dihedral angles (degrees) for off rotamer sampling. Can be a single numebr for
+                isotropic sampling, a vector to define each dihedral individually or a matrix to define a value for
+                each rotamer and each dihedral. Defaults to 35 degrees)
+            weighted_sampling : bool
+                Determines whether the rotamer library is sampled uniformly or based off of their intrinsic weights.
+                Defaults to False.
+            use_H : bool
+                Determines if hydrogen atoms are used or not. Defaults to False.
+            eval_clash : bool
+            sample : int, bool
+                Argument to use the off-rotamer sampling method. If ``False`` or ``0`` the off-rotamer sampling method
+                will not be used. If ``int`` the ensemble will be generated with that many off-rotamer samples.
+            energy_func : callable
+                Python function or callable object that takes a protein and a RotamerLibrary object as input and
+                reutrns an energy value (kcal/mol) for each atom of each rotamer in the ensemble. See also
+                :mod:`Scoring <chiLife.scoring>` . Defaults to :mod:`chiLife.get_lj_rep <chiLife.get_lj_rep>` .
         """
 
         self.res = res
@@ -138,14 +174,14 @@ class RotamerLibrary:
             np.isin(self.atom_names, RotamerLibrary.backbone_atoms, invert=True)
         ).flatten()
 
-        if self.sample_size and len(self.dihedral_atoms) > 0:
+        if self._sample_size and len(self.dihedral_atoms) > 0:
             # Get list of non-bonded atoms before overwritig
             a, b = [list(x) for x in zip(*self.non_bonded)]
 
             # Perform sapling
-            self._coords = np.tile(self._coords[0], (self.sample_size, 1, 1))
+            self._coords = np.tile(self._coords[0], (self._sample_size, 1, 1))
             self._coords, self.weights, self.internal_coords = self.sample(
-                self.sample_size, off_rotamer=True, return_dihedrals=True
+                self._sample_size, off_rotamer=True, return_dihedrals=True
             )
 
             self._dihedrals = np.asarray(
@@ -1078,7 +1114,7 @@ def assign_defaults(kwargs):
         "weighted_sampling": False,
         "eval_clash": False,
         "use_H": False,
-        "sample_size": kwargs.pop("sample", False),
+        "_sample_size": kwargs.pop("sample", False),
         "energy_func": chiLife.get_lj_rep,
     }
 

@@ -376,7 +376,7 @@ def _get_sasa(
     all_coords : (M, 3), np.ndarray
         3D cartesian coordinates of the atoms of ``atom_coords`` and the nearby atoms.
     all_radii : (M,) np.ndarray
-        vdW radii + solvent radii of the atoms in ``all_coords`
+        vdW radii + solvent radii of the atoms in ``all_coords``
     grid_points : (K,) np.ndarray
         Spherical points to use for SASA calculation.
 

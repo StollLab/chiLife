@@ -1042,7 +1042,7 @@ def add_label(
         Array of dihedral angles. If provided the new label object will be stored as a rotamer library with the
         dihedrals provided. Array should be n x m where n is the number of rotamers and m is the number of dihedrals.
     weights : ArrayLike, optional
-        Weights associated with the dihedral angles provided by the `dihedrals` keyword argument. There should be one
+        Weights associated with the dihedral angles provided by the ``dihedrals`` keyword argument. There should be one
         weight per rotamer and the rotamer weights should sum to 1.
     sigmas : ArrayLike, optional
         Sigma parameter for distributions of dihedral angles. Should be n x m matrix where n is the number of rotamers
@@ -1136,7 +1136,7 @@ def add_dlabel(
         Array of dihedral angles. If provided the new label object will be stored as a rotamer library with the
         dihedrals provided.
     weights : ArrayLike, optional
-        Weights associated with the dihedral angles provided by the `dihedrals` keyword argument
+        Weights associated with the dihedral angles provided by the ``dihedrals`` keyword argument
 
     Returns
     -------

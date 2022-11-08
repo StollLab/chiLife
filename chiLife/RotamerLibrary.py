@@ -1,4 +1,6 @@
 from copy import deepcopy
+from functools import partial
+import inspect
 import logging
 import numpy as np
 from itertools import combinations
@@ -60,7 +62,7 @@ class RotamerLibrary:
     clash_radius : float
         Cutoff distance (angstroms) for inclusion of atoms in clash evaluations. This distance is measured from
         ``clash_ori`` Defaults to the longest distance between any two atoms in the rotamer library plus 5 angstroms.
-    superimposition_method : str
+    superimposition_method : str, callable
         Method to use when attaching or aligning the rotamer library backbone with the protein backbone. Defaults to
         ``'bisect'`` which aligns the CA atom, the vectors bisecting the N-CA-C angle and the N-CA-C plane.
     dihedral_sigmas : float, numpy.ndarray
@@ -141,6 +143,10 @@ class RotamerLibrary:
         self.selstr = f"resid {self.site} and segid {self.chain} and not altloc B"
         self.input_kwargs = kwargs
         self.__dict__.update(assign_defaults(kwargs))
+
+        # Check if superimposition method requires rotlib argument or not
+        if isinstance(self.superimposition_method, str):
+            self.superimposition_method = chiLife.superimpositions[self.superimposition_method]
 
         lib = self.get_lib()
         self.__dict__.update(lib)
@@ -450,6 +456,13 @@ class RotamerLibrary:
         """ """
         # Update chain operators
         ic_backbone = np.squeeze(self.internal_coords[0].coords[:3])
+
+        if self.superimposition_method.__name__ == 'fit_superimposition':
+            N, CA, C = chiLife.parse_backbone(self, kind="global")
+            ic_backbone = np.array([[ic_backbone[0], N[1]],
+                                    [ic_backbone[1], CA[1]],
+                                    [ic_backbone[2], C[1]]])
+
         self.ic_ori, self.ic_mx = chiLife.local_mx(
             *ic_backbone, method=self.superimposition_method
         )
@@ -1038,7 +1051,7 @@ class RotamerLibrary:
     @property
     def mx(self):
         """ """
-        mx, ori = chiLife.global_mx(*np.squeeze(self.backbone), method=self.superimposition_method)
+        mx, ori = chiLife.global_mx(*chiLife.parse_backbone(self, kind="local"), method=self.superimposition_method)
         return mx
 
     @property

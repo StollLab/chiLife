@@ -169,7 +169,7 @@ def set_dihedral(p: ArrayLike, angle: float, mobile: ArrayLike) -> ArrayLike:
     return new_mobile
 
 
-def local_mx(*p, method: str = "bisect") -> Tuple[ArrayLike, ArrayLike]:
+def local_mx(*p, method: Union[str, callable] = "bisect") -> Tuple[ArrayLike, ArrayLike]:
     """Calculates a translation vector and rotation matrix to transform a set of coordinates from the global
     coordinate frame to a local coordinate frame defined by ``p`` , using the specified method.
 
@@ -177,7 +177,7 @@ def local_mx(*p, method: str = "bisect") -> Tuple[ArrayLike, ArrayLike]:
     ----------
     p : ArrayLike
         3D coordinates of the three points defining the coordinate system (Usually N, CA, C).
-    method : str
+    method : str, callable
         Method to use for generation of rotation matrix
 
     Returns
@@ -188,28 +188,31 @@ def local_mx(*p, method: str = "bisect") -> Tuple[ArrayLike, ArrayLike]:
         Rotation matrix to transform a set of coordinates to the local frame defined by p and the selected method.
     """
 
+    if isinstance(method, str):
+        method = chiLife.superimpositions[method]
+
     p1, p2, p3 = p
 
-    if method in {"fit"}:
-        rotation_matrix, _ = superimpositions[method](p1, p2, p3)
+    if method.__name__ == 'fit_superimposition':
+        rotation_matrix, _ = method(p1, p2, p3)
+        origin = np.mean([p1[0], p2[0], p3[0]], axis=0)
     else:
         # Transform coordinates such that the CA atom is at the origin
         p1n = p1 - p2
         p3n = p3 - p2
         p2n = p2 - p2
 
+        origin = p2
+
         # Local Rotation matrix is the inverse of the global rotation matrix
-        rotation_matrix, _ = superimpositions[method](p1n, p2n, p3n)
+        rotation_matrix, _ = method(p1n, p2n, p3n)
 
     rotation_matrix = rotation_matrix.T
-
-    # Set origin at C-alpha
-    origin = p2
 
     return origin, rotation_matrix
 
 
-def global_mx(*p: ArrayLike, method: str = "bisect") -> Tuple[ArrayLike, ArrayLike]:
+def global_mx(*p: ArrayLike, method: Union[str, callable] = "bisect") -> Tuple[ArrayLike, ArrayLike]:
     """Calculates a translation vector and rotation matrix to transform the a set of coordinates from the local
     coordinate frame to the global coordinate frame using the specified method.
 
@@ -228,7 +231,13 @@ def global_mx(*p: ArrayLike, method: str = "bisect") -> Tuple[ArrayLike, ArrayLi
         Vector to be added to the coordinates after rotation to translate the coordinates to the global frame.
     """
 
-    rotation_matrix, origin = superimpositions[method](*p)
+    if isinstance(method, str):
+        method = chiLife.superimpositions[method]
+
+    if method.__name__ == 'fit_superimposition':
+        p = [pi[::-1] for pi in p]
+
+    rotation_matrix, origin = method(*p)
     return rotation_matrix, origin
 
 
@@ -710,15 +719,13 @@ class ProteinIC:
             Residue number of the site being altered
         atom_list : ArrayLike
             Names or array of names of atoms involved in the dihedral(s)
-            
-            :return angles: ndarray
-            array of dihedral angles corresponding to the atom sets in atom list
-        chain :
-             (Default value = None)
+        chain : int, str
+             Chain identifier. required if there is more than one chain in the protein. Default value = None
 
         Returns
         -------
-
+        angles: numpy.ndarray
+            Array of dihedral angles corresponding to the atom sets in atom list.
         """
 
         if chain is None and len(self.ICs) == 1:

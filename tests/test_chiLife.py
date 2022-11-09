@@ -50,7 +50,7 @@ def test_unfiltered_dd():
     SL1.weights = np.array([0.5, 0.5])
     SL2.weights = np.array([0.1, 0.3, 0.6])
 
-    y = chiLife.unfiltered_dd(SL1, SL2, r=r)
+    y = chiLife.pair_dd(SL1, SL2, r=r)
 
     y_ans = np.load("test_data/pwdd.npy")
     plt.plot(y)
@@ -75,7 +75,7 @@ def test_unfiltered_dd():
 #     SL1.weights = np.array([0.5, 0.5])
 #     SL2.weights = np.array([0.1, 0.3, 0.6])
 #
-#     y = chiLife.unfiltered_dd(SL1, SL2, r=r, spin_populations=True)
+#     y = chiLife.pair_dd(SL1, SL2, r=r, spin_populations=True)
 #
 #     y_ans = np.load("test_data/pwdd.npy")
 #     plt.plot(r, y)

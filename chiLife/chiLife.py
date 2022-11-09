@@ -82,7 +82,6 @@ def get_dd(
     *args: SpinLabel,
     r: ArrayLike = None,
     sigma: float = 1.0,
-    prune: bool = False,
     uq: bool = False,
     spin_populations = False,
 ) -> np.ndarray:
@@ -127,11 +126,9 @@ def get_dd(
     r = np.asarray(r)
 
     if any(isinstance(SL, SpinLabelTraj) for SL in args):
-        return traj_dd(*args, r=r, sigma=sigma, prune=prune)
+        return traj_dd(*args, r=r, sigma=sigma)
 
     if uq:
-        if prune:
-            raise ValueError("Pruning is not supported when performing uncertainty analysis (yet)")
 
         Ps = []
         n_boots = uq if uq > 1 else 100
@@ -148,46 +145,16 @@ def get_dd(
                 dummy_SL.weights /= dummy_SL.weights.sum()
                 dummy_labels.append(dummy_SL)
 
-            Ps.append(get_dd(*dummy_labels, r=r, sigma=sigma, prune=prune))
+            Ps.append(get_dd(*dummy_labels, r=r, sigma=sigma))
         Ps = np.array(Ps)
         return Ps
 
-    if prune:
-        if len(args) != 2:
-            raise IndexError("Pruned distance distributions are only supported when using two spin labels (for now).")
-
-        SL1, SL2 = args
-
-        # Convert prune percentile to a fraction
-        if isinstance(prune, bool):
-            wts, idx = filter_by_weight(SL1.weights, SL2.weights)
-
-        else:
-            prune /= 100
-            wts, idx = filter_by_weight(SL1.weights, SL2.weights, prune)
-
-        if spin_populations:
-            coords1 = SL1.spin_coords[idx[:, 0]].reshape(-1, 3)
-            coords2 = SL2.spin_coords[idx[:, 1]].reshape(-1, 3)
-
-            weights1 = np.outer(SL1.weights[idx[:, 0]], SL1.spin_weights).flatten()
-            weights2 = np.outer(SL2.weights[idx[:, 1]], SL2.spin_weights).flatten()
-            wts = np.outer(weights1, weights2)
-
-        else:
-
-            coords1 = SL1.spin_centers[idx[:, 0]]
-            coords2 = SL2.spin_centers[idx[:, 1]]
-
-        P = filtered_dd(coords1, coords2, wts, r, sigma=sigma)
-
-    else:
-        P = unfiltered_dd(*args, r=r, sigma=sigma, spin_populations=spin_populations)
+    P = pair_dd(*args, r=r, sigma=sigma, spin_populations=spin_populations)
 
     return P
 
 
-def unfiltered_dd(*args, r: ArrayLike, sigma: float = 1.0, spin_populations=False) -> np.ndarray:
+def pair_dd(*args, r: ArrayLike, sigma: float = 1.0, spin_populations=False) -> np.ndarray:
     """Obtain the pairwise distance distribution from two rotamer libraries, NO1, NO2 with corresponding weights w1, w2.
     The distribution is calculated by convolving the weighted histogram of pairwise distances between NO1 and NO2 with
     a normal distribution of sigma.
@@ -353,7 +320,6 @@ def traj_dd(
     SL2: SpinLabelTraj,
     r: ArrayLike,
     sigma: float,
-    filter: Union[bool, float],
     **kwargs,
 ) -> np.ndarray:
     """Calculate a distance distribution from a trajectory of spin labels by calling ``get_dd`` on each frame and
@@ -386,7 +352,7 @@ def traj_dd(
     # Calculate the distance distribution for each frame and sum
     P = np.zeros_like(r)
     for _SL1, _SL2 in zip(SL1, SL2):
-        P += get_dd(_SL1, _SL2, r=r, sigma=sigma, prune=filter, **kwargs)
+        P += get_dd(_SL1, _SL2, r=r, sigma=sigma, **kwargs)
 
     # Normalize distance distribution
     P /= np.trapz(P, r)

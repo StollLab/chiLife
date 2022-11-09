@@ -131,9 +131,8 @@ def get_dd(
 
     if uq:
         if prune:
-            raise ValueError(
-                "Pruning is not supported when performing uncertainty analysis (yet)"
-            )
+            raise ValueError("Pruning is not supported when performing uncertainty analysis (yet)")
+
         Ps = []
         n_boots = uq if uq > 1 else 100
         for i in range(n_boots):
@@ -155,9 +154,7 @@ def get_dd(
 
     if prune:
         if len(args) != 2:
-            raise IndexError(
-                "Pruned distance distributions are only supported when using two spin labels (for now)."
-            )
+            raise IndexError("Pruned distance distributions are only supported when using two spin labels (for now).")
 
         SL1, SL2 = args
 
@@ -830,9 +827,9 @@ def write_labels(file: str, *args: SpinLabel, KDE: bool = True) -> None:
 
         # Write electron density at electron coordinates
         for k, label in enumerate(rotlibs):
-            if not hasattr(label, "spin_coords"):
+            if not hasattr(label, "spin_centers"):
                 continue
-            if np.any(np.isnan(label.spin_coords)):
+            if not np.any(label.spin_centers):
                 continue
 
             f.write(f"HEADER {label.name}_density\n".format(label.label, k + 1))

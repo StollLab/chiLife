@@ -20,20 +20,20 @@ args = []
 for SL in labels:
     site1, site2 = 25, 73
     chain = "A"
-    SL1 = chiLife.SpinLabel(SL, site1, protein, chain, energy_func=old_ef)
-    SL2 = chiLife.SpinLabel(SL, site2, protein, chain, energy_func=old_ef)
-    [args.append([SL1, SL2]) for i in range(6)]
+    SL1 = chiLife.SpinLabel(SL, site1, protein, chain)
+    SL2 = chiLife.SpinLabel(SL, site2, protein, chain)
+    [args.append([SL1, SL2]) for i in range(5)]
 
-    kws.append({"prune": True})
-    kws.append({"r": np.linspace(0, 80, 1024), "prune": True})
-    kws.append({"r": np.linspace(20, 80, 1024), "prune": True})
-    kws.append({"r": r, "prune": True})
-    kws.append({"prune": True})
-    kws.append({"prune": 0.0001})
+
+    kws.append({"r": np.linspace(0, 80, 1024)})
+    kws.append({"r": np.linspace(20, 80, 256)})
+    kws.append({'spin_populations': True})
+    kws.append({'sigma': 2})
+    kws.append({'sigma': 0.5, 'spin_populations': True})
 
 ans = []
 with np.load("test_data/get_dd_tests.npz", allow_pickle=True) as f:
-    for i in range(30):
+    for i in range(25):
         ans.append(f[f"arr_{i}"])
 
 sasa_0 = set((R.resnum, R.segid) for R in protein.residues)
@@ -118,27 +118,14 @@ def test_filter_by_weight():
     np.testing.assert_almost_equal(ans_weights, weights)
 
 
-def test_filtered_dd():
-    NO1 = np.array([[0.0, 0.0, 0.0]])
-    NO2 = np.array([[0.0, 0.0, 20.0], [0.0, 40.0, 0.0], [60.0, 0.0, 0.0]])
-    w1 = [1.0]
-    w2 = [0.1, 0.3, 0.6]
-
-    weights, idx = chiLife.filter_by_weight(w1, w2)
-    NO1, NO2 = NO1[idx[:, 0]], NO2[idx[:, 1]]
-    y = chiLife.filtered_dd(NO1, NO2, weights, r)
-    ans_y = np.load("test_data/get_dist_dist.npy")
-    np.testing.assert_almost_equal(ans_y, y)
-
-
 @pytest.mark.parametrize("args, kws, expected", zip(args, kws, ans))
 def test_get_dd(args, kws, expected):
-    kws.setdefault('r', np.linspace(0, 100, 1024))
-    y_ans = expected
-    y = chiLife.get_dd(*args, **kws)
+    kws.setdefault('r', r)
+    P_ans = expected
+    P = chiLife.get_dd(*args, **kws)
 
     # Stored values normalized to 1 while get_dd normalizes to r
-    np.testing.assert_almost_equal(y_ans, y / y.sum(), decimal=4)
+    np.testing.assert_almost_equal(P, P_ans)
 
 
 def test_spin_populations():

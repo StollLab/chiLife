@@ -57,7 +57,10 @@ class SpinLabel(RotamerLibrary):
     @property
     def spin_centers(self):
         """get the spin center of the rotamers in the ensemble"""
-        spin_centers = np.average(self._coords[:, self.spin_idx, :], weights=self.spin_weights, axis=1)
+        if np.any(self.spin_idx):
+            spin_centers = np.average(self._coords[:, self.spin_idx, :], weights=self.spin_weights, axis=1)
+        else:
+            spin_centers = np.array([])
         return np.squeeze(spin_centers)
 
     @property
@@ -424,12 +427,19 @@ class dSpinLabel:
 
     @property
     def spin_coords(self):
-        sc_matrix = [
-            SL.spin_coords
-            for SL in self.sub_labels
-            if not np.any(np.isnan(SL.spin_coords))
-        ]
-        return np.sum(sc_matrix, axis=0) / len(sc_matrix)
+        s_coords = [SL.spin_coords.reshape(len(SL.weights), -1, 3)
+                    for SL in self.sub_labels
+                    if np.any(SL.spin_coords)]
+
+        return np.concatenate(s_coords, axis=1)
+
+    @property
+    def spin_centers(self):
+        return np.average(self.spin_coords, axis=1, weights=self.spin_weights)
+
+    @property
+    def spin_weights(self):
+        return np.concatenate([SL.spin_weights for SL in self.sub_labels])
 
     @property
     def spin_centroid(self):

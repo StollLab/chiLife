@@ -41,7 +41,7 @@ logging.captureWarnings(True)
 
 with open(RL_DIR / "spin_atoms.txt", "r") as f:
     lines = f.readlines()
-    SPIN_ATOMS = {x.split(":")[0]: eval(x.split(":")[1]) for x in lines}
+    SPIN_ATOMS = {x.split(":")[0]: tuple(eval(a) for a in x.split(":")[1:]) for x in lines}
 
 USER_LABELS = {key for key in SPIN_ATOMS if key not in SUPPORTED_LABELS}
 USER_dLABELS = {f.name[:3] for f in (RL_DIR / "UserRotlibs").glob("*ip*.npz")}
@@ -84,6 +84,7 @@ def get_dd(
     sigma: float = 1.0,
     prune: bool = False,
     uq: bool = False,
+    spin_populations = False,
 ) -> np.ndarray:
     """Wrapper function to calculate distance distribution using an arbitrary number of SpinLabels. Distance
     distributions are made by calculating a weighted histogram over ``r`` from the pairwise distances between the
@@ -118,7 +119,7 @@ def get_dd(
     if r is None:
         raise ValueError('Use must supply a distance domain')
 
-    if any(not hasattr(arg, atr) for arg in args for atr in ["spin_coords", "weights"]):
+    if any(not hasattr(arg, atr) for arg in args for atr in ["spin_coords", "spin_centers", "weights"]):
         raise TypeError(
             "Arguments other than spin labels must be passed as a keyword argument"
         )
@@ -142,6 +143,8 @@ def get_dd(
 
                 dummy_SL = mock.Mock()
                 dummy_SL.spin_coords = np.atleast_2d(SL.spin_coords[idxs])
+                dummy_SL.spin_centers = np.atleast_2d(SL.spin_centers[idxs])
+                dummy_SL.spin_weights = SL.spin_weights
                 dummy_SL.weights = SL.weights[idxs]
                 dummy_SL.weights /= dummy_SL.weights.sum()
                 dummy_labels.append(dummy_SL)
@@ -166,17 +169,28 @@ def get_dd(
             prune /= 100
             wts, idx = filter_by_weight(SL1.weights, SL2.weights, prune)
 
-        NO1 = SL1.spin_coords[idx[:, 0]]
-        NO2 = SL2.spin_coords[idx[:, 1]]
-        P = filtered_dd(NO1, NO2, wts, r, sigma=sigma)
+        if spin_populations:
+            coords1 = SL1.spin_coords[idx[:, 0]].reshape(-1, 3)
+            coords2 = SL2.spin_coords[idx[:, 1]].reshape(-1, 3)
+
+            weights1 = np.outer(SL1.weights[idx[:, 0]], SL1.spin_weights).flatten()
+            weights2 = np.outer(SL2.weights[idx[:, 1]], SL2.spin_weights).flatten()
+            wts = np.outer(weights1, weights2)
+
+        else:
+
+            coords1 = SL1.spin_centers[idx[:, 0]]
+            coords2 = SL2.spin_centers[idx[:, 1]]
+
+        P = filtered_dd(coords1, coords2, wts, r, sigma=sigma)
 
     else:
-        P = unfiltered_dd(*args, r=r, sigma=sigma)
+        P = unfiltered_dd(*args, r=r, sigma=sigma, spin_populations=spin_populations)
 
     return P
 
 
-def unfiltered_dd(*args, r: ArrayLike, sigma: float = 1.0) -> np.ndarray:
+def unfiltered_dd(*args, r: ArrayLike, sigma: float = 1.0, spin_populations=False) -> np.ndarray:
     """Obtain the pairwise distance distribution from two rotamer libraries, NO1, NO2 with corresponding weights w1, w2.
     The distribution is calculated by convolving the weighted histogram of pairwise distances between NO1 and NO2 with
     a normal distribution of sigma.
@@ -201,8 +215,19 @@ def unfiltered_dd(*args, r: ArrayLike, sigma: float = 1.0) -> np.ndarray:
     weights, distances = [], []
 
     for SL1, SL2 in SL_Pairs:
-        distances.append(cdist(SL1.spin_coords, SL2.spin_coords).flatten())
-        weights.append(np.outer(SL1.weights, SL2.weights).flatten())
+        if spin_populations:
+            coords1 = SL1.spin_coords.reshape(-1 ,3)
+            coords2 = SL2.spin_coords.reshape(-1, 3)
+            distances.append(cdist(coords1, coords2).flatten())
+
+            weights1 = np.outer(SL1.weights, SL1.spin_weights).flatten()
+            weights2 = np.outer(SL2.weights, SL2.spin_weights).flatten()
+
+            weights.append(np.outer(weights1, weights2).flatten())
+
+        else:
+            distances.append(cdist(SL1.spin_centers, SL2.spin_centers).flatten())
+            weights.append(np.outer(SL1.weights, SL2.weights).flatten())
 
     distances = np.concatenate(distances)
     weights = np.concatenate(weights)
@@ -811,14 +836,14 @@ def write_labels(file: str, *args: SpinLabel, KDE: bool = True) -> None:
                 continue
 
             f.write(f"HEADER {label.name}_density\n".format(label.label, k + 1))
-            spin_coords = np.atleast_2d(label.spin_coords)
+            spin_centers = np.atleast_2d(label.spin_centers)
 
-            if KDE and np.all(np.linalg.eigh(np.cov(spin_coords.T))[0] > 0) and len(spin_coords) > 5:
+            if KDE and np.all(np.linalg.eigh(np.cov(spin_centers.T))[0] > 0) and len(spin_centers) > 5:
                 # Perform gaussian KDE to determine electron density
-                gkde = gaussian_kde(spin_coords.T, weights=label.weights)
+                gkde = gaussian_kde(spin_centers.T, weights=label.weights)
 
                 # Map KDE density to pseudoatoms
-                vals = gkde.pdf(spin_coords.T)
+                vals = gkde.pdf(spin_centers.T)
             else:
                 vals = label.weights
 
@@ -830,7 +855,7 @@ def write_labels(file: str, *args: SpinLabel, KDE: bool = True) -> None:
                         label.label[:3],
                         label.chain,
                         int(label.site),
-                        *spin_coords[i],
+                        *spin_centers[i],
                         1.00,
                         vals[i] * 100,
                         "N",
@@ -1270,19 +1295,27 @@ def pre_add_label(name: str, pdb: str, spin_atoms: List[str], uniform_topology: 
         if isinstance(spin_atoms, str):
             spin_atoms = spin_atoms.split()
 
+        if isinstance(spin_atoms, dict):
+            spin_weights = list(spin_atoms.values())
+            spin_atoms = list(spin_atoms.keys())
+        else:
+            w = 1/len(spin_atoms)
+            spin_weights = [w for _ in spin_atoms]
+
+
         with open(RL_DIR / "spin_atoms.txt", "r+") as f:
             lines = f.readlines()
-            spin_dict = {x.split(":")[0]: eval(x.split(":")[1]) for x in lines}
+            spin_dict = {x.split(":")[0]: tuple(eval(a) for a in x.split(":")[1:]) for x in lines}
             if name in spin_dict:
-                if spin_dict[name] != spin_atoms:
+                if spin_dict[name] != (spin_atoms, spin_weights):
                     raise NameError(
                         "There is already a chiLife spin label with this name"
                     )
             else:
                 joinstr = "', '"
-                line = f"{name}: ['{joinstr.join(spin_atoms)}']\n"
+                line = f"{name}: ['{joinstr.join(spin_atoms)}'] : [{', '.join(str(w) for w in spin_weights)}]\n"
                 f.write(line)
-                SPIN_ATOMS[name] = spin_atoms
+                SPIN_ATOMS[name] = spin_atoms, spin_weights
 
     # Update USER_LABELS to include the new label
     global USER_LABELS
@@ -1464,7 +1497,7 @@ def remove_label(name, prompt=True):
 
     with open(RL_DIR / 'spin_atoms.txt', 'w') as f:
         joinstr = "', '"
-        for n, spin_atoms in SPIN_ATOMS.items():
-            line = f"{n}: ['{joinstr.join(spin_atoms)}']\n"
+        for n, (spin_atoms, spin_weights) in SPIN_ATOMS.items():
+            line = f"{n}: ['{joinstr.join(spin_atoms)}'] : [{', '.join(str(w) for w in spin_weights)}]\n"
             f.write(line)
 

@@ -45,8 +45,8 @@ sasa_ans = [sasa_30, sasa_0]
 def test_unfiltered_dd():
     SL1 = type("PseudoLabel", (object,), {"spin_coords": None, "weights": None})
     SL2 = type("PseudoLabel", (object,), {"spin_coords": None, "weights": None})
-    SL1.spin_coords = np.array([[0.0, 0.0, 0.0], [0.0, 0.0, 1.0]])
-    SL2.spin_coords = np.array([[0.0, 0.0, 20.0], [0.0, 40.0, 0.0], [60.0, 0.0, 0.0]])
+    SL1.spin_centers = np.array([[0.0, 0.0, 0.0], [0.0, 0.0, 1.0]])
+    SL2.spin_centers = np.array([[0.0, 0.0, 20.0], [0.0, 40.0, 0.0], [60.0, 0.0, 0.0]])
     SL1.weights = np.array([0.5, 0.5])
     SL2.weights = np.array([0.1, 0.3, 0.6])
 
@@ -59,6 +59,30 @@ def test_unfiltered_dd():
 
     np.testing.assert_almost_equal(y_ans, y)
 
+
+# def test_spin_pop2():
+#     SL1 = type("PseudoLabel", (object,), {"spin_coords": None, "weights": None, 'spin_weights': None})
+#     SL2 = type("PseudoLabel", (object,), {"spin_coords": None, "weights": None, 'spin_weights': None})
+#     SL1.spin_coords = np.array([[[0.0, 0.0, 0.0], [0.0, 0.0, 10.0]]])
+#
+#     SL2.spin_coords = np.array([[[0.0, 0.0, 20.0], [0.0, 0.0, 24.0]],
+#                                 [[0.0, 40.0, 0.0], [0.0, 40.0, 4.0]],
+#                                 [[60.0, 0.0, 0.0], [60.0, 0.0, 4.0]]])
+#
+#     SL1.spin_weights = np.array([0.1, 0.9])
+#     SL2.spin_weights = np.array([0.5, 0.5])
+#
+#     SL1.weights = np.array([0.5, 0.5])
+#     SL2.weights = np.array([0.1, 0.3, 0.6])
+#
+#     y = chiLife.unfiltered_dd(SL1, SL2, r=r, spin_populations=True)
+#
+#     y_ans = np.load("test_data/pwdd.npy")
+#     plt.plot(r, y)
+#     plt.plot(r, y_ans)
+#     plt.show()
+#
+#     np.testing.assert_almost_equal(y_ans, y)
 
 @pytest.mark.parametrize("label", labels)
 def test_read_rotamer_library(label):
@@ -115,6 +139,20 @@ def test_get_dd(args, kws, expected):
 
     # Stored values normalized to 1 while get_dd normalizes to r
     np.testing.assert_almost_equal(y_ans, y / y.sum(), decimal=4)
+
+
+def test_spin_populations():
+    SL1 = chiLife.SpinLabel('R1M', 211, protein)
+    SL2 = chiLife.SpinLabel('R1M', 275, protein)
+
+    dd1 = chiLife.get_dd(SL1, SL2, r)
+    dd2 = chiLife.get_dd(SL1, SL2, r, spin_populations=True)
+
+    plt.plot(r, dd1)
+    plt.plot(r, dd2)
+    plt.show()
+
+    print('pause')
 
 
 def test_get_dd_uq():

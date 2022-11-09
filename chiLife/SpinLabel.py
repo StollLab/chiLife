@@ -41,17 +41,29 @@ class SpinLabel(RotamerLibrary):
         self.label = label
 
         # Parse important indices
-        self.spin_idx = np.argwhere(np.isin(self.atom_names, chiLife.SPIN_ATOMS[label[:3]]))
+        self.spin_atoms, self.spin_weights = [np.array(x) for x in chiLife.SPIN_ATOMS[label[:3]]]
+        sa_mask = np.isin(self.spin_atoms, self.atom_names)
+
+        self.spin_atoms = self.spin_atoms[sa_mask]
+        self.spin_weights = self.spin_weights[sa_mask]
+
+        self.spin_idx = np.argwhere(np.isin(self.atom_names, self.spin_atoms))
 
     @property
     def spin_coords(self):
-        """get the spin coordinates of the rotamer library"""
-        return self._coords[:, self.spin_idx, :].mean(axis=1)[:, 0]
+        """get the spin coordinates of the rotamer ensemble"""
+        return np.squeeze(self._coords[:, self.spin_idx, :])
+
+    @property
+    def spin_centers(self):
+        """get the spin center of the rotamers in the ensemble"""
+        spin_centers = np.average(self._coords[:, self.spin_idx, :], weights=self.spin_weights, axis=1)
+        return np.squeeze(spin_centers)
 
     @property
     def spin_centroid(self):
         """Average location of all the label's `spin_coords` weighted based off of the rotamer weights"""
-        return np.average(self.spin_coords, weights=self.weights, axis=0)
+        return np.average(self.spin_centers, weights=self.weights, axis=0)
 
     def protein_setup(self):
         self.protein = self.protein.select_atoms("not (byres name OH2 or resname HOH)")

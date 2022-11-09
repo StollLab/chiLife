@@ -171,6 +171,7 @@ class RotamerLibrary:
             self.atom_names = self.atom_names[self.H_mask]
 
         self._lib_coords = self._coords.copy()
+        self._lib_IC = self.internal_coords
 
         if self.clash_radius is None:
             self.clash_radius = np.linalg.norm(self.clash_ori - self.coords, axis=-1).max() + 5
@@ -643,7 +644,7 @@ class RotamerLibrary:
         new_weight = self._weights[idx] * new_weight
         dihedrals = self._rdihedrals[idx].copy()
         dihedrals[off_rotamer] = new_dihedrals
-        int_coord = self.internal_coords[0].copy().set_dihedral(dihedrals, 1, self.dihedral_atoms)
+        int_coord = self._lib_IC[idx].copy().set_dihedral(dihedrals, 1, self.dihedral_atoms)
 
         coords = int_coord.coords[self.ic_mask]
 
@@ -982,6 +983,8 @@ class RotamerLibrary:
         -------
 
         """
+        # TODO: Add warning about removing isomers
+
         # Allow users to input a single rotamer
         coords = coords if coords.ndim == 3 else coords[None, :, :]
 
@@ -1033,6 +1036,8 @@ class RotamerLibrary:
         -------
 
         """
+        # TODO: Add warning about removing isomers
+
         dihedrals = dihedrals if dihedrals.ndim == 2 else dihedrals[None, :]
         if dihedrals.shape[1] != self.dihedrals.shape[1]:
             raise ValueError('The input array does not have the correct number of dihedrals')

@@ -119,7 +119,8 @@ class RotamerLibrary:
             dihedral_sigmas : float, numpy.ndarray
                 Standard deviations of dihedral angles (degrees) for off rotamer sampling. Can be a single numebr for
                 isotropic sampling, a vector to define each dihedral individually or a matrix to define a value for
-                each rotamer and each dihedral. Defaults to 35 degrees)
+                each rotamer and each dihedral. Setting this value to np.inf will force uniform (accessible volume)
+                sampling. Defaults to 35 degrees.
             weighted_sampling : bool
                 Determines whether the rotamer library is sampled uniformly or based off of their intrinsic weights.
                 Defaults to False.
@@ -624,7 +625,7 @@ class RotamerLibrary:
         """
         new_weight = 0
         # Use accessible volume sampling if only provided a single rotamer
-        if len(self._weights) == 1:
+        if len(self._weights) == 1 or np.all(np.isinf(self.sigmas)):
             new_dihedrals = np.random.random(len(off_rotamer)) * 2 * np.pi
             new_weight = 1.0
 
@@ -1086,6 +1087,7 @@ class RotamerLibrary:
 
         """
         value = np.asarray(value)
+
         if value.shape == ():
             self.sigmas = (np.ones((len(self._weights), len(self.dihedral_atoms))) * value)
         elif len(value) == len(self.dihedral_atoms) and len(value.shape) == 1:

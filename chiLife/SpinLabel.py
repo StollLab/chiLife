@@ -61,7 +61,7 @@ class SpinLabel(RotamerEnsemble):
             spin_centers = np.average(self._coords[:, self.spin_idx, :], weights=self.spin_weights, axis=1)
         else:
             spin_centers = np.array([])
-        return np.squeeze(spin_centers)
+        return np.atleast_2d(np.squeeze(spin_centers))
 
     @property
     def spin_centroid(self):

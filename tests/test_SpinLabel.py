@@ -127,3 +127,7 @@ def test_minimize():
 
     SL1 = chiLife.SpinLabel("R1C", 238, protein=U, eval_clash=False)
     SL1.minimize()
+
+def test_spin_center_array_dim():
+    SL1 = chiLife.SpinLabel('R1M', 5, ubq)
+    assert SL1.spin_centers.shape == (1,3)

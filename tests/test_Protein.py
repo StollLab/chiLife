@@ -5,7 +5,7 @@ from chiLife.Protein import Protein, parse_paren, Residue, ResidueSelection, Seg
 import MDAnalysis as mda
 
 prot = Protein.from_pdb('test_data/1omp_H.pdb')
-
+mda_prot = mda.Universe('test_data/1omp_H.pdb')
 
 def test_from_pdb():
 
@@ -124,6 +124,11 @@ def test_unary_not():
     ans = prot.resnums != 5
     assert np.all(asel.mask == ans)
 
+def test_within():
+    asel = prot.select_atoms('within 5 resnum 5')
+    mdasel = mda_prot.select_atoms('around 5 resnum 5')
+    print('pause')
+
 
 def test_SL_Protein():
     omp = chiLife.Protein.from_pdb('test_data/1omp.pdb')
@@ -133,6 +138,7 @@ def test_SL_Protein():
     SL2 = chiLife.SpinLabel('R1M', 20, ompmda)
 
     assert SL1 == SL2
+
 
 def test_trajectory():
     p = chiLife.Protein.from_pdb('test_data/2klf.pdb')
@@ -167,6 +173,7 @@ def test_selection_traj():
     p.trajectory[5]
     np.testing.assert_allclose(s.coords, [16.195, -1.233, 11.306])
 
+
 def test_ResidueSelection():
     p = chiLife.Protein.from_pdb('test_data/1omp.pdb')
     r = p.residues[10:12]
@@ -178,7 +185,6 @@ def test_ResidueSelection():
     assert isinstance(r2, Residue)
     assert r2.resname == 'ILE'
     assert r2.resnum == 11
-
 
 
 def test_save_Protein():

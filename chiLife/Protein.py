@@ -1,6 +1,6 @@
 import functools
 import operator
-from functools import partial
+from functools import partial, update_wrapper
 from .protein_utils import sort_pdb
 import numpy as np
 from scipy.spatial import cKDTree
@@ -154,6 +154,7 @@ class Protein(BaseSystem):
                                 '>=': operator.ge,
                                 '!=': operator.ne,
                                 'byres': partial(byres, protein=self.protein),
+                                'within': update_wrapper(partial(within, protein=self.protein), within)
                               }
 
 
@@ -192,6 +193,7 @@ class Protein(BaseSystem):
 
         return cls(**pdb_dict)
 
+
 class Trajectory:
 
     def __init__(self, coordinates, protein, timestep=1):
@@ -219,6 +221,7 @@ class Trajectory:
 def process_statement(statement, logickws, subjectkws):
     sub_statements = parse_paren(statement)
     unary_operators = [logickws['byres'], logickws['not']]
+    advanced_operators = [logickws['within']]
 
     mask = np.ones(subjectkws['_len'], dtype=bool)
     operation = logickws['and']
@@ -248,8 +251,15 @@ def process_statement(statement, logickws, subjectkws):
                 def toperation(a, b, operation, _io): return operation(a, _io(b))
                 operation = functools.partial(toperation, operation=operation, _io=_io)
 
+            elif logickws[stat_split[0]] in advanced_operators:
+                _io = logickws[stat_split[0]]
+                args = [stat_split.pop(i) for i in range(1, 1 + _io.nargs)]
+                _io = functools.partial(_io, *args)
+                def toperation(a, b, operation, _io): return operation(a, _io(b))
+                operation = functools.partial(toperation, operation=operation, _io=_io)
+
             elif operation != None:
-                raise ValueError('Cannot have two logical operators in a row')
+                raise ValueError('Cannot have two logical operators in succession')
 
             else:
                 operation = logickws[stat_split[0]]
@@ -326,6 +336,7 @@ def process_statement(statement, logickws, subjectkws):
 
     return mask
 
+
 def parse_paren(string):
     stack = 0
     start_idx = 0
@@ -347,7 +358,6 @@ def parse_paren(string):
                 results.append(f'({string[start_idx:i].strip()})')
                 start_idx = end_idx
                 end_idx = i + 1
-
 
     if end_idx != len(string) - 1:
         results.append(string[end_idx:].strip())
@@ -385,7 +395,6 @@ class AtomSelection(BaseSystem):
         return self.mask.sum()
 
 
-
 class ResidueSelection(BaseSystem):
 
     def __init__(self, protein, mask):
@@ -395,13 +404,14 @@ class ResidueSelection(BaseSystem):
         self.protein = protein
 
         first_ix = np.nonzero(np.r_[1, np.diff(protein.resixs)[:-1]])[0]
-        self.first_ix = np.array([ix for ix in first_ix if np.isin(protein.resixs[ix], protein.resixs[self.mask])], dtype=int)
+        self.first_ix = np.array([ix for ix in first_ix if
+                                  np.isin(protein.resixs[ix], protein.resixs[self.mask])],
+                                 dtype=int)
 
         self.resnames = protein.resnames[self.first_ix].flatten()
         self.resnums = protein.resnums[self.first_ix].flatten()
         self.segids = protein.segids[self.first_ix].flatten()
         self.chains = protein.chains[self.first_ix].flatten()
-
 
     def __getitem__(self, item):
         resixs = np.unique(self.protein.resixs[self.mask])
@@ -424,8 +434,8 @@ class ResidueSelection(BaseSystem):
 class SegmentSelection(BaseSystem):
 
     def __init__(self, protein, mask):
-        segixs = np.unique(protein.segixs[mask])
-        self.mask = np.isin(protein.segixs, segixs)
+        seg_ixs = np.unique(protein.segixs[mask])
+        self.mask = np.isin(protein.segixs, seg_ixs)
         self.protein = protein
 
         first_ix = np.nonzero(np.r_[1, np.diff(protein.segixs)[:-1]])
@@ -524,7 +534,15 @@ def unot(mask):
     return ~mask
 
 
-def within(mask1, mask2, atom_selection, distance):
-    tree1 = cKDTree(atom_selection.coords)
-    tree2 = cKDTree(atom_selection.protein.coords[mask2])
-    tree2.query_ball_tree()
+def within(distance, mask, protein):
+    distance = float(distance)
+    tree1 = cKDTree(protein.coords)
+    tree2 = cKDTree(protein.protein.coords[mask])
+    results = np.concatenate(tree2.query_ball_tree(tree1, distance))
+    results = np.unique(results)
+    mask = np.zeros_like(mask, dtype=bool)
+    mask[results] = True
+    return mask
+
+within.nargs = 1
+

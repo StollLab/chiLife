@@ -14,7 +14,6 @@ import numpy as np
 from numpy.typing import ArrayLike
 from numba import njit
 
-from scipy.signal import fftconvolve
 from scipy.stats import gaussian_kde
 from scipy.spatial.distance import cdist
 
@@ -206,13 +205,10 @@ def pair_dd(*args, r: ArrayLike, sigma: float = 1.0, spin_populations=False) -> 
         _, g = norm(delta_r, 0, sigma)
 
         # Convolve normal distribution and histogram
-        P = fftconvolve(hist, g, mode="same")
+        P = np.convolve(hist, g, mode="same")
 
     else:
         P = hist
-
-    # Clip values less than 0 (numerical artifacts)
-    P = P.clip(0)
 
     # Normalize weights
     P /= np.trapz(P, r)

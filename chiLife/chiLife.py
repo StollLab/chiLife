@@ -49,50 +49,57 @@ def get_dd(
     uq: bool = False,
     spin_populations = False,
 ) -> np.ndarray:
-    """Wrapper function to calculate distance distribution using an arbitrary number of SpinLabels. Distance
-    distributions are made by calculating a weighted histogram over ``r`` from the pairwise distances between the
-    ``spin_center`` properties of the SpinLabel rotamers and convolving them with a normal distribution with a standard
-    deviation equal to ``sigma`` .
+    """Calculates total pair distance distribution for an arbitrary number of spin labels over the distance range ``r``.
+    The distance distribution is obtained by summing over all pair distance distributions. These in turn are calculated
+    by summing over rotamer pairs with the appropriate weights. For each rotamer pair, the distance distribution is
+    either just the distance between the ``spin_center`` coordinates of two labels (if ``spin_populations=False``) or
+    the weighted sum over all pairs of spn-bearing atoms (``spin_populations=True``). The resulting distance histogram
+    is convolved with a normal distribution with a standard deviation equal to ``sigma``.
 
     Parameters
     ----------
     *args : SpinLabel
-        Any number of spin label objects for which you wish to get the distance distributions between.
-    r: ArrayLike
-        evenly spaced array containing the distance domain coordinates to calculate the distance distribution over
-    sigma: float
-        The standard deviation of the normal distribution used in convolution with the distance histogram
-    prune: bool
-        Ignore low weight rotamer pairs (experimental)
-    uq: bool
+        Any number of spin label objects.
+    r : ArrayLike
+        Evenly spaced array of distances (in angstrom) to calculate the distance distribution over.
+    sigma : float
+        The standard deviation of the normal distribution used in convolution with the distance histogram, in angstrom.
+        Default is 1.
+    spin_populations :  bool
+        If False, distances are computed between spin centers. If True, distances are computed by summing over
+        the distributed spin density on spin-bearing atoms on the labels.
+    prune : bool
+        If True, ignore low-weight rotamer pairs (experimental)
+    uq : bool
         Perform uncertainty analysis (experimental)
 
     Returns
     -------
-        P: np.ndarray
-            Predicted distance distribution
-
+    P : np.ndarray
+        Predicted distance distribution, in 1/angstrom
     """
 
-    # Allow r to be passed as that last non-keyword argument
+    # Allow r to be passed as last non-keyword argument
     if r is None and np.ndim(args[-1]) != 0:
         r = args[-1]
         args = args[:-1]
 
     if r is None:
-        raise ValueError('Use must supply a distance domain')
+        raise ValueError('Keyword argument r with distance domain vector is missing.')
 
     if any(not hasattr(arg, atr) for arg in args for atr in ["spin_coords", "spin_centers", "weights"]):
         raise TypeError(
-            "Arguments other than spin labels must be passed as a keyword argument"
+            "Arguments other than spin labels must be passed as a keyword arguments."
         )
 
     r = np.asarray(r)
 
     if any(isinstance(SL, SpinLabelTraj) for SL in args):
-        return traj_dd(*args, r=r, sigma=sigma)
 
-    if uq:
+        P = traj_dd(*args, r=r, sigma=sigma)
+        return P
+
+    elif uq:
 
         Ps = []
         n_boots = uq if uq > 1 else 100
@@ -113,9 +120,10 @@ def get_dd(
         Ps = np.array(Ps)
         return Ps
 
-    P = pair_dd(*args, r=r, sigma=sigma, spin_populations=spin_populations)
+    else:
 
-    return P
+        P = pair_dd(*args, r=r, sigma=sigma, spin_populations=spin_populations)
+        return P
 
 
 def pair_dd(*args, r: ArrayLike, sigma: float = 1.0, spin_populations=False) -> np.ndarray:

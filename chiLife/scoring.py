@@ -7,9 +7,7 @@ import chiLife
 
 
 def clash_only(func):
-    @wraps(func)
-    def energy_func(protein, rotlib=None, **kwargs):
-        """decorator to convert a Lennard-Jones style clash evaluation function into a chiLife compatible energy func.
+    """decorator to convert a Lennard-Jones style clash evaluation function into a chiLife compatible energy func.
 
     Parameters
     ----------
@@ -23,13 +21,16 @@ def clash_only(func):
         The original input function now wrapped to accept a protein object and, optionally, a RotamerEnsemble/SpinLabel
          object.
     """
+
+    @wraps(func)
+    def energy_func(protein, ensemble=None, **kwargs):
         """
 
         Parameters
         ----------
         protein :
-            param rotlib:  (Default value = None)
-        rotlib :
+            param ensemble:  (Default value = None)
+        ensemble :
              (Default value = None)
         **kwargs :
             
@@ -42,7 +43,7 @@ def clash_only(func):
         rmax = kwargs.get("rmax", 10)
         forgive = kwargs.get("forgive", 1)
 
-        if rotlib is None:
+        if ensemble is None:
             bonds = {(a, b) for a, b in protein.atoms.bonds.indices}
             tree = cKDTree(protein.atoms.positions)
             pairs = tree.query_pairs(rmax)
@@ -70,24 +71,24 @@ def clash_only(func):
             E = E.sum()
 
         else:
-            if hasattr(rotlib, "protein"):
-                if rotlib.protein is not protein:
+            if hasattr(ensemble, "protein"):
+                if ensemble.protein is not protein:
                     raise NotImplementedError(
                         "The protein passed must be the same as the protein associated with the "
-                        "rotamer library passed"
+                        "rotamer ensemble passed"
                     )
             else:
-                # Attach the protein to the rotlib in case it is passed again but don't evaluate clashes
-                rotlib.protein = protein
-                rotlib.eval_clash = False
-                rotlib.protein_setup()
+                # Attach the protein to the ensemble in case it is passed again but don't evaluate clashes
+                ensemble.protein = protein
+                ensemble.eval_clash = False
+                ensemble.protein_setup()
 
-            r, rmin, eps, shape = prep_external_clash(rotlib)
+            r, rmin, eps, shape = prep_external_clash(ensemble)
             E = func(r, rmin, eps, **kwargs).reshape(shape)
 
             if kwargs.get("internal", False):
-                r, rmin, eps, shape = prep_internal_clash(rotlib)
-                E += func(r, rmin, eps, **kwargs).reshape(rotlib._coords.shape[:2])
+                r, rmin, eps, shape = prep_internal_clash(ensemble)
+                E += func(r, rmin, eps, **kwargs).reshape(ensemble._coords.shape[:2])
 
             E = E.sum(axis=1)
 
@@ -290,12 +291,12 @@ def get_lj_attr(r, rmin, eps, forgive=0.9, floor=-2):
     return lj_energy
 
 
-def prep_external_clash(rotlib):
-    """ Helper function to prepare the lj parameters of a rotamer library, presumably with an associated protein.
+def prep_external_clash(ensemble):
+    """ Helper function to prepare the lj parameters of a rotamer ensemble, presumably with an associated protein.
 
     Parameters
     ----------
-    rotlib : RotamerEnsemble
+    ensemble : RotamerEnsemble
         The RotamerEnsemble to prepare the clash parameters for. The RotamerEnsemble should have an associated protein.
 
     Returns
@@ -307,31 +308,31 @@ def prep_external_clash(rotlib):
         eps_ij : numpy.ndarray
             ``eps`` parameters of the lj potential associated with the atom ``i`` and atom ``j`` pair.
         shape : Tuple[int]
-            Shape the array should be so that the energy is evaluated for each rotamer of the library separately.
+            Shape the array should be so that the energy is evaluated for each rotamer of the ensemble separately.
     """
 
     # Calculate rmin and epsilon for all atoms in protein that may clash
-    rmin_ij, eps_ij = get_lj_params(rotlib)
+    rmin_ij, eps_ij = get_lj_params(ensemble)
 
     # Calculate distances
     dist = cdist(
-        rotlib.coords[:, rotlib.side_chain_idx].reshape(-1, 3),
-        rotlib.protein_tree.data[rotlib.protein_clash_idx],
+        ensemble.coords[:, ensemble.side_chain_idx].reshape(-1, 3),
+        ensemble.protein_tree.data[ensemble.protein_clash_idx],
     ).ravel()
     shape = (
-        len(rotlib.coords),
-        len(rotlib.side_chain_idx) * len(rotlib.protein_clash_idx),
+        len(ensemble.coords),
+        len(ensemble.side_chain_idx) * len(ensemble.protein_clash_idx),
     )
 
     return dist, rmin_ij, eps_ij, shape
 
 
-def prep_internal_clash(rotlib):
-    """ Helper function to prepare the lj parameters of a rotamer library to evaluate internal clashes.
+def prep_internal_clash(ensemble):
+    """ Helper function to prepare the lj parameters of a rotamer ensemble to evaluate internal clashes.
 
         Parameters
         ----------
-        rotlib : RotamerEnsemble
+        ensemble : RotamerEnsemble
             The RotamerEnsemble to prepare the clash parameters for.
 
         Returns
@@ -343,23 +344,23 @@ def prep_internal_clash(rotlib):
             eps_ij : numpy.ndarray
                 ``eps`` parameters of the lj potential associated with the atom ``i`` and atom ``j`` pair.
             shape : Tuple[int]
-                Shape the array should be so that the energy is evaluated for each rotamer of the library separately.
+                Shape the array should be so that the energy is evaluated for each rotamer of the ensemble separately.
         """
 
-    a, b = [list(x) for x in zip(*rotlib.non_bonded)]
-    a_eps = chiLife.get_lj_eps(rotlib.atom_types[a])
-    a_radii = chiLife.get_lj_rmin(rotlib.atom_types[a])
-    b_eps = chiLife.get_lj_eps(rotlib.atom_types[b])
-    b_radii = chiLife.get_lj_rmin(rotlib.atom_types[b])
+    a, b = [list(x) for x in zip(*ensemble.non_bonded)]
+    a_eps = chiLife.get_lj_eps(ensemble.atom_types[a])
+    a_radii = chiLife.get_lj_rmin(ensemble.atom_types[a])
+    b_eps = chiLife.get_lj_eps(ensemble.atom_types[b])
+    b_radii = chiLife.get_lj_rmin(ensemble.atom_types[b])
 
     join_rmin = chiLife.get_lj_rmin("join_protocol")[()]
     join_eps = chiLife.get_lj_eps("join_protocol")[()]
 
-    rmin_ij = join_rmin(a_radii * rotlib.forgive, b_radii * rotlib.forgive, flat=True)
+    rmin_ij = join_rmin(a_radii * ensemble.forgive, b_radii * ensemble.forgive, flat=True)
     eps_ij = join_eps(a_eps, b_eps, flat=True)
 
-    dist = np.linalg.norm(rotlib._coords[:, a] - rotlib._coords[:, b], axis=2)
-    shape = (len(rotlib._coords), len(a_radii))
+    dist = np.linalg.norm(ensemble._coords[:, a] - ensemble._coords[:, b], axis=2)
+    shape = (len(ensemble._coords), len(a_radii))
 
     return dist, rmin_ij, eps_ij, shape
 
@@ -394,12 +395,12 @@ def reweight_rotamers(probabilities, weights, return_partition=False):
     return new_weights
 
 
-def get_lj_params(rotlib):
-    """ calculate the lennard jones parameters between atoms of a rotamer library and associated protein.
+def get_lj_params(ensemble):
+    """ calculate the lennard jones parameters between atoms of a rotamer ensemble and associated protein.
 
     Parameters
     ----------
-    rotlib : RotamerEnsemble
+    ensemble : RotamerEnsemble
         The RotamerEnsemble to get the lj params for. Should have an associated protein object.
 
     Returns
@@ -411,7 +412,7 @@ def get_lj_params(rotlib):
         Vector of ``eps`` lennard-jones parameters corresponding to atoms i and j of the RotamerEnsemble and the
         associated protein respectively.
     """
-    environment_atypes = rotlib.protein.atoms.types[rotlib.protein_clash_idx]
+    environment_atypes = ensemble.protein.atoms.types[ensemble.protein_clash_idx]
     protein_lj_radii = chiLife.get_lj_rmin(environment_atypes)
     protein_lj_eps = chiLife.get_lj_eps(environment_atypes)
     join_rmin = chiLife.get_lj_rmin("join_protocol")[()]
@@ -419,12 +420,12 @@ def get_lj_params(rotlib):
 
     rmin_ij = np.tile(
         join_rmin(
-            rotlib.rmin2 * rotlib.forgive, protein_lj_radii * rotlib.forgive
+            ensemble.rmin2 * ensemble.forgive, protein_lj_radii * ensemble.forgive
         ).reshape(-1),
-        len(rotlib.coords),
+        len(ensemble.coords),
     )
     eps_ij = np.tile(
-        join_eps(rotlib.eps, protein_lj_eps).reshape((-1)), len(rotlib.coords)
+        join_eps(ensemble.eps, protein_lj_eps).reshape((-1)), len(ensemble.coords)
     )
 
     return rmin_ij, eps_ij

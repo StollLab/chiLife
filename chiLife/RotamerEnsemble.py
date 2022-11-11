@@ -42,14 +42,14 @@ class RotamerEnsemble:
         RotamerEnsemble is attached to.
     input_kwargs : dict
         Stored copy of the keword arguments used when the object was created. ``input_kwargs`` is generally used for
-        generating similar RotamerLibraries.
+        generating similar RotamerEnsembles.
     eval_clash : bool
         Boolean argument to instruct the RotamerEnsemble to evaluate clashes and trim rotamers on construction. If False
         The starting RotamerEnsemble is attached to the specified site and no clashes are evaluated. Post-construction
         clash evaluations can be performed using the ``evaluate`` method. Defaults to False.
     energy_func : Callable
         Desired energy function to be used by the ``evaluate`` method when called by the user or when ``eval_clash``
-        is set to True. ``energy_func`` must be a callable object and accept two arguments: ``protein`` and ``rotlib``
+        is set to True. ``energy_func`` must be a callable object and accept two arguments: ``protein`` and ``ensemble``
         Deafults to ``chiLife.get_lj_rep``.
     clash_ignore_idx : np.ndarray
         Array of atom indices of the ``protein`` attribute that should be ignored when the ``evaluate`` method is
@@ -61,16 +61,17 @@ class RotamerEnsemble:
         Temperature (in Kelvin) to use when re-evaluating rotamer weights using ``energy_func``. Defaults to 298 K.
     clash_radius : float
         Cutoff distance (angstroms) for inclusion of atoms in clash evaluations. This distance is measured from
-        ``clash_ori`` Defaults to the longest distance between any two atoms in the rotamer library plus 5 angstroms.
+        ``clash_ori`` Defaults to the longest distance between any two atoms in the rotamer ensemble plus 5 angstroms.
     superimposition_method : str, callable
-        Method to use when attaching or aligning the rotamer library backbone with the protein backbone. Defaults to
+        Method to use when attaching or aligning the rotamer ensemble backbone with the protein backbone. Defaults to
         ``'bisect'`` which aligns the CA atom, the vectors bisecting the N-CA-C angle and the N-CA-C plane.
     dihedral_sigmas : float, numpy.ndarray
         Standard deviations of dihedral angles (degrees) for off rotamer sampling. Can be a single numebr for isotropic
         sampling, a vector to define each dihedral individually or a matrix to define a value for each rotamer and each
         dihedral. Defaults to 35 degrees)
     weighted_sampling : bool
-        Determines whether the rotamer library is sampled uniformly or based off of their intrinsic weights. Defaults
+        Determines whether the rotamer library is sampled uniformly or based off of their intrinsic weights to generate 
+        the RotamerEnsemble. Defaults
         to False.
     use_H : bool
         Determines if hydrogen atoms are used or not. Defaults to False.
@@ -107,22 +108,22 @@ class RotamerEnsemble:
                 argument  Defaults to 298 K.
             clash_radius : float
                 Cutoff distance (angstroms) for inclusion of atoms in clash evaluations. This distance is measured from
-                ``clash_ori`` Defaults to the longest distance between any two atoms in the rotamer library plus 5
+                ``clash_ori`` Defaults to the longest distance between any two atoms in the rotamer ensemble plus 5
                 angstroms.
             clash_ori : str
                 Atom selection to use as the origin when finding atoms within the ``clash_radius``. Defaults to 'cen',
-                the centroid of the rotamer library heavy atoms.
+                the centroid of the rotamer ensemble heavy atoms.
             superimposition_method : str
-                Method to use when attaching or aligning the rotamer library backbone with the protein backbone.
+                Method to use when attaching or aligning the rotamer ensemble backbone with the protein backbone.
                 Defaults to ``'bisect'`` which aligns the CA atom, the vectors bisecting the N-CA-C angle and the
                 N-CA-C plane.
             dihedral_sigmas : float, numpy.ndarray
-                Standard deviations of dihedral angles (degrees) for off rotamer sampling. Can be a single numebr for
+                Standard deviations of dihedral angles (degrees) for off rotamer sampling. Can be a single number for
                 isotropic sampling, a vector to define each dihedral individually or a matrix to define a value for
                 each rotamer and each dihedral. Setting this value to np.inf will force uniform (accessible volume)
                 sampling. Defaults to 35 degrees.
             weighted_sampling : bool
-                Determines whether the rotamer library is sampled uniformly or based off of their intrinsic weights.
+                Determines whether the rotamer ensemble is sampled uniformly or based off of their intrinsic weights.
                 Defaults to False.
             use_H : bool
                 Determines if hydrogen atoms are used or not. Defaults to False.
@@ -145,7 +146,7 @@ class RotamerEnsemble:
         self.input_kwargs = kwargs
         self.__dict__.update(assign_defaults(kwargs))
 
-        # Check if superimposition method requires rotlib argument or not
+        # Convert string arguments for superimposition_method to respective function
         if isinstance(self.superimposition_method, str):
             self.superimposition_method = chiLife.superimpositions[self.superimposition_method]
 
@@ -684,10 +685,10 @@ class RotamerEnsemble:
 
             """
             coords = ic.set_dihedral(dihedrals, 1, self.dihedral_atoms).to_cartesian()
-            temp_rotlib._coords = np.atleast_3d([coords[self.ic_mask]])
-            return self.energy_func(temp_rotlib.protein, temp_rotlib)
+            temp_ensemble._coords = np.atleast_3d([coords[self.ic_mask]])
+            return self.energy_func(temp_ensemble.protein, temp_ensemble)
 
-        temp_rotlib = self.copy()
+        temp_ensemble = self.copy()
         for i, IC in enumerate(self.internal_coords):
             d0 = IC.get_dihedral(1, self.dihedral_atoms)
             lb = d0 - np.deg2rad(self.sigmas[i])
@@ -739,7 +740,7 @@ class RotamerEnsemble:
         )
 
     def centroid(self):
-        """get the centroid of the whole rotamer library."""
+        """get the centroid of the whole rotamer ensemble."""
         return self._coords.mean(axis=(0, 1))
 
     def evaluate(self):
@@ -774,7 +775,7 @@ class RotamerEnsemble:
         """
         if name is None:
             name = self.name
-        chiLife.save_rotlib(name, self.atoms, self._coords)
+        chiLife.save_ensemble(name, self.atoms, self._coords)
 
     @property
     def backbone(self):

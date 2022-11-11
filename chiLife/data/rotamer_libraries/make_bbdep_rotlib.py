@@ -10,7 +10,7 @@ import multiprocessing as mp
 from mpl_toolkits.mplot3d import Axes3D
 
 
-"""This utility will construct all rotamer libraries in the proper coordinate frame when provided with 1) and deer2bb 
+"""This utility will construct all rotamer library in the proper coordinate frame when provided with 1) and deer2bb 
 rotamer library in pickle format (Same as pymol) and 2) pdb files with the base structure of all rotamers of interest
 PDB files and deer2bb_bb_ind.pkl names must be the same with the exception of the pdb extension. This application also
 will plot the NO midpoint coordinates and N, CA, CB coordinates so that the user can review the coordinate 

@@ -218,16 +218,16 @@ def parse_backbone(rotamer_library, kind):
     Parameters
     ----------
     rotamer_library : RotamerEnsemble
-        RotamerEnsemble that the rotation matrix will operate on. If using the `fit` method, the rotamer library must
+        RotamerEnsemble that the rotation matrix will operate on. If using the `fit` method, the rotamer ensemble must
         have a `protein` feature.
     kind : str
-        Specifies if the backbone is for the rotamer library (local) or the protein (global)
+        Specifies if the backbone is for the rotamer ensemble (local) or the protein (global)
 
     Returns
     -------
     N, CA, C: tuple
-        Numpy arrays of N, CA and C coordinates of the rotamer library backbone. If using method `fit` arrays are 2x3
-        with the first coordinate as the rotamer library backbone and the second as the protein site backbone.
+        Numpy arrays of N, CA and C coordinates of the rotamer ensemble backbone. If using method `fit` arrays are 2x3
+        with the first coordinate as the rotamer ensemble backbone and the second as the protein site backbone.
     """
     method = rotamer_library.superimposition_method
 

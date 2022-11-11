@@ -855,7 +855,7 @@ class ProteinIC:
 
     def get_resi_dihs(self, resi: int) -> List[List[str]]:
         """Gets the list of heavy atom dihedral definitions for the provided residue as defined by preexisting and user
-        defined rotamer libraries.
+        defined rotamer ensemble.
 
         Parameters
         ----------
@@ -1227,13 +1227,13 @@ def get_internal_coords(
     )
 
 
-def save_rotlib(name: str, atoms: ArrayLike, coords: ArrayLike = None) -> None:
-    """Save a rotamer library as multiple states of the same molecule.
+def save_ensemble(name: str, atoms: ArrayLike, coords: ArrayLike = None) -> None:
+    """Save a rotamer ensemble as multiple states of the same molecule.
 
     Parameters
     ----------
     name : str
-        file name to save rotamer library to
+        file name to save rotamer ensemble to
     atoms : ArrayLike
         list of Atom objects
     coords : ArrayLike
@@ -1351,7 +1351,7 @@ def get_missing_residues(
 
 def mutate(
     protein: MDAnalysis.Universe,
-    *rotlibs: RotamerEnsemble,
+    *ensembles: RotamerEnsemble,
     add_missing_atoms: bool = True,
     random_rotamers: bool = False,
 ) -> MDAnalysis.Universe:
@@ -1362,7 +1362,7 @@ def mutate(
     ----------
     protein : MDAnalysis.Universe
         Universe containing protein to be spin labeled
-    rotlibs : RotamerEnsemble, SpinLabel
+    ensembles : RotamerEnsemble, SpinLabel
         Precomputed RotamerEnsemble or SpinLabel object to use for selecting and replacing the spin native amino acid
     random_rotamers :bool
         Randomize rotamer conformations
@@ -1375,51 +1375,51 @@ def mutate(
         New Universe with a copy of the spin labeled protein with the highest probability rotamer
     """
 
-    # Check for dRotamerLibraries in rotlibs
-    trotlibs = []
-    for lib in rotlibs:
+    # Check for dRotamerEnsembles in ensembles
+    tensembles = []
+    for lib in ensembles:
         if isinstance(lib, RotamerEnsemble):
-            trotlibs.append(lib)
+            tensembles.append(lib)
         elif isinstance(lib, dSpinLabel):
-            trotlibs.append(lib.SL1)
-            trotlibs.append(lib.SL2)
+            tensembles.append(lib.SL1)
+            tensembles.append(lib.SL2)
         else:
             raise TypeError(
                 f"mutate only accepts RotamerEnsemble, SpinLabel and dSpinLabel objects, not {lib}."
             )
 
-    rotlibs = trotlibs
+    ensembles = tensembles
 
     if add_missing_atoms:
-        if len(rotlibs) > 0 and all(not hasattr(lib, "H_mask") for lib in rotlibs):
+        if len(ensembles) > 0 and all(not hasattr(lib, "H_mask") for lib in ensembles):
             use_H = True
-        elif any(not hasattr(lib, "H_mask") for lib in rotlibs):
+        elif any(not hasattr(lib, "H_mask") for lib in ensembles):
             raise AttributeError(
-                "User provided some rotlibs with hydrogen atoms and some without. Make sure all "
-                "rotlibs either do or do not use hydrogen"
+                "User provided some ensembles with hydrogen atoms and some without. Make sure all "
+                "ensembles either do or do not use hydrogen"
             )
         else:
             use_H = False
 
         missing_residues = get_missing_residues(
-            protein, ignore={res.site for res in rotlibs}, use_H=use_H
+            protein, ignore={res.site for res in ensembles}, use_H=use_H
         )
-        rotlibs = list(rotlibs) + missing_residues
+        ensembles = list(ensembles) + missing_residues
 
     label_sites = {
-        (int(spin_label.site), spin_label.chain): spin_label for spin_label in rotlibs
+        (int(spin_label.site), spin_label.chain): spin_label for spin_label in ensembles
     }
 
     protein = protein.select_atoms(
         f'(not altloc B) and (not (byres name OH2 or resname HOH))'
     )
-    label_selstr = " or ".join([f"({label.selstr})" for label in rotlibs])
+    label_selstr = " or ".join([f"({label.selstr})" for label in ensembles])
     other_atoms = protein.select_atoms(f"not ({label_selstr})")
 
     # Get new universe information
-    n_residues = len(other_atoms.residues) + len(rotlibs)
+    n_residues = len(other_atoms.residues) + len(ensembles)
     n_atoms = len(other_atoms) + sum(
-        len(spin_label.atom_names) for spin_label in rotlibs
+        len(spin_label.atom_names) for spin_label in ensembles
     )
     resids = [res.resid for res in protein.residues]
 
@@ -1441,7 +1441,7 @@ def mutate(
                 )
             ]
 
-            # Add missing Oxygen from rotamer libraries
+            # Add missing Oxygen from rotamer ensemble
             res_names.append(label_sites[resloc].res)
             segidx.append(label_sites[resloc].segindex)
 

@@ -155,7 +155,7 @@ def get_dd(
 
 
 def pair_dd(*args, r: ArrayLike, sigma: float = 1.0, spin_populations=False) -> np.ndarray:
-    """Obtain the pairwise distance distribution from two rotamer libraries, NO1, NO2 with corresponding weights w1, w2.
+    """Obtain the pairwise distance distribution from two rotamer ensembles, NO1, NO2 with corresponding weights w1, w2.
     The distribution is calculated by convolving the weighted histogram of pairwise distances between NO1 and NO2 with
     a normal distribution of sigma.
 
@@ -227,7 +227,7 @@ def filter_by_weight(w1: ArrayLike, w2: ArrayLike, cutoff: float = 0.001) -> Tup
     Parameters
     ----------
     w1, w2: np.ndarray
-        Rotamer weights in the order the rotamers appear in the rotamer library.
+        Rotamer weights in the order the rotamers appear in the rotamer ensemble.
     cutoff : float
         Cutoff for significant rotamer pair weights. If the weight of the rotamer pair is less than
         max(weight)*cutoff it will be excluded
@@ -262,7 +262,7 @@ def filtered_dd(
         Coordinates of spin label's ``spin_centers``
     weights : ArrayLike
         Weights corresponding to each individual rotamer in SC1 and SC2. Weights should be the same between SC1 and SC2
-        since they should be the same rotamer library and no clashes considered.
+        since they should be the same rotamer ensemble and no clashes considered.
     r : ArrayLike
         Domain to compute distance distribution over
     sigma : float
@@ -374,7 +374,7 @@ def read_sl_library(label: str, user: bool = False) -> Dict:
     Returns
     -------
     lib: dict
-        Dictionary of SpinLabel rotamer library attributes including coords, weights, dihedrals etc.
+        Dictionary of SpinLabel rotamer ensemble attributes including coords, weights, dihedrals etc.
 
     """
     subdir = "UserRotlibs/" if user else "MMM_RotLibs/"
@@ -502,7 +502,6 @@ def read_library(
     -------
     lib: dict
         Dictionary of arrays containing rotamer library information in cartesian and dihedral space
-
     """
     backbone_exists = Phi and Psi
 
@@ -600,7 +599,7 @@ def save(
         Desired file name for output file. Will be automatically made based off of protein name and labels if not
         provided.
     *molecules : RotmerLibrary, chiLife.Protein, mda.Universe, mda.AtomGroup, str
-        Object(s) to save. Includes RotamerLibraries, SpinLabels, dRotamerLibraries, proteins, or path to protein pdb.
+        Object(s) to save. Includes RotamerEnsemble, SpinLabels, dRotamerEnsembles, proteins, or path to protein pdb.
         Can add as many as desired, except for path, for which only one can be given.
     protein_path : str, Path
         Path to a pdb file to use as the protein object.
@@ -631,7 +630,7 @@ def save(
 
             protein_path.append(mol)
         else:
-            raise TypeError('chiLife can only save RotamerLibrarys and Proteins. Plese check that your input is '
+            raise TypeError('chiLife can only save RotamerEnsembles and Proteins. Plese check that your input is '
                              'compatible')
 
     # Ensure only one protein path was provided (for now)
@@ -727,7 +726,7 @@ def write_protein(file: str, protein: Union[mda.Universe, mda.AtomGroup], mode='
 
 
 def write_labels(file: str, *args: SpinLabel, KDE: bool = True) -> None:
-    """Lower level helper function for saving SpinLabels and RotamerLibrarys. Loops over SpinLabel objects and appends
+    """Lower level helper function for saving SpinLabels and RotamerEnsembles. Loops over SpinLabel objects and appends
     atoms and electron coordinates to the provided file.
 
     Parameters
@@ -738,7 +737,7 @@ def write_labels(file: str, *args: SpinLabel, KDE: bool = True) -> None:
         RotamerEnsemble or SpinLabel objects to be saved.
     KDE: bool
         Perform kernel density estimate smoothing on rotamer weights before saving. Usefull for uniformly weighted
-        RotamerLibraries or RotamerLibraries with lots of rotamers
+        RotamerEnsembles or RotamerEnsembles with lots of rotamers
 
     Returns
     -------
@@ -746,13 +745,13 @@ def write_labels(file: str, *args: SpinLabel, KDE: bool = True) -> None:
     """
 
     # Check for dSpinLables
-    rotlibs = []
+    ensembles = []
     for arg in args:
         if isinstance(arg, chiLife.RotamerEnsemble):
-            rotlibs.append(arg)
+            ensembles.append(arg)
         elif isinstance(arg, chiLife.dSpinLabel):
-            rotlibs.append(arg.SL1)
-            rotlibs.append(arg.SL2)
+            ensembles.append(arg.SL1)
+            ensembles.append(arg.SL2)
         else:
             raise TypeError(
                 f"Cannot save {arg}. *args must be RotamerEnsemble SpinLabel or dSpinLabal objects"
@@ -762,7 +761,7 @@ def write_labels(file: str, *args: SpinLabel, KDE: bool = True) -> None:
     with open(file, "a+", newline="\n") as f:
         # Write spin label models
         f.write("\n")
-        for k, label in enumerate(rotlibs):
+        for k, label in enumerate(ensembles):
             f.write(f"HEADER {label.name}\n")
 
             # Save models in order of weight
@@ -792,7 +791,7 @@ def write_labels(file: str, *args: SpinLabel, KDE: bool = True) -> None:
                 f.write("ENDMDL\n")
 
         # Write electron density at electron coordinates
-        for k, label in enumerate(rotlibs):
+        for k, label in enumerate(ensembles):
             if not hasattr(label, "spin_centers"):
                 continue
             if not np.any(label.spin_centers):
@@ -854,7 +853,7 @@ def repack(
         array like object of temperatures if a temperature schedule is desired
     energy_func : Callabale
         Energy function to be used for clash evaluation. Must accept a protein and RotmerLibrary object and return an
-        array of potentials in kcal/mol, with one energy per rotamer in the rotamer library
+        array of potentials in kcal/mol, with one energy per rotamer in the rotamer ensemble
     off_rotamer : bool
         Boolean argument that decides whether off rotamer sampling is used when repacking the provided residues.
     kwargs : dict
@@ -1049,7 +1048,7 @@ def add_label(
     resi_selection = struct.select_atoms(f"resnum {resi}")
     bonds = resi_selection.intra_bonds.indices - resi_selection.atoms[0].ix
 
-    # Convert loaded rotamer library to internal coords
+    # Convert loaded rotamer ensemble to internal coords
     internal_coords = [
         chiLife.get_internal_coords(
             resi_selection,
@@ -1246,7 +1245,7 @@ def pre_add_label(name: str, pdb: str, spin_atoms: List[str], uniform_topology: 
     Returns
     -------
     struct : MDAnalysis.Universe
-        MDAnalysis Universe object containing the rotamer library with each rotamer as a frame. All atoms should be
+        MDAnalysis Universe object containing the rotamer ensemble with each rotamer as a frame. All atoms should be
         properly sorted for consistent construction of internal coordinates.
     """
     # Sort the PDB for optimal dihedral definitions

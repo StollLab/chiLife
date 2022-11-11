@@ -1,5 +1,5 @@
 import numpy as np
-from .RotamerLibrary import RotamerEnsemble
+from .RotamerEnsemble import RotamerEnsemble
 import chiLife
 
 
@@ -51,7 +51,7 @@ class FluorLabel(RotamerEnsemble):
 
     @property
     def fluor_coords(self):
-        """get the fluorescent coordinates of the rotamer library"""
+        """get the fluorescent coordinates of the RotamerEnsemble"""
         return self._coords[:, self.fluor_idx, :].mean(axis=1)[:, 0]
 
     @property

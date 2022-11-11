@@ -12,7 +12,7 @@ eps_params = [-0.110, -0.022, -0.200, -0.120, -0.450, -0.450, -0.320]
 U = mda.Universe("test_data/m1omp.pdb")
 protein = U.select_atoms("protein")
 r = np.linspace(0, 100, 2**8)
-old_ef = lambda protein, rotlib: chiLife.get_lj_rep(protein, rotlib, forgive=0.8)
+old_ef = lambda protein, ensemble: chiLife.get_lj_rep(protein, ensemble, forgive=0.8)
 
 # get permutations for get_dd() tests
 kws = []

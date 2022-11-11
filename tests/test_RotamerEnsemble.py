@@ -18,8 +18,8 @@ with open("test_data/hashes.txt", "r") as f:
 
 def test_from_mda():
     res16 = U.residues[16]
-    rotlib = chiLife.RotamerEnsemble.from_mda(res16)
-    rotlib.save_pdb("test_data/test_from_MDA.pdb")
+    ensemble = chiLife.RotamerEnsemble.from_mda(res16)
+    ensemble.save_pdb("test_data/test_from_MDA.pdb")
 
     with open("test_data/ans_from_MDA.pdb", "r") as f:
         ans = hashlib.md5(f.read().encode("utf-8")).hexdigest()
@@ -81,14 +81,14 @@ def test_save_pkl():
 
 def test_save_pkl_2():
     res16 = U.residues[16]
-    rotlib = chiLife.RotamerEnsemble.from_mda(res16)
+    ensemble = chiLife.RotamerEnsemble.from_mda(res16)
     with open("test_data/res16.pkl", "wb") as f:
-        pickle.dump(rotlib, f)
+        pickle.dump(ensemble, f)
 
     with open("test_data/res16.pkl", "rb") as f:
         reload = pickle.load(f)
 
-    assert rotlib == reload
+    assert ensemble == reload
     os.remove("test_data/res16.pkl")
 
 

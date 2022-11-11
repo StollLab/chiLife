@@ -46,15 +46,17 @@ def get_dd(
     *args: SpinLabel,
     r: ArrayLike = None,
     sigma: float = 1.0,
-    uq: bool = False,
     spin_populations = False,
+    uq: bool = False,
 ) -> np.ndarray:
-    """Calculates total pair distance distribution for an arbitrary number of spin labels over the distance range ``r``.
+    """Calculates total distribution of spin-spin distances among an arbitrary number of spin labels, using the
+    distance range ``r`` (in angstrom).
+
     The distance distribution is obtained by summing over all pair distance distributions. These in turn are calculated
     by summing over rotamer pairs with the appropriate weights. For each rotamer pair, the distance distribution is
     either just the distance between the ``spin_center`` coordinates of two labels (if ``spin_populations=False``) or
     the weighted sum over all pairs of spn-bearing atoms (``spin_populations=True``). The resulting distance histogram
-    is convolved with a normal distribution with a standard deviation equal to ``sigma``.
+    is convolved with a normal distribution with a standard deviation ``sigma``.
 
     Parameters
     ----------
@@ -65,11 +67,9 @@ def get_dd(
     sigma : float
         The standard deviation of the normal distribution used in convolution with the distance histogram, in angstrom.
         Default is 1.
-    spin_populations :  bool
+    spin_populations : bool
         If False, distances are computed between spin centers. If True, distances are computed by summing over
         the distributed spin density on spin-bearing atoms on the labels.
-    prune : bool
-        If True, ignore low-weight rotamer pairs (experimental)
     uq : bool
         Perform uncertainty analysis (experimental)
 
@@ -84,8 +84,11 @@ def get_dd(
         r = args[-1]
         args = args[:-1]
 
+    if len(args)<2:
+        raise TypeError('At least two spin label objects are required.')
+
     if r is None:
-        raise ValueError('Keyword argument r with distance domain vector is missing.')
+        raise TypeError('Keyword argument r with distance domain vector is missing.')
 
     if any(not hasattr(arg, atr) for arg in args for atr in ["spin_coords", "spin_centers", "weights"]):
         raise TypeError(
@@ -116,7 +119,7 @@ def get_dd(
                 dummy_SL.weights /= dummy_SL.weights.sum()
                 dummy_labels.append(dummy_SL)
 
-            Ps.append(get_dd(*dummy_labels, r=r, sigma=sigma))
+            Ps.append(pair_dd(*dummy_labels, r=r, sigma=sigma, spin_populations=spin_populations))
         Ps = np.array(Ps)
         return Ps
 
@@ -126,19 +129,22 @@ def get_dd(
         return P
 
 
-def pair_dd(*args, r: ArrayLike, sigma: float = 1.0, spin_populations=False) -> np.ndarray:
-    """Obtain the pairwise distance distribution from two rotamer ensembles, NO1, NO2 with corresponding weights w1, w2.
-    The distribution is calculated by convolving the weighted histogram of pairwise distances between NO1 and NO2 with
-    a normal distribution of sigma.
+def pair_dd(*args, r: ArrayLike, sigma: float = 1.0, spin_populations = False) -> np.ndarray:
+    """Obtain the total pairwise spin-spin distance distribution over ``r`` for a list of spin labels.
+    The distribution is calculated by convolving the weighted histogram of pairwise spin-spin
+    distances with a normal distribution with standard deviation ``sigma``.
 
     Parameters
     ----------
     *args : SpinLabel
         SpinLabels to use when calculating the distance distribution
-    r: ArrayLike
-        Domain to compute distance distribution over
-    sigma: float
-         Standard deviation of normal distribution used for convolution
+    r : ArrayLike
+        Distance domain vector, in angstrom
+    sigma : float
+         Standard deviation of normal distribution used for convolution, in angstrom
+    spin_populations : bool
+        If False, distances are computed between spin centers. If True, distances are computed by summing over
+        the distributed spin density on spin-bearing atoms on the labels.
 
     Returns
     -------
@@ -149,7 +155,6 @@ def pair_dd(*args, r: ArrayLike, sigma: float = 1.0, spin_populations=False) -> 
     # Calculate pairwise distances and weights
     SL_Pairs = combinations(args, 2)
     weights, distances = [], []
-
     for SL1, SL2 in SL_Pairs:
         if spin_populations:
             coords1 = SL1.spin_coords.reshape(-1 ,3)
@@ -168,23 +173,26 @@ def pair_dd(*args, r: ArrayLike, sigma: float = 1.0, spin_populations=False) -> 
     distances = np.concatenate(distances)
     weights = np.concatenate(weights)
 
-    # Calculate histogram over x
+    # Calculate distance histogram
     hist, _ = np.histogram(
         distances, weights=weights, range=(min(r), max(r)), bins=len(r)
     )
-    if sigma != 0:
-        # Calculate normal distribution for convolution
-        delta_r = get_delta_r(r)
-        _, g = norm(delta_r, 0, sigma)
 
-        # Convolve normal distribution and histogram
-        P = np.convolve(hist, g, mode="same")
+    # Convolve with normal distribution if non-zero standard deviation is given
+    if sigma != 0:
+
+        delta_r = get_delta_r(r)
+        _, normdist = norm(delta_r, 0, sigma)
+
+        P = np.convolve(hist, normdist, mode="same")
 
     else:
         P = hist
 
     # Normalize weights
-    P /= np.trapz(P, r)
+    integral = np.trapz(P,r)
+    if integral!=0:
+        P /= np.trapz(P, r)
 
     return P
 

@@ -106,18 +106,6 @@ def test_get_lj_eps():
     assert np.all(eps_params == chiLife.get_lj_eps(atom_names))
 
 
-def test_filter_by_weight():
-    w1 = np.array([0, 0.001, 0.01, 0.1, 0.9])
-    w2 = w1.copy()
-
-    weights, idx = chiLife.filter_by_weight(w1, w2)
-
-    ans_idx = np.array([[2, 4], [3, 3], [3, 4], [4, 2], [4, 3], [4, 4]])
-    ans_weights = np.array([0.009, 0.01, 0.09, 0.009, 0.09, 0.81])
-    np.testing.assert_almost_equal(ans_idx, idx)
-    np.testing.assert_almost_equal(ans_weights, weights)
-
-
 @pytest.mark.parametrize("args, kws, expected", zip(args, kws, ans))
 def test_get_dd(args, kws, expected):
     kws.setdefault('r', r)

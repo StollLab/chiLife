@@ -131,7 +131,7 @@ def test_lib_distribution_persists(res):
         L2 = chiLife.RotamerEnsemble(res, sample=100)
 
     np.testing.assert_almost_equal(L1._rdihedrals, L2._rdihedrals)
-    np.testing.assert_almost_equal(L1._rkappas, L2._rkappas)
+    np.testing.assert_almost_equal(L1._rsigmas, L2._rsigmas)
     np.testing.assert_almost_equal(L1._weights, L2._weights)
 
 

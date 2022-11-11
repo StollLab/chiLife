@@ -159,16 +159,15 @@ def pair_dd(*args, r: ArrayLike, sigma: float = 1.0, spin_populations = False) -
         if spin_populations:
             coords1 = SL1.spin_coords.reshape(-1 ,3)
             coords2 = SL2.spin_coords.reshape(-1, 3)
-            distances.append(cdist(coords1, coords2).flatten())
-
             weights1 = np.outer(SL1.weights, SL1.spin_weights).flatten()
             weights2 = np.outer(SL2.weights, SL2.spin_weights).flatten()
-
-            weights.append(np.outer(weights1, weights2).flatten())
-
         else:
-            distances.append(cdist(SL1.spin_centers, SL2.spin_centers).flatten())
-            weights.append(np.outer(SL1.weights, SL2.weights).flatten())
+            coords1 = SL1.spin_centers
+            coords2 = SL2.spin_centers
+            weights1 = SL1.weights
+            weights2 = SL2.weights
+        distances.append(cdist(coords1, coords2).flatten())
+        weights.append(np.outer(weights1, weights2).flatten())
 
     distances = np.concatenate(distances)
     weights = np.concatenate(weights)

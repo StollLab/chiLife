@@ -2,7 +2,7 @@ from __future__ import annotations
 import tempfile, logging, pickle, os
 from pathlib import Path
 from itertools import combinations, product
-from typing import Callable, Tuple, Union, List, Dict
+from typing import Callable, Tuple, Union, List
 from unittest import mock
 from tqdm import tqdm
 
@@ -16,7 +16,7 @@ import MDAnalysis.transformations
 import chiLife
 from .protein_utils import dihedral_defs, local_mx, sort_pdb, mutate, save_pdb, ProteinIC, get_min_topol
 from .scoring import get_lj_rep, GAS_CONST
-from .numba_utils import get_delta_r, norm, jaccard, dirichlet
+from .numba_utils import get_delta_r, normdist
 from .SpinLabel import SpinLabel
 from .RotamerEnsemble import RotamerEnsemble
 from .SpinLabelTraj import SpinLabelTraj
@@ -46,53 +46,63 @@ def get_dd(
     *args: SpinLabel,
     r: ArrayLike = None,
     sigma: float = 1.0,
-    uq: bool = False,
     spin_populations = False,
+    uq: bool = False,
 ) -> np.ndarray:
-    """Wrapper function to calculate distance distribution using an arbitrary number of SpinLabels. Distance
-    distributions are made by calculating a weighted histogram over ``r`` from the pairwise distances between the
-    ``spin_center`` properties of the SpinLabel rotamers and convolving them with a normal distribution with a standard
-    deviation equal to ``sigma`` .
+    """Calculates total distribution of spin-spin distances among an arbitrary number of spin labels, using the
+    distance range ``r`` (in angstrom).
+
+    The distance distribution is obtained by summing over all pair distance distributions. These in turn are calculated
+    by summing over rotamer pairs with the appropriate weights. For each rotamer pair, the distance distribution is
+    either just the distance between the ``spin_center`` coordinates of two labels (if ``spin_populations=False``) or
+    the weighted sum over all pairs of spn-bearing atoms (``spin_populations=True``). The resulting distance histogram
+    is convolved with a normal distribution with a standard deviation ``sigma``.
 
     Parameters
     ----------
     *args : SpinLabel
-        Any number of spin label objects for which you wish to get the distance distributions between.
-    r: ArrayLike
-        evenly spaced array containing the distance domain coordinates to calculate the distance distribution over
-    sigma: float
-        The standard deviation of the normal distribution used in convolution with the distance histogram
-    prune: bool
-        Ignore low weight rotamer pairs (experimental)
-    uq: bool
+        Any number of spin label objects.
+    r : ArrayLike
+        Evenly spaced array of distances (in angstrom) to calculate the distance distribution over.
+    sigma : float
+        The standard deviation of the normal distribution used in convolution with the distance histogram, in angstrom.
+        Default is 1.
+    spin_populations : bool
+        If False, distances are computed between spin centers. If True, distances are computed by summing over
+        the distributed spin density on spin-bearing atoms on the labels.
+    uq : bool
         Perform uncertainty analysis (experimental)
 
     Returns
     -------
-        P: np.ndarray
-            Predicted distance distribution
-
+    P : np.ndarray
+        Predicted distance distribution, in 1/angstrom
     """
 
-    # Allow r to be passed as that last non-keyword argument
+    # Allow r to be passed as last non-keyword argument
     if r is None and np.ndim(args[-1]) != 0:
         r = args[-1]
         args = args[:-1]
 
+    if len(args)<2:
+        raise TypeError('At least two spin label objects are required.')
+
     if r is None:
-        raise ValueError('Use must supply a distance domain')
+        raise TypeError('Keyword argument r with distance domain vector is missing.')
 
     if any(not hasattr(arg, atr) for arg in args for atr in ["spin_coords", "spin_centers", "weights"]):
         raise TypeError(
-            "Arguments other than spin labels must be passed as a keyword argument"
+            "Arguments other than spin labels must be passed as a keyword arguments."
         )
 
     r = np.asarray(r)
 
     if any(isinstance(SL, SpinLabelTraj) for SL in args):
-        return traj_dd(*args, r=r, sigma=sigma)
 
-    if uq:
+        P = traj_dd(*args, r=r, sigma=sigma)
+        return P
+
+    elif uq:
 
         Ps = []
         n_boots = uq if uq > 1 else 100
@@ -109,74 +119,76 @@ def get_dd(
                 dummy_SL.weights /= dummy_SL.weights.sum()
                 dummy_labels.append(dummy_SL)
 
-            Ps.append(get_dd(*dummy_labels, r=r, sigma=sigma))
+            Ps.append(pair_dd(*dummy_labels, r=r, sigma=sigma, spin_populations=spin_populations))
         Ps = np.array(Ps)
         return Ps
 
-    P = pair_dd(*args, r=r, sigma=sigma, spin_populations=spin_populations)
+    else:
 
-    return P
+        P = pair_dd(*args, r=r, sigma=sigma, spin_populations=spin_populations)
+        return P
 
 
-def pair_dd(*args, r: ArrayLike, sigma: float = 1.0, spin_populations=False) -> np.ndarray:
-    """Obtain the pairwise distance distribution from two rotamer ensembles, NO1, NO2 with corresponding weights w1, w2.
-    The distribution is calculated by convolving the weighted histogram of pairwise distances between NO1 and NO2 with
-    a normal distribution of sigma.
+def pair_dd(*args, r: ArrayLike, sigma: float = 1.0, spin_populations = False) -> np.ndarray:
+    """Obtain the total pairwise spin-spin distance distribution over ``r`` for a list of spin labels.
+    The distribution is calculated by convolving the weighted histogram of pairwise spin-spin
+    distances with a normal distribution with standard deviation ``sigma``.
 
     Parameters
     ----------
     *args : SpinLabel
         SpinLabels to use when calculating the distance distribution
-    r: ArrayLike
-        Domain to compute distance distribution over
-    sigma: float
-         Standard deviation of normal distribution used for convolution
+    r : ArrayLike
+        Distance domain vector, in angstrom
+    sigma : float
+         Standard deviation of normal distribution used for convolution, in angstrom
+    spin_populations : bool
+        If False, distances are computed between spin centers. If True, distances are computed by summing over
+        the distributed spin density on spin-bearing atoms on the labels.
 
     Returns
     -------
     P : np.ndarray
-        Predicted distance distribution
+        Predicted normalized distance distribution, in units of 1/angstrom
 
     """
     # Calculate pairwise distances and weights
     SL_Pairs = combinations(args, 2)
     weights, distances = [], []
-
     for SL1, SL2 in SL_Pairs:
         if spin_populations:
             coords1 = SL1.spin_coords.reshape(-1 ,3)
             coords2 = SL2.spin_coords.reshape(-1, 3)
-            distances.append(cdist(coords1, coords2).flatten())
-
             weights1 = np.outer(SL1.weights, SL1.spin_weights).flatten()
             weights2 = np.outer(SL2.weights, SL2.spin_weights).flatten()
-
-            weights.append(np.outer(weights1, weights2).flatten())
-
         else:
-            distances.append(cdist(SL1.spin_centers, SL2.spin_centers).flatten())
-            weights.append(np.outer(SL1.weights, SL2.weights).flatten())
+            coords1 = SL1.spin_centers
+            coords2 = SL2.spin_centers
+            weights1 = SL1.weights
+            weights2 = SL2.weights
+        distances.append(cdist(coords1, coords2).flatten())
+        weights.append(np.outer(weights1, weights2).flatten())
 
     distances = np.concatenate(distances)
     weights = np.concatenate(weights)
 
-    # Calculate histogram over x
+    # Calculate distance histogram
     hist, _ = np.histogram(
         distances, weights=weights, range=(min(r), max(r)), bins=len(r)
     )
+
+    # Convolve with normal distribution if non-zero standard deviation is given
     if sigma != 0:
-        # Calculate normal distribution for convolution
         delta_r = get_delta_r(r)
-        _, g = norm(delta_r, 0, sigma)
-
-        # Convolve normal distribution and histogram
+        _, g = normdist(delta_r, 0, sigma)
         P = np.convolve(hist, g, mode="same")
-
     else:
         P = hist
 
-    # Normalize weights
-    P /= np.trapz(P, r)
+    # Normalize distribution
+    integral = np.trapz(P,r)
+    if integral != 0:
+        P /= integral
 
     return P
 

@@ -25,7 +25,8 @@ import chiLife
 from .protein_utils import dihedral_defs, rotlib_indexes, local_mx, sort_pdb, mutate, save_pdb, ProteinIC, get_min_topol
 from .scoring import get_lj_rep, GAS_CONST
 from .numba_utils import get_delta_r, histogram, norm, jaccard, dirichlet
-from .SpinLabel import SpinLabel, dSpinLabel
+from .SpinLabel import SpinLabel
+from .dSpinLabel import dSpinLabel
 from .RotamerEnsemble import RotamerEnsemble
 from .SpinLabelTraj import SpinLabelTraj
 

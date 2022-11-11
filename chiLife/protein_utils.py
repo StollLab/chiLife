@@ -18,7 +18,8 @@ import chiLife
 from .numba_utils import _ic_to_cart, get_sasa
 from .superimpositions import superimpositions
 from .RotamerEnsemble import RotamerEnsemble
-from .SpinLabel import SpinLabel, dSpinLabel
+from .SpinLabel import SpinLabel
+from .dSpinLabel import dSpinLabel
 
 import networkx as nx
 

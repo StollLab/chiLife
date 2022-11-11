@@ -2,7 +2,7 @@ from __future__ import annotations
 import tempfile, logging, pickle, os
 from pathlib import Path
 from itertools import combinations, product
-from typing import Callable, Tuple, Union, List, Dict
+from typing import Callable, Tuple, Union, List
 from unittest import mock
 from tqdm import tqdm
 
@@ -16,7 +16,7 @@ import MDAnalysis.transformations
 import chiLife
 from .protein_utils import dihedral_defs, local_mx, sort_pdb, mutate, save_pdb, ProteinIC, get_min_topol
 from .scoring import get_lj_rep, GAS_CONST
-from .numba_utils import get_delta_r, norm, jaccard, dirichlet
+from .numba_utils import get_delta_r, norm
 from .SpinLabel import SpinLabel
 from .RotamerEnsemble import RotamerEnsemble
 from .SpinLabelTraj import SpinLabelTraj
@@ -149,7 +149,7 @@ def pair_dd(*args, r: ArrayLike, sigma: float = 1.0, spin_populations = False) -
     Returns
     -------
     P : np.ndarray
-        Predicted distance distribution
+        Predicted normalized distance distribution, in units of 1/angstrom
 
     """
     # Calculate pairwise distances and weights
@@ -179,19 +179,16 @@ def pair_dd(*args, r: ArrayLike, sigma: float = 1.0, spin_populations = False) -
 
     # Convolve with normal distribution if non-zero standard deviation is given
     if sigma != 0:
-
         delta_r = get_delta_r(r)
         _, normdist = norm(delta_r, 0, sigma)
-
         P = np.convolve(hist, normdist, mode="same")
-
     else:
         P = hist
 
-    # Normalize weights
+    # Normalize distribution
     integral = np.trapz(P,r)
-    if integral!=0:
-        P /= np.trapz(P, r)
+    if integral != 0:
+        P /= integral
 
     return P
 

@@ -155,7 +155,7 @@ def kl_divergence(p: np.ndarray, q: np.ndarray) -> float:
 
 
 @njit(cache=True)
-def norm(delta_r: float, mu: float = 0.0, sigma: float = 1.0) -> Tuple[np.ndarray, np.ndarray]:
+def normdist(delta_r: float, mu: float = 0.0, sigma: float = 1.0) -> Tuple[np.ndarray, np.ndarray]:
     """Calculate normal distribution for convolution with histogram of distances between two spin label ensembles
 
     Parameters

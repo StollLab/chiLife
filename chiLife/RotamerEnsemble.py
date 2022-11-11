@@ -183,11 +183,12 @@ class RotamerEnsemble:
             np.isin(self.atom_names, RotamerEnsemble.backbone_atoms, invert=True)
         ).flatten()
 
+        # Sample from library if requested
         if self._sample_size and len(self.dihedral_atoms) > 0:
-            # Get list of non-bonded atoms before overwritig
+            # Get list of non-bonded atoms before overwriting
             a, b = [list(x) for x in zip(*self.non_bonded)]
 
-            # Perform sapling
+            # Draw samples
             self._coords = np.tile(self._coords[0], (self._sample_size, 1, 1))
             self._coords, self.weights, self.internal_coords = self.sample(
                 self._sample_size, off_rotamer=True, return_dihedrals=True
@@ -215,7 +216,7 @@ class RotamerEnsemble:
         if self.chain is not None:
             self.name += f"_{self.chain}"
 
-        # Create arrays of  LJ potential params
+        # Create arrays of LJ potential params
         if len(self.side_chain_idx) > 0:
             self.rmin2 = chiLife.get_lj_rmin(self.atom_types[self.side_chain_idx])
             self.eps = chiLife.get_lj_eps(self.atom_types[self.side_chain_idx])
@@ -234,6 +235,14 @@ class RotamerEnsemble:
                 zip(self._coords[0], self.atom_types, self.atom_names)
             )
         ]
+
+    def __str__(self):
+        return (
+            f"Rotamer ensemble with {np.size(self.weights)} members\n"
+            f"  Name: {self.name}\n"
+            f"  Label: {self.res}\n"
+            f"  Site: {self.site}\n"
+        )
 
     @classmethod
     def from_pdb(

@@ -1,7 +1,7 @@
-from .RotamerLibrary import RotamerLibrary
+from .RotamerLibrary import RotamerEnsemble
 
 
-class dRotamerLibrary(RotamerLibrary):
+class dRotamerEnsemble(RotamerEnsemble):
     def __init__(self, label, site, increment, protein=None, chain=None, **kwargs):
         """ """
         self.label = label

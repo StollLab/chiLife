@@ -18,12 +18,12 @@ lj_ans = [
 #
 @pytest.mark.parametrize(('func', 'ans'), zip(lj_funcs, lj_ans))
 def test_lj(func, ans):
-    SL = chiLife.RotamerLibrary('TRP', 28, protein, energy_func=func)
+    SL = chiLife.RotamerEnsemble('TRP', 28, protein, energy_func=func)
     print(SL.atom_energies)
     # E = func(r, rmin, eps)
     # np.testing.assert_almost_equal(E[60:116:8], ans)
 
 
 def test_prep_internal_clash():
-    SL = chiLife.RotamerLibrary('TRP', 28, protein)
+    SL = chiLife.RotamerEnsemble('TRP', 28, protein)
     stuff = chiLife.scoring.prep_internal_clash(SL)

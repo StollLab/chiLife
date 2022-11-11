@@ -27,7 +27,7 @@ from .protein_utils import dihedral_defs, rotlib_indexes, local_mx, sort_pdb, mu
 from .scoring import get_lj_rep, GAS_CONST
 from .numba_utils import get_delta_r, histogram, norm, jaccard, dirichlet
 from .SpinLabel import SpinLabel, dSpinLabel
-from .RotamerLibrary import RotamerLibrary
+from .RotamerEnsemble import RotamerEnsemble
 from .SpinLabelTraj import SpinLabelTraj
 
 
@@ -362,7 +362,7 @@ def traj_dd(
 
 @cached
 def read_sl_library(label: str, user: bool = False) -> Dict:
-    """Reads RotamerLibrary for stored spin labels.
+    """Reads RotamerEnsemble for stored spin labels.
 
     Parameters
     ----------
@@ -588,7 +588,7 @@ def optimize_weights(
 
 def save(
     file_name: str,
-    *molecules: Union[RotamerLibrary, chiLife.Protein, mda.Universe, mda.AtomGroup, str],
+    *molecules: Union[RotamerEnsemble, chiLife.Protein, mda.Universe, mda.AtomGroup, str],
     protein_path: Union[str, Path] = None,
     **kwargs,
 ) -> None:
@@ -613,7 +613,7 @@ def save(
     """
     # Check for filename at the beginning of args
     molecules = list(molecules)
-    if isinstance(file_name, (RotamerLibrary, SpinLabel, dSpinLabel,
+    if isinstance(file_name, (RotamerEnsemble, SpinLabel, dSpinLabel,
                               mda.Universe, mda.AtomGroup,
                               chiLife.Protein, chiLife.AtomSelection)):
         molecules.insert(0, file_name)
@@ -623,7 +623,7 @@ def save(
     proteins, labels = [], []
     protein_path = [] if protein_path is None else [protein_path]
     for mol in molecules:
-        if isinstance(mol, (RotamerLibrary, SpinLabel, dSpinLabel)):
+        if isinstance(mol, (RotamerEnsemble, SpinLabel, dSpinLabel)):
             labels.append(mol)
         elif isinstance(mol, (mda.Universe, mda.AtomGroup, chiLife.Protein, chiLife.AtomSelection)):
             proteins.append(mol)
@@ -734,8 +734,8 @@ def write_labels(file: str, *args: SpinLabel, KDE: bool = True) -> None:
     ----------
     file : str
         File name to write to.
-    *args: SpinLabel, RotamerLibrary
-        RotamerLibrary or SpinLabel objects to be saved.
+    *args: SpinLabel, RotamerEnsemble
+        RotamerEnsemble or SpinLabel objects to be saved.
     KDE: bool
         Perform kernel density estimate smoothing on rotamer weights before saving. Usefull for uniformly weighted
         RotamerLibraries or RotamerLibraries with lots of rotamers
@@ -748,14 +748,14 @@ def write_labels(file: str, *args: SpinLabel, KDE: bool = True) -> None:
     # Check for dSpinLables
     rotlibs = []
     for arg in args:
-        if isinstance(arg, chiLife.RotamerLibrary):
+        if isinstance(arg, chiLife.RotamerEnsemble):
             rotlibs.append(arg)
         elif isinstance(arg, chiLife.dSpinLabel):
             rotlibs.append(arg.SL1)
             rotlibs.append(arg.SL2)
         else:
             raise TypeError(
-                f"Cannot save {arg}. *args must be RotamerLibrary SpinLabel or dSpinLabal objects"
+                f"Cannot save {arg}. *args must be RotamerEnsemble SpinLabel or dSpinLabal objects"
             )
 
     fmt_str = "ATOM  {:5d} {:^4s} {:3s} {:1s}{:4d}    {:8.3f}{:8.3f}{:8.3f}{:6.2f}{:6.2f}          {:>2s}  \n"
@@ -832,21 +832,21 @@ def write_labels(file: str, *args: SpinLabel, KDE: bool = True) -> None:
 
 def repack(
     protein: Union[mda.Universe, mda.AtomGroup],
-    *spin_labels: RotamerLibrary,
+    *spin_labels: RotamerEnsemble,
     repetitions: int = 200,
     temp: float = 1,
     energy_func: Callable = get_lj_rep,
     off_rotamer=False,
     **kwargs,
 ) -> Tuple[mda.Universe, ArrayLike]:
-    """Markov chain Monte Carlo repack a protein around any number of SpinLabel or RotamerLibrary objects.
+    """Markov chain Monte Carlo repack a protein around any number of SpinLabel or RotamerEnsemble objects.
 
     Parameters
     ----------
     protein : MDAnalysis.Universe, MDAnalysis.AtomGroup
         Protein to be repacked
-    spin_labels : RotamerLibrary, SpinLabel
-        RotamerLibrary or SpinLabel object placed at site of interest
+    spin_labels : RotamerEnsemble, SpinLabel
+        RotamerEnsemble or SpinLabel object placed at site of interest
     repetitions : int
         Number of successful MC samples to perform before terminating the MC sampling loop
     temp : float, ArrayLike
@@ -887,7 +887,7 @@ def repack(
 
     repack_res_kwargs = spin_labels[0].input_kwargs
     repack_residue_libraries = [
-        RotamerLibrary.from_mda(res, **repack_res_kwargs)
+        RotamerEnsemble.from_mda(res, **repack_res_kwargs)
         for res in repack_residues
         if res.resname not in ["GLY", "ALA"]
     ]
@@ -900,7 +900,7 @@ def repack(
     ).residues
 
     repack_residue_libraries = [
-        RotamerLibrary.from_mda(res, **repack_res_kwargs)
+        RotamerEnsemble.from_mda(res, **repack_res_kwargs)
         for res in repack_residues
         if res.resname not in ["GLY", "ALA"]
     ]

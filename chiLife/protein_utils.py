@@ -17,7 +17,7 @@ import MDAnalysis as mda
 import chiLife
 from .numba_utils import _ic_to_cart, get_sasa
 from .superimpositions import superimpositions
-from .RotamerLibrary import RotamerLibrary
+from .RotamerEnsemble import RotamerEnsemble
 from .SpinLabel import SpinLabel, dSpinLabel
 
 import networkx as nx
@@ -1301,7 +1301,7 @@ def get_missing_residues(
     ignore: Set[int] = None,
     use_H: bool = False,
 ) -> List:
-    """Get a list of RotamerLibrary objects corresponding to the residues of the provided protein that are missing heavy
+    """Get a list of RotamerEnsemble objects corresponding to the residues of the provided protein that are missing heavy
     atoms
 
     Parameters
@@ -1316,7 +1316,7 @@ def get_missing_residues(
     Returns
     -------
     missing_residues : list
-        List of RotamerLibrary objects corresponding to residues with missing heavy atoms.
+        List of RotamerEnsemble objects corresponding to residues with missing heavy atoms.
     """
     ignore = set() if ignore is None else ignore
     missing_residues = []
@@ -1334,10 +1334,10 @@ def get_missing_residues(
         # Check if there are any missing heavy atoms
         heavy_atoms = res.atoms.types[res.atoms.types != "H"]
         if len(heavy_atoms) != cache.get(
-            res.resname, len(RotamerLibrary(res.resname).atom_names)
+            res.resname, len(RotamerEnsemble(res.resname).atom_names)
         ):
             missing_residues.append(
-                RotamerLibrary(
+                RotamerEnsemble(
                     res.resname,
                     res.resnum,
                     protein=protein,
@@ -1351,19 +1351,19 @@ def get_missing_residues(
 
 def mutate(
     protein: MDAnalysis.Universe,
-    *rotlibs: RotamerLibrary,
+    *rotlibs: RotamerEnsemble,
     add_missing_atoms: bool = True,
     random_rotamers: bool = False,
 ) -> MDAnalysis.Universe:
     """Create a new Universe where the native residue is replaced with the highest probability rotamer from a
-    RotamerLibrary or SpinLabel object.
+    RotamerEnsemble or SpinLabel object.
 
     Parameters
     ----------
     protein : MDAnalysis.Universe
         Universe containing protein to be spin labeled
-    rotlibs : RotamerLibrary, SpinLabel
-        Precomputed RotamerLibrary or SpinLabel object to use for selecting and replacing the spin native amino acid
+    rotlibs : RotamerEnsemble, SpinLabel
+        Precomputed RotamerEnsemble or SpinLabel object to use for selecting and replacing the spin native amino acid
     random_rotamers :bool
         Randomize rotamer conformations
     add_missing_atoms : bool
@@ -1378,14 +1378,14 @@ def mutate(
     # Check for dRotamerLibraries in rotlibs
     trotlibs = []
     for lib in rotlibs:
-        if isinstance(lib, RotamerLibrary):
+        if isinstance(lib, RotamerEnsemble):
             trotlibs.append(lib)
         elif isinstance(lib, dSpinLabel):
             trotlibs.append(lib.SL1)
             trotlibs.append(lib.SL2)
         else:
             raise TypeError(
-                f"mutate only accepts RotamerLibrary, SpinLabel and dSpinLabel objects, not {lib}."
+                f"mutate only accepts RotamerEnsemble, SpinLabel and dSpinLabel objects, not {lib}."
             )
 
     rotlibs = trotlibs
@@ -1512,7 +1512,7 @@ def mutate(
 
 def randomize_rotamers(
     protein: Union[mda.Universe, mda.AtomGroup],
-    rotamer_libraries: List[RotamerLibrary],
+    rotamer_libraries: List[RotamerEnsemble],
     **kwargs,
 ) -> None:
     """Modify a protein object in place to randomize side chain conformations.
@@ -1522,9 +1522,9 @@ def randomize_rotamers(
     protein : MDAnalysis.Universe, MDAnalysis.AtomGroup
         Protein object to modify.
     rotamer_libraries : list
-        RotamerLibrary objects attached to the protein corresponding to the residues to be repacked/randomized.
+        RotamerEnsemble objects attached to the protein corresponding to the residues to be repacked/randomized.
     **kwargs : dict
-        Additional Arguments to pass to ``sample`` method. See :mod:`sample <chiLife.RotamerLibrary.sample>` .
+        Additional Arguments to pass to ``sample`` method. See :mod:`sample <chiLife.RotamerEnsemble.sample>` .
     """
     for rotamer in rotamer_libraries:
         coords, weight = rotamer.sample(off_rotamer=kwargs.get("off_rotamer", False))

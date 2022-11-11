@@ -20,7 +20,7 @@ def clash_only(func):
     Returns
     -------
     energy_func: callable
-        The original input function now wrapped to accept a protein object and, optionally, a RotamerLibrary/SpinLabel
+        The original input function now wrapped to accept a protein object and, optionally, a RotamerEnsemble/SpinLabel
          object.
     """
         """
@@ -295,13 +295,13 @@ def prep_external_clash(rotlib):
 
     Parameters
     ----------
-    rotlib : RotamerLibrary
-        The RotamerLibrary to prepare the clash parameters for. The RotamerLibrary should have an associated protein.
+    rotlib : RotamerEnsemble
+        The RotamerEnsemble to prepare the clash parameters for. The RotamerEnsemble should have an associated protein.
 
     Returns
     -------
         dist : numpy.ndarray
-            Array of pairwise distances between atoms in the RotamerLibrary and atoms in the associated protein.
+            Array of pairwise distances between atoms in the RotamerEnsemble and atoms in the associated protein.
         rmin_ij :  numpy.ndarray
             ``rmin`` parameters of the lj potential associated with the atom ``i`` and atom ``j`` pair.
         eps_ij : numpy.ndarray
@@ -331,13 +331,13 @@ def prep_internal_clash(rotlib):
 
         Parameters
         ----------
-        rotlib : RotamerLibrary
-            The RotamerLibrary to prepare the clash parameters for.
+        rotlib : RotamerEnsemble
+            The RotamerEnsemble to prepare the clash parameters for.
 
         Returns
         -------
             dist : numpy.ndarray
-                Array of pairwise distances between atoms in the RotamerLibrary and atoms in the associated protein.
+                Array of pairwise distances between atoms in the RotamerEnsemble and atoms in the associated protein.
             rmin_ij :  numpy.ndarray
                 ``rmin`` parameters of the lj potential associated with the atom ``i`` and atom ``j`` pair.
             eps_ij : numpy.ndarray
@@ -399,16 +399,16 @@ def get_lj_params(rotlib):
 
     Parameters
     ----------
-    rotlib : RotamerLibrary
-        The RotamerLibrary to get the lj params for. Should have an associated protein object.
+    rotlib : RotamerEnsemble
+        The RotamerEnsemble to get the lj params for. Should have an associated protein object.
 
     Returns
     -------
     rmin_ij : nummpy.ndarray
-        Vector of ``rmin`` lennard-jones parameters corresponding to atoms i and j of the RotamerLibrary and the
+        Vector of ``rmin`` lennard-jones parameters corresponding to atoms i and j of the RotamerEnsemble and the
         associated protein respectively.
     eps_ij : numpy.ndarray
-        Vector of ``eps`` lennard-jones parameters corresponding to atoms i and j of the RotamerLibrary and the
+        Vector of ``eps`` lennard-jones parameters corresponding to atoms i and j of the RotamerEnsemble and the
         associated protein respectively.
     """
     environment_atypes = rotlib.protein.atoms.types[rotlib.protein_clash_idx]

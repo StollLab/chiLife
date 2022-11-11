@@ -217,8 +217,8 @@ def parse_backbone(rotamer_library, kind):
 
     Parameters
     ----------
-    rotamer_library : RotamerLibrary
-        RotamerLibrary that the rotation matrix will operate on. If using the `fit` method, the rotamer library must
+    rotamer_library : RotamerEnsemble
+        RotamerEnsemble that the rotation matrix will operate on. If using the `fit` method, the rotamer library must
         have a `protein` feature.
     kind : str
         Specifies if the backbone is for the rotamer library (local) or the protein (global)

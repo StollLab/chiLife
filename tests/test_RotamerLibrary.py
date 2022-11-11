@@ -18,7 +18,7 @@ with open("test_data/hashes.txt", "r") as f:
 
 def test_from_mda():
     res16 = U.residues[16]
-    rotlib = chiLife.RotamerLibrary.from_mda(res16)
+    rotlib = chiLife.RotamerEnsemble.from_mda(res16)
     rotlib.save_pdb("test_data/test_from_MDA.pdb")
 
     with open("test_data/ans_from_MDA.pdb", "r") as f:
@@ -66,7 +66,7 @@ def test_user_label():
 
 
 def test_save_pkl():
-    Lys = chiLife.RotamerLibrary("LYS")
+    Lys = chiLife.RotamerEnsemble("LYS")
 
     with open("test_data/Lys.pkl", "wb") as f:
         pickle.dump(Lys, f)
@@ -81,7 +81,7 @@ def test_save_pkl():
 
 def test_save_pkl_2():
     res16 = U.residues[16]
-    rotlib = chiLife.RotamerLibrary.from_mda(res16)
+    rotlib = chiLife.RotamerEnsemble.from_mda(res16)
     with open("test_data/res16.pkl", "wb") as f:
         pickle.dump(rotlib, f)
 
@@ -95,7 +95,7 @@ def test_save_pkl_2():
 def test_sample():
     np.random.seed(200)
     ubq = chiLife.fetch("1ubq")
-    K48 = chiLife.RotamerLibrary.from_mda(ubq.residues[47])
+    K48 = chiLife.RotamerEnsemble.from_mda(ubq.residues[47])
     coords, weight = K48.sample(off_rotamer=True)
 
     wans = 0.0037019925960148086
@@ -127,8 +127,8 @@ def test_lib_distribution_persists(res):
         L1 = chiLife.SpinLabel(res)
         L2 = chiLife.SpinLabel(res, sample=100)
     else:
-        L1 = chiLife.RotamerLibrary(res)
-        L2 = chiLife.RotamerLibrary(res, sample=100)
+        L1 = chiLife.RotamerEnsemble(res)
+        L2 = chiLife.RotamerEnsemble(res, sample=100)
 
     np.testing.assert_almost_equal(L1._rdihedrals, L2._rdihedrals)
     np.testing.assert_almost_equal(L1._rkappas, L2._rkappas)
@@ -143,8 +143,9 @@ def test_superimposition_method(method):
     if method == "fit":
         with pytest.raises(NotImplementedError) as e_info:
             SL = chiLife.SpinLabel(
-                "R1C", site=28, protein=ubq, superimposition_method=method
+                "R1C", site=28, protein=ubq, superimposition_method=method, eval_clash=False
             )
+            chiLife.save(SL, ubq)
     else:
         SL = chiLife.SpinLabel(
             "R1C",
@@ -198,18 +199,18 @@ def test_mem_sample():
 
 
 def test_label_as_library():
-    R1C = chiLife.RotamerLibrary("R1C", site=28, protein=ubq)
+    R1C = chiLife.RotamerEnsemble("R1C", site=28, protein=ubq)
     for ic in R1C.internal_coords:
         np.testing.assert_almost_equal(
             ic.coords[2], [38.73227962, 26.58109478, 12.6243569]
         )
 
 def test_coord_setter0():
-    R1C1 = chiLife.RotamerLibrary("R1C", site=28, protein=ubq)
+    R1C1 = chiLife.RotamerEnsemble("R1C", site=28, protein=ubq)
 
 def test_coord_setter():
-    R1C1 = chiLife.RotamerLibrary("R1C", site=28, protein=ubq)
-    R1C2 = chiLife.RotamerLibrary("R1C", site=29, protein=ubq)
+    R1C1 = chiLife.RotamerEnsemble("R1C", site=28, protein=ubq)
+    R1C2 = chiLife.RotamerEnsemble("R1C", site=29, protein=ubq)
 
     R1C1.coords = R1C2.coords
 
@@ -222,8 +223,8 @@ def test_coord_setter():
 
 
 def test_coord_setter2():
-    R1C1 = chiLife.RotamerLibrary("R1C", site=28, protein=ubq, sample=100)
-    R1C2 = chiLife.RotamerLibrary("R1C", site=28, protein=ubq, sample=100)
+    R1C1 = chiLife.RotamerEnsemble("R1C", site=28, protein=ubq, sample=100)
+    R1C2 = chiLife.RotamerEnsemble("R1C", site=28, protein=ubq, sample=100)
     R1C1.coords = R1C2.coords[:, R1C2.side_chain_idx]
 
     np.testing.assert_allclose(R1C1.coords, R1C2.coords)
@@ -231,8 +232,8 @@ def test_coord_setter2():
 
 
 def test_dihedral_setter():
-    R1C1 = chiLife.RotamerLibrary("R1C", site=28, protein=ubq, sample=100)
-    R1C2 = chiLife.RotamerLibrary("R1C", site=28, protein=ubq, sample=100)
+    R1C1 = chiLife.RotamerEnsemble("R1C", site=28, protein=ubq, sample=100)
+    R1C2 = chiLife.RotamerEnsemble("R1C", site=28, protein=ubq, sample=100)
     R1C1.dihedrals = R1C2.dihedrals
 
     np.testing.assert_allclose(R1C1.coords, R1C2.coords)
@@ -240,7 +241,7 @@ def test_dihedral_setter():
 
 
 def test_get_sasa():
-    R1C = chiLife.RotamerLibrary("R1C")
+    R1C = chiLife.RotamerEnsemble("R1C")
     sasas = R1C.get_sasa()
     sasans = np.load('test_data/sasas.npy')
     np.testing.assert_allclose(sasas, sasans)

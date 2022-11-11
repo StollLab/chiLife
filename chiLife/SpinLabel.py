@@ -6,13 +6,13 @@ import numpy as np
 from scipy.spatial.distance import cdist
 from scipy.spatial import cKDTree
 import scipy.optimize as opt
-from .RotamerLibrary import RotamerLibrary
+from .RotamerEnsemble import RotamerEnsemble
 import chiLife
 
 
-class SpinLabel(RotamerLibrary):
+class SpinLabel(RotamerEnsemble):
     """
-    A RotamerLibrary made from a side chain with one or more unpaired electrons.
+    A RotamerEnsemble made from a side chain with one or more unpaired electrons.
 
     :param label: str
         Name of desired spin label, e.g. R1A.
@@ -34,7 +34,7 @@ class SpinLabel(RotamerLibrary):
 
     def __init__(self, label, site=1, protein=None, chain=None, **kwargs):
 
-        # Overide RotamerLibrary default of not evaluating clashes
+        # Overide RotamerEnsemble default of not evaluating clashes
         kwargs.setdefault("eval_clash", True)
         super().__init__(label, site, protein=protein, chain=chain, **kwargs)
 

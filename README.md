@@ -100,7 +100,7 @@ structure of the trajectory.
 
 SpinLabel objects and neighboring side chains can be repacked using off-rotamer sampling by using the `off_rotamer=True`
 option. In the event off rotamer sampling is being used for repacking, it is likely that the desired SpinLabel object is 
-not the default rotamer library attached to the lowest energy structure, but instead the ensemble of side chains 
+not the default rotamer ensembles attached to the lowest energy structure, but instead the ensemble of side chains 
 created in the MCMC sampling trajectory. This can be done using the `from_trajectory` class method. 
 
 ```python
@@ -115,7 +115,7 @@ rotamer sampling of only &chi;<sub>4</sub> and &chi;<sub>5</sub>.
 
 
 ### Mutating protein structures
-Sometimes you don't want a whole rotamer library, you just want a protein structure mutated at a particular site with 
+Sometimes you don't want a whole rotamer ensembles, you just want a protein structure mutated at a particular site with 
 the most probable spin label conformer. This can be done easily with the `mutate` function.
 
 ```python
@@ -132,10 +132,10 @@ chiLife can actually mutate several sites at once, and can mutate canonical amin
 ```python
 SL1 = xl.SpinLabel('R1C', 20, protein=MBP)
 SL2 = xl.SpinLabel('R1C', 238, protein=MBP)
-L284V = xl.RotamerLibrary('VAL', 284, protein=MBP)
+L284V = xl.RotamerEnsemble('VAL', 284, protein=MBP)
 ```
 
- Mtating adjacent sites is best done with the `repack` function to avoid clashes between SpinLabels/RotamerLibraries. 
+ Mtating adjacent sites is best done with the `repack` function to avoid clashes between SpinLabels/RotamerEnsembles. 
 This will return a trajectory which can be used to pick the last or lowest energy frame as your mutated protein.
 
 ```python

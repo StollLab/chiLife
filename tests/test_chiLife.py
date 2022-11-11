@@ -311,7 +311,7 @@ def test_MMM():
 
 def test_save():
     L20R1 = chiLife.SpinLabel("R1C", 20, protein)
-    S238T = chiLife.RotamerLibrary("THR", 238, protein)
+    S238T = chiLife.RotamerEnsemble("THR", 238, protein)
     A318DHC = chiLife.dSpinLabel("DHC", [318, 322], protein)
 
     chiLife.save(L20R1, S238T, A318DHC, protein, KDE=False)

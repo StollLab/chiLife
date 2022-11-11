@@ -185,8 +185,8 @@ def test_mutate3():
 
 def test_mutate4():
     protein = mda.Universe("test_data/1omp_H.pdb").select_atoms("protein")
-    D41G = chiLife.RotamerLibrary("GLY", 41, protein=protein)
-    S238A = chiLife.RotamerLibrary("ALA", 238, protein=protein)
+    D41G = chiLife.RotamerEnsemble("GLY", 41, protein=protein)
+    S238A = chiLife.RotamerEnsemble("ALA", 238, protein=protein)
     mPro = chiLife.mutate(protein, D41G, S238A, add_missing_atoms=False)
     D41G_pos = mPro.select_atoms("resnum 41").positions
     S238A_pos = mPro.select_atoms("resnum 238").positions

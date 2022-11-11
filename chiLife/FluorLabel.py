@@ -1,9 +1,9 @@
 import numpy as np
-from .RotamerLibrary import RotamerLibrary
+from .RotamerLibrary import RotamerEnsemble
 import chiLife
 
 
-class FluorLabel(RotamerLibrary):
+class FluorLabel(RotamerEnsemble):
     """
     Base object for fluoresent labeling experiments.
 
@@ -38,7 +38,7 @@ class FluorLabel(RotamerLibrary):
         :param protein_tree: cKDtree
             k-dimensional tree object associated with the protein coordinates.
         """
-        # Overide RotamerLibrary default of not evaluating clashes
+        # Overide RotamerEnsemble default of not evaluating clashes
         kwargs.setdefault("eval_clash", True)
         super().__init__(label, site, protein=protein, chain=chain, **kwargs)
 

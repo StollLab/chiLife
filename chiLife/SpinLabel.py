@@ -30,8 +30,6 @@ class SpinLabel(RotamerEnsemble):
         k-dimensional tree object associated with the protein coordinates.
     """
 
-    backbone_atoms = ["H", "N", "CA", "HA", "C", "O"]
-
     def __init__(self, label, site=1, protein=None, chain=None, **kwargs):
 
         # Overide RotamerEnsemble default of not evaluating clashes

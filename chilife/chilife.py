@@ -406,7 +406,7 @@ def add_label(
     name: str,
     pdb: str,
     dihedral_atoms: List[List[str]],
-    resi: int = 1,
+    site: int = 1,
     spin_atoms: List[str] = None,
     dihedrals: ArrayLike = None,
     weights: ArrayLike = None,
@@ -421,7 +421,7 @@ def add_label(
     pdb : str
         Name of (and path to) pdb file containing the user defined spin label structure. This pdb file should contain
         only the desired spin label and no additional residues.
-    resi : int
+    site : int
         The residue number of the side chain in the pdb file you would like to add.
     dihedral_atoms : list
         List of rotatable dihedrals. List should contain sublists of 4 atom names. Atom names must be the same as
@@ -469,7 +469,7 @@ def add_label(
 
     # set resnum to 1 and remove chain operators so all rotamers are in the ic coordinate frame
     for ic in internal_coords:
-        ic.shift_resnum(-(resi - 1))
+        ic.shift_resnum(-(site - 1))
         ic.chain_operators = None
         if len(ic.chains) > 1:
             raise ValueError('The PDB of the label supplied appears to have a chain break. Please check your PDB and '
@@ -499,7 +499,7 @@ def add_dlabel(
     pdb: str,
     increment: int,
     dihedral_atoms: List[List[List[str]]],
-    resi: int = 1,
+    site: int = 1,
     spin_atoms: List[str] = None,
     dihedrals: ArrayLike = None,
     weights: ArrayLike = None,
@@ -515,7 +515,7 @@ def add_dlabel(
     pdb : str
         Name of (and path to) pdb file containing the user defined spin label structure. This pdb file should contain
         only the desired spin label and no additional residues.
-    resi : int
+    site : int
         The residue number of the first side chain in the pdb file you would like to add.
     dihedral_atoms : list
         list of rotatable dihedrals. List should contain lists of 4 atom names. Atom names must be the same as defined
@@ -570,15 +570,15 @@ def add_dlabel(
 
     IC2 = [
         chilife.get_internal_coords(
-            struct.select_atoms(f"resnum {resi + increment}"),
+            struct.select_atoms(f"resnum {site + increment}"),
             preferred_dihedrals=dihedral_atoms[1],
         )
         for ts in struct.trajectory
     ]
 
     for ic1, ic2 in zip(IC1, IC2):
-        ic1.shift_resnum(-(resi - 1))
-        ic2.shift_resnum(-(resi + increment - 1))
+        ic1.shift_resnum(-(site - 1))
+        ic2.shift_resnum(-(site + increment - 1))
 
     # Identify atoms that dont move with respect to each other but move with the dihedrals
     maxindex1 = (
@@ -622,7 +622,7 @@ def add_dlabel(
     if dihedrals is None:
         dihedrals = []
         for IC, resnum, dihedral_set in zip(
-            [IC1, IC2], [resi, resi + increment], dihedral_atoms
+            [IC1, IC2], [site, site + increment], dihedral_atoms
         ):
             dihedrals.append(
                 [[ICi.get_dihedral(1, ddef) for ddef in dihedral_set] for ICi in IC]

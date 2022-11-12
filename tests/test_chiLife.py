@@ -51,11 +51,7 @@ def test_unfiltered_dd():
     SL2.weights = np.array([0.1, 0.3, 0.6])
 
     y = chiLife.pair_dd(SL1, SL2, r=r)
-
     y_ans = np.load("test_data/pwdd.npy")
-    plt.plot(y)
-    plt.plot(y_ans)
-    plt.show()
 
     np.testing.assert_almost_equal(y_ans, y)
 

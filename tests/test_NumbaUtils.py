@@ -63,7 +63,7 @@ def test_kl_divergence():
 def test_normdist():
     mu, sigma = 50, 10
     delta_r = 1e-2
-    x = np.arange(mu - 3 * sigma, mu + 3 * sigma + delta_r, delta_r)
+    x = np.arange(mu - 3.5 * sigma, mu + 3.5 * sigma + delta_r, delta_r)
 
     y1 = norm(mu, sigma).pdf(x)
     y2 = nu.normdist(delta_r, 50, 10)[1]

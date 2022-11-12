@@ -1,6 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
-import chiLife
+import chilife
 
 #
 # def test_generation():

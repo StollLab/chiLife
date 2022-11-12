@@ -2,7 +2,7 @@ import pickle, hashlib, os
 import numpy as np
 import pytest
 import MDAnalysis as mda
-import chiLife
+import chilife
 import matplotlib.pyplot as plt
 
 labels = ["R1M", "R7M", "V1M", "M1M", "I1M"]
@@ -12,7 +12,7 @@ eps_params = [-0.110, -0.022, -0.200, -0.120, -0.450, -0.450, -0.320]
 U = mda.Universe("test_data/m1omp.pdb")
 protein = U.select_atoms("protein")
 r = np.linspace(0, 100, 2**8)
-old_ef = lambda protein, ensemble: chiLife.get_lj_rep(protein, ensemble, forgive=0.8)
+old_ef = lambda protein, ensemble: chilife.get_lj_rep(protein, ensemble, forgive=0.8)
 
 # get permutations for get_dd() tests
 kws = []
@@ -20,8 +20,8 @@ args = []
 for SL in labels:
     site1, site2 = 25, 73
     chain = "A"
-    SL1 = chiLife.SpinLabel(SL, site1, protein, chain)
-    SL2 = chiLife.SpinLabel(SL, site2, protein, chain)
+    SL1 = chilife.SpinLabel(SL, site1, protein, chain)
+    SL2 = chilife.SpinLabel(SL, site2, protein, chain)
     [args.append([SL1, SL2]) for i in range(5)]
 
 
@@ -50,7 +50,7 @@ def test_unfiltered_dd():
     SL1.weights = np.array([0.5, 0.5])
     SL2.weights = np.array([0.1, 0.3, 0.6])
 
-    y = chiLife.pair_dd(SL1, SL2, r=r)
+    y = chilife.pair_dd(SL1, SL2, r=r)
     y_ans = np.load("test_data/pwdd.npy")
 
     np.testing.assert_almost_equal(y_ans, y)
@@ -71,7 +71,7 @@ def test_unfiltered_dd():
 #     SL1.weights = np.array([0.5, 0.5])
 #     SL2.weights = np.array([0.1, 0.3, 0.6])
 #
-#     y = chiLife.pair_dd(SL1, SL2, r=r, spin_populations=True)
+#     y = chilife.pair_dd(SL1, SL2, r=r, spin_populations=True)
 #
 #     y_ans = np.load("test_data/pwdd.npy")
 #     plt.plot(r, y)
@@ -82,7 +82,7 @@ def test_unfiltered_dd():
 
 @pytest.mark.parametrize("label", labels)
 def test_read_rotamer_library(label):
-    data = chiLife.read_sl_library(label)
+    data = chilife.read_sl_library(label)
     print(data.keys())
     data = [
         data[key]
@@ -95,29 +95,29 @@ def test_read_rotamer_library(label):
 
 
 def test_get_lj_rmin():
-    assert np.all(rmin_params == chiLife.get_lj_rmin(atom_names))
+    assert np.all(rmin_params == chilife.get_lj_rmin(atom_names))
 
 
 def test_get_lj_eps():
-    assert np.all(eps_params == chiLife.get_lj_eps(atom_names))
+    assert np.all(eps_params == chilife.get_lj_eps(atom_names))
 
 
 @pytest.mark.parametrize("args, kws, expected", zip(args, kws, ans))
 def test_get_dd(args, kws, expected):
     kws.setdefault('r', r)
     P_ans = expected
-    P = chiLife.get_dd(*args, **kws)
+    P = chilife.get_dd(*args, **kws)
 
     # Stored values normalized to 1 while get_dd normalizes to r
     np.testing.assert_almost_equal(P, P_ans)
 
 
 def test_spin_populations():
-    SL1 = chiLife.SpinLabel('R1M', 211, protein)
-    SL2 = chiLife.SpinLabel('R1M', 275, protein)
+    SL1 = chilife.SpinLabel('R1M', 211, protein)
+    SL2 = chilife.SpinLabel('R1M', 275, protein)
 
-    dd1 = chiLife.get_dd(SL1, SL2, r)
-    dd2 = chiLife.get_dd(SL1, SL2, r, spin_populations=True)
+    dd1 = chilife.get_dd(SL1, SL2, r)
+    dd2 = chilife.get_dd(SL1, SL2, r, spin_populations=True)
 
     plt.plot(r, dd1)
     plt.plot(r, dd2)
@@ -127,11 +127,11 @@ def test_spin_populations():
 
 
 def test_get_dd_uq():
-    SL1 = chiLife.SpinLabel("R1M", 238, protein=protein, sample=1000)
-    SL2 = chiLife.SpinLabel("R1M", 20, protein=protein, sample=1000)
+    SL1 = chilife.SpinLabel("R1M", 238, protein=protein, sample=1000)
+    SL2 = chilife.SpinLabel("R1M", 20, protein=protein, sample=1000)
 
     print(SL1.weights.sum(), SL2.weights.sum())
-    P = chiLife.get_dd(SL1, SL2, r=r, uq=500)
+    P = chilife.get_dd(SL1, SL2, r=r, uq=500)
 
     mean = P.mean(axis=0)
     # mean /= np.trapz(mean, r)
@@ -153,7 +153,7 @@ def test_get_dd_uq():
 #         SL2 = pickle.load(f)
 #
 #     print(SL1.spin_coords, SL2)
-#     P = chiLife.get_dd(SL1, SL2, r=r, uq=500)
+#     P = chilife.get_dd(SL1, SL2, r=r, uq=500)
 #
 #     mean = P.mean(axis=0)
 #     # mean /= np.trapz(mean, r)
@@ -167,19 +167,19 @@ def test_get_dd_uq():
 
 @pytest.mark.parametrize("cutoff, expected", zip([30, 0], sasa_ans))
 def test_sas_res(cutoff, expected):
-    sasres = chiLife.get_sas_res(protein, cutoff)
+    sasres = chilife.get_sas_res(protein, cutoff)
     assert sasres == expected
 
 
 def test_fetch_PDB():
     U1 = mda.Universe("test_data/m1omp.pdb", in_memory=True)
-    U2 = chiLife.fetch("1omp")
+    U2 = chilife.fetch("1omp")
 
     assert np.all(U1.atoms.positions == U2.atoms.positions)
 
 def test_fetch_AF():
 
-    U = chiLife.fetch('AF-O34208')
+    U = chilife.fetch('AF-O34208')
     ans = np.array([[-38.834, -52.705, 45.698],
                     [-38.5,   -54.236, 47.741],
                     [-38.903, -51.597, 46.216],
@@ -199,7 +199,7 @@ fNames = ["1anf.pdb", "1omp.pdb", "3TU3.pdb"]
 
 @pytest.mark.parametrize("pdbid, names", zip(IDs, fNames))
 def test_fetch2(pdbid, names):
-    chiLife.fetch(pdbid, save=True)
+    chilife.fetch(pdbid, save=True)
     with open(f"test_data/m{names}", "r") as f:
         ans = hashlib.md5(f.read().encode("utf-8")).hexdigest()
     with open(f"{names}", "r") as f:
@@ -210,11 +210,11 @@ def test_fetch2(pdbid, names):
 
 def test_repack():
     np.random.seed(1000)
-    protein = chiLife.fetch("1ubq").select_atoms("protein")
-    SL = chiLife.SpinLabel("R1C", site=28, protein=protein)
+    protein = chilife.fetch("1ubq").select_atoms("protein")
+    SL = chilife.SpinLabel("R1C", site=28, protein=protein)
 
-    traj1, deltaE1 = chiLife.repack(protein, SL, repetitions=50, repack_radius=10)
-    traj2, deltaE2 = chiLife.repack(protein, SL, repetitions=50, off_rotamer=True, repack_radius=10)
+    traj1, deltaE1 = chilife.repack(protein, SL, repetitions=50, repack_radius=10)
+    traj2, deltaE2 = chilife.repack(protein, SL, repetitions=50, off_rotamer=True, repack_radius=10)
 
     t1coords = traj1.universe.trajectory.coordinate_array
     t2coords = traj2.universe.trajectory.coordinate_array
@@ -229,13 +229,13 @@ def test_repack():
 
 def test_repack_add_atoms():
     omp = mda.Universe("test_data/1omp_H.pdb")
-    SL1 = chiLife.SpinLabel('R1M', 20, omp, use_H=True)
-    SL2 = chiLife.SpinLabel('R1M', 211, omp, use_H=True)
-    traj, de = chiLife.repack(omp, SL1, SL2, repetitions=10)
+    SL1 = chilife.SpinLabel('R1M', 20, omp, use_H=True)
+    SL2 = chilife.SpinLabel('R1M', 211, omp, use_H=True)
+    traj, de = chilife.repack(omp, SL1, SL2, repetitions=10)
 
 
 def test_add_label():
-    chiLife.add_label(
+    chilife.add_label(
         name="___",
         pdb="test_data/trt_sorted.pdb",
         dihedral_atoms=[['N', 'CA', 'CB', 'SG'],
@@ -246,13 +246,13 @@ def test_add_label():
         spin_atoms="CAQ",
     )
 
-    assert "TRT" in chiLife.USER_LABELS
-    assert "TRT" in chiLife.SPIN_ATOMS
-    chiLife.remove_label('___', prompt=False)
+    assert "TRT" in chilife.USER_LABELS
+    assert "TRT" in chilife.SPIN_ATOMS
+    chilife.remove_label('___', prompt=False)
 
 def test_single_chain_error():
     with pytest.raises(ValueError):
-        chiLife.add_dlabel(name='___',
+        chilife.add_dlabel(name='___',
                            pdb='test_data/chain_broken_dlabel.pdb',
                            increment=2,
                            dihedral_atoms=[['N', 'CA', 'C13', 'C5'],
@@ -261,16 +261,16 @@ def test_single_chain_error():
                            spin_atoms='Cu1')
 
 def test_set_params():
-    chiLife.set_lj_params("uff")
-    assert 3.851 == chiLife.get_lj_rmin("C")
-    assert -0.105 == chiLife.get_lj_eps("C")
-    assert chiLife.get_lj_rmin("join_protocol")[()] == chiLife.join_geom
-    chiLife.set_lj_params("charmm")
+    chilife.set_lj_params("uff")
+    assert 3.851 == chilife.get_lj_rmin("C")
+    assert -0.105 == chilife.get_lj_eps("C")
+    assert chilife.get_lj_rmin("join_protocol")[()] == chilife.join_geom
+    chilife.set_lj_params("charmm")
 
 
 def test_MMM():
-    omp = chiLife.fetch("1omp")
-    SL1 = chiLife.SpinLabel.from_mmm("R1M", 238, protein=omp)
+    omp = chilife.fetch("1omp")
+    SL1 = chilife.SpinLabel.from_mmm("R1M", 238, protein=omp)
 
     ans = [
         0.007018871557921462,
@@ -290,15 +290,15 @@ def test_MMM():
 
     np.testing.assert_almost_equal(SL1.weights, ans[::-1])
 
-    chiLife.set_lj_params("charmm")
+    chilife.set_lj_params("charmm")
 
 
 def test_save():
-    L20R1 = chiLife.SpinLabel("R1C", 20, protein)
-    S238T = chiLife.RotamerEnsemble("THR", 238, protein)
-    A318DHC = chiLife.dSpinLabel("DHC", [318, 322], protein)
+    L20R1 = chilife.SpinLabel("R1C", 20, protein)
+    S238T = chilife.RotamerEnsemble("THR", 238, protein)
+    A318DHC = chilife.dSpinLabel("DHC", [318, 322], protein)
 
-    chiLife.save(L20R1, S238T, A318DHC, protein, KDE=False)
+    chilife.save(L20R1, S238T, A318DHC, protein, KDE=False)
 
     with open(f"test_data/test_save.pdb", "r") as f:
         ans = hashlib.md5(f.read().encode("utf-8")).hexdigest()
@@ -313,14 +313,14 @@ def test_save():
 
 def test_save_fail():
     with pytest.raises(TypeError):
-        chiLife.save("tmp", np.array([1, 2, 3]))
+        chilife.save("tmp", np.array([1, 2, 3]))
 
 
 
 # class TestProtein:
 #
 #     def test_load(self):
-#         protein = chiLife.Protein.from_pdb('test_data/3tu3.pdb')
+#         protein = chilife.Protein.from_pdb('test_data/3tu3.pdb')
 #
 #     def test_load_multistate(self):
-#         protein = chiLife.Protein.from_pdb('test_data/2d21.pdb')
+#         protein = chilife.Protein.from_pdb('test_data/2d21.pdb')

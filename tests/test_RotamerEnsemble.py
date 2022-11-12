@@ -1,12 +1,12 @@
 import hashlib, os, pickle
 from functools import partial
 import numpy as np
-import chiLife
+import chilife
 import pytest
 
-ubq = chiLife.fetch("1ubq")
-U = chiLife.fetch("1omp")
-exou = chiLife.fetch("3tu3")
+ubq = chilife.fetch("1ubq")
+U = chilife.fetch("1omp")
+exou = chilife.fetch("3tu3")
 
 hashes = {}
 with open("test_data/hashes.txt", "r") as f:
@@ -18,7 +18,7 @@ with open("test_data/hashes.txt", "r") as f:
 
 def test_from_mda():
     res16 = U.residues[16]
-    ensemble = chiLife.RotamerEnsemble.from_mda(res16)
+    ensemble = chilife.RotamerEnsemble.from_mda(res16)
     ensemble.save_pdb("test_data/test_from_MDA.pdb")
 
     with open("test_data/ans_from_MDA.pdb", "r") as f:
@@ -34,7 +34,7 @@ def test_from_mda():
 def test_with_sample():
     np.random.seed(200)
 
-    SL = chiLife.SpinLabel("R1C", 28, ubq, sample=2000)
+    SL = chilife.SpinLabel("R1C", 28, ubq, sample=2000)
 
     with np.load('test_data/withsample.npz') as f:
         ans = {key: f[key] for key in f}
@@ -47,8 +47,8 @@ def test_with_sample():
 
 
 def test_user_label():
-    SL = chiLife.SpinLabel("TRT", 28, ubq, "A")
-    chiLife.save(
+    SL = chilife.SpinLabel("TRT", 28, ubq, "A")
+    chilife.save(
         "test_data/1ubq_28TRT_tmp.pdb", SL, protein_path="test_data/1ubq.pdb", KDE=False
     )
 
@@ -66,7 +66,7 @@ def test_user_label():
 
 
 def test_save_pkl():
-    Lys = chiLife.RotamerEnsemble("LYS")
+    Lys = chilife.RotamerEnsemble("LYS")
 
     with open("test_data/Lys.pkl", "wb") as f:
         pickle.dump(Lys, f)
@@ -81,7 +81,7 @@ def test_save_pkl():
 
 def test_save_pkl_2():
     res16 = U.residues[16]
-    ensemble = chiLife.RotamerEnsemble.from_mda(res16)
+    ensemble = chilife.RotamerEnsemble.from_mda(res16)
     with open("test_data/res16.pkl", "wb") as f:
         pickle.dump(ensemble, f)
 
@@ -94,8 +94,8 @@ def test_save_pkl_2():
 
 def test_sample():
     np.random.seed(200)
-    ubq = chiLife.fetch("1ubq")
-    K48 = chiLife.RotamerEnsemble.from_mda(ubq.residues[47])
+    ubq = chilife.fetch("1ubq")
+    K48 = chilife.RotamerEnsemble.from_mda(ubq.residues[47])
     coords, weight = K48.sample(off_rotamer=True)
 
     wans = 0.0037019925960148086
@@ -115,20 +115,20 @@ def test_sample():
 
 
 def test_multisample():
-    ubq = chiLife.fetch("1ubq")
-    R1M = chiLife.SpinLabel.from_wizard("R1M", site=48, protein=ubq, to_find=10000)
+    ubq = chilife.fetch("1ubq")
+    R1M = chilife.SpinLabel.from_wizard("R1M", site=48, protein=ubq, to_find=10000)
 
 
-@pytest.mark.parametrize("res", chiLife.SUPPORTED_RESIDUES)
+@pytest.mark.parametrize("res", chilife.SUPPORTED_RESIDUES)
 def test_lib_distribution_persists(res):
-    if res in chiLife.USER_dLABELS:
+    if res in chilife.USER_dLABELS:
         return None
-    elif res in list(chiLife.SUPPORTED_LABELS) + list(chiLife.USER_LABELS):
-        L1 = chiLife.SpinLabel(res)
-        L2 = chiLife.SpinLabel(res, sample=100)
+    elif res in list(chilife.SUPPORTED_LABELS) + list(chilife.USER_LABELS):
+        L1 = chilife.SpinLabel(res)
+        L2 = chilife.SpinLabel(res, sample=100)
     else:
-        L1 = chiLife.RotamerEnsemble(res)
-        L2 = chiLife.RotamerEnsemble(res, sample=100)
+        L1 = chilife.RotamerEnsemble(res)
+        L2 = chilife.RotamerEnsemble(res, sample=100)
 
     np.testing.assert_almost_equal(L1._rdihedrals, L2._rdihedrals)
     np.testing.assert_almost_equal(L1._rsigmas, L2._rsigmas)
@@ -142,19 +142,19 @@ methods = ["rosetta", "bisect", "mmm", "fit"]
 def test_superimposition_method(method):
     if method == "fit":
         with pytest.raises(NotImplementedError) as e_info:
-            SL = chiLife.SpinLabel(
+            SL = chilife.SpinLabel(
                 "R1C", site=28, protein=ubq, superimposition_method=method, eval_clash=False
             )
-            chiLife.save(SL, ubq)
+            chilife.save(SL, ubq)
     else:
-        SL = chiLife.SpinLabel(
+        SL = chilife.SpinLabel(
             "R1C",
             site=28,
             protein=ubq,
             superimposition_method=method,
-            energy_func=partial(chiLife.get_lj_rep, forgive=0.8),
+            energy_func=partial(chilife.get_lj_rep, forgive=0.8),
         )
-        chiLife.save(
+        chilife.save(
             f"A28R1_{method}_superimposition.pdb", SL, "test_data/1ubq.pdb", KDE=False
         )
 
@@ -170,47 +170,47 @@ def test_superimposition_method(method):
 
 def test_catch_unused_kwargs():
     with pytest.raises(TypeError) as e_info:
-        SL = chiLife.SpinLabel("R1C", site=28, protein=ubq, supermposition_method="mmm")
+        SL = chilife.SpinLabel("R1C", site=28, protein=ubq, supermposition_method="mmm")
     assert (
         str(e_info.value) == "Got unexpected keyword argument(s): supermposition_method"
     )
 
 
 def test_guess_chain():
-    anf = chiLife.fetch("1anf")
-    SL = chiLife.SpinLabel.from_mmm("R1M", 20, forgive=0.9)
+    anf = chilife.fetch("1anf")
+    SL = chilife.SpinLabel.from_mmm("R1M", 20, forgive=0.9)
 
 
 @pytest.mark.parametrize(("resi", "ans"), ((20, "A"), (206, "B")))
 def test_guess_chain2(resi, ans):
-    SL = chiLife.SpinLabel("R1C", resi, exou)
+    SL = chilife.SpinLabel("R1C", resi, exou)
     assert SL.chain == ans
 
 
 @pytest.mark.parametrize("resi", (100, 344))
 def test_guess_chain_fail(resi):
     with pytest.raises(ValueError) as e_info:
-        SL = chiLife.SpinLabel("R1C", resi, exou)
+        SL = chilife.SpinLabel("R1C", resi, exou)
 
 
 def test_mem_sample():
-    SL1 = chiLife.SpinLabel('R1M', 28, ubq, sample=10000)
+    SL1 = chilife.SpinLabel('R1M', 28, ubq, sample=10000)
     print('booger')
 
 
 def test_label_as_library():
-    R1C = chiLife.RotamerEnsemble("R1C", site=28, protein=ubq)
+    R1C = chilife.RotamerEnsemble("R1C", site=28, protein=ubq)
     for ic in R1C.internal_coords:
         np.testing.assert_almost_equal(
             ic.coords[2], [38.73227962, 26.58109478, 12.6243569]
         )
 
 def test_coord_setter0():
-    R1C1 = chiLife.RotamerEnsemble("R1C", site=28, protein=ubq)
+    R1C1 = chilife.RotamerEnsemble("R1C", site=28, protein=ubq)
 
 def test_coord_setter():
-    R1C1 = chiLife.RotamerEnsemble("R1C", site=28, protein=ubq)
-    R1C2 = chiLife.RotamerEnsemble("R1C", site=29, protein=ubq)
+    R1C1 = chilife.RotamerEnsemble("R1C", site=28, protein=ubq)
+    R1C2 = chilife.RotamerEnsemble("R1C", site=29, protein=ubq)
 
     R1C1.coords = R1C2.coords
 
@@ -223,8 +223,8 @@ def test_coord_setter():
 
 
 def test_coord_setter2():
-    R1C1 = chiLife.RotamerEnsemble("R1C", site=28, protein=ubq, sample=100)
-    R1C2 = chiLife.RotamerEnsemble("R1C", site=28, protein=ubq, sample=100)
+    R1C1 = chilife.RotamerEnsemble("R1C", site=28, protein=ubq, sample=100)
+    R1C2 = chilife.RotamerEnsemble("R1C", site=28, protein=ubq, sample=100)
     R1C1.coords = R1C2.coords[:, R1C2.side_chain_idx]
 
     np.testing.assert_allclose(R1C1.coords, R1C2.coords)
@@ -232,8 +232,8 @@ def test_coord_setter2():
 
 
 def test_dihedral_setter():
-    R1C1 = chiLife.RotamerEnsemble("R1C", site=28, protein=ubq, sample=100)
-    R1C2 = chiLife.RotamerEnsemble("R1C", site=28, protein=ubq, sample=100)
+    R1C1 = chilife.RotamerEnsemble("R1C", site=28, protein=ubq, sample=100)
+    R1C2 = chilife.RotamerEnsemble("R1C", site=28, protein=ubq, sample=100)
     R1C1.dihedrals = R1C2.dihedrals
 
     np.testing.assert_allclose(R1C1.coords, R1C2.coords)
@@ -241,24 +241,24 @@ def test_dihedral_setter():
 
 
 def test_get_sasa():
-    R1C = chiLife.RotamerEnsemble("R1C")
+    R1C = chilife.RotamerEnsemble("R1C")
     sasas = R1C.get_sasa()
     sasans = np.load('test_data/sasas.npy')
     np.testing.assert_allclose(sasas, sasans)
 
 def test_default_dihedral_sigmas():
-    rotlib = chiLife.read_bbdep('R1C', -60, -50)
-    SL = chiLife.SpinLabel('R1C')
+    rotlib = chilife.read_bbdep('R1C', -60, -50)
+    SL = chilife.SpinLabel('R1C')
     np.testing.assert_allclose(rotlib['sigmas'][rotlib['sigmas'] != 0], SL.sigmas[SL.sigmas != 35.])
 
 def test_construct_with_dihedral_sigmas():
-    SL = chiLife.SpinLabel('R1C', dihedral_sigmas=25)
+    SL = chilife.SpinLabel('R1C', dihedral_sigmas=25)
     assert np.all(SL.sigmas == 25.)
     assert SL.sigmas.shape == (len(SL), len(SL.dihedral_atoms))
 
 def test_construct_with_array_of_dihedral_sigmas():
     set_sigmas = [10, 20, 30, 40, 50]
-    SL = chiLife.SpinLabel('R1C', dihedral_sigmas=set_sigmas)
+    SL = chilife.SpinLabel('R1C', dihedral_sigmas=set_sigmas)
     for i in range(5):
         assert np.all(SL.sigmas[:,i] == set_sigmas[i])
 
@@ -266,28 +266,28 @@ def test_construct_with_array_of_dihedral_sigmas():
 
 def test_construct_with_full_array_of_dihedral_sigmas():
     set_sigmas = np.random.rand(148, 5)
-    SL = chiLife.SpinLabel('R1C', dihedral_sigmas=set_sigmas)
+    SL = chilife.SpinLabel('R1C', dihedral_sigmas=set_sigmas)
     np.testing.assert_allclose(set_sigmas, SL.sigmas)
 
 def test_dihedral_sigmas_fail():
     with pytest.raises(ValueError):
-        SL = chiLife.SpinLabel('R1C', dihedral_sigmas=[5, 2, 1])
+        SL = chilife.SpinLabel('R1C', dihedral_sigmas=[5, 2, 1])
 
 def test_set_dihedral_sigmas():
-    SL = chiLife.SpinLabel('R1A')
+    SL = chilife.SpinLabel('R1A')
     assert np.all(SL.sigmas == 35.)
     SL.set_dihedral_sampling_sigmas(25)
     assert np.all(SL.sigmas == 25.)
 
 
 def test_sample_dihedral3():
-    SL = chiLife.SpinLabel('R1A', 27, ubq, sample=1000)
+    SL = chilife.SpinLabel('R1A', 27, ubq, sample=1000)
 
 
 def test_clash_radius():
-    RL = chiLife.SpinLabel('TRT')
+    RL = chilife.SpinLabel('TRT')
     assert RL.clash_radius == np.linalg.norm(RL.coords - RL.clash_ori, axis=-1).max() + 5
 
 def test_nataa():
-    SL = chiLife.SpinLabel('R1A', 28, ubq)
+    SL = chilife.SpinLabel('R1A', 28, ubq)
     assert SL.nataa == 'A'

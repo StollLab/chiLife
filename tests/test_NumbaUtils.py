@@ -3,8 +3,8 @@ from scipy.stats import norm
 from scipy.special import kl_div
 from scipy.spatial.distance import cdist
 import pytest
-import chiLife.numba_utils as nu
-import chiLife as xl
+import chilife.numba_utils as nu
+import chilife as xl
 
 
 def test_compute_bin():

@@ -4,21 +4,21 @@ from functools import partial
 import numpy as np
 import pytest
 import MDAnalysis as mda
-import chiLife
+import chilife
 import networkx as nx
 
 pdbids = ["1ubq", "1a2w", '1az5']
-ubq = chiLife.fetch("1ubq")
+ubq = chilife.fetch("1ubq")
 resis = [
     (key, -90, 160)
-    for key in chiLife.dihedral_defs
+    for key in chilife.dihedral_defs
     if key
-    not in (chiLife.SUPPORTED_LABELS +
+    not in (chilife.SUPPORTED_LABELS +
             ("R1B", "R1C", "CYR1", "MTN", "ALA", "GLY") +
-            tuple(chiLife.USER_LABELS) +
-            tuple(chiLife.USER_dLABELS))
+            tuple(chilife.USER_LABELS) +
+            tuple(chilife.USER_dLABELS))
 ]
-ICs = chiLife.get_internal_coords(ubq)
+ICs = chilife.get_internal_coords(ubq)
 gd_kwargs = [
     {"resi": 28, "atom_list": ["C", "N", "CA", "C"]},
     {"resi": 28, "atom_list": [["C", "N", "CA", "C"], ["N", "CA", "C", "N"]]},
@@ -30,9 +30,9 @@ gd_ans = [-1.1540443794802524, np.array([-1.15404438, -0.66532042])]
 def test_read_dunbrack(res):
     res, phi, psi = res
 
-    dlib = chiLife.read_bbdep(res, -70, 90)
+    dlib = chilife.read_bbdep(res, -70, 90)
 
-    dlib_mx, dlib_ori = chiLife.global_mx(*np.squeeze(dlib["coords"][0, :3]))
+    dlib_mx, dlib_ori = chilife.global_mx(*np.squeeze(dlib["coords"][0, :3]))
     dlib["coords"] = np.einsum("ijk,kl->ijl", dlib["coords"], dlib_mx) + dlib_ori
 
 
@@ -48,17 +48,17 @@ def test_read_dunbrack(res):
 
 @pytest.mark.parametrize("pdbid", pdbids)
 def test_get_internal_coordinates(pdbid):
-    protein = chiLife.fetch(pdbid).select_atoms("protein and not altloc B")
+    protein = chilife.fetch(pdbid).select_atoms("protein and not altloc B")
 
     t1 = time.perf_counter()
-    ICs = chiLife.get_internal_coords(protein)
+    ICs = chilife.get_internal_coords(protein)
     print(time.perf_counter() - t1)
 
     np.testing.assert_almost_equal(ICs.coords, protein.atoms.positions, decimal=4)
 
 
 def test_icset_dihedral():
-    ICs = chiLife.get_internal_coords(ubq)
+    ICs = chilife.get_internal_coords(ubq)
     ICs.set_dihedral(
         [-np.pi / 2, np.pi / 2], 72, [["C", "N", "CA", "C"], ["N", "CA", "C", "N"]]
     )
@@ -70,7 +70,7 @@ def test_icset_dihedral():
 
 def test_sort_pdb():
     pdbfile = "test_data/trt.pdb"
-    x = chiLife.sort_pdb(pdbfile)
+    x = chilife.sort_pdb(pdbfile)
 
     linest = [line for line in x if line[76:79].strip() != 'H']
     test = hashlib.md5("".join(linest).encode("utf-8")).hexdigest()
@@ -84,7 +84,7 @@ def test_sort_pdb():
 
 
 def test_sort_pdb2():
-    x = chiLife.sort_pdb("test_data/GR1G.pdb")
+    x = chilife.sort_pdb("test_data/GR1G.pdb")
 
     with open("test_data/GR1G_tmp.pdb", "w") as f:
         for line in x:
@@ -97,7 +97,7 @@ def test_sort_pdb2():
 
 
 def test_sort_pdb3():
-    x = chiLife.sort_pdb("test_data/SL_GGAGG.pdb")
+    x = chilife.sort_pdb("test_data/SL_GGAGG.pdb")
 
     with open("test_data/SL_GGAGG_tmp.pdb", "w") as f:
         for line in x:
@@ -105,11 +105,11 @@ def test_sort_pdb3():
 
     U = mda.Universe("test_data/SL_GGAGG_tmp.pdb", in_memory=True)
     os.remove("test_data/SL_GGAGG_tmp.pdb")
-    ICs = chiLife.get_internal_coords(U, preferred_dihedrals=[["C", "N", "CA", "C"]])
+    ICs = chilife.get_internal_coords(U, preferred_dihedrals=[["C", "N", "CA", "C"]])
 
 
 def test_sort_manymodels():
-    x = chiLife.sort_pdb("test_data/msort.pdb")
+    x = chilife.sort_pdb("test_data/msort.pdb")
     with open("test_data/msort_tmp.pdb", "w") as f:
         for i, struct in enumerate(x):
             f.write(f"MODEL {i}\n")
@@ -130,21 +130,21 @@ def test_sort_manymodels():
 
 def test_makeics():
     traj = mda.Universe("test_data/msort_ans.pdb")
-    ICs = [chiLife.get_internal_coords(traj) for ts in traj.universe.trajectory]
+    ICs = [chilife.get_internal_coords(traj) for ts in traj.universe.trajectory]
 
     print("d")
 
 
 def test_mutate():
-    protein = chiLife.fetch("1ubq").select_atoms("protein")
-    SL = chiLife.SpinLabel(
+    protein = chilife.fetch("1ubq").select_atoms("protein")
+    SL = chilife.SpinLabel(
         "R1C",
         site=28,
         protein=protein,
-        energy_func=partial(chiLife.get_lj_rep, forgive=0.8),
+        energy_func=partial(chilife.get_lj_rep, forgive=0.8),
     )
 
-    labeled_protein = chiLife.mutate(protein, SL)
+    labeled_protein = chilife.mutate(protein, SL)
     ub1_A28R1 = mda.Universe("test_data/1ubq_A28R1.pdb")
 
     np.testing.assert_almost_equal(
@@ -153,21 +153,21 @@ def test_mutate():
 
 
 def test_mutate2():
-    protein = chiLife.fetch("1ubq").select_atoms("protein")
-    SL1 = chiLife.SpinLabel(
+    protein = chilife.fetch("1ubq").select_atoms("protein")
+    SL1 = chilife.SpinLabel(
         "R1C",
         site=28,
         protein=protein,
-        energy_func=partial(chiLife.get_lj_rep, forgive=0.8),
+        energy_func=partial(chilife.get_lj_rep, forgive=0.8),
     )
-    SL2 = chiLife.SpinLabel(
+    SL2 = chilife.SpinLabel(
         "R1C",
         site=48,
         protein=protein,
-        energy_func=partial(chiLife.get_lj_rep, forgive=0.8),
+        energy_func=partial(chilife.get_lj_rep, forgive=0.8),
     )
 
-    labeled_protein = chiLife.mutate(protein, SL1, SL2)
+    labeled_protein = chilife.mutate(protein, SL1, SL2)
     ub1_A28R1_K48R1 = mda.Universe("test_data/ub1_A28R1_K48R1.pdb")
     np.testing.assert_almost_equal(
         ub1_A28R1_K48R1.atoms.positions, labeled_protein.atoms.positions, decimal=3
@@ -176,18 +176,18 @@ def test_mutate2():
 
 def test_mutate3():
     protein = mda.Universe("test_data/1omp_H.pdb").select_atoms("protein")
-    SL1 = chiLife.SpinLabel("R1C", site=238, protein=protein, use_H=True)
-    SL2 = chiLife.SpinLabel("R1C", site=311, protein=protein, use_H=True)
+    SL1 = chilife.SpinLabel("R1C", site=238, protein=protein, use_H=True)
+    SL2 = chilife.SpinLabel("R1C", site=311, protein=protein, use_H=True)
 
-    labeled_protein = chiLife.mutate(protein, SL1, SL2)
+    labeled_protein = chilife.mutate(protein, SL1, SL2)
     assert len(labeled_protein.atoms) != len(protein.atoms)
 
 
 def test_mutate4():
     protein = mda.Universe("test_data/1omp_H.pdb").select_atoms("protein")
-    D41G = chiLife.RotamerEnsemble("GLY", 41, protein=protein)
-    S238A = chiLife.RotamerEnsemble("ALA", 238, protein=protein)
-    mPro = chiLife.mutate(protein, D41G, S238A, add_missing_atoms=False)
+    D41G = chilife.RotamerEnsemble("GLY", 41, protein=protein)
+    S238A = chilife.RotamerEnsemble("ALA", 238, protein=protein)
+    mPro = chilife.mutate(protein, D41G, S238A, add_missing_atoms=False)
     D41G_pos = mPro.select_atoms("resnum 41").positions
     S238A_pos = mPro.select_atoms("resnum 238").positions
     np.testing.assert_almost_equal(D41G._coords[0], D41G_pos, decimal=6)
@@ -196,9 +196,9 @@ def test_mutate4():
 
 def test_mutate5():
     PPII = mda.Universe('test_data/PolyProII.pdb')
-    TOC = chiLife.SpinLabel('TOC', 8, PPII)
+    TOC = chilife.SpinLabel('TOC', 8, PPII)
 
-    PPIIm = chiLife.mutate(PPII, TOC)
+    PPIIm = chilife.mutate(PPII, TOC)
     assert PPIIm.residues[-1].resname == 'NHH'
 
 
@@ -212,7 +212,7 @@ def test_get_dihedral(inp, ans):
 def test_ProteinIC_save_pdb():
     protein = mda.Universe("test_data/alphabetical_peptide.pdb").select_atoms("protein")
 
-    uni_ics = chiLife.get_internal_coords(protein)
+    uni_ics = chilife.get_internal_coords(protein)
     uni_ics.save_pdb("test_data/postwrite_alphabet_peptide.pdb")
 
     with open("test_data/postwrite_alphabet_peptide.pdb", "r") as f:
@@ -228,7 +228,7 @@ def test_ProteinIC_save_pdb():
 def test_ic_to_site():
     backbone = ubq.select_atoms("resnum 28 and name N CA C").positions
     r1c = mda.Universe("../chiLife/data/rotamer_libraries/residue_pdbs/R1C.pdb")
-    R1ic = chiLife.get_internal_coords(r1c)
+    R1ic = chilife.get_internal_coords(r1c)
     R1ic.to_site(*backbone)
 
     np.testing.assert_almost_equal(R1ic.coords[1], backbone[1])
@@ -241,26 +241,26 @@ def test_has_clashes():
 
 
 def test_add_missing_atoms():
-    protein = chiLife.fetch("1omp").select_atoms("protein")
-    new_prot = chiLife.mutate(protein)
+    protein = chilife.fetch("1omp").select_atoms("protein")
+    new_prot = chilife.mutate(protein)
     assert len(new_prot.atoms) != len(protein.atoms)
     assert len(new_prot.atoms) == 2877
 
 
 def test_polypro_IC():
     polypro = mda.Universe("test_data/PPII_Capped.pdb")
-    polyproIC = chiLife.get_internal_coords(polypro)
+    polyproIC = chilife.get_internal_coords(polypro)
 
 
 @pytest.mark.parametrize(
-    "res", set(chiLife.dihedral_defs.keys()) -
+    "res", set(chilife.dihedral_defs.keys()) -
            {"CYR1", "MTN", "R1M", "R1C"} -
-           chiLife.USER_dLABELS -
-           chiLife.USER_LABELS
+           chilife.USER_dLABELS -
+           chilife.USER_LABELS
 )
 def test_sort_and_internal_coords(res):
-    pdbfile = chiLife.RL_DIR / f"residue_pdbs/{res.lower()}.pdb"
-    lines = chiLife.sort_pdb(str(pdbfile))
+    pdbfile = chilife.RL_DIR / f"residue_pdbs/{res.lower()}.pdb"
+    lines = chilife.sort_pdb(str(pdbfile))
     anames = [line[13:16] for line in lines if "H" not in line[12:16]]
 
     with open(pdbfile, "r") as f:
@@ -276,11 +276,11 @@ def test_sort_and_internal_coords(res):
 
 def test_PRO_ics():
     pro = mda.Universe("../chiLife/data/rotamer_libraries/residue_pdbs/pro.pdb")
-    pro_ic = chiLife.get_internal_coords(pro)
+    pro_ic = chilife.get_internal_coords(pro)
     assert ("CD", "CG", "CB", "CA") in pro_ic.ICs[1][1]
 
 def test_PRO_ics2():
-    ubq_IC = chiLife.get_internal_coords(ubq)
+    ubq_IC = chilife.get_internal_coords(ubq)
 
     assert ("C", "CA", "N", "C") in ubq_IC.ICs[1][37]
     assert ("C", "CA", "N", "C") in ubq_IC.ICs[1][38]
@@ -288,7 +288,7 @@ def test_PRO_ics2():
 
 def test_ProteinIC_set_coords():
     R1A = mda.Universe("../chiLife/data/rotamer_libraries/residue_pdbs/R1A.pdb")
-    R1A_IC = chiLife.get_internal_coords(R1A)
+    R1A_IC = chilife.get_internal_coords(R1A)
     R1A_IC_c = R1A_IC.copy()
     R1A_IC_c.set_dihedral([np.pi/2, -np.pi/2, np.pi/2], 1, [['N', 'CA', 'CB', 'SG' ],
                                                             ['CA', 'CB', 'SG', 'SD'],
@@ -314,7 +314,7 @@ def test_get_min_topol():
         elif line.startswith('ENDMDL'):
             all_lines.append(newlines)
 
-    min_bonds = chiLife.get_min_topol(all_lines)
+    min_bonds = chilife.get_min_topol(all_lines)
     ans = {(0, 1), (0, 2), (0, 6), (2, 3), (2, 4), (2, 5), (6, 7), (6, 16), (7, 8), (7, 10), (7, 17), (8, 9), (8, 23),
            (10, 11), (10, 18), (10, 19), (11, 12), (11, 13), (12, 15), (12, 20), (13, 14), (13, 21), (14, 15), (14, 22),
            (15, 77), (23, 24), (23, 27), (24, 25), (24, 28), (24, 29), (25, 26), (25, 30), (30, 31), (30, 34), (31, 32),

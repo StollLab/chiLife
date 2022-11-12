@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
-import chiLife
-from chiLife.Protein import Protein, parse_paren, Residue, ResidueSelection, Segment, SegmentSelection, AtomSelection
+import chilife
+from chilife.Protein import Protein, parse_paren, Residue, ResidueSelection, Segment, SegmentSelection, AtomSelection
 import MDAnalysis as mda
 
 prot = Protein.from_pdb('test_data/1omp_H.pdb')
@@ -131,17 +131,17 @@ def test_within():
 
 
 def test_SL_Protein():
-    omp = chiLife.Protein.from_pdb('test_data/1omp.pdb')
+    omp = chilife.Protein.from_pdb('test_data/1omp.pdb')
     ompmda = mda.Universe('test_data/1omp.pdb')
 
-    SL1 = chiLife.SpinLabel('R1M', 20, omp)
-    SL2 = chiLife.SpinLabel('R1M', 20, ompmda)
+    SL1 = chilife.SpinLabel('R1M', 20, omp)
+    SL2 = chilife.SpinLabel('R1M', 20, ompmda)
 
     assert SL1 == SL2
 
 
 def test_trajectory():
-    p = chiLife.Protein.from_pdb('test_data/2klf.pdb')
+    p = chilife.Protein.from_pdb('test_data/2klf.pdb')
     ans = np.array([[41.068,  2.309,  0.296],
                     [39.431,  5.673,  2.669],
                     [39.041,  6.607,  2.738],
@@ -161,13 +161,13 @@ def test_trajectory():
 
 
 def test_trajectory_set():
-    p = chiLife.Protein.from_pdb('test_data/2klf.pdb')
+    p = chilife.Protein.from_pdb('test_data/2klf.pdb')
     p.trajectory[5]
     np.testing.assert_allclose([34.155,  6.464,  8.545], p.coords[0])
 
 
 def test_selection_traj():
-    p = chiLife.Protein.from_pdb('test_data/2klf.pdb')
+    p = chilife.Protein.from_pdb('test_data/2klf.pdb')
     s = p.select_atoms('resi 10 and name CB')
     np.testing.assert_allclose(s.coords, [16.569, -1.406, 11.158])
     p.trajectory[5]
@@ -175,7 +175,7 @@ def test_selection_traj():
 
 
 def test_ResidueSelection():
-    p = chiLife.Protein.from_pdb('test_data/1omp.pdb')
+    p = chilife.Protein.from_pdb('test_data/1omp.pdb')
     r = p.residues[10:12]
     assert isinstance(r, ResidueSelection)
     assert len(r) == 2
@@ -188,7 +188,7 @@ def test_ResidueSelection():
 
 
 def test_save_Protein():
-    p = chiLife.Protein.from_pdb('test_data/1omp.pdb')
-    chiLife.save('my_protein.pdb', p)
+    p = chilife.Protein.from_pdb('test_data/1omp.pdb')
+    chilife.save('my_protein.pdb', p)
     print('wait')
 

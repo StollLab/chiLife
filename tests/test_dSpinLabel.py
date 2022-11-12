@@ -3,7 +3,7 @@ import hashlib
 import numpy as np
 import pytest
 import MDAnalysis as mda
-import chiLife as xl
+import chilife as xl
 
 import matplotlib.pyplot as plt
 

@@ -2,7 +2,7 @@ from typing import Tuple, Callable
 import numpy as np
 from numpy.typing import ArrayLike
 from numba import njit
-from chiLife import jaccard, dirichlet
+from chilife import jaccard, dirichlet
 
 # TODO: Move int examples
 @njit(cache=True)

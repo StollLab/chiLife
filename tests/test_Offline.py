@@ -1,6 +1,6 @@
 import MDAnalysis as mda
 import numpy as np
-import chiLife as xl
+import chilife as xl
 
 def test_add_dlabel():
     Energies = np.loadtxt("test_data/DHC.energies")[:, 1]

@@ -26,7 +26,7 @@ integrated into many python based modeling workflows. Creating a SpinLabel objec
 ```python
 import numpy as np
 import matplotlib.pyplot as plt
-import chiLife as xl
+import chilife as xl
 
 # Download protein structure from PDB
 MBP = xl.fetch('1omp', save=True)
@@ -64,14 +64,14 @@ In addition to its own features, chiLife offers spin label modeling methods that
 modeling applications.
 
 ```python
-import chiLife as xl
+import chilife as xl
 
 MBP = xl.fetch('1omp')
 SLmmm = xl.SpinLabel.from_mmm('R1M', site=238, protein=MBP)
 SLWiz = xl.SpinLabel.from_wizard('R1M', site=238, protein=MBP,
-                                      to_find=50, to_try=1000,  # Equivalent to 'quick' search, default is 'thorough'   
-                                      vdw=3.4, clashes=0,  # MTSSLWizard 'tight' setting, default is 'loose' 
-                                      )
+                                 to_find=50, to_try=1000,  # Equivalent to 'quick' search, default is 'thorough'   
+                                 vdw=3.4, clashes=0,  # MTSSLWizard 'tight' setting, default is 'loose' 
+                                 )
 ```
 
 ### Local repacking and off-rotamer sampling 
@@ -80,7 +80,7 @@ methods to repack a SpinLabel, and it's neighboring amino acids, and to sample s
 canonical dihedral angles and fixed rotamer libraries.
 
 ```python
-import chiLife
+import chilife
 
 MBP = xl.fetch('1omp')
 
@@ -119,7 +119,7 @@ Sometimes you don't want a whole rotamer ensembles, you just want a protein stru
 the most probable spin label conformer. This can be done easily with the `mutate` function.
 
 ```python
-import chiLife as xl
+import chilife as xl
 
 MBP = xl.fetch('1omp')
 SL = xl.SpinLabel('R1C', 238, protein=MBP)

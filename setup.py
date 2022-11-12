@@ -5,8 +5,8 @@ import shutil
 setup(
     name='chiLife',
     version='0.1',
-    packages=['chiLife'],
-    package_data={'chiLife': ['data/*', 'data/*/*', 'data/*/*/*']},
+    packages=['chilife'],
+    package_data={'chilife': ['data/*', 'data/*/*', 'data/*/*/*']},
     url='',
     license='',
     author='Maxx Tessmer',

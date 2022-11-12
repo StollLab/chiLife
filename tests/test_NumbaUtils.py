@@ -60,13 +60,13 @@ def test_kl_divergence():
     assert nu.kl_divergence(p1, p2) == pytest.approx(kl_div(p1, p2).sum())
 
 
-def test_norm():
+def test_normdist():
     mu, sigma = 50, 10
     delta_r = 1e-2
     x = np.arange(mu - 3 * sigma, mu + 3 * sigma + delta_r, delta_r)
 
     y1 = norm(mu, sigma).pdf(x)
-    y2 = nu.norm(delta_r, 50, 10)[1]
+    y2 = nu.normdist(delta_r, 50, 10)[1]
 
     np.testing.assert_almost_equal(y1, y2)
 
@@ -104,6 +104,7 @@ def test_fib_points():
                     [-0.40291289,  0.16631658, -0.9]])
 
     np.testing.assert_allclose(x, ans)
+
 
 def test_get_sasa1():
     ubq = xl.fetch('1ubq')

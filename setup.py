@@ -3,7 +3,7 @@ from pathlib import Path
 import shutil
 
 setup(
-    name='chiLife',
+    name='chilife',
     version='0.1',
     packages=['chilife'],
     package_data={'chilife': ['data/*', 'data/*/*', 'data/*/*/*']},

@@ -227,7 +227,7 @@ def test_ProteinIC_save_pdb():
 
 def test_ic_to_site():
     backbone = ubq.select_atoms("resnum 28 and name N CA C").positions
-    r1c = mda.Universe("../chiLife/data/rotamer_libraries/residue_pdbs/R1C.pdb")
+    r1c = mda.Universe("../chilife/data/rotamer_libraries/residue_pdbs/R1C.pdb")
     R1ic = chilife.get_internal_coords(r1c)
     R1ic.to_site(*backbone)
 
@@ -275,7 +275,7 @@ def test_sort_and_internal_coords(res):
 
 
 def test_PRO_ics():
-    pro = mda.Universe("../chiLife/data/rotamer_libraries/residue_pdbs/pro.pdb")
+    pro = mda.Universe("../chilife/data/rotamer_libraries/residue_pdbs/pro.pdb")
     pro_ic = chilife.get_internal_coords(pro)
     assert ("CD", "CG", "CB", "CA") in pro_ic.ICs[1][1]
 
@@ -287,7 +287,7 @@ def test_PRO_ics2():
 
 
 def test_ProteinIC_set_coords():
-    R1A = mda.Universe("../chiLife/data/rotamer_libraries/residue_pdbs/R1A.pdb")
+    R1A = mda.Universe("../chilife/data/rotamer_libraries/residue_pdbs/R1A.pdb")
     R1A_IC = chilife.get_internal_coords(R1A)
     R1A_IC_c = R1A_IC.copy()
     R1A_IC_c.set_dihedral([np.pi/2, -np.pi/2, np.pi/2], 1, [['N', 'CA', 'CB', 'SG' ],

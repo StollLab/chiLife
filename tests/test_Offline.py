@@ -10,7 +10,7 @@ def test_add_dlabel():
         "___",
         "test_data/DHC.pdb",
         4,
-        resi=2,
+        site=2,
         weights=P,
         dihedral_atoms=[
             [["N", "CA", "CB", "CG"], ["CA", "CB", "CG", "ND1"]],

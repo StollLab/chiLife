@@ -452,9 +452,9 @@ def add_label(
     None
     """
     struct = pre_add_label(name, pdb, spin_atoms)
-    pdb_resname = struct.select_atoms(f"resnum {resi}").resnames[0]
+    pdb_resname = struct.select_atoms(f"resnum {site}").resnames[0]
     add_dihedral_def(name, dihedral_atoms)
-    resi_selection = struct.select_atoms(f"resnum {resi}")
+    resi_selection = struct.select_atoms(f"resnum {site}")
     bonds = resi_selection.intra_bonds.indices - resi_selection.atoms[0].ix
 
     # Convert loaded rotamer ensemble to internal coords
@@ -558,11 +558,11 @@ def add_dlabel(
     USER_dLABELS.add(name)
     add_dihedral_def(name, dihedral_atoms)
     struct = pre_add_label(name, pdb, spin_atoms, uniform_topology=False)
-    pdb_resname = struct.select_atoms(f"resnum {resi}").resnames[0]
+    pdb_resname = struct.select_atoms(f"resnum {site}").resnames[0]
 
     IC1 = [
         chilife.get_internal_coords(
-            struct.select_atoms(f"resnum {resi}"),
+            struct.select_atoms(f"resnum {site}"),
             preferred_dihedrals=dihedral_atoms[0],
         )
         for ts in struct.trajectory

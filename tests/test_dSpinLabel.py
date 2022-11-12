@@ -21,7 +21,7 @@ def test_add_dlabel():
         "___",
         "test_data/DHC.pdb",
         4,
-        resi=2,
+        site=2,
         weights=P,
         dihedral_atoms=[
             [["N", "CA", "CB", "CG"], ["CA", "CB", "CG", "ND1"]],
@@ -103,7 +103,7 @@ def test_add_dlabel2():
     dihedral_atoms = [[["N", "CA", "CB", "CG"], ["CA", "CB", "CG", "ND1"]],
                       [["N", "CA", "CB", "CG"], ["CA", "CB", "CG", "ND1"]]]
 
-    xl.add_dlabel('___', 'test_data/HCS.pdb', resi=2, increment=2, dihedral_atoms=dihedral_atoms, spin_atoms='Cu1')
+    xl.add_dlabel('___', 'test_data/HCS.pdb', site=2, increment=2, dihedral_atoms=dihedral_atoms, spin_atoms='Cu1')
 
     SL1 = xl.dSpinLabel("___", [6, 8], gb1)
     r = np.linspace(15, 80, 256)
@@ -121,7 +121,7 @@ def test_single_chain_error():
                                        ['CA', 'C13', 'C5', 'C6']],
                                       [['N', 'CA', 'C12', 'C2'],
                                        ['CA', 'C12', 'C2', 'C3']]],
-                      resi=15,
+                      site=15,
                       spin_atoms='Cu1')
     xl.remove_label('___', prompt=False)
 

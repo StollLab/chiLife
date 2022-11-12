@@ -257,7 +257,7 @@ def test_single_chain_error():
                            increment=2,
                            dihedral_atoms=[['N', 'CA', 'C13', 'C5'],
                                            ['CA', 'C13', 'C5', 'C6']],
-                           resi=15,
+                           site=15,
                            spin_atoms='Cu1')
 
 def test_set_params():

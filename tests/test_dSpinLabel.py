@@ -34,7 +34,7 @@ def test_add_dlabel():
 def test_distance_distribution():
     r = np.linspace(15, 50, 256)
     SL1 = xl.SpinLabel("R1A", 6, gb1)
-    dd = xl.get_dd(SL1, SL2, r)
+    dd = xl.distance_distribution(SL1, SL2, r)
     # # np.testing.assert_almost_equal(
     #     dd[50:60],
     #     [
@@ -107,7 +107,7 @@ def test_add_dlabel2():
 
     SL1 = xl.dSpinLabel("___", [6, 8], gb1)
     r = np.linspace(15, 80, 256)
-    dd = xl.get_dd(SL1, SL2, r, sigma=0.5)
+    dd = xl.distance_distribution(SL1, SL2, r, sigma=0.5)
 
     assert r[np.argmax(dd)] == 23.41176470588235
     xl.remove_label('___', prompt=False)

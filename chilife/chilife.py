@@ -42,11 +42,11 @@ SUPPORTED_RESIDUES = set(
 [SUPPORTED_RESIDUES.remove(lab) for lab in ("CYR1", "MTN")]
 
 
-def get_dd(
+def distance_distribution(
     *args: SpinLabel,
     r: ArrayLike = None,
     sigma: float = 1.0,
-    spin_populations = False,
+    use_spin_centers: bool = True,
     uq: bool = False,
 ) -> np.ndarray:
     """Calculates total distribution of spin-spin distances among an arbitrary number of spin labels, using the
@@ -67,7 +67,7 @@ def get_dd(
     sigma : float
         The standard deviation of the normal distribution used in convolution with the distance histogram, in angstrom.
         Default is 1.
-    spin_populations : bool
+    use_spin_centers : bool
         If False, distances are computed between spin centers. If True, distances are computed by summing over
         the distributed spin density on spin-bearing atoms on the labels.
     uq : bool
@@ -119,17 +119,17 @@ def get_dd(
                 dummy_SL.weights /= dummy_SL.weights.sum()
                 dummy_labels.append(dummy_SL)
 
-            Ps.append(pair_dd(*dummy_labels, r=r, sigma=sigma, spin_populations=spin_populations))
+            Ps.append(pair_dd(*dummy_labels, r=r, sigma=sigma, use_spin_centers=use_spin_centers))
         Ps = np.array(Ps)
         return Ps
 
     else:
 
-        P = pair_dd(*args, r=r, sigma=sigma, spin_populations=spin_populations)
+        P = pair_dd(*args, r=r, sigma=sigma, use_spin_centers=use_spin_centers)
         return P
 
 
-def pair_dd(*args, r: ArrayLike, sigma: float = 1.0, spin_populations = False) -> np.ndarray:
+def pair_dd(*args, r: ArrayLike, sigma: float = 1.0, use_spin_centers: bool = True) -> np.ndarray:
     """Obtain the total pairwise spin-spin distance distribution over ``r`` for a list of spin labels.
     The distribution is calculated by convolving the weighted histogram of pairwise spin-spin
     distances with a normal distribution with standard deviation ``sigma``.
@@ -142,7 +142,7 @@ def pair_dd(*args, r: ArrayLike, sigma: float = 1.0, spin_populations = False) -
         Distance domain vector, in angstrom
     sigma : float
          Standard deviation of normal distribution used for convolution, in angstrom
-    spin_populations : bool
+    use_spin_centers : bool
         If False, distances are computed between spin centers. If True, distances are computed by summing over
         the distributed spin density on spin-bearing atoms on the labels.
 
@@ -156,16 +156,17 @@ def pair_dd(*args, r: ArrayLike, sigma: float = 1.0, spin_populations = False) -
     SL_Pairs = combinations(args, 2)
     weights, distances = [], []
     for SL1, SL2 in SL_Pairs:
-        if spin_populations:
-            coords1 = SL1.spin_coords.reshape(-1 ,3)
-            coords2 = SL2.spin_coords.reshape(-1, 3)
-            weights1 = np.outer(SL1.weights, SL1.spin_weights).flatten()
-            weights2 = np.outer(SL2.weights, SL2.spin_weights).flatten()
-        else:
+        if use_spin_centers:
             coords1 = SL1.spin_centers
             coords2 = SL2.spin_centers
             weights1 = SL1.weights
             weights2 = SL2.weights
+        else:
+            coords1 = SL1.spin_coords.reshape(-1 ,3)
+            coords2 = SL2.spin_coords.reshape(-1, 3)
+            weights1 = np.outer(SL1.weights, SL1.spin_weights).flatten()
+            weights2 = np.outer(SL2.weights, SL2.spin_weights).flatten()
+
         distances.append(cdist(coords1, coords2).flatten())
         weights.append(np.outer(weights1, weights2).flatten())
 
@@ -200,7 +201,7 @@ def traj_dd(
     sigma: float,
     **kwargs,
 ) -> np.ndarray:
-    """Calculate a distance distribution from a trajectory of spin labels by calling ``get_dd`` on each frame and
+    """Calculate a distance distribution from a trajectory of spin labels by calling ``distance_distribution`` on each frame and
     averaging the resulting distributions.
 
     Parameters
@@ -215,7 +216,7 @@ def traj_dd(
         Option to prune out negligible population rotamer pairs from distance distribution calculation. The fraction
         omitted can be specified by assigning a float to ``prune``
     **kwargs : dict, optional
-        Additional keyword arguments to pass to ``get_dd`` .
+        Additional keyword arguments to pass to ``distance_distribution`` .
 
     Returns
     -------
@@ -230,7 +231,7 @@ def traj_dd(
     # Calculate the distance distribution for each frame and sum
     P = np.zeros_like(r)
     for _SL1, _SL2 in zip(SL1, SL2):
-        P += get_dd(_SL1, _SL2, r=r, sigma=sigma, **kwargs)
+        P += distance_distribution(_SL1, _SL2, r=r, sigma=sigma, **kwargs)
 
     # Normalize distance distribution
     P /= np.trapz(P, r)

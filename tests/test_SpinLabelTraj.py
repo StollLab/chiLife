@@ -28,7 +28,7 @@ import chilife
 #     SLTraj1 = ProEPR.SpinLabelTraj('R1A', 45, 'A', mv0)
 #     SLTraj2 = ProEPR.SpinLabelTraj('R1A', 55, 'A', mv0)
 #     r = np.linspace(10, 80, 256)
-#     P = ProEPR.get_dd(SLTraj1, SLTraj2, r)
+#     P = ProEPR.distance_distribution(SLTraj1, SLTraj2, r)
 #
 #     plt.plot(r, P)
 #     plt.show()

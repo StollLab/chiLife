@@ -14,7 +14,7 @@ protein = U.select_atoms("protein")
 r = np.linspace(0, 100, 2**8)
 old_ef = lambda protein, ensemble: chilife.get_lj_rep(protein, ensemble, forgive=0.8)
 
-# get permutations for get_dd() tests
+# get permutations for distance_distribution() tests
 kws = []
 args = []
 for SL in labels:
@@ -27,9 +27,9 @@ for SL in labels:
 
     kws.append({"r": np.linspace(0, 80, 1024)})
     kws.append({"r": np.linspace(20, 80, 256)})
-    kws.append({'spin_populations': True})
+    kws.append({'use_spin_centers': False})
     kws.append({'sigma': 2})
-    kws.append({'sigma': 0.5, 'spin_populations': True})
+    kws.append({'sigma': 0.5, 'use_spin_centers': False})
 
 ans = []
 with np.load("test_data/get_dd_tests.npz", allow_pickle=True) as f:
@@ -103,12 +103,12 @@ def test_get_lj_eps():
 
 
 @pytest.mark.parametrize("args, kws, expected", zip(args, kws, ans))
-def test_get_dd(args, kws, expected):
+def test_distance_distribution(args, kws, expected):
     kws.setdefault('r', r)
     P_ans = expected
-    P = chilife.get_dd(*args, **kws)
+    P = chilife.distance_distribution(*args, **kws)
 
-    # Stored values normalized to 1 while get_dd normalizes to r
+    # Stored values normalized to 1 while distance_distribution normalizes to r
     np.testing.assert_almost_equal(P, P_ans)
 
 
@@ -116,8 +116,8 @@ def test_spin_populations():
     SL1 = chilife.SpinLabel('R1M', 211, protein)
     SL2 = chilife.SpinLabel('R1M', 275, protein)
 
-    dd1 = chilife.get_dd(SL1, SL2, r)
-    dd2 = chilife.get_dd(SL1, SL2, r, spin_populations=True)
+    dd1 = chilife.distance_distribution(SL1, SL2, r)
+    dd2 = chilife.distance_distribution(SL1, SL2, r, use_spin_centers=False)
 
     plt.plot(r, dd1)
     plt.plot(r, dd2)
@@ -131,7 +131,7 @@ def test_get_dd_uq():
     SL2 = chilife.SpinLabel("R1M", 20, protein=protein, sample=1000)
 
     print(SL1.weights.sum(), SL2.weights.sum())
-    P = chilife.get_dd(SL1, SL2, r=r, uq=500)
+    P = chilife.distance_distribution(SL1, SL2, r=r, uq=500)
 
     mean = P.mean(axis=0)
     # mean /= np.trapz(mean, r)
@@ -153,7 +153,7 @@ def test_get_dd_uq():
 #         SL2 = pickle.load(f)
 #
 #     print(SL1.spin_coords, SL2)
-#     P = chilife.get_dd(SL1, SL2, r=r, uq=500)
+#     P = chilife.distance_distribution(SL1, SL2, r=r, uq=500)
 #
 #     mean = P.mean(axis=0)
 #     # mean /= np.trapz(mean, r)

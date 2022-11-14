@@ -37,7 +37,7 @@ SL2 = xl.SpinLabel('R1C', site=238, chain='A', protein=MBP)
 
 # Calculate distribution
 r = np.linspace(0, 100, 256)
-P = xl.get_dd(SL1, SL2, r=r)
+P = xl.distance_distribution(SL1, SL2, r=r)
 
 # Plot distribution
 fig, ax = plt.subplots(figsize=(6, 3))

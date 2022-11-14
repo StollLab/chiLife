@@ -124,11 +124,18 @@ def test_unary_not():
     ans = prot.resnums != 5
     assert np.all(asel.mask == ans)
 
-def test_within():
-    asel = prot.select_atoms('within 5 resnum 5')
+def test_around():
+    asel = prot.select_atoms('around 5 resnum 5')
     mdasel = mda_prot.select_atoms('around 5 resnum 5')
-    print('pause')
 
+    assert np.all(np.sort(asel.atoms.names) == np.sort(mdasel.atoms.names))
+    assert np.all(asel.atoms.residues.resnums == mdasel.atoms.residues.resnums)
+
+def test_subsel():
+    asel = prot.select_atoms('around 5 resnum 5')
+    bsel = prot.select_atoms('resname LEU around 5 resnum 5')
+    a2sel = asel.select_atoms('resname LEU')
+    np.testing.assert_almost_equal(bsel.coords, a2sel.coords)
 
 def test_SL_Protein():
     omp = chilife.Protein.from_pdb('test_data/1omp.pdb')

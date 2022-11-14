@@ -117,31 +117,31 @@ class Protein(BaseSystem):
         self.segixs = np.array([ord(x)-65 for x in self.chains])
 
         self._protein_keywords = {'id': self.atomids,
-                                 'name': self.names,
-                                 'altloc': self.altlocs,
-                                 'resname': self.resnames,
-                                 'resnum': self.resnums,
-                                 'chain': self.chains,
-                                 'occupancies': self.occupancies,
-                                 'b': self.bs,
-                                 'segid': self.chains,
-                                 'type': self.atypes,
-                                 'charges': self.charges,
+                                  'name': self.names,
+                                  'altloc': self.altlocs,
+                                  'resname': self.resnames,
+                                  'resnum': self.resnums,
+                                  'chain': self.chains,
+                                  'occupancies': self.occupancies,
+                                  'b': self.bs,
+                                  'segid': self.chains,
+                                  'type': self.atypes,
+                                  'charges': self.charges,
 
-                                 'resi': self.resnums,
-                                 'resid': self.resnums,
-                                 'i.': self.resnums,
-                                 's.': self.chains,
-                                 'c.': self.chains,
-                                 'r.': self.resnames,
-                                 'n.': self.names,
-                                 'resn': self.resnames,
-                                 'q': self.occupancies,
-                                 'elem': self.atypes,
-                                 'element': self.atypes,
+                                  'resi': self.resnums,
+                                  'resid': self.resnums,
+                                  'i.': self.resnums,
+                                  's.': self.chains,
+                                  'c.': self.chains,
+                                  'r.': self.resnames,
+                                  'n.': self.names,
+                                  'resn': self.resnames,
+                                  'q': self.occupancies,
+                                  'elem': self.atypes,
+                                  'element': self.atypes,
 
-                                 '_len': self.n_atoms,
-                                 }
+                                  '_len': self.n_atoms,
+                                  }
 
         self._logic_keywords = {'and': operator.mul,
                                 'or': operator.add,
@@ -154,8 +154,8 @@ class Protein(BaseSystem):
                                 '>=': operator.ge,
                                 '!=': operator.ne,
                                 'byres': partial(byres, protein=self.protein),
-                                'within': update_wrapper(partial(within, protein=self.protein), within)
-                              }
+                                'within': update_wrapper(partial(within, protein=self.protein), within),
+                                'around': update_wrapper(partial(within, protein=self.protein), within)}
 
 
 
@@ -220,8 +220,8 @@ class Trajectory:
 
 def process_statement(statement, logickws, subjectkws):
     sub_statements = parse_paren(statement)
-    unary_operators = [logickws['byres'], logickws['not']]
-    advanced_operators = [logickws['within']]
+    unary_operators = (logickws['byres'], logickws['not'])
+    advanced_operators = (logickws['within'], logickws['around'])
 
     mask = np.ones(subjectkws['_len'], dtype=bool)
     operation = logickws['and']
@@ -298,7 +298,23 @@ def process_statement(statement, logickws, subjectkws):
                     raise ValueError(f'{stat_split[0]} is not a valid keyword')
 
                 for i, val in enumerate(stat_split):
-                    if val in logickws:
+
+                    if logickws.get(val, None) in advanced_operators:
+                        _io = logickws[val]
+                        args = [stat_split.pop(j) for j in range(i+1, i+1 + _io.nargs)]
+                        _io = functools.partial(_io, *args)
+
+                        def toperation(a, b, operation, _io):
+                            return operation(a, _io(b))
+
+                        next_internal_operation = functools.partial(toperation, operation=operation, _io=_io)
+                        stat_split = stat_split[i + 1:]
+                        if stat_split == []:
+                            next_operation = next_internal_operation
+                            next_internal_operation = None
+                        break
+
+                    elif val in logickws:
                         next_internal_operation = logickws[val]
                         stat_split = stat_split[i+1:]
                         if stat_split == []:
@@ -540,9 +556,10 @@ def within(distance, mask, protein):
     tree2 = cKDTree(protein.protein.coords[mask])
     results = np.concatenate(tree2.query_ball_tree(tree1, distance))
     results = np.unique(results)
-    mask = np.zeros_like(mask, dtype=bool)
-    mask[results] = True
-    return mask
+    out_mask = np.zeros_like(mask, dtype=bool)
+    out_mask[results] = True
+    out_mask = out_mask * ~mask
+    return out_mask
+
 
 within.nargs = 1
-

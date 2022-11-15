@@ -1,6 +1,4 @@
 from copy import deepcopy
-from functools import partial
-import inspect
 import logging
 import numpy as np
 from itertools import combinations
@@ -84,7 +82,7 @@ class RotamerEnsemble:
 
     backbone_atoms = ["H", "N", "CA", "HA", "C", "O"]
 
-    def __init__(self, res, site=1, protein=None, chain=None, **kwargs):
+    def __init__(self, res, site=1, protein=None, chain=None, rotlib=None, **kwargs):
         """Create new RotamerEnsemble object.
 
         Parameters
@@ -97,6 +95,8 @@ class RotamerEnsemble:
             Object containing all protein information (coords, atom types, etc.)
         chain : str
             Protein chain identifier to attach spin label to.
+        rotlib : str
+            Rotamer library to use for constructing the RotamerEnsemble
         **kwargs : dict
             protein_tree : Scipy.spatial.cKDTree
                 KDTree of atom positions for fast distance calculations and neighbor detection. Defaults to None
@@ -150,7 +150,7 @@ class RotamerEnsemble:
         if isinstance(self.superimposition_method, str):
             self.superimposition_method = chilife.superimpositions[self.superimposition_method]
 
-        lib = self.get_lib()
+        lib = self.get_lib(rotlib)
         self.__dict__.update(lib)
         self._weights = self.weights / self.weights.sum()
 
@@ -210,9 +210,9 @@ class RotamerEnsemble:
         self.partition = 1
 
         # Assign a name to the label
-        self.name = self.res
+        self.name = self.rotlib
         if self.site is not None:
-            self.name = str(self.site) + self.res
+            self.name = str(self.site) + self.rotlib
         if self.chain is not None:
             self.name += f"_{self.chain}"
 
@@ -791,7 +791,7 @@ class RotamerEnsemble:
         """Backbone coordinates of the spin label"""
         return np.squeeze(self._coords[0][self.backbone_idx])
 
-    def get_lib(self):
+    def get_lib(self, rotlib):
         """Parse backbone information from protein and fetch the appropriate rotamer library
         
         :return:
@@ -832,8 +832,9 @@ class RotamerEnsemble:
         self.Phi, self.Psi = Phi, Psi
         # Get library
         logging.info(f"Using backbone dependent library with Phi={Phi}, Psi={Psi}")
-        lib = chilife.read_library(self.res, Phi, Psi)
-        lib = {key: value.copy() for key, value in lib.items()}
+
+        lib = chilife.read_library(self.res, Phi, Psi, rotlib=rotlib)
+        lib = {key: value.copy() if hasattr(value, 'copy') else value for key, value in lib.items() }
         if 'internal_coords' in lib:
             lib['internal_coords'] = [a.copy() for a in lib['internal_coords']]
         lib['_coords'] = lib.pop('coords')

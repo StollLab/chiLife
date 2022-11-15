@@ -1,11 +1,9 @@
-import pickle
-import logging
+import re
 from copy import deepcopy
 from functools import partial
 import numpy as np
 from scipy.spatial.distance import cdist
 from scipy.spatial import cKDTree
-import scipy.optimize as opt
 from .RotamerEnsemble import RotamerEnsemble
 import chilife
 
@@ -30,21 +28,21 @@ class SpinLabel(RotamerEnsemble):
         k-dimensional tree object associated with the protein coordinates.
     """
 
-    def __init__(self, label, site=1, protein=None, chain=None, **kwargs):
+    def __init__(self, label, site=1, protein=None, chain=None, rotlib=None, **kwargs):
 
         # Overide RotamerEnsemble default of not evaluating clashes
         kwargs.setdefault("eval_clash", True)
-        super().__init__(label, site, protein=protein, chain=chain, **kwargs)
+        super().__init__(label, site, protein=protein, chain=chain, rotlib=rotlib, **kwargs)
 
         self.label = label
 
-        # Parse important indices
-        self.spin_atoms, self.spin_weights = [np.array(x) for x in chilife.SPIN_ATOMS[label[:3]]]
-        sa_mask = np.isin(self.spin_atoms, self.atom_names)
+        # Parse spin delocalization information
+        self.__dict__.update({kw: np.array(val) for kw, val in
+                              chilife.SPIN_ATOMS[re.sub(r"ip[0-9][A-C]", "", self.rotlib)].items()})
 
+        sa_mask = np.isin(self.spin_atoms, self.atom_names)
         self.spin_atoms = self.spin_atoms[sa_mask]
         self.spin_weights = self.spin_weights[sa_mask]
-
         self.spin_idx = np.argwhere(np.isin(self.atom_names, self.spin_atoms))
 
     @property

@@ -87,7 +87,7 @@ def test_read_rotamer_library(label):
     data = [
         data[key]
         for key in data
-        if key not in ("internal_coords", "sigmas", "_rdihedrals", "_rsigmas")
+        if key not in ("internal_coords", "sigmas", "_rdihedrals", "_rsigmas", 'rotlib')
     ]
     print(len(data))
     for i, array in enumerate(data):
@@ -237,6 +237,7 @@ def test_repack_add_atoms():
 def test_add_label():
     chilife.add_label(
         name="___",
+        rescode="___",
         pdb="test_data/trt_sorted.pdb",
         dihedral_atoms=[['N', 'CA', 'CB', 'SG'],
                         ['CA', 'CB', 'SG', 'SD'],

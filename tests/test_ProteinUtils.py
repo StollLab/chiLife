@@ -13,8 +13,7 @@ resis = [
     (key, -90, 160)
     for key in chilife.dihedral_defs
     if key
-    not in (chilife.SUPPORTED_LABELS +
-            ("R1B", "R1C", "CYR1", "MTN", "ALA", "GLY") +
+    not in (("R1B", "R1C", "CYR1", "MTN", "ALA", "GLY") +
             tuple(chilife.USER_LABELS) +
             tuple(chilife.USER_dLABELS))
 ]

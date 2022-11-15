@@ -1,5 +1,5 @@
 from __future__ import annotations
-import tempfile, logging, pickle, os
+import tempfile, logging, pickle, os, json
 from pathlib import Path
 from itertools import combinations, product
 from typing import Callable, Tuple, Union, List
@@ -8,7 +8,6 @@ from tqdm import tqdm
 
 import numpy as np
 from numpy.typing import ArrayLike
-from numba import njit
 from scipy.spatial.distance import cdist
 import MDAnalysis as mda
 import MDAnalysis.transformations
@@ -22,23 +21,25 @@ from .RotamerEnsemble import RotamerEnsemble
 from .SpinLabelTraj import SpinLabelTraj
 
 
+logging.captureWarnings(True)
+
 # Define useful global variables
-SUPPORTED_LABELS = ("R1M", "R7M", "V1M", "I1M", "M1M", "R1C")
 SUPPORTED_BB_LABELS = ("R1C",)
 DATA_DIR = Path(__file__).parent.absolute() / "data/"
 RL_DIR = Path(__file__).parent.absolute() / "data/rotamer_libraries/"
 
-logging.captureWarnings(True)
+with open(RL_DIR / "spin_atoms.json", "r") as f:
+    SPIN_ATOMS = json.load(f)
 
-with open(RL_DIR / "spin_atoms.txt", "r") as f:
-    lines = f.readlines()
-    SPIN_ATOMS = {x.split(":")[0]: tuple(eval(a) for a in x.split(":")[1:]) for x in lines}
+with open(RL_DIR / "rotlibs.json", "r") as f:
+    ROTLIBS = json.load(f)
 
-USER_LABELS = {key for key in SPIN_ATOMS if key not in SUPPORTED_LABELS}
-USER_dLABELS = {f.name[:3] for f in (RL_DIR / "UserRotlibs").glob("*ip*.npz")}
-SUPPORTED_RESIDUES = set(
-    list(SUPPORTED_LABELS) + list(USER_LABELS) + list(dihedral_defs.keys())
-)
+with open(RL_DIR / "defaults.json", "r") as f:
+    rotlib_defaults = json.load(f)
+
+USER_LABELS = {key for key in SPIN_ATOMS if key not in SUPPORTED_BB_LABELS}
+USER_dLABELS = {f.name[:3] for f in (RL_DIR / "user_rotlibs").glob("*ip*.npz")}
+SUPPORTED_RESIDUES = set(dihedral_defs.keys())
 [SUPPORTED_RESIDUES.remove(lab) for lab in ("CYR1", "MTN")]
 
 
@@ -404,10 +405,11 @@ def repack(
 
 
 def add_label(
-    name: str,
+    name : str,
     pdb: str,
     dihedral_atoms: List[List[str]],
     site: int = 1,
+    rescode: str = None,
     spin_atoms: List[str] = None,
     dihedrals: ArrayLike = None,
     weights: ArrayLike = None,
@@ -418,7 +420,9 @@ def add_label(
     Parameters
     ----------
     name : str
-        Name for the user defined label. Should be a 3-letter residue code.
+        Name for the new rotamer library.
+    rescode : str
+        3-letter residue code.
     pdb : str
         Name of (and path to) pdb file containing the user defined spin label structure. This pdb file should contain
         only the desired spin label and no additional residues.
@@ -452,8 +456,8 @@ def add_label(
     -------
     None
     """
-    struct = pre_add_label(name, pdb, spin_atoms)
-    pdb_resname = struct.select_atoms(f"resnum {site}").resnames[0]
+    rescode = name[:3] if rescode is None else rescode
+    struct = pre_add_label(name, rescode, pdb, spin_atoms)
     add_dihedral_def(name, dihedral_atoms)
     resi_selection = struct.select_atoms(f"resnum {site}")
     bonds = resi_selection.intra_bonds.indices - resi_selection.atoms[0].ix
@@ -501,6 +505,7 @@ def add_dlabel(
     increment: int,
     dihedral_atoms: List[List[List[str]]],
     site: int = 1,
+    rescode: str = None,
     spin_atoms: List[str] = None,
     dihedrals: ArrayLike = None,
     weights: ArrayLike = None,
@@ -539,6 +544,7 @@ def add_dlabel(
     -------
     None
     """
+    rescode = name[:3] if rescode is None else rescode
     if len(dihedral_atoms) != 2:
         dihedral_error = True
     elif not isinstance(dihedral_atoms[0], List):
@@ -558,7 +564,7 @@ def add_dlabel(
     global USER_dLABELS
     USER_dLABELS.add(name)
     add_dihedral_def(name, dihedral_atoms)
-    struct = pre_add_label(name, pdb, spin_atoms, uniform_topology=False)
+    struct = pre_add_label(name, rescode, pdb, spin_atoms, uniform_topology=False)
     pdb_resname = struct.select_atoms(f"resnum {site}").resnames[0]
 
     IC1 = [
@@ -633,11 +639,21 @@ def add_dlabel(
         weights = np.ones(len(IC1))
 
     weights /= weights.sum()
+    if not add_to_json(RL_DIR / "rotlibs.json", name, name):
+        raise ValueError(f'A rotamer library named `{name}` already exists. Please choose a different name.')
+    ROTLIBS[name] = name
     store_new_restype(name + f'ip{increment}A', IC1, weights, dihedrals[0], dihedral_atoms[0])
     store_new_restype(name + f'ip{increment}B', IC2, weights, dihedrals[1], dihedral_atoms[1], resi=1 + increment)
 
 
-def pre_add_label(name: str, pdb: str, spin_atoms: List[str], uniform_topology: bool = True) -> MDAnalysis.Universe:
+def pre_add_label(
+        name: str,
+        rescode: str,
+        pdb: str,
+        spin_atoms: List[str],
+        uniform_topology: bool = True,
+        default=False
+) -> MDAnalysis.Universe:
     """Helper function to sort pdbs, save spin atoms, update lists, etc when adding a SpinLabel or dSpinLabel.
 
     Parameters
@@ -674,39 +690,29 @@ def pre_add_label(name: str, pdb: str, spin_atoms: List[str], uniform_topology: 
             w = 1/len(spin_atoms)
             spin_weights = [w for _ in spin_atoms]
 
+        sa_dict = {'spin_atoms': spin_atoms, 'spin_weights': spin_weights}
+        if not add_to_json(RL_DIR / "spin_atoms.json", name, sa_dict):
+                raise NameError("There is already a chilife spin label with this name. You can have multiple "
+                                "libraries of the same residue type, but the libraries must have different names. "
+                                "Specify the residue type with the `rescode` keyword argument")
 
-        with open(RL_DIR / "spin_atoms.txt", "r+") as f:
-            lines = f.readlines()
-            spin_dict = {x.split(":")[0]: tuple(eval(a) for a in x.split(":")[1:]) for x in lines}
-            if name in spin_dict:
-                if spin_dict[name] != (spin_atoms, spin_weights):
-                    raise NameError(
-                        "There is already a chilife spin label with this name"
-                    )
-            else:
-                joinstr = "', '"
-                line = f"{name}: ['{joinstr.join(spin_atoms)}'] : [{', '.join(str(w) for w in spin_weights)}]\n"
-                f.write(line)
-                SPIN_ATOMS[name] = spin_atoms, spin_weights
+        # Update active SPIN_ATOMS with new
+        SPIN_ATOMS[name] = {'spin_atoms': spin_atoms, 'spin_weights': spin_weights}
 
     # Update USER_LABELS to include the new label
     global USER_LABELS
-    USER_LABELS = {key for key in SPIN_ATOMS if key not in SUPPORTED_LABELS}
+    USER_LABELS = {key for key in SPIN_ATOMS}
 
     # Write a temporary file with the sorted atoms
     if isinstance(pdb_lines[0], list):
-        with tempfile.NamedTemporaryFile(
-            suffix=".pdb", mode="w+", delete=False
-        ) as tmpfile:
+        with tempfile.NamedTemporaryFile(suffix=".pdb", mode="w+", delete=False) as tmpfile:
             for i, model in enumerate(pdb_lines):
                 tmpfile.write(f"MODEL {i + 1}\n")
                 for atom in model:
                     tmpfile.write(atom)
                 tmpfile.write("ENDMDL\n")
     else:
-        with tempfile.NamedTemporaryFile(
-            suffix=".pdb", mode="w+", delete=False
-        ) as tmpfile:
+        with tempfile.NamedTemporaryFile(suffix=".pdb", mode="w+", delete=False) as tmpfile:
             for line in pdb_lines:
                 tmpfile.write(line)
 
@@ -714,6 +720,17 @@ def pre_add_label(name: str, pdb: str, spin_atoms: List[str], uniform_topology: 
     struct = mda.Universe(tmpfile.name, in_memory=True)
     struct.universe.add_bonds(bonds)
     os.remove(tmpfile.name)
+
+    if default:
+        rotlib_defaults[rescode] = name
+        add_to_json(RL_DIR / "defaults.json", rescode, name, force=True)
+    elif add_to_json(RL_DIR / "defaults.json", rescode, name):
+        rotlib_defaults[rescode] = name
+    else:
+        print("NOTICE: You have added a library for a residue type that already has a default. To use this library "
+              "you must specify it with the `rotlib` kwarg when constructing your RotamerEnsemble or SpinLabel. To "
+              "change the default, remove this library and add it using `default=True`")
+
     return struct
 
 
@@ -795,11 +812,15 @@ def store_new_restype(
 
     # Save rotamer library
     np.savez(
-        RL_DIR / f"UserRotlibs/{name}_rotlib.npz",
+        RL_DIR / f"user_rotlibs/{name}_rotlib.npz",
         **save_dict,
         allow_pickle=True,
     )
 
+    if not add_to_json(RL_DIR / "rotlibs.json", name, name):
+        raise ValueError(f'A rotamer library named `{name}` already exists. Please choose a different name.')
+
+    ROTLIBS[name] = name
 
 def add_dihedral_def(name: str, dihedrals: ArrayLike) -> None:
     """Helper function to add the dihedral definitions of user defined labels and libraries to the chilife knowledge
@@ -818,13 +839,8 @@ def add_dihedral_def(name: str, dihedrals: ArrayLike) -> None:
     """
 
     # Reload in case there were other changes
-    with open(DATA_DIR / "DihedralDefs.pkl", "rb") as f:
-        local_dihedral_def = pickle.load(f)
-
-    # Add new label defs and write file
-    local_dihedral_def[name] = dihedrals
-    with open(DATA_DIR / "DihedralDefs.pkl", "wb") as f:
-        pickle.dump(local_dihedral_def, f)
+    if not add_to_json(DATA_DIR / "dihedral_defs.json", key=name, value=dihedrals):
+        raise ValueError(f'There is already a dihedral definition for {name}. Please choose a different name.' )
 
     # Add to active dihedral def dict
     chilife.dihedral_defs[name] = dihedrals
@@ -832,7 +848,7 @@ def add_dihedral_def(name: str, dihedrals: ArrayLike) -> None:
 
 def remove_label(name, prompt=True):
     global USER_LABELS, USER_dLABELS
-    if (name not in USER_LABELS) and (name not in USER_dLABELS):
+    if (name not in USER_LABELS) and (name not in USER_dLABELS) and prompt:
         raise ValueError(f'{name} is not in the set of user labels or user dLables. Check to make sure you have the '
                          f'right label. Note that only user labels can be removed.')
 
@@ -846,8 +862,17 @@ def remove_label(name, prompt=True):
             return None
         else:
             print(f'"{ans}" is not an intelligible answer. Canceling label removal')
+            return None
 
-    files = list((RL_DIR / 'UserRotlibs').glob(f'{name}*')) + \
+    # Remove any sub-residues if its a dRotamerEnsemble
+    additional_restypes = (RL_DIR / 'user_rotlibs').glob(name + 'ip*_rotlib.npz')
+    additional_restypes = [file.name[:-11] for file in additional_restypes]
+    for res in additional_restypes:
+        remove_from_json(RL_DIR / 'rotlibs.json', res)
+        if res in ROTLIBS: del ROTLIBS[res]
+
+    # Remove files
+    files = list((RL_DIR / 'user_rotlibs').glob(f'{name}*')) + \
             list((RL_DIR / 'residue_internal_coords').glob(f'{name}*')) + \
             list((RL_DIR / 'residue_pdbs').glob(f'{name}*'))
 
@@ -857,19 +882,47 @@ def remove_label(name, prompt=True):
     if name in USER_dLABELS:
         USER_dLABELS.remove(name)
 
+    if name in ROTLIBS:
+        del ROTLIBS[name]
+
     if name in USER_LABELS:
         USER_LABELS.remove(name)
 
     if name in SPIN_ATOMS:
         del SPIN_ATOMS[name]
 
-    del dihedral_defs[name]
-    with open(DATA_DIR / 'DihedralDefs.pkl', 'wb') as f:
-        pickle.dump(dihedral_defs, f)
+    if name in dihedral_defs:
+        del dihedral_defs[name]
 
-    with open(RL_DIR / 'spin_atoms.txt', 'w') as f:
-        joinstr = "', '"
-        for n, (spin_atoms, spin_weights) in SPIN_ATOMS.items():
-            line = f"{n}: ['{joinstr.join(spin_atoms)}'] : [{', '.join(str(w) for w in spin_weights)}]\n"
-            f.write(line)
+    remove_from_json(DATA_DIR / 'dihedral_defs.json', name)
+    remove_from_json(RL_DIR / 'spin_atoms.json', name)
+    remove_from_json(RL_DIR / 'rotlibs.json', name)
+
+
+def add_to_json(file, key, value, force=False):
+    with open(file, 'r') as f:
+        local = json.load(f)
+
+    if key in local and not force:
+        return False
+
+    local[key] = value
+
+    with open(file, 'w') as f:
+        json.dump(local, f)
+
+    return True
+
+
+def remove_from_json(file, entry):
+    with open(file, 'r') as f:
+        local = json.load(f)
+
+    if entry in local:
+        del local[entry]
+
+    with open(file, 'w') as f:
+        json.dump(local, f)
+
+    return True
 

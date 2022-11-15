@@ -11,7 +11,7 @@ import matplotlib.pyplot as plt
 protein = xl.fetch("1ubq")
 gb1 = xl.fetch("4wh4").select_atoms("protein and segid A")
 SL2 = xl.dSpinLabel("DHC", [28, 28+4], gb1)
-
+xl.remove_label('___', prompt=False)
 
 def test_add_dlabel():
     Energies = np.loadtxt("test_data/DHC.energies")[:, 1]

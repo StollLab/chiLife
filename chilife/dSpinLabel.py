@@ -9,13 +9,14 @@ import chilife
 
 
 class dSpinLabel:
-    def __init__(self, label, sites, protein=None, chain=None, **kwargs):
+    def __init__(self, label, sites, protein=None, chain=None, rotlib=None, **kwargs):
         """ """
         self.label = label
         self.res = label
         self.site, self.site2 = sorted(sites)
         self.increment = self.site2 - self.site
         self.kwargs = kwargs
+        self.rotlib = rotlib if rotlib is not None else chilife.rotlib_defaults[self.label]
 
         self.protein = protein
         self.chain = chain if chain is not None else self.guess_chain()
@@ -110,22 +111,24 @@ class dSpinLabel:
         )
 
         with open(
-                chilife.RL_DIR / f"residue_internal_coords/{self.label}ip{self.increment}C_ic.pkl", "rb"
+                chilife.RL_DIR / f"residue_internal_coords/{self.rotlib}ip{self.increment}C_ic.pkl", "rb"
         ) as f:
             self.cst_idxs, self.csts = pickle.load(f)
 
         self.kwargs["eval_clash"] = False
 
-        self.SL1 = chilife.SpinLabel(self.label + f"ip{self.increment}A",
+        self.SL1 = chilife.SpinLabel(self.label,
                                      self.site,
                                      self.protein,
                                      self.chain,
+                                     self.rotlib + f"ip{self.increment}A",
                                      **self.kwargs)
 
-        self.SL2 = chilife.SpinLabel(self.label + f"ip{self.increment}B",
+        self.SL2 = chilife.SpinLabel(self.label,
                                      self.site2,
                                      self.protein,
                                      self.chain,
+                                     self.rotlib + f"ip{self.increment}B",
                                      **self.kwargs)
 
     def save_pdb(self, name=None):

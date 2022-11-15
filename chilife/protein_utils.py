@@ -1,11 +1,10 @@
-import logging, os, urllib, pickle, itertools, math
+import logging, os, urllib, pickle, itertools, math, json
 from operator import itemgetter
 from pathlib import Path
 from typing import Set, List, Union, Tuple, Dict
 from numpy.typing import ArrayLike
 from dataclasses import dataclass, replace
 from collections import Counter
-from memoization import cached
 import MDAnalysis
 import numpy as np
 from scipy.spatial import cKDTree
@@ -1923,8 +1922,8 @@ DATA_DIR = Path(__file__).parent.absolute() / "data/"
 RL_DIR = Path(__file__).parent.absolute() / "data/rotamer_libraries/"
 
 # Define rotamer dihedral angle atoms
-with open(DATA_DIR / "DihedralDefs.pkl", "rb") as f:
-    dihedral_defs = pickle.load(f)
+with open(DATA_DIR / "dihedral_defs.json", "r") as f:
+    dihedral_defs = json.load(f)
 
 with open(RL_DIR / "RotlibIndexes.pkl", "rb") as f:
     rotlib_indexes = pickle.load(f)

@@ -123,7 +123,7 @@ def test_multisample():
 def test_lib_distribution_persists(res):
     if res in chilife.USER_dLABELS:
         return None
-    elif res in list(chilife.SUPPORTED_LABELS) + list(chilife.USER_LABELS):
+    elif res in chilife.USER_LABELS:
         L1 = chilife.SpinLabel(res)
         L2 = chilife.SpinLabel(res, sample=100)
     else:

@@ -3,6 +3,7 @@ from pathlib import Path
 import pickle
 import shutil
 from io import StringIO
+import json
 
 import numpy as np
 from scipy.stats import gaussian_kde
@@ -44,30 +45,34 @@ def read_distance_distribution(file_name: str) -> Tuple[np.ndarray, np.ndarray]:
 
 
 @cached
-def read_sl_library(label: str, user: bool = False) -> Dict:
+def read_sl_library(label: str, rotlib: str = None) -> Dict:
     """Reads RotamerEnsemble for stored spin labels.
 
     Parameters
     ----------
     label : str
         3-character abbreviation for desired spin label
-    user : bool
-        Specifies if the library was defined by a user or if it is a precalculated library
-
+    rotlib : str
+        Name of the rotamer library.
     Returns
     -------
     lib: dict
         Dictionary of SpinLabel rotamer ensemble attributes including coords, weights, dihedrals etc.
 
     """
-    subdir = "UserRotlibs/" if user else "MMM_RotLibs/"
+    subdir = "user_rotlibs/"
     data = Path(__file__).parent / "data/rotamer_libraries/"
-    with np.load(data / subdir / (label + "_rotlib.npz"), allow_pickle=True) as files:
+    if rotlib is None:
+        with open(data / 'defaults.json', 'r') as f:
+            defaults = json.load(f)
+        rotlib = defaults[label]
+
+    with np.load(data / subdir / (rotlib + "_rotlib.npz"), allow_pickle=True) as files:
         lib = dict(files)
 
     del lib["allow_pickle"]
 
-    with open(chilife.RL_DIR / f"residue_internal_coords/{label}_ic.pkl", "rb") as f:
+    with open(chilife.RL_DIR / f"residue_internal_coords/{rotlib}_ic.pkl", "rb") as f:
         IC = pickle.load(f)
         if isinstance(IC, list):
             ICn = IC
@@ -86,6 +91,7 @@ def read_sl_library(label: str, user: bool = False) -> Dict:
 
     lib["_rdihedrals"] = np.deg2rad(lib["dihedrals"])
     lib["_rsigmas"] = np.deg2rad(lib["sigmas"])
+    lib['rotlib'] = rotlib
 
     return lib
 
@@ -164,12 +170,11 @@ def read_bbdep(res: str, Phi: int, Psi: int) -> Dict:
     lib["dihedral_atoms"] = np.asarray(dihedral_atoms)
     lib["_rdihedrals"] = np.deg2rad(lib["dihedrals"])
     lib["_rsigmas"] = np.deg2rad(lib["sigmas"])
-
+    lib['rotlib'] = res
     return lib
 
 
-def read_library(
-    res: str, Phi: float = None, Psi: float = None) -> Dict:
+def read_library(res: str, Phi: float = None, Psi: float = None, rotlib: str = None) -> Dict:
     """Generalized wrapper function to aid selection of rotamer library reading function.
 
     Parameters
@@ -180,7 +185,8 @@ def read_library(
         Protein backbone Phi dihedral angle for the provided residue
     Psi : float
         Protein backbone Psi dihedral angle for the provided residue
-
+    rotlib : str
+        Name of the base rotamer library to be used.
     Returns
     -------
     lib: dict
@@ -192,10 +198,10 @@ def read_library(
         Phi = int((Phi // 10) * 10)
         Psi = int((Psi // 10) * 10)
 
-    if res in chilife.SUPPORTED_LABELS and res not in chilife.SUPPORTED_BB_LABELS:
-        return read_sl_library(res)
+    if res not in chilife.SUPPORTED_RESIDUES and res not in chilife.ROTLIBS:
+        raise ValueError(f'{rotlib} is not a known rotamer library for {res}')
     elif res in chilife.USER_LABELS or res[:3] in chilife.USER_dLABELS:
-        return read_sl_library(res, user=True)
+        return read_sl_library(res, rotlib=rotlib)
     elif backbone_exists:
         return read_bbdep(res, Phi, Psi)
     else:

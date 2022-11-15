@@ -404,7 +404,7 @@ def repack(
     return protein, deltaEs
 
 
-def add_label(
+def add_library(
     name : str,
     pdb: str,
     dihedral_atoms: List[List[str]],
@@ -457,7 +457,7 @@ def add_label(
     None
     """
     rescode = name[:3] if rescode is None else rescode
-    struct = pre_add_label(name, rescode, pdb, spin_atoms)
+    struct = pre_add_library(name, rescode, pdb, spin_atoms)
     add_dihedral_def(name, dihedral_atoms)
     resi_selection = struct.select_atoms(f"resnum {site}")
     bonds = resi_selection.intra_bonds.indices - resi_selection.atoms[0].ix
@@ -499,7 +499,7 @@ def add_label(
     store_new_restype(name, internal_coords, weights, dihedrals, dihedral_atoms, sigmas=sigmas)
 
 
-def add_dlabel(
+def add_dlibrary(
     name: str,
     pdb: str,
     increment: int,
@@ -564,7 +564,7 @@ def add_dlabel(
     global USER_dLABELS
     USER_dLABELS.add(name)
     add_dihedral_def(name, dihedral_atoms)
-    struct = pre_add_label(name, rescode, pdb, spin_atoms, uniform_topology=False)
+    struct = pre_add_library(name, rescode, pdb, spin_atoms, uniform_topology=False)
     pdb_resname = struct.select_atoms(f"resnum {site}").resnames[0]
 
     IC1 = [
@@ -646,7 +646,7 @@ def add_dlabel(
     store_new_restype(name + f'ip{increment}B', IC2, weights, dihedrals[1], dihedral_atoms[1], resi=1 + increment)
 
 
-def pre_add_label(
+def pre_add_library(
         name: str,
         rescode: str,
         pdb: str,

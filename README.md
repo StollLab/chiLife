@@ -148,14 +148,14 @@ easy to add user spin labels. To add a user defined spin label, all that is need
 (2) A list of the rotatable dihedral bonds, and (3) a list of the atoms where the spin is.
 
 ```python
-xl.add_label(name='TRT',
-             pdb='test_data/trt.pdb',
-             dihedral_atoms=[['N', 'CA', 'CB', 'SG'],
-                             ['CA', 'CB', 'SG', 'SD'],
-                             ['CB', 'SG', 'SD', 'CAD'],
-                             ['SG', 'SD', 'CAD', 'CAE'],
-                             ['SD', 'CAD', 'CAE', 'OAC']],
-             spin_atoms='CAQ')
+xl.add_library(name='TRT',
+               pdb='test_data/trt.pdb',
+               dihedral_atoms=[['N', 'CA', 'CB', 'SG'],
+                               ['CA', 'CB', 'SG', 'SD'],
+                               ['CB', 'SG', 'SD', 'CAD'],
+                               ['SG', 'SD', 'CAD', 'CAE'],
+                               ['SD', 'CAD', 'CAE', 'OAC']],
+               spin_atoms='CAQ')
 ```
 
 User defined labels can be constructed from a single state pdb file or a multi-state pdb file. If constructed from a 

@@ -235,7 +235,7 @@ def test_repack_add_atoms():
 
 
 def test_add_label():
-    chilife.add_label(
+    chilife.add_library(
         name="___",
         rescode="___",
         pdb="test_data/trt_sorted.pdb",
@@ -253,13 +253,13 @@ def test_add_label():
 
 def test_single_chain_error():
     with pytest.raises(ValueError):
-        chilife.add_dlabel(name='___',
-                           pdb='test_data/chain_broken_dlabel.pdb',
-                           increment=2,
-                           dihedral_atoms=[['N', 'CA', 'C13', 'C5'],
+        chilife.add_dlibrary(name='___',
+                             pdb='test_data/chain_broken_dlabel.pdb',
+                             increment=2,
+                             dihedral_atoms=[['N', 'CA', 'C13', 'C5'],
                                            ['CA', 'C13', 'C5', 'C6']],
-                           site=15,
-                           spin_atoms='Cu1')
+                             site=15,
+                             spin_atoms='Cu1')
 
 def test_set_params():
     chilife.set_lj_params("uff")
@@ -316,6 +316,8 @@ def test_save_fail():
     with pytest.raises(TypeError):
         chilife.save("tmp", np.array([1, 2, 3]))
 
+
+def test_add_new_default_library():
 
 
 # class TestProtein:

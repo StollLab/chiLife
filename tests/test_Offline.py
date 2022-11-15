@@ -6,7 +6,7 @@ def test_add_dlabel():
     Energies = np.loadtxt("test_data/DHC.energies")[:, 1]
     P = np.exp(-Energies / (xl.GAS_CONST * 298))
     P /= P.sum()
-    xl.add_dlabel(
+    xl.add_dlibrary(
         "___",
         "test_data/DHC.pdb",
         4,

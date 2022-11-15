@@ -17,7 +17,7 @@ def test_add_dlabel():
     Energies = np.loadtxt("test_data/DHC.energies")[:, 1]
     P = np.exp(-Energies / (xl.GAS_CONST * 298))
     P /= P.sum()
-    xl.add_dlabel(
+    xl.add_dlibrary(
         "___",
         "test_data/DHC.pdb",
         4,
@@ -103,7 +103,7 @@ def test_add_dlabel2():
     dihedral_atoms = [[["N", "CA", "CB", "CG"], ["CA", "CB", "CG", "ND1"]],
                       [["N", "CA", "CB", "CG"], ["CA", "CB", "CG", "ND1"]]]
 
-    xl.add_dlabel('___', 'test_data/HCS.pdb', site=2, increment=2, dihedral_atoms=dihedral_atoms, spin_atoms='Cu1')
+    xl.add_dlibrary('___', 'test_data/HCS.pdb', site=2, increment=2, dihedral_atoms=dihedral_atoms, spin_atoms='Cu1')
 
     SL1 = xl.dSpinLabel("___", [6, 8], gb1)
     r = np.linspace(15, 80, 256)
@@ -114,15 +114,15 @@ def test_add_dlabel2():
 
 def test_single_chain_error():
     with pytest.raises(ValueError):
-        xl.add_dlabel(name='___',
-                      pdb='test_data/chain_broken_dlabel.pdb',
-                      increment=2,
-                      dihedral_atoms=[[['N', 'CA', 'C13', 'C5'],
+        xl.add_dlibrary(name='___',
+                        pdb='test_data/chain_broken_dlabel.pdb',
+                        increment=2,
+                        dihedral_atoms=[[['N', 'CA', 'C13', 'C5'],
                                        ['CA', 'C13', 'C5', 'C6']],
                                       [['N', 'CA', 'C12', 'C2'],
                                        ['CA', 'C12', 'C2', 'C3']]],
-                      site=15,
-                      spin_atoms='Cu1')
+                        site=15,
+                        spin_atoms='Cu1')
     xl.remove_label('___', prompt=False)
 
 def test_restraint_weight():

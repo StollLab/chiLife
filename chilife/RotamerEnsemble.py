@@ -1,4 +1,5 @@
 from copy import deepcopy
+from pathlib import Path
 import logging
 import numpy as np
 from itertools import combinations
@@ -600,7 +601,6 @@ class RotamerEnsemble:
                         if len(pos) > 0:
                             self._lib_coords[:, mask] = pos[0]
 
-
             return np.squeeze(self._lib_coords[idx]), np.squeeze(self._weights[idx])
 
         if len(self.dihedral_atoms) == 0:
@@ -830,16 +830,54 @@ class RotamerEnsemble:
             else np.rad2deg(chilife.get_dihedral(PsiSel.positions))
         )
         self.Phi, self.Psi = Phi, Psi
+
         # Get library
         logging.info(f"Using backbone dependent library with Phi={Phi}, Psi={Psi}")
+        cwd = Path().cwd()
+        rotlib = self.res if rotlib is None else rotlib
 
-        lib = chilife.read_library(self.res, Phi, Psi, rotlib=rotlib)
-        lib = {key: value.copy() if hasattr(value, 'copy') else value for key, value in lib.items() }
-        if 'internal_coords' in lib:
-            lib['internal_coords'] = [a.copy() for a in lib['internal_coords']]
+        # If the rotlib isn't a dict try to figure out where it is
+        if not isinstance(rotlib, dict):
+            # Assemble a list of possible rotlib paths
+            possible_rotlibs = [Path(rotlib),
+                                cwd / rotlib,
+                                cwd / (rotlib + '.npz'),
+                                cwd / (rotlib + '_rotlib.npz')]
+
+            # Check if any exist
+            for possible_file in possible_rotlibs:
+                if possible_file.exists():
+                    rotlib = possible_file
+                    break
+            #  If non exist
+            else:
+                # Check for the lib in chilife/permanent libraries
+                if rotlib in chilife.USER_LABELS:
+                    rotlib = chilife.RL_DIR / 'user_rotlibs' / (chilife.rotlib_defaults[self.res] + '_rotlib.npz')
+                # Or check if its a non-user library, e.g. a natural amino acid library. If not throw and error.
+                elif rotlib not in chilife.SUPPORTED_RESIDUES:
+                    raise NameError(f'There is no rotamer library called {rotlib} in this directory or in chilife')
+
+            # Read the library
+            lib = chilife.read_library(rotlib, Phi, Psi)
+
+        # If rotlib is a dict, assume that dict is in the format that read_library`would return
+        else:
+            lib = rotlib
+
+        # Copy mutable library values (mostly np arrays) so that instances do not share data
+        lib = {key: value.copy() if hasattr(value, 'copy') else value for key, value in lib.items()}
+
+        # Perform a sanity check to ensure every necessary entry is present
+        if isinstance(rotlib, Path) and not all(x in lib for x in chilife.rotlib_formats[lib['format_version']]):
+            raise ValueError('The rotamer library does not contain all the required entries for the format version')
+
+        # Deep copy (mutable)  internal coords.
+        lib['internal_coords'] = [a.copy() for a in lib['internal_coords']]
+
+        # Modify library to be appropriately used with self.__dict__.update
         lib['_coords'] = lib.pop('coords')
         lib['_dihedrals'] = lib.pop('dihedrals')
-
         if 'skews' not in lib:
             lib['skews'] = None
 

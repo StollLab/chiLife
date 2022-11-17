@@ -82,7 +82,7 @@ def test_unfiltered_dd():
 
 @pytest.mark.parametrize("label", labels)
 def test_read_rotamer_library(label):
-    data = chilife.read_sl_library(label)
+    data = chilife.read_rotlib(label)
     print(data.keys())
     data = [
         data[key]
@@ -251,6 +251,28 @@ def test_add_label():
     assert "TRT" in chilife.SPIN_ATOMS
     chilife.remove_label('___', prompt=False)
 
+def test_add_library():
+
+    key = 'R1M'
+    weights = np.loadtxt(f'test_data/{key}.weights')
+    dihedral_names = np.loadtxt(f'test_data/{key}.chi', dtype='U').tolist()
+    spin_atoms = ['N1', 'O1']
+    chilife.add_library(key, f'test_data/{key}.pdb',
+                    dihedral_atoms=dihedral_names,
+                    spin_atoms=spin_atoms,
+                    weights=weights,
+                    permanent=True, force=True, default=True)
+
+    os.remove('R1M_rotlib.npz')
+    SL = chilife.SpinLabel(key)
+    chilife.save('int.pdb', SL, sorted=False)
+
+
+
+def test_prep_restype_savedict():
+    assert False
+
+
 def test_single_chain_error():
     with pytest.raises(ValueError):
         chilife.add_dlibrary(name='___',
@@ -318,7 +340,20 @@ def test_save_fail():
 
 
 def test_add_new_default_library():
+    assert False
 
+
+def test_add_secondary_label():
+    assert False
+
+def test_use_secondary_label():
+    assert False
+
+def remove_extra_label():
+    assert False
+
+def test_add_library_fail():
+    assert False
 
 # class TestProtein:
 #

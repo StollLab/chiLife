@@ -199,3 +199,24 @@ def test_save_Protein():
     chilife.save('my_protein.pdb', p)
     print('wait')
 
+
+def test_xl_protein_repack():
+    assert False
+
+
+def test_xl_protein_mutate():
+    assert False
+
+
+def test_xl_protein_from_mda():
+    assert False
+
+
+def test_xl_protein_from_pose():
+    assert False
+
+
+def test_sl_form_xl_traj():
+    assert False
+
+

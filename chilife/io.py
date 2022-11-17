@@ -1,9 +1,9 @@
-from typing import Tuple, Dict, Union
+from typing import Tuple, Dict, Union, BinaryIO
 from pathlib import Path
 import pickle
 import shutil
-from io import StringIO
-import json
+from io import StringIO, BytesIO
+import zipfile
 
 import numpy as np
 from scipy.stats import gaussian_kde
@@ -43,57 +43,62 @@ def read_distance_distribution(file_name: str) -> Tuple[np.ndarray, np.ndarray]:
     p = data[:, 1]
     return r, p
 
-
-@cached
-def read_sl_library(label: str, rotlib: str = None) -> Dict:
+#
+# @cached
+def read_rotlib(rotlib: Union[Path, BinaryIO] = None) -> Dict:
     """Reads RotamerEnsemble for stored spin labels.
 
     Parameters
     ----------
-    label : str
-        3-character abbreviation for desired spin label
-    rotlib : str
-        Name of the rotamer library.
+    rotlib : Path, BinaryIO
+        Path object pointing to the rotamer library. Or a BytesIO object containing the rotamer library file
     Returns
     -------
     lib: dict
         Dictionary of SpinLabel rotamer ensemble attributes including coords, weights, dihedrals etc.
 
     """
-    subdir = "user_rotlibs/"
-    data = Path(__file__).parent / "data/rotamer_libraries/"
-    if rotlib is None:
-        with open(data / 'defaults.json', 'r') as f:
-            defaults = json.load(f)
-        rotlib = defaults[label]
-
-    with np.load(data / subdir / (rotlib + "_rotlib.npz"), allow_pickle=True) as files:
+    with np.load(rotlib, allow_pickle=True) as files:
         lib = dict(files)
 
     del lib["allow_pickle"]
-
-    with open(chilife.RL_DIR / f"residue_internal_coords/{rotlib}_ic.pkl", "rb") as f:
-        IC = pickle.load(f)
-        if isinstance(IC, list):
-            ICn = IC
-        else:
-            ICn = [
-                IC.copy().set_dihedral(
-                    np.deg2rad(r), 1, atom_list=lib["dihedral_atoms"]
-                )
-                for r in lib["dihedrals"]
-            ]
-
-    lib["internal_coords"] = ICn
 
     if "sigmas" not in lib:
         lib["sigmas"] = np.array([])
 
     lib["_rdihedrals"] = np.deg2rad(lib["dihedrals"])
     lib["_rsigmas"] = np.deg2rad(lib["sigmas"])
-    lib['rotlib'] = rotlib
-
+    lib['rotlib'] = str(lib['rotlib'] )
+    lib['type'] = str(lib['type'])
+    lib['format_version'] = float(lib['format_version'])
     return lib
+
+@cached
+def read_drotlib(rotlib: Path) -> Tuple[dict]:
+    """Reads RotamerEnsemble for stored spin labels.
+
+        Parameters
+        ----------
+        rotlib : Path
+            Path to the rotamer library file.
+        Returns
+        -------
+        lib: Tuple[dict]
+            Dictionaries of rotamer library attributes including sub_residues .
+
+        """
+
+    with zipfile.ZipFile(rotlib, 'r') as archive:
+        for f in archive.namelist():
+            if 'csts' in f:
+                with np.load(archive.open(f)) as fc:
+                    csts = dict(fc)
+            elif f[-12] == 'A':
+                libA = read_rotlib(archive.open(f))
+            elif f[-12] == 'B':
+                libB = read_rotlib(archive.open(f))
+
+    return libA, libB, csts
 
 
 @cached
@@ -171,22 +176,26 @@ def read_bbdep(res: str, Phi: int, Psi: int) -> Dict:
     lib["_rdihedrals"] = np.deg2rad(lib["dihedrals"])
     lib["_rsigmas"] = np.deg2rad(lib["sigmas"])
     lib['rotlib'] = res
+
+    # hacky solution to experimental backbone dependent rotlibs
+    if res == 'R1C':
+        lib['spin_atoms'] = np.array(['N1', 'O1'])
+        lib['spin_weights'] = np.array([0.5, 0.5])
+
     return lib
 
 
-def read_library(res: str, Phi: float = None, Psi: float = None, rotlib: str = None) -> Dict:
+def read_library(rotlib: str, Phi: float = None, Psi: float = None) -> Dict:
     """Generalized wrapper function to aid selection of rotamer library reading function.
 
     Parameters
     ----------
-    res : str
+    rotlib : str, Path
         3 letter residue code
     Phi : float
         Protein backbone Phi dihedral angle for the provided residue
     Psi : float
         Protein backbone Psi dihedral angle for the provided residue
-    rotlib : str
-        Name of the base rotamer library to be used.
     Returns
     -------
     lib: dict
@@ -197,15 +206,21 @@ def read_library(res: str, Phi: float = None, Psi: float = None, rotlib: str = N
     if backbone_exists:
         Phi = int((Phi // 10) * 10)
         Psi = int((Psi // 10) * 10)
-
-    if res not in chilife.SUPPORTED_RESIDUES and res not in chilife.ROTLIBS:
-        raise ValueError(f'{rotlib} is not a known rotamer library for {res}')
-    elif res in chilife.USER_LABELS or res[:3] in chilife.USER_dLABELS:
-        return read_sl_library(res, rotlib=rotlib)
-    elif backbone_exists:
-        return read_bbdep(res, Phi, Psi)
+    # Use helix backbone if not otherwise specified
     else:
-        return read_bbdep(res, -60, -50)
+        Phi, Psi = -60, -50
+
+    if isinstance(rotlib, Path):
+        if rotlib.suffix == '.npz':
+            return read_rotlib(rotlib)
+        elif rotlib.suffix == '.zip':
+            return read_drotlib(rotlib)
+        else:
+            raise ValueError(f'{rotlib.name} is not a valid rotamer library file type')
+    elif isinstance(rotlib, str):
+        return read_bbdep(rotlib, Phi, Psi)
+    else:
+        raise ValueError(f'{rotlib} is not a valid rotamer library')
 
 
 def save(
@@ -348,7 +363,7 @@ def write_protein(file: str, protein: Union[mda.Universe, mda.AtomGroup], mode='
             f.write("ENDMDL\n")
 
 
-def write_labels(file: str, *args: SpinLabel, KDE: bool = True) -> None:
+def write_labels(file: str, *args: SpinLabel, KDE: bool = True, sorted: bool = True) -> None:
     """Lower level helper function for saving SpinLabels and RotamerEnsembles. Loops over SpinLabel objects and appends
     atoms and electron coordinates to the provided file.
 
@@ -361,7 +376,8 @@ def write_labels(file: str, *args: SpinLabel, KDE: bool = True) -> None:
     KDE: bool
         Perform kernel density estimate smoothing on rotamer weights before saving. Usefull for uniformly weighted
         RotamerEnsembles or RotamerEnsembles with lots of rotamers
-
+    sorted : bool
+        Sort rotamers by weight befroe saving.
     Returns
     -------
     None
@@ -388,7 +404,8 @@ def write_labels(file: str, *args: SpinLabel, KDE: bool = True) -> None:
             f.write(f"HEADER {label.name}\n")
 
             # Save models in order of weight
-            sorted_index = np.argsort(label.weights)[::-1]
+
+            sorted_index = np.argsort(label.weights)[::-1] if sorted else np.arange(len(label.weights))
             for mdl, (conformer, weight) in enumerate(
                 zip(label.coords[sorted_index], label.weights[sorted_index])
             ):
@@ -451,3 +468,5 @@ def write_labels(file: str, *args: SpinLabel, KDE: bool = True) -> None:
 
             f.write("TER\n")
 
+rotlib_formats = {1.0 : ('rotlib', 'resname', 'coords', 'internal_coords', 'weights', 'atom_types', 'atom_names',
+                         'dihedrals', 'dihedral_atoms', 'type', 'format_version')}

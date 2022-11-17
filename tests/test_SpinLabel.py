@@ -64,13 +64,9 @@ def test_eq(label):
 
 @pytest.mark.parametrize("label", labels)
 def test_lib2site(label):
-    site = np.array(
-        [
-            [-7.882, -3.264, -26.954],
-            [-8.528, -3.130, -28.260],
-            [-7.611, -2.318, -29.157],
-        ]
-    )
+    site = np.array([[-7.882, -3.264, -26.954],
+                     [-8.528, -3.130, -28.260],
+                     [-7.611, -2.318, -29.157]])
 
     lib = chilife.SpinLabel(label)
     lib.to_site(site)

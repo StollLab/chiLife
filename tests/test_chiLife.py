@@ -237,8 +237,8 @@ def test_repack_add_atoms():
 
 def test_add_label():
     chilife.add_library(
-        name="___",
-        rescode="___",
+        libname="___",
+        resname="___",
         pdb="test_data/trt_sorted.pdb",
         dihedral_atoms=[['N', 'CA', 'CB', 'SG'],
                         ['CA', 'CB', 'SG', 'SD'],
@@ -246,11 +246,23 @@ def test_add_label():
                         ["SG", "SD", "CAD", "CAE"],
                         ["SD", "CAD", "CAE", "OAC"]],
         spin_atoms="CAQ",
+        permanent=True
     )
 
-    assert "TRT" in chilife.USER_LABELS
-    assert "TRT" in chilife.SPIN_ATOMS
+
+    SL = chilife.SpinLabel('___', 238, protein)
+
+    struct = mda.Universe('test_data/trt_sorted.pdb')
+    pos = struct.atoms[:3].positions
+    SL.to_site(pos)
+
+    assert "___" in chilife.USER_LABELS
+    np.testing.assert_allclose(SL.spin_centers, np.array([[-24.44447989, 15.0841676, 14.75408798]]))
+    np.testing.assert_almost_equal(SL.coords[0, 5:], struct.atoms.positions[5:], decimal=3)
+
     chilife.remove_label('___', prompt=False)
+    assert "___" not in chilife.USER_LABELS
+
     os.remove('____rotlib.npz')
 
 def test_add_library():
@@ -277,7 +289,7 @@ def test_prep_restype_savedict():
 
 def test_single_chain_error():
     with pytest.raises(ValueError):
-        chilife.add_dlibrary(name='___',
+        chilife.add_dlibrary(libname='___',
                              pdb='test_data/chain_broken_dlabel.pdb',
                              increment=2,
                              dihedral_atoms=[['N', 'CA', 'C13', 'C5'],

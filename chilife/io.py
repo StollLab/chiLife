@@ -44,7 +44,7 @@ def read_distance_distribution(file_name: str) -> Tuple[np.ndarray, np.ndarray]:
     return r, p
 
 #
-# @cached
+@cached
 def read_rotlib(rotlib: Union[Path, BinaryIO] = None) -> Dict:
     """Reads RotamerEnsemble for stored spin labels.
 

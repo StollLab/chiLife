@@ -666,12 +666,14 @@ def add_dlibrary(
         weights = np.ones(len(IC1))
 
     weights /= weights.sum()
-
-    save_dict_1 = prep_restype_savedict(libname + f'ip{increment}A', resname, IC1,
-                                        weights, dihedrals[0], dihedral_atoms[0])
-    save_dict_2 = prep_restype_savedict(libname + f'ip{increment}B', resname, IC2,
+    libname = libname+f'ip{increment}'
+    save_dict_1 = prep_restype_savedict(libname + 'A', resname, IC1,
+                                        weights, dihedrals[0], dihedral_atoms[0],
+                                        spin_atoms=spin_atoms)
+    save_dict_2 = prep_restype_savedict(libname + 'B', resname, IC2,
                                         weights, dihedrals[1], dihedral_atoms[1],
-                                        resi=1 + increment)
+                                        resi=1 + increment,
+                                        spin_atoms=spin_atoms)
 
     # Save individual data sets and zip
     cwd = Path().cwd()

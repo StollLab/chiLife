@@ -41,6 +41,7 @@ class SpinLabel(RotamerEnsemble):
         self.spin_atoms = self.spin_atoms[sa_mask]
         self.spin_weights = self.spin_weights[sa_mask]
         self.spin_idx = np.argwhere(np.isin(self.atom_names, self.spin_atoms))
+        self.spin_idx.shape = -1
 
     @property
     def spin_coords(self):

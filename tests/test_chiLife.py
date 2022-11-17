@@ -23,8 +23,8 @@ anf = chilife.fetch('1anf')
 from_mmm_SLs = {}
 for key in from_mmm_rotlibs:
     label, site, state = key
-    protein = omp if state == 'Apo' else anf
-    from_mmm_SLs[key] = chilife.SpinLabel.from_mmm(label, site, protein=protein)
+    mbp = omp if state == 'Apo' else anf
+    from_mmm_SLs[key] = chilife.SpinLabel.from_mmm(label, site, protein=mbp)
 
 # get permutations for distance_distribution() tests
 kws = []

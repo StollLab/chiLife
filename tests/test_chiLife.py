@@ -43,8 +43,10 @@ for SL in labels:
     kws.append({'sigma': 2})
     kws.append({'sigma': 0.5, 'use_spin_centers': False})
 
+
+
 ans = []
-with np.load("test_data/get_dd_tests.npz", allow_pickle=True) as f:
+with np.load("test_data/get_dd_tests.npz") as f:
     for i in range(25):
         ans.append(f[f"arr_{i}"])
 
@@ -249,6 +251,7 @@ def test_add_label():
     assert "TRT" in chilife.USER_LABELS
     assert "TRT" in chilife.SPIN_ATOMS
     chilife.remove_label('___', prompt=False)
+    os.remove('____rotlib.npz')
 
 def test_add_library():
 

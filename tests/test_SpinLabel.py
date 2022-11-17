@@ -29,21 +29,6 @@ kwinput = (
         for l in labels
     ]
 )
-ansinput = [f"test_data/{label}_basic.npz" for label in labels] * 2 + [
-    f"test_data/{label}_advanced.npz" for label in labels
-] * 2
-
-
-@pytest.mark.parametrize(("kwinput", "afile"), zip(kwinput, ansinput))
-def test_MMM_construction(kwinput, afile):
-    SL1 = chilife.SpinLabel(superimposition_method="MMM", **kwinput)
-
-    with np.load(afile) as f:
-        coords = f["coords"]
-        weights = f["weights"]
-
-    np.testing.assert_almost_equal(weights, SL1.weights, decimal=5)
-    np.testing.assert_almost_equal(coords, SL1._coords, decimal=5)
 
 
 def test_bbdep_construction1():

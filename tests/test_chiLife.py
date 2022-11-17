@@ -14,6 +14,18 @@ protein = U.select_atoms("protein")
 r = np.linspace(0, 100, 2**8)
 old_ef = lambda protein, ensemble: chilife.get_lj_rep(protein, ensemble, forgive=0.8)
 
+with open('test_data/test_from_MMM.pkl', 'rb') as f:
+    from_mmm_Ps, from_mmm_rotlibs = pickle.load(f)
+
+from_mmm_r = from_mmm_Ps.pop('r')
+omp = chilife.fetch("1omp")
+anf = chilife.fetch('1anf')
+from_mmm_SLs = {}
+for key in from_mmm_rotlibs:
+    label, site, state = key
+    protein = omp if state == 'Apo' else anf
+    from_mmm_SLs[key] = chilife.SpinLabel.from_mmm(label, site, protein=protein)
+
 # get permutations for distance_distribution() tests
 kws = []
 args = []
@@ -79,19 +91,6 @@ def test_unfiltered_dd():
 #     plt.show()
 #
 #     np.testing.assert_almost_equal(y_ans, y)
-
-@pytest.mark.parametrize("label", labels)
-def test_read_rotamer_library(label):
-    data = chilife.read_rotlib(label)
-    print(data.keys())
-    data = [
-        data[key]
-        for key in data
-        if key not in ("internal_coords", "sigmas", "_rdihedrals", "_rsigmas", 'rotlib')
-    ]
-    print(len(data))
-    for i, array in enumerate(data):
-        assert np.all(array == np.load(f"test_data/{label}_{i}.npy", allow_pickle=True))
 
 
 def test_get_lj_rmin():
@@ -291,29 +290,24 @@ def test_set_params():
     chilife.set_lj_params("charmm")
 
 
-def test_MMM():
-    omp = chilife.fetch("1omp")
-    SL1 = chilife.SpinLabel.from_mmm("R1M", 238, protein=omp)
+@pytest.mark.parametrize('key', from_mmm_rotlibs.keys())
+def test_from_MMM(key):
+    SL = from_mmm_SLs[key]
+    ans_coords, ans_weights = from_mmm_rotlibs[key]
 
-    ans = [
-        0.007018871557921462,
-        0.007611321209884533,
-        0.00874935025052478,
-        0.010485333838458726,
-        0.028454490756688582,
-        0.05022215305253955,
-        0.05461865851164981,
-        0.05994927468416553,
-        0.09271821128592427,
-        0.09877155092812952,
-        0.17535252824480543,
-        0.18778707975414155,
-        0.2182611759251661,
-    ]
+    np.testing.assert_allclose(SL.weights, ans_weights)
+    np.testing.assert_allclose(SL.weights, ans_weights)
 
-    np.testing.assert_almost_equal(SL1.weights, ans[::-1])
 
-    chilife.set_lj_params("charmm")
+@pytest.mark.parametrize('key', from_mmm_Ps.keys())
+def test_MMM_dd(key):
+    label, site1, site2, state = key
+    Pans = from_mmm_Ps[key]
+    SL1 = from_mmm_SLs[label, site1, state]
+    SL2 = from_mmm_SLs[label, site2, state]
+
+    Ptest = chilife.distance_distribution(SL1, SL2, from_mmm_r)
+    np.testing.assert_allclose(Ptest, Pans)
 
 
 def test_save():

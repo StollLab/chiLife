@@ -10,6 +10,8 @@
       - tests/*
       - chiLife/data/*
       - chiLife/*.py
+  only:
+    - main
 
 
 test:3.8:

@@ -1,3 +1,7 @@
+workflow:
+  rules:
+    - if: $CI_COMMIT_BRANCH == 'main'
+
 .test_template: &test_definition
   script:
     - python -V  # Print out python version for debugging
@@ -10,9 +14,6 @@
       - tests/*
       - chiLife/data/*
       - chiLife/*.py
-    - if: $CI_COMMIT_BRANCH == "main"
-
-
 
 test:3.8:
   image: python:3.8

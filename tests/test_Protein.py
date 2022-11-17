@@ -1,3 +1,4 @@
+import os, hashlib
 import numpy as np
 import pytest
 import chilife
@@ -197,7 +198,15 @@ def test_ResidueSelection():
 def test_save_Protein():
     p = chilife.Protein.from_pdb('test_data/1omp.pdb')
     chilife.save('my_protein.pdb', p)
-    print('wait')
+
+    with open('test_data/test_save_xlprotein.pdb', 'r') as f:
+        ans = hashlib.md5(f.read().encode("utf-8")).hexdigest()
+
+    with open("my_protein.pdb", "r") as f:
+        test = hashlib.md5(f.read().encode("utf-8")).hexdigest()
+
+    os.remove('my_protein.pdb')
+    assert test == ans
 
 
 def test_xl_protein_repack():

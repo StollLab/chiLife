@@ -110,11 +110,11 @@ def test_add_dlabel2():
     dd = xl.distance_distribution(SL1, SL2, r, sigma=0.5)
 
     assert r[np.argmax(dd)] == 23.41176470588235
-    xl.remove_label('___', prompt=False)
+    os.remove('____drotlib.zip')
 
 def test_single_chain_error():
     with pytest.raises(ValueError):
-        xl.add_dlibrary(name='___',
+        xl.add_dlibrary(libname='___',
                         pdb='test_data/chain_broken_dlabel.pdb',
                         increment=2,
                         dihedral_atoms=[[['N', 'CA', 'C13', 'C5'],

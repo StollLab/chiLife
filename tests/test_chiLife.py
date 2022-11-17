@@ -278,7 +278,7 @@ def test_add_library():
 
     os.remove('R1M_rotlib.npz')
     SL = chilife.SpinLabel(key)
-    chilife.save('int.pdb', SL, sorted=False)
+    assert False
 
 
 

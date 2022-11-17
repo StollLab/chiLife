@@ -91,12 +91,15 @@ def read_drotlib(rotlib: Path) -> Tuple[dict]:
     with zipfile.ZipFile(rotlib, 'r') as archive:
         for f in archive.namelist():
             if 'csts' in f:
-                with np.load(archive.open(f)) as fc:
-                    csts = dict(fc)
+                with archive.open(f) as of:
+                    with np.load(of) as fc:
+                        csts = dict(fc)
             elif f[-12] == 'A':
-                libA = read_rotlib(archive.open(f))
+                with archive.open(f) as of:
+                    libA = read_rotlib(of)
             elif f[-12] == 'B':
-                libB = read_rotlib(archive.open(f))
+                with archive.open(f) as of:
+                    libB = read_rotlib(of)
 
     return libA, libB, csts
 

@@ -251,13 +251,12 @@ def test_add_label():
 
 
     SL = chilife.SpinLabel('___', 238, protein)
+    np.testing.assert_allclose(SL.spin_centers, np.array([[-24.44447989, 15.0841676, 14.75408798]]))
 
     struct = mda.Universe('test_data/trt_sorted.pdb')
     pos = struct.atoms[:3].positions
     SL.to_site(pos)
-
     assert "___" in chilife.USER_LABELS
-    np.testing.assert_allclose(SL.spin_centers, np.array([[-24.44447989, 15.0841676, 14.75408798]]))
     np.testing.assert_almost_equal(SL.coords[0, 5:], struct.atoms.positions[5:], decimal=3)
 
     chilife.remove_label('___', prompt=False)

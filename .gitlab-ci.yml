@@ -10,8 +10,8 @@
       - tests/*
       - chiLife/data/*
       - chiLife/*.py
-  only:
-    - main
+    - if: $CI_COMMIT_BRANCH == "main"
+
 
 
 test:3.8:

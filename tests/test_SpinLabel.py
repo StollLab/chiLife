@@ -78,15 +78,13 @@ def test_lib2site(label):
 def test_add_protein(label):
 
     site1, chain = 25, "A"
-    lib = chilife.SpinLabel(
-        label, site1, chain=chain, superimposition_method="mmm", energy_func=efunc
-    )
+    lib = chilife.SpinLabel(label, site1, chain=chain)
     lib.protein = U
     lib.protein_setup()
 
     with np.load(f"test_data/{label}_label.npz") as f:
-        np.testing.assert_almost_equal(f["coords"], lib._coords, decimal=5)
-        np.testing.assert_almost_equal(f["weights"], lib.weights, decimal=5)
+        np.testing.assert_almost_equal(f["coords"], lib._coords)
+        np.testing.assert_almost_equal(f["weights"], lib.weights)
 
 
 def test_from_wizard():

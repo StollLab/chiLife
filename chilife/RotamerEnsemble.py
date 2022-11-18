@@ -834,6 +834,8 @@ class RotamerEnsemble:
         # Get library
         logging.info(f"Using backbone dependent library with Phi={Phi}, Psi={Psi}")
         cwd = Path().cwd()
+
+        was_none = True if rotlib is None else False
         rotlib = self.res if rotlib is None else rotlib
 
         # If the rotlib isn't a dict try to figure out where it is
@@ -851,10 +853,13 @@ class RotamerEnsemble:
                     break
             #  If non exist
             else:
-                # Check for the lib in chilife/permanent libraries
-                if rotlib in chilife.USER_LABELS:
-                    rotlib = chilife.RL_DIR / 'user_rotlibs' / (chilife.rotlib_defaults[self.res] + '_rotlib.npz')
-                # Or check if its a non-user library, e.g. a natural amino acid library. If not throw and error.
+                # if rotlib wasnt specified look for default  in chilife/permanent libraries
+                if rotlib in chilife.USER_LABELS and was_none:
+                    rotlib = chilife.RL_DIR / 'user_rotlibs' / (chilife.rotlib_defaults[self.res][0] + '_rotlib.npz')
+                # If rotlib was specified look for a rotlib with that name
+                elif rotlib in chilife.USER_LABELS:
+                    rotlib = chilife.RL_DIR / 'user_rotlibs' / (rotlib + '_rotlib.npz')
+                # If rotlib is not in USER_LABELS or SUPPOERTED LABELS throw and error.
                 elif rotlib not in chilife.SUPPORTED_RESIDUES:
                     raise NameError(f'There is no rotamer library called {rotlib} in this directory or in chilife')
 

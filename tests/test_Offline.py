@@ -19,8 +19,7 @@ def test_add_dlabel():
         ],
         spin_atoms=["Cu1"],
     )
-    xl.remove_label('___', prompt=False)
-    os.remove('___ip4_drotlib.npz')
+    os.remove('___ip4_drotlib.zip')
 
 def test_polyproII():
     PPII = mda.Universe('test_data/PolyProII.pdb', in_memory=True)

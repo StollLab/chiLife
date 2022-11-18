@@ -397,7 +397,7 @@ def repack(
     # Load MCMC trajectory into universe.
     protein.universe.load_new(traj)
 
-    return protein, deltaEs
+    return protein, np.squeeze(deltaEs)
 
 
 def add_library(

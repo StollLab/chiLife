@@ -516,17 +516,17 @@ class Residue(BaseSystem):
         prev = self.atoms.resnums-1
         prev = np.unique(prev[prev > 0])
         resnums = np.unique(self.atoms.resnums)
-
-        return self.protein.select_atoms(f"(resnum {' '.join(str(r) for r in resnums)} and name N CA C) or "
-                                         f"(resnum {' '.join(str(r) for r in prev)} and name C))")
+        sel = self.protein.select_atoms(f"(resnum {' '.join(str(r) for r in resnums)} and name N CA C) or "
+                                        f"(resnum {' '.join(str(r) for r in prev)} and name C))")
+        return sel if len(sel) == 4 else None
 
     def psi_selection(self):
         nex = self.atoms.resnums + 1
         nex = np.unique(nex[nex <= self.protein.resnums.max()])
         resnums = np.unique(self.resnums)
-
-        return self.protein.select_atoms(f"(resnum {' '.join(str(r) for r in resnums)} and name N CA C) or "
-                                         f"(resnum {' '.join(str(r) for r in nex)} and name C))")
+        sel = self.protein.select_atoms(f"(resnum {' '.join(str(r) for r in resnums)} and name N CA C) or "
+                                        f"(resnum {' '.join(str(r) for r in nex)} and name C))")
+        return sel if len(sel) == 4 else None
 
 
 class Segment(BaseSystem):

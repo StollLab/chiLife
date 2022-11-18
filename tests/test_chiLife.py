@@ -119,8 +119,8 @@ def test_spin_populations():
 
     dd2 = chilife.distance_distribution(SL1, SL2, r, use_spin_centers=False)
 
-    assert dd2.max() == 0.1299553885263942
-    assert r[np.argmax(dd2)] == 50.19607843137255
+    assert np.abs(dd2.max() - 0.1299553885263942) < 1e-7
+    assert np.abs(r[np.argmax(dd2)] - 50.19607843137255) < 1e-7
 
 
 def test_get_dd_uq():
@@ -286,8 +286,8 @@ def test_from_MMM(key):
     SL = from_mmm_SLs[key]
     ans_coords, ans_weights = from_mmm_rotlibs[key]
 
-    np.testing.assert_allclose(SL.weights, ans_weights)
-    np.testing.assert_allclose(SL.weights, ans_weights)
+    np.testing.assert_almost_equal(SL.weights, ans_weights, decimal=6)
+    np.testing.assert_almost_equal(SL.coords, ans_coords, decimal=4)
 
 
 @pytest.mark.parametrize('key', from_mmm_Ps.keys())
@@ -298,7 +298,7 @@ def test_MMM_dd(key):
     SL2 = from_mmm_SLs[label, site2, state]
 
     Ptest = chilife.distance_distribution(SL1, SL2, from_mmm_r)
-    np.testing.assert_allclose(Ptest, Pans)
+    np.testing.assert_almost_equal(Ptest, Pans, decimal=6)
 
 
 def test_save():
@@ -336,7 +336,9 @@ def test_use_local_library():
     SLAns = chilife.SpinLabel('R1M')
     for name in ('RXL', 'RXL_rotlib', 'RXL_rotlib.npz'):
         SL = chilife.SpinLabel(name)
-        assert SL == SLAns
+        np.testing.assert_almost_equal(SL.coords, SLAns.coords, decimal=5)
+        np.testing.assert_almost_equal(SL.weights, SLAns.weights)
+
     assert 'RXL' not in chilife.USER_LIBRARIES
 
     os.remove('RXL_rotlib.npz')

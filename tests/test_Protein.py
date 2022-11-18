@@ -210,7 +210,17 @@ def test_save_Protein():
 
 
 def test_xl_protein_repack():
-    assert False
+    np.random.seed(3000)
+    p = chilife.Protein.from_pdb('test_data/1omp.pdb')
+    SL = chilife.SpinLabel('R1M', 238, p)
+
+    traj, dE = chilife.repack(p, SL, repetitions=10, temp=300)
+
+    ans = np.array([ 4.29882146e-03,  5.38218655e-01, -7.73797120e-06,  6.96190997e-02,
+                     3.16121282e-02,  5.45366181e-01, -7.34109371e-01, -6.96171902e-02,
+                    -8.19977337e-04, -5.58844086e-03])
+
+    np.testing.assert_allclose(dE, ans)
 
 
 def test_xl_protein_mutate():

@@ -121,9 +121,9 @@ def test_multisample():
 
 @pytest.mark.parametrize("res", chilife.SUPPORTED_RESIDUES)
 def test_lib_distribution_persists(res):
-    if res in chilife.USER_dLABELS:
+    if res in chilife.USER_dLIBRARIES:
         return None
-    elif res in chilife.USER_LABELS:
+    elif res in chilife.USER_LIBRARIES:
         L1 = chilife.SpinLabel(res)
         L2 = chilife.SpinLabel(res, sample=100)
     else:

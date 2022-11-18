@@ -854,12 +854,12 @@ class RotamerEnsemble:
             #  If non exist
             else:
                 # if rotlib wasnt specified look for default  in chilife/permanent libraries
-                if rotlib in chilife.USER_LABELS and was_none:
+                if rotlib in chilife.USER_LIBRARIES and was_none:
                     rotlib = chilife.RL_DIR / 'user_rotlibs' / (chilife.rotlib_defaults[self.res][0] + '_rotlib.npz')
                 # If rotlib was specified look for a rotlib with that name
-                elif rotlib in chilife.USER_LABELS:
+                elif rotlib in chilife.USER_LIBRARIES:
                     rotlib = chilife.RL_DIR / 'user_rotlibs' / (rotlib + '_rotlib.npz')
-                # If rotlib is not in USER_LABELS or SUPPOERTED LABELS throw and error.
+                # If rotlib is not in USER_LIBRARIES or SUPPOERTED LABELS throw and error.
                 elif rotlib not in chilife.SUPPORTED_RESIDUES:
                     raise NameError(f'There is no rotamer library called {rotlib} in this directory or in chilife')
 

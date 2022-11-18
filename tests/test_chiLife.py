@@ -252,11 +252,11 @@ def test_add_library():
     struct = mda.Universe('test_data/trt_sorted.pdb')
     pos = struct.atoms[:3].positions
     SL.to_site(pos)
-    assert "___" in chilife.USER_LABELS
+    assert "___" in chilife.USER_LIBRARIES
     np.testing.assert_almost_equal(SL.coords[0, 5:], struct.atoms.positions[5:], decimal=3)
 
     chilife.remove_library('___', prompt=False)
-    assert "___" not in chilife.USER_LABELS
+    assert "___" not in chilife.USER_LIBRARIES
 
     os.remove('____rotlib.npz')
 
@@ -337,7 +337,7 @@ def test_use_local_library():
     for name in ('RXL', 'RXL_rotlib', 'RXL_rotlib.npz'):
         SL = chilife.SpinLabel(name)
         assert SL == SLAns
-    assert 'RXL' not in chilife.USER_LABELS
+    assert 'RXL' not in chilife.USER_LIBRARIES
 
     os.remove('RXL_rotlib.npz')
 

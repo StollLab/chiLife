@@ -33,9 +33,9 @@ RL_DIR = Path(__file__).parent.absolute() / "data/rotamer_libraries/"
 with open(RL_DIR / "defaults.toml", "r") as f:
     rotlib_defaults = rtoml.load(f)
 
-USER_LABELS = {f.name[:-11] for f in (RL_DIR / "user_rotlibs").glob("*rotlib.npz")}
-USER_dLABELS = {f.name[:-12] for f in (RL_DIR / "user_rotlibs").glob("*drotlib.zip")}
-USER_dLABELS = USER_dLABELS | {f.name[:-15] for f in (RL_DIR / "user_rotlibs").glob("*drotlib.zip")}
+USER_LIBRARIES = {f.name[:-11] for f in (RL_DIR / "user_rotlibs").glob("*rotlib.npz")}
+USER_dLIBRARIES = {f.name[:-12] for f in (RL_DIR / "user_rotlibs").glob("*drotlib.zip")}
+USER_dLIBRARIES = USER_dLIBRARIES | {f.name[:-15] for f in (RL_DIR / "user_rotlibs").glob("*drotlib.zip")}
 SUPPORTED_RESIDUES = set(dihedral_defs.keys())
 [SUPPORTED_RESIDUES.remove(lab) for lab in ("CYR1", "MTN")]
 
@@ -514,8 +514,8 @@ def add_library(
         if force or not store_loc.exists():
             np.savez(store_loc, **save_dict, allow_pickle=True)
             add_dihedral_def(libname, dihedral_atoms, force=force)
-            global USER_LABELS
-            USER_LABELS.add(libname)
+            global USER_LIBRARIES
+            USER_LIBRARIES.add(libname)
         else:
             raise NameError("A rotamer library with this name already exists! Please choose a different name or do"
                             "not store as a permanent rotamer library")
@@ -695,8 +695,8 @@ def add_dlibrary(
         add_to_defaults(resname, libname, default)
         if force or not store_loc.exists():
             shutil.copy(f'{libname}_drotlib.zip', str(store_loc))
-            global USER_dLABELS
-            USER_dLABELS.add(libname)
+            global USER_dLIBRARIES
+            USER_dLIBRARIES.add(libname)
             add_dihedral_def(libname, dihedral_atoms, force=force)
         else:
             raise NameError("A rotamer library with this name already exists! Please choose a different name or do"
@@ -880,8 +880,8 @@ def add_dihedral_def(name: str, dihedrals: ArrayLike, force: bool = False) -> No
 
 
 def remove_library(name, prompt=True):
-    global USER_LABELS, USER_dLABELS
-    if (name not in USER_LABELS) and (name not in USER_dLABELS) and prompt:
+    global USER_LIBRARIES, USER_dLIBRARIES
+    if (name not in USER_LIBRARIES) and (name not in USER_dLIBRARIES) and prompt:
         raise ValueError(f'{name} is not in the set of user labels or user dLables. Check to make sure you have the '
                          f'right label. Note that only user labels can be removed.')
 
@@ -906,11 +906,11 @@ def remove_library(name, prompt=True):
         if file.exists():
             os.remove(str(file))
 
-    if name in USER_dLABELS:
-        USER_dLABELS.remove(name)
+    if name in USER_dLIBRARIES:
+        USER_dLIBRARIES.remove(name)
 
-    if name in USER_LABELS:
-        USER_LABELS.remove(name)
+    if name in USER_LIBRARIES:
+        USER_LIBRARIES.remove(name)
 
     if name in dihedral_defs:
         del dihedral_defs[name]

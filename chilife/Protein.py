@@ -9,7 +9,7 @@ from scipy.spatial import cKDTree
 class BaseSystem:
 
     def __getattr__(self, item):
-        return np.squeeze(self.protein.__getattribute__(item)[self.mask])
+        return np.squeeze(self.protein.__getattribute__(item.lower())[self.mask])
 
     def select_atoms(self, selstr):
         mask = process_statement(selstr, self.logic_keywords, self.protein_keywords)
@@ -485,6 +485,7 @@ class Atom(BaseSystem):
         self.mask = mask
 
         self.name = protein.names[mask][0]
+        self.altLoc = protein.altlocs[mask][0]
         self.atype = protein.types[mask][0]
         self.type = self.atype
         self.index = protein.ix[mask][0]
@@ -506,7 +507,9 @@ class Residue(BaseSystem):
 
         self.resname = protein.resnames[self.mask][0]
         self.resnum = protein.resnums[self.mask][0]
+        self.resid = self.resnum
         self.segid = protein.segids[self.mask][0]
+        self.segindex = protein.segixs[self.mask][0]
         self.chain = protein.chains[self.mask][0]
 
     def __len__(self):

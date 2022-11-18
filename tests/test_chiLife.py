@@ -255,7 +255,7 @@ def test_add_library():
     assert "___" in chilife.USER_LABELS
     np.testing.assert_almost_equal(SL.coords[0, 5:], struct.atoms.positions[5:], decimal=3)
 
-    chilife.remove_label('___', prompt=False)
+    chilife.remove_library('___', prompt=False)
     assert "___" not in chilife.USER_LABELS
 
     os.remove('____rotlib.npz')
@@ -364,7 +364,7 @@ def test_add_new_default_library():
     assert np.all(SL2.weights != weights)
 
     # Check that, after removing the new default, the old default becomes the actual default again
-    chilife.remove_label('RXL', prompt=False)
+    chilife.remove_library('RXL', prompt=False)
     SL = chilife.SpinLabel('R1M')
     assert np.all(weights != SL.weights)
     assert np.all(oweights == SL.weights)
@@ -391,7 +391,7 @@ def test_use_secondary_label():
     assert np.all(oweights == SLdefault.weights)
     assert np.all(SLdefault.weights != weights)
 
-    chilife.remove_label('RXL', prompt=False)
+    chilife.remove_library('RXL', prompt=False)
 
 
 def test_add_library_fail():

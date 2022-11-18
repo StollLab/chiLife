@@ -879,7 +879,7 @@ def add_dihedral_def(name: str, dihedrals: ArrayLike, force: bool = False) -> No
     chilife.dihedral_defs[name] = dihedrals
 
 
-def remove_label(name, prompt=True):
+def remove_library(name, prompt=True):
     global USER_LABELS, USER_dLABELS
     if (name not in USER_LABELS) and (name not in USER_dLABELS) and prompt:
         raise ValueError(f'{name} is not in the set of user labels or user dLables. Check to make sure you have the '

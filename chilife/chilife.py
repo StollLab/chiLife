@@ -958,8 +958,11 @@ def add_to_defaults(resname, rotlibname, default=False):
         chilife.rotlib_defaults[resname] = []
 
     pos = 0 if default else len(local[resname])
-    chilife.rotlib_defaults[resname].insert(pos, rotlibname)
-    local[resname].insert(pos, rotlibname)
+
+    if rotlibname not in chilife.rotlib_defaults[resname]:
+        chilife.rotlib_defaults[resname].insert(pos, rotlibname)
+    if rotlibname not in local[resname]:
+        local[resname].insert(pos, rotlibname)
 
     with open(file, 'w') as f:
         rtoml.dump(local, f)

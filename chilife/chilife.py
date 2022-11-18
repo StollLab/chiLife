@@ -510,6 +510,7 @@ def add_library(
 
     if permanent:
         store_loc = RL_DIR / f"user_rotlibs/{libname}_rotlib.npz"
+        add_to_defaults(resname, libname, default)
         if force or not store_loc.exists():
             np.savez(store_loc, **save_dict, allow_pickle=True)
             add_dihedral_def(libname, dihedral_atoms, force=force)
@@ -518,9 +519,6 @@ def add_library(
         else:
             raise NameError("A rotamer library with this name already exists! Please choose a different name or do"
                             "not store as a permanent rotamer library")
-
-        if default:
-            add_to_toml(RL_DIR / 'defaults.toml', resname, libname, force=True)
 
 
 def add_dlibrary(
@@ -693,7 +691,7 @@ def add_dlibrary(
 
     if permanent:
         store_loc = RL_DIR / f"user_rotlibs/{libname}_drotlib.zip"
-
+        add_to_defaults(resname, libname, default)
         if force or not store_loc.exists():
             shutil.copy(f'{libname}_drotlib.zip', str(store_loc))
             global USER_dLABELS
@@ -702,10 +700,6 @@ def add_dlibrary(
         else:
             raise NameError("A rotamer library with this name already exists! Please choose a different name or do"
                             "not store as a permanent rotamer library")
-
-        if default:
-            add_to_toml(RL_DIR / 'defaults.toml', resname, libname, force=True)
-
 
 def pre_add_library(
         pdb: str,
@@ -921,6 +915,7 @@ def remove_label(name, prompt=True):
         del dihedral_defs[name]
 
     remove_from_toml(DATA_DIR / 'dihedral_defs.toml', name)
+    remove_from_defaults(name)
 
 
 def add_to_toml(file, key, value, force=False):
@@ -951,3 +946,37 @@ def remove_from_toml(file, entry):
 
     return True
 
+
+def add_to_defaults(resname, rotlibname, default=False):
+    file = RL_DIR / 'defaults.toml'
+    with open(file, 'r') as f:
+        local = rtoml.load(f)
+
+    if resname not in local:
+        local[resname] = []
+    if resname not in chilife.rotlib_defaults:
+        chilife.rotlib_defaults[resname] = []
+
+    pos = 0 if default else len(local[resname])
+    chilife.rotlib_defaults[resname].insert(pos, rotlibname)
+    local[resname].insert(pos, rotlibname)
+
+    with open(file, 'w') as f:
+        rtoml.dump(local, f)
+
+
+def remove_from_defaults(rotlibname):
+    file = RL_DIR / 'defaults.toml'
+    with open(file, 'r') as f:
+        local = rtoml.load(f)
+
+    keys = [key for key, val in local.items() if rotlibname in val]
+
+    for key in keys:
+        chilife.rotlib_defaults[key].remove(rotlibname)
+        local[key].remove(rotlibname)
+        if local[key] == []:
+            del local[key]
+
+    with open(file, 'w') as f:
+        rtoml.dump(local, f)

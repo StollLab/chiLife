@@ -1,8 +1,9 @@
 from __future__ import annotations
-import tempfile, logging, pickle, os, json
+import tempfile, logging, os, rtoml
+import zipfile, shutil
 from pathlib import Path
 from itertools import combinations, product
-from typing import Callable, Tuple, Union, List
+from typing import Callable, Tuple, Union, List, Dict
 from unittest import mock
 from tqdm import tqdm
 
@@ -28,20 +29,15 @@ SUPPORTED_BB_LABELS = ("R1C",)
 DATA_DIR = Path(__file__).parent.absolute() / "data/"
 RL_DIR = Path(__file__).parent.absolute() / "data/rotamer_libraries/"
 
-with open(RL_DIR / "spin_atoms.json", "r") as f:
-    SPIN_ATOMS = json.load(f)
 
-with open(RL_DIR / "rotlibs.json", "r") as f:
-    ROTLIBS = json.load(f)
+with open(RL_DIR / "defaults.toml", "r") as f:
+    rotlib_defaults = rtoml.load(f)
 
-with open(RL_DIR / "defaults.json", "r") as f:
-    rotlib_defaults = json.load(f)
-
-USER_LABELS = {key for key in SPIN_ATOMS if key not in SUPPORTED_BB_LABELS}
-USER_dLABELS = {f.name[:3] for f in (RL_DIR / "user_rotlibs").glob("*ip*.npz")}
+USER_LABELS = {f.name[:-11] for f in (RL_DIR / "user_rotlibs").glob("*rotlib.npz")}
+USER_dLABELS = {f.name[:-12] for f in (RL_DIR / "user_rotlibs").glob("*drotlib.zip")}
+USER_dLABELS = USER_dLABELS | {f.name[:-15] for f in (RL_DIR / "user_rotlibs").glob("*drotlib.zip")}
 SUPPORTED_RESIDUES = set(dihedral_defs.keys())
 [SUPPORTED_RESIDUES.remove(lab) for lab in ("CYR1", "MTN")]
-
 
 def distance_distribution(
     *args: SpinLabel,
@@ -401,33 +397,36 @@ def repack(
     # Load MCMC trajectory into universe.
     protein.universe.load_new(traj)
 
-    return protein, deltaEs
+    return protein, np.squeeze(deltaEs)
 
 
 def add_library(
-    name : str,
+    libname: str,
     pdb: str,
     dihedral_atoms: List[List[str]],
     site: int = 1,
-    rescode: str = None,
-    spin_atoms: List[str] = None,
+    resname: str = None,
     dihedrals: ArrayLike = None,
     weights: ArrayLike = None,
-    sigmas: ArrayLike = None
+    sigmas: ArrayLike = None,
+    permanent: bool = False,
+    default: bool = False,
+    force: bool = False,
+    spin_atoms: List[str] = None
 ) -> None:
     """Add a user defined SpinLabel from a pdb file.
 
     Parameters
     ----------
-    name : str
+    libname : str
         Name for the new rotamer library.
-    rescode : str
-        3-letter residue code.
     pdb : str
         Name of (and path to) pdb file containing the user defined spin label structure. This pdb file should contain
         only the desired spin label and no additional residues.
     site : int
         The residue number of the side chain in the pdb file you would like to add.
+    resname : str
+        3-letter residue code.
     dihedral_atoms : list
         List of rotatable dihedrals. List should contain sublists of 4 atom names. Atom names must be the same as
         defined in the pdb file eg:
@@ -437,8 +436,6 @@ def add_library(
             [['CA', 'CB', 'SG', 'SD'],
             ['CB', 'SG', 'SD', 'CE']...]
 
-    spin_atoms : list
-        List of atom names on which the spin density is localized.
     dihedrals : ArrayLike, optional
         Array of dihedral angles. If provided the new label object will be stored as a rotamer library with the
         dihedrals provided. Array should be n x m where n is the number of rotamers and m is the number of dihedrals.
@@ -451,14 +448,23 @@ def add_library(
     skews : ArrayLike, optional
         Skew parameter for distributions of dihedral angles. Should be n x m matrix where n is the number of rotamers
         and m is the number of dihedrals. This feature will be used when performing off rotamer samplings.
-
+    permanent: bool
+        If set to True the library will be stored in the chilife user_rotlibs directory in addition to the current
+        working directory.
+    default : bool
+        If set to true and permanent is also set to true then this rotamer library will become the default rotamer
+        library for the given resname
+    force: bool = False,
+        If set to True and permanent is also set to true this library will overwrite any existing library with the same
+        name.
+    spin_atoms : list
+        List of atom names on which the spin density is localized.
     Returns
     -------
     None
     """
-    rescode = name[:3] if rescode is None else rescode
-    struct = pre_add_library(name, rescode, pdb, spin_atoms)
-    add_dihedral_def(name, dihedral_atoms)
+    resname = libname[:3] if resname is None else resname
+    struct, spin_atoms = pre_add_library(pdb, spin_atoms)
     resi_selection = struct.select_atoms(f"resnum {site}")
     bonds = resi_selection.intra_bonds.indices - resi_selection.atoms[0].ix
 
@@ -469,7 +475,7 @@ def add_library(
             preferred_dihedrals=dihedral_atoms,
             bonds=bonds
         )
-        for ts in struct.trajectory
+        for _ in struct.trajectory
     ]
 
     # set resnum to 1 and remove chain operators so all rotamers are in the ic coordinate frame
@@ -482,40 +488,59 @@ def add_library(
                              'chains in the pdb file. If the error persists, check to be sure all atoms are the correct '
                              'element as chilife uses the elements to determine if atoms are bonded.')
 
-    # Add internal_coords to data dir
-    with open(RL_DIR / f"residue_internal_coords/{name}_ic.pkl", "wb") as f:
-        pickle.dump(internal_coords, f)
-
-    # If multi-state pdb extract rotamers from pdb
+    # If multi-state pdb extract dihedrals from pdb
     if dihedrals is None:
         dihedrals = np.rad2deg(
             [ic.get_dihedral(1, dihedral_atoms) for ic in internal_coords]
         )
 
+    if dihedrals.shape == (len(dihedrals),):
+        dihedrals.shape = (len(dihedrals), 1)
+
     if weights is None:
         weights = np.ones(len(dihedrals))
         weights /= weights.sum()
 
-    store_new_restype(name, internal_coords, weights, dihedrals, dihedral_atoms, sigmas=sigmas)
+    save_dict = prep_restype_savedict(libname, resname, internal_coords,
+                                      weights, dihedrals, dihedral_atoms,
+                                      sigmas=sigmas, spin_atoms=spin_atoms)
+
+    # Save rotamer library
+    np.savez(Path().cwd() / f'{libname}_rotlib.npz', **save_dict, allow_pickle=True)
+
+    if permanent:
+        store_loc = RL_DIR / f"user_rotlibs/{libname}_rotlib.npz"
+        add_to_defaults(resname, libname, default)
+        if force or not store_loc.exists():
+            np.savez(store_loc, **save_dict, allow_pickle=True)
+            add_dihedral_def(libname, dihedral_atoms, force=force)
+            global USER_LABELS
+            USER_LABELS.add(libname)
+        else:
+            raise NameError("A rotamer library with this name already exists! Please choose a different name or do"
+                            "not store as a permanent rotamer library")
 
 
 def add_dlibrary(
-    name: str,
+    libname: str,
     pdb: str,
     increment: int,
     dihedral_atoms: List[List[List[str]]],
     site: int = 1,
-    rescode: str = None,
-    spin_atoms: List[str] = None,
+    resname: str = None,
     dihedrals: ArrayLike = None,
     weights: ArrayLike = None,
+    permanent: bool = False,
+    default: bool = False,
+    force: bool = False,
+    spin_atoms: List[str] = None,
 ) -> None:
     """Add a user defined dSpinLabel from a pdb file.
 
     Parameters
     ----------
-    name : str
-        Name for the user defined label. Should be a 3-letter code.
+    libname: str,
+        Name for the user defined label.
     increment : int
         The number of residues the second site away from the first site.
     pdb : str
@@ -523,6 +548,8 @@ def add_dlibrary(
         only the desired spin label and no additional residues.
     site : int
         The residue number of the first side chain in the pdb file you would like to add.
+    resname : str
+        Residue type 3-letter code.
     dihedral_atoms : list
         list of rotatable dihedrals. List should contain lists of 4 atom names. Atom names must be the same as defined
         in the pdb file eg:
@@ -532,19 +559,27 @@ def add_dlibrary(
             [['CA', 'CB', 'SG', 'SD'],
             ['CB', 'SG', 'SD', 'CE']...]
 
-    spin_atoms : list
-        List of atom names on which the spin density is localized.
     dihedrals : ArrayLike, optional
         Array of dihedral angles. If provided the new label object will be stored as a rotamer library with the
         dihedrals provided.
     weights : ArrayLike, optional
         Weights associated with the dihedral angles provided by the ``dihedrals`` keyword argument
-
+        permanent: bool
+        If set to True the library will be stored in the chilife user_rotlibs directory in addition to the current
+        working directory.
+    default : bool
+        If set to true and permanent is also set to true then this rotamer library will become the default rotamer
+        library for the given resname
+    force: bool = False,
+        If set to True and permanent is also set to true this library will overwrite any existing library with the same
+        name.
+    spin_atoms : list, dict
+        List dictionary of atom names on which the spin density is localized.
     Returns
     -------
     None
     """
-    rescode = name[:3] if rescode is None else rescode
+    resname = libname[:3] if resname is None else resname
     if len(dihedral_atoms) != 2:
         dihedral_error = True
     elif not isinstance(dihedral_atoms[0], List):
@@ -561,11 +596,8 @@ def add_dlibrary(
             "each dihedral should be defined by exactly four unique atom names that belong to the same "
             "residue number"
         )
-    global USER_dLABELS
-    USER_dLABELS.add(name)
-    add_dihedral_def(name, dihedral_atoms)
-    struct = pre_add_library(name, rescode, pdb, spin_atoms, uniform_topology=False)
-    pdb_resname = struct.select_atoms(f"resnum {site}").resnames[0]
+
+    struct, spin_atoms = pre_add_library(pdb, spin_atoms, uniform_topology=False)
 
     IC1 = [
         chilife.get_internal_coords(
@@ -595,7 +627,7 @@ def add_dlibrary(
         max([IC2[0].ICs[1][1][tuple(d[::-1])].index for d in dihedral_atoms[1]]) - 1
     )
 
-    # Store 4 pairs between SLs as constriants
+    # Get constraint pairs between SLs as constriants
     cst_pool1 = [
         atom.index
         for atom in IC1[0].ICs[1][1].values()
@@ -616,14 +648,7 @@ def add_dlibrary(
         for ic1, ic2 in zip(IC1, IC2)
     ]
 
-    csts = [cst_pairs, constraint_distances]
-
-    # Add internal_coords to data dir
-    for suffix, save_data in zip(["A", "B", "C"], [IC1, IC2, csts]):
-        with open(
-                RL_DIR / f"residue_internal_coords/{name}ip{increment}{suffix}_ic.pkl", "wb"
-        ) as f:
-            pickle.dump(save_data, f)
+    csts = {'cst_pairs': cst_pairs, 'cst_distances': constraint_distances}
 
     # If multi-state pdb extract rotamers from pdb
     if dihedrals is None:
@@ -639,27 +664,52 @@ def add_dlibrary(
         weights = np.ones(len(IC1))
 
     weights /= weights.sum()
-    if not add_to_json(RL_DIR / "rotlibs.json", name, name):
-        raise ValueError(f'A rotamer library named `{name}` already exists. Please choose a different name.')
-    ROTLIBS[name] = name
-    store_new_restype(name + f'ip{increment}A', IC1, weights, dihedrals[0], dihedral_atoms[0])
-    store_new_restype(name + f'ip{increment}B', IC2, weights, dihedrals[1], dihedral_atoms[1], resi=1 + increment)
+    libname = libname+f'ip{increment}'
+    save_dict_1 = prep_restype_savedict(libname + 'A', resname, IC1,
+                                        weights, dihedrals[0], dihedral_atoms[0],
+                                        spin_atoms=spin_atoms)
+    save_dict_2 = prep_restype_savedict(libname + 'B', resname, IC2,
+                                        weights, dihedrals[1], dihedral_atoms[1],
+                                        resi=1 + increment,
+                                        spin_atoms=spin_atoms)
 
+    # Save individual data sets and zip
+    cwd = Path().cwd()
+    np.savez(cwd / f'{libname}A_rotlib.npz', **save_dict_1, allow_pickle=True)
+    np.savez(cwd / f'{libname}B_rotlib.npz', **save_dict_2, allow_pickle=True)
+    np.savez(cwd / f'{libname}_csts.npz', **csts)
+
+    with zipfile.ZipFile(f'{libname}_drotlib.zip', mode='w') as archive:
+        archive.write(f'{libname}A_rotlib.npz')
+        archive.write(f'{libname}B_rotlib.npz')
+        archive.write(f'{libname}_csts.npz')
+
+    # Cleanup intermediate files
+    os.remove(f'{libname}A_rotlib.npz')
+    os.remove(f'{libname}B_rotlib.npz')
+    os.remove(f'{libname}_csts.npz')
+
+    if permanent:
+        store_loc = RL_DIR / f"user_rotlibs/{libname}_drotlib.zip"
+        add_to_defaults(resname, libname, default)
+        if force or not store_loc.exists():
+            shutil.copy(f'{libname}_drotlib.zip', str(store_loc))
+            global USER_dLABELS
+            USER_dLABELS.add(libname)
+            add_dihedral_def(libname, dihedral_atoms, force=force)
+        else:
+            raise NameError("A rotamer library with this name already exists! Please choose a different name or do"
+                            "not store as a permanent rotamer library")
 
 def pre_add_library(
-        name: str,
-        rescode: str,
         pdb: str,
         spin_atoms: List[str],
         uniform_topology: bool = True,
-        default=False
-) -> MDAnalysis.Universe:
+) -> Tuple[MDAnalysis.Universe, Dict]:
     """Helper function to sort pdbs, save spin atoms, update lists, etc when adding a SpinLabel or dSpinLabel.
 
     Parameters
     ----------
-    name : str
-        Name of the label being added. Should be a 3-letter code.
     pdb : str
         Name (and path) of the pdb containing the new label.
     spin_atoms : List[str]
@@ -673,35 +723,12 @@ def pre_add_library(
     struct : MDAnalysis.Universe
         MDAnalysis Universe object containing the rotamer ensemble with each rotamer as a frame. All atoms should be
         properly sorted for consistent construction of internal coordinates.
+    spin_atoms : dict
+        Dictionary of spin atoms and weights if specified.
     """
     # Sort the PDB for optimal dihedral definitions
     pdb_lines = sort_pdb(pdb, uniform_topology=uniform_topology)
     bonds = get_min_topol(pdb_lines)
-
-    # Store spin atoms if provided
-    if spin_atoms is not None:
-        if isinstance(spin_atoms, str):
-            spin_atoms = spin_atoms.split()
-
-        if isinstance(spin_atoms, dict):
-            spin_weights = list(spin_atoms.values())
-            spin_atoms = list(spin_atoms.keys())
-        else:
-            w = 1/len(spin_atoms)
-            spin_weights = [w for _ in spin_atoms]
-
-        sa_dict = {'spin_atoms': spin_atoms, 'spin_weights': spin_weights}
-        if not add_to_json(RL_DIR / "spin_atoms.json", name, sa_dict):
-                raise NameError("There is already a chilife spin label with this name. You can have multiple "
-                                "libraries of the same residue type, but the libraries must have different names. "
-                                "Specify the residue type with the `rescode` keyword argument")
-
-        # Update active SPIN_ATOMS with new
-        SPIN_ATOMS[name] = {'spin_atoms': spin_atoms, 'spin_weights': spin_weights}
-
-    # Update USER_LABELS to include the new label
-    global USER_LABELS
-    USER_LABELS = {key for key in SPIN_ATOMS}
 
     # Write a temporary file with the sorted atoms
     if isinstance(pdb_lines[0], list):
@@ -721,34 +748,42 @@ def pre_add_library(
     struct.universe.add_bonds(bonds)
     os.remove(tmpfile.name)
 
-    if default:
-        rotlib_defaults[rescode] = name
-        add_to_json(RL_DIR / "defaults.json", rescode, name, force=True)
-    elif add_to_json(RL_DIR / "defaults.json", rescode, name):
-        rotlib_defaults[rescode] = name
-    else:
-        print("NOTICE: You have added a library for a residue type that already has a default. To use this library "
-              "you must specify it with the `rotlib` kwarg when constructing your RotamerEnsemble or SpinLabel. To "
-              "change the default, remove this library and add it using `default=True`")
+    # Store spin atoms if provided
+    if spin_atoms is not None:
+        if isinstance(spin_atoms, str):
+            spin_atoms = spin_atoms.split()
 
-    return struct
+        if isinstance(spin_atoms, dict):
+            spin_weights = list(spin_atoms.values())
+            spin_atoms = list(spin_atoms.keys())
+        else:
+            w = 1/len(spin_atoms)
+            spin_weights = [w for _ in spin_atoms]
+
+        spin_atoms = {'spin_atoms': spin_atoms, 'spin_weights': spin_weights}
+
+    return struct, spin_atoms
 
 
-def store_new_restype(
-      name: str,
+def prep_restype_savedict(
+      libname: str,
+      resname: str,
       internal_coords: List[ProteinIC],
       weights: ArrayLike,
       dihedrals: ArrayLike,
       dihedral_atoms: ArrayLike,
       sigmas: ArrayLike = None,
-      resi: int = 1
-) -> None:
+      resi: int = 1,
+      spin_atoms: List[str] = None
+) -> Dict:
     """Helper function to add new residue types to chilife
 
     Parameters
     ----------
-    name : str
+    libname : str
         Name of residue to be stored.
+    resname : str
+        Residue name (3-letter code)
     internal_coords : List[ProteinIC]
         list of internal coordinates of the new residue type.
     weights : ArrayLike
@@ -762,10 +797,10 @@ def store_new_restype(
         Array of sigma values for each dihedral of each rotamer.
     resi: int
         The residue number to be stored.
-
     Returns
     -------
-    None
+    save_dict : dict
+        Dictionary of all the data needed to build a RotamerEnsemble.
     """
     # Extract coordinates and transform to the local frame
     bb_atom_idx = [
@@ -774,9 +809,6 @@ def store_new_restype(
     coords = internal_coords[0].coords.copy()
     ori, mx = local_mx(*coords[bb_atom_idx])
     coords = (coords - ori) @ mx
-
-    # Save pdb structure
-    save_pdb(RL_DIR / f"residue_pdbs/{name}.pdb", internal_coords[0].atoms, coords)
 
     if len(internal_coords) > 1:
         coords = np.array([(IC.coords - ori) @ mx for IC in internal_coords])
@@ -793,13 +825,15 @@ def store_new_restype(
     atom_types = np.array([atom.atype for atom in internal_coords[0].atoms])
     atom_names = np.array([atom.name for atom in internal_coords[0].atoms])
 
-    save_dict = {'coords': coords,
-                'internal_coords': internal_coords,
-                'weights': weights,
-                'atom_types': atom_types,
-                'atom_names': atom_names,
-                'dihedrals': dihedrals,
-                'dihedral_atoms': dihedral_atoms}
+    save_dict = {'rotlib': libname,
+                 'resname': resname,
+                 'coords': coords,
+                 'internal_coords': internal_coords,
+                 'weights': weights,
+                 'atom_types': atom_types,
+                 'atom_names': atom_names,
+                 'dihedrals': dihedrals,
+                 'dihedral_atoms': dihedral_atoms}
 
     if sigmas is None:
         pass
@@ -810,19 +844,16 @@ def store_new_restype(
         save_dict['locs'] = sigmas[..., 1]
         save_dict['skews'] = sigmas[..., 0]
 
-    # Save rotamer library
-    np.savez(
-        RL_DIR / f"user_rotlibs/{name}_rotlib.npz",
-        **save_dict,
-        allow_pickle=True,
-    )
+    if spin_atoms:
+        save_dict.update(spin_atoms)
 
-    if not add_to_json(RL_DIR / "rotlibs.json", name, name):
-        raise ValueError(f'A rotamer library named `{name}` already exists. Please choose a different name.')
+    save_dict['type'] = 'chilife rotamer library'
+    save_dict['format_version'] = 1.0
 
-    ROTLIBS[name] = name
+    return save_dict
 
-def add_dihedral_def(name: str, dihedrals: ArrayLike) -> None:
+
+def add_dihedral_def(name: str, dihedrals: ArrayLike, force: bool = False) -> None:
     """Helper function to add the dihedral definitions of user defined labels and libraries to the chilife knowledge
     base.
 
@@ -832,14 +863,15 @@ def add_dihedral_def(name: str, dihedrals: ArrayLike) -> None:
         Name of the residue.
     dihedrals : ArrayLike
         List of lists of atom names defining the dihedrals.
-
+    force : bool
+        Overwrite any dihedral definition with the same name if it exists.
     Returns
     -------
     None
     """
 
     # Reload in case there were other changes
-    if not add_to_json(DATA_DIR / "dihedral_defs.json", key=name, value=dihedrals):
+    if not add_to_toml(DATA_DIR / "dihedral_defs.toml", key=name, value=dihedrals, force=force):
         raise ValueError(f'There is already a dihedral definition for {name}. Please choose a different name.' )
 
     # Add to active dihedral def dict
@@ -864,65 +896,90 @@ def remove_label(name, prompt=True):
             print(f'"{ans}" is not an intelligible answer. Canceling label removal')
             return None
 
-    # Remove any sub-residues if its a dRotamerEnsemble
-    additional_restypes = (RL_DIR / 'user_rotlibs').glob(name + 'ip*_rotlib.npz')
-    additional_restypes = [file.name[:-11] for file in additional_restypes]
-    for res in additional_restypes:
-        remove_from_json(RL_DIR / 'rotlibs.json', res)
-        if res in ROTLIBS: del ROTLIBS[res]
-
     # Remove files
     files = list((RL_DIR / 'user_rotlibs').glob(f'{name}*')) + \
             list((RL_DIR / 'residue_internal_coords').glob(f'{name}*')) + \
             list((RL_DIR / 'residue_pdbs').glob(f'{name}*'))
 
     for file in files:
-        os.remove(str(file))
+        if file.exists():
+            os.remove(str(file))
 
     if name in USER_dLABELS:
         USER_dLABELS.remove(name)
 
-    if name in ROTLIBS:
-        del ROTLIBS[name]
-
     if name in USER_LABELS:
         USER_LABELS.remove(name)
-
-    if name in SPIN_ATOMS:
-        del SPIN_ATOMS[name]
 
     if name in dihedral_defs:
         del dihedral_defs[name]
 
-    remove_from_json(DATA_DIR / 'dihedral_defs.json', name)
-    remove_from_json(RL_DIR / 'spin_atoms.json', name)
-    remove_from_json(RL_DIR / 'rotlibs.json', name)
+    remove_from_toml(DATA_DIR / 'dihedral_defs.toml', name)
+    remove_from_defaults(name)
 
 
-def add_to_json(file, key, value, force=False):
+def add_to_toml(file, key, value, force=False):
     with open(file, 'r') as f:
-        local = json.load(f)
+        local = rtoml.load(f)
 
     if key in local and not force:
         return False
 
-    local[key] = value
+    if key is not None:
+        local[key] = value
 
     with open(file, 'w') as f:
-        json.dump(local, f)
+        rtoml.dump(local, f)
 
     return True
 
 
-def remove_from_json(file, entry):
+def remove_from_toml(file, entry):
     with open(file, 'r') as f:
-        local = json.load(f)
+        local = rtoml.load(f)
 
     if entry in local:
         del local[entry]
 
     with open(file, 'w') as f:
-        json.dump(local, f)
+        rtoml.dump(local, f)
 
     return True
 
+
+def add_to_defaults(resname, rotlibname, default=False):
+    file = RL_DIR / 'defaults.toml'
+    with open(file, 'r') as f:
+        local = rtoml.load(f)
+
+    if resname not in local:
+        local[resname] = []
+    if resname not in chilife.rotlib_defaults:
+        chilife.rotlib_defaults[resname] = []
+
+    pos = 0 if default else len(local[resname])
+
+    if rotlibname not in chilife.rotlib_defaults[resname]:
+        chilife.rotlib_defaults[resname].insert(pos, rotlibname)
+    if rotlibname not in local[resname]:
+        local[resname].insert(pos, rotlibname)
+
+    with open(file, 'w') as f:
+        rtoml.dump(local, f)
+
+
+def remove_from_defaults(rotlibname):
+    file = RL_DIR / 'defaults.toml'
+    with open(file, 'r') as f:
+        local = rtoml.load(f)
+
+    keys = [key for key, val in local.items() if rotlibname in val]
+
+    for key in keys:
+        chilife.rotlib_defaults[key].remove(rotlibname)
+        local[key].remove(rotlibname)
+        if local[key] == []:
+            del local[key]
+
+    with open(file, 'w') as f:
+        rtoml.dump(local, f)

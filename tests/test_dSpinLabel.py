@@ -11,7 +11,6 @@ import matplotlib.pyplot as plt
 protein = xl.fetch("1ubq")
 gb1 = xl.fetch("4wh4").select_atoms("protein and segid A")
 SL2 = xl.dSpinLabel("DHC", [28, 28+4], gb1)
-xl.remove_label('___', prompt=False)
 
 def test_add_dlabel():
     Energies = np.loadtxt("test_data/DHC.energies")[:, 1]
@@ -29,28 +28,16 @@ def test_add_dlabel():
         ],
         spin_atoms=["Cu1"],
     )
-    xl.remove_label('___', prompt=False)
+    os.remove('___ip4_drotlib.zip')
 
 def test_distance_distribution():
     r = np.linspace(15, 50, 256)
-    SL1 = xl.SpinLabel("R1A", 6, gb1)
+    SL1 = xl.SpinLabel("R1M", 6, gb1)
     dd = xl.distance_distribution(SL1, SL2, r)
-    # # np.testing.assert_almost_equal(
-    #     dd[50:60],
-    #     [
-    #         0.00183767,
-    #         0.00297856,
-    #         0.00437123,
-    #         0.00802083,
-    #         0.01147641,
-    #         0.01642888,
-    #         0.02282988,
-    #         0.03100296,
-    #         0.04135329,
-    #         0.05425753,
-    #     ],
-    #     decimal=6,
-    # )
+    d = r[np.argmax(dd)]
+    p = np.max(dd)
+    assert d == 26.529411764705884
+    assert p == 0.3404745271493756
 
 
 def test_centroid():
@@ -110,11 +97,11 @@ def test_add_dlabel2():
     dd = xl.distance_distribution(SL1, SL2, r, sigma=0.5)
 
     assert r[np.argmax(dd)] == 23.41176470588235
-    xl.remove_label('___', prompt=False)
+    os.remove('___ip2_drotlib.zip')
 
 def test_single_chain_error():
     with pytest.raises(ValueError):
-        xl.add_dlibrary(name='___',
+        xl.add_dlibrary(libname='___',
                         pdb='test_data/chain_broken_dlabel.pdb',
                         increment=2,
                         dihedral_atoms=[[['N', 'CA', 'C13', 'C5'],
@@ -123,7 +110,6 @@ def test_single_chain_error():
                                        ['CA', 'C12', 'C2', 'C3']]],
                         site=15,
                         spin_atoms='Cu1')
-    xl.remove_label('___', prompt=False)
 
 def test_restraint_weight():
     SL3 = xl.dSpinLabel("DHC", [28, 32], gb1, restraint_weight=0.5)

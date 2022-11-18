@@ -1,5 +1,6 @@
 import pickle
 import logging
+from pathlib import Path
 
 import numpy as np
 from scipy.spatial import cKDTree
@@ -44,7 +45,7 @@ class dSpinLabel:
         self.eval_clash = kwargs.pop("eval_clash", True)
         self.energy_func = kwargs.setdefault("energy_func", chilife.get_lj_rep)
         self.temp = kwargs.setdefault("temp", 298)
-        self.get_lib()
+        self.get_lib(rotlib)
         self.protein_setup()
         self.sub_labels = (self.SL1, self.SL2)
 
@@ -90,7 +91,7 @@ class dSpinLabel:
             )
         return chain
 
-    def get_lib(self):
+    def get_lib(self, rotlib):
         PhiSel, PsiSel = None, None
         if self.protein is not None:
             # get site backbone information from protein structure
@@ -110,10 +111,34 @@ class dSpinLabel:
             else np.rad2deg(chilife.get_dihedral(PsiSel.positions))
         )
 
-        with open(
-                chilife.RL_DIR / f"residue_internal_coords/{self.rotlib}ip{self.increment}C_ic.pkl", "rb"
-        ) as f:
-            self.cst_idxs, self.csts = pickle.load(f)
+        cwd = Path.cwd()
+        rotlib = self.res if rotlib is None else rotlib
+        if 'ip' not in rotlib:
+            rotlib += f'ip{self.increment}'
+
+        # Assemble a list of possible rotlib paths
+        possible_rotlibs = [Path(rotlib),
+                            cwd / rotlib,
+                            cwd / (rotlib + '.zip'),
+                            cwd / (rotlib + '_drotlib.zip')]
+
+        # Check if any exist
+        for possible_file in possible_rotlibs:
+            if possible_file.exists():
+                rotlib = possible_file
+                break
+        #  If non exist
+        else:
+            # Check for the lib in chilife/permanent libraries
+            if rotlib in chilife.USER_dLABELS:
+                rotlib = chilife.RL_DIR / 'user_rotlibs' / (rotlib + '_drotlib.zip')
+            # Or check if its a non-user library, e.g. a natural amino acid library. If not throw and error.
+            else:
+                raise NameError(f'There is no rotamer library called {rotlib} in this directory or in chilife')
+
+        libA, libB, csts = chilife.read_library(rotlib)
+
+        self.cst_idxs, self.csts = tuple(csts.values())
 
         self.kwargs["eval_clash"] = False
 
@@ -121,14 +146,14 @@ class dSpinLabel:
                                      self.site,
                                      self.protein,
                                      self.chain,
-                                     self.rotlib + f"ip{self.increment}A",
+                                     libA,
                                      **self.kwargs)
 
         self.SL2 = chilife.SpinLabel(self.label,
                                      self.site2,
                                      self.protein,
                                      self.chain,
-                                     self.rotlib + f"ip{self.increment}B",
+                                     libB,
                                      **self.kwargs)
 
     def save_pdb(self, name=None):

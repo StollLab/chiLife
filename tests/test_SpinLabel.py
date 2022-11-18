@@ -29,21 +29,6 @@ kwinput = (
         for l in labels
     ]
 )
-ansinput = [f"test_data/{label}_basic.npz" for label in labels] * 2 + [
-    f"test_data/{label}_advanced.npz" for label in labels
-] * 2
-
-
-@pytest.mark.parametrize(("kwinput", "afile"), zip(kwinput, ansinput))
-def test_MMM_construction(kwinput, afile):
-    SL1 = chilife.SpinLabel(superimposition_method="MMM", **kwinput)
-
-    with np.load(afile) as f:
-        coords = f["coords"]
-        weights = f["weights"]
-
-    np.testing.assert_almost_equal(weights, SL1.weights, decimal=5)
-    np.testing.assert_almost_equal(coords, SL1._coords, decimal=5)
 
 
 def test_bbdep_construction1():
@@ -79,13 +64,9 @@ def test_eq(label):
 
 @pytest.mark.parametrize("label", labels)
 def test_lib2site(label):
-    site = np.array(
-        [
-            [-7.882, -3.264, -26.954],
-            [-8.528, -3.130, -28.260],
-            [-7.611, -2.318, -29.157],
-        ]
-    )
+    site = np.array([[-7.882, -3.264, -26.954],
+                     [-8.528, -3.130, -28.260],
+                     [-7.611, -2.318, -29.157]])
 
     lib = chilife.SpinLabel(label)
     lib.to_site(site)
@@ -97,15 +78,13 @@ def test_lib2site(label):
 def test_add_protein(label):
 
     site1, chain = 25, "A"
-    lib = chilife.SpinLabel(
-        label, site1, chain=chain, superimposition_method="mmm", energy_func=efunc
-    )
+    lib = chilife.SpinLabel(label, site1, chain=chain)
     lib.protein = U
     lib.protein_setup()
 
     with np.load(f"test_data/{label}_label.npz") as f:
-        np.testing.assert_almost_equal(f["coords"], lib._coords, decimal=5)
-        np.testing.assert_almost_equal(f["weights"], lib.weights, decimal=5)
+        np.testing.assert_almost_equal(f["coords"], lib._coords)
+        np.testing.assert_almost_equal(f["weights"], lib.weights)
 
 
 def test_from_wizard():

@@ -37,13 +37,11 @@ class SpinLabel(RotamerEnsemble):
         self.label = label
 
         # Parse spin delocalization information
-        self.__dict__.update({kw: np.array(val) for kw, val in
-                              chilife.SPIN_ATOMS[re.sub(r"ip[0-9][A-C]", "", self.rotlib)].items()})
-
         sa_mask = np.isin(self.spin_atoms, self.atom_names)
         self.spin_atoms = self.spin_atoms[sa_mask]
         self.spin_weights = self.spin_weights[sa_mask]
         self.spin_idx = np.argwhere(np.isin(self.atom_names, self.spin_atoms))
+        self.spin_idx.shape = -1
 
     @property
     def spin_coords(self):

@@ -14,6 +14,18 @@ protein = U.select_atoms("protein")
 r = np.linspace(0, 100, 2**8)
 old_ef = lambda protein, ensemble: chilife.get_lj_rep(protein, ensemble, forgive=0.8)
 
+with open('test_data/test_from_MMM.pkl', 'rb') as f:
+    from_mmm_Ps, from_mmm_rotlibs = pickle.load(f)
+
+from_mmm_r = from_mmm_Ps.pop('r')
+omp = chilife.fetch("1omp")
+anf = chilife.fetch('1anf')
+from_mmm_SLs = {}
+for key in from_mmm_rotlibs:
+    label, site, state = key
+    mbp = omp if state == 'Apo' else anf
+    from_mmm_SLs[key] = chilife.SpinLabel.from_mmm(label, site, protein=mbp)
+
 # get permutations for distance_distribution() tests
 kws = []
 args = []
@@ -31,8 +43,10 @@ for SL in labels:
     kws.append({'sigma': 2})
     kws.append({'sigma': 0.5, 'use_spin_centers': False})
 
+
+
 ans = []
-with np.load("test_data/get_dd_tests.npz", allow_pickle=True) as f:
+with np.load("test_data/get_dd_tests.npz") as f:
     for i in range(25):
         ans.append(f[f"arr_{i}"])
 
@@ -80,19 +94,6 @@ def test_unfiltered_dd():
 #
 #     np.testing.assert_almost_equal(y_ans, y)
 
-@pytest.mark.parametrize("label", labels)
-def test_read_rotamer_library(label):
-    data = chilife.read_sl_library(label)
-    print(data.keys())
-    data = [
-        data[key]
-        for key in data
-        if key not in ("internal_coords", "sigmas", "_rdihedrals", "_rsigmas", 'rotlib')
-    ]
-    print(len(data))
-    for i, array in enumerate(data):
-        assert np.all(array == np.load(f"test_data/{label}_{i}.npy", allow_pickle=True))
-
 
 def test_get_lj_rmin():
     assert np.all(rmin_params == chilife.get_lj_rmin(atom_names))
@@ -116,14 +117,10 @@ def test_spin_populations():
     SL1 = chilife.SpinLabel('R1M', 211, protein)
     SL2 = chilife.SpinLabel('R1M', 275, protein)
 
-    dd1 = chilife.distance_distribution(SL1, SL2, r)
     dd2 = chilife.distance_distribution(SL1, SL2, r, use_spin_centers=False)
 
-    plt.plot(r, dd1)
-    plt.plot(r, dd2)
-    plt.show()
-
-    print('pause')
+    assert dd2.max() == 0.1299553885263942
+    assert r[np.argmax(dd2)] == 50.19607843137255
 
 
 def test_get_dd_uq():
@@ -234,10 +231,10 @@ def test_repack_add_atoms():
     traj, de = chilife.repack(omp, SL1, SL2, repetitions=10)
 
 
-def test_add_label():
+def test_add_library():
     chilife.add_library(
-        name="___",
-        rescode="___",
+        libname="___",
+        resname="___",
         pdb="test_data/trt_sorted.pdb",
         dihedral_atoms=[['N', 'CA', 'CB', 'SG'],
                         ['CA', 'CB', 'SG', 'SD'],
@@ -245,19 +242,34 @@ def test_add_label():
                         ["SG", "SD", "CAD", "CAE"],
                         ["SD", "CAD", "CAE", "OAC"]],
         spin_atoms="CAQ",
+        permanent=True
     )
 
-    assert "TRT" in chilife.USER_LABELS
-    assert "TRT" in chilife.SPIN_ATOMS
+
+    SL = chilife.SpinLabel('___', 238, protein)
+    np.testing.assert_allclose(SL.spin_centers, np.array([[-24.44447989, 15.0841676, 14.75408798]]))
+
+    struct = mda.Universe('test_data/trt_sorted.pdb')
+    pos = struct.atoms[:3].positions
+    SL.to_site(pos)
+    assert "___" in chilife.USER_LABELS
+    np.testing.assert_almost_equal(SL.coords[0, 5:], struct.atoms.positions[5:], decimal=3)
+
     chilife.remove_label('___', prompt=False)
+    assert "___" not in chilife.USER_LABELS
+
+    os.remove('____rotlib.npz')
+
 
 def test_single_chain_error():
     with pytest.raises(ValueError):
-        chilife.add_dlibrary(name='___',
+        chilife.add_dlibrary(libname='___',
                              pdb='test_data/chain_broken_dlabel.pdb',
                              increment=2,
-                             dihedral_atoms=[['N', 'CA', 'C13', 'C5'],
-                                           ['CA', 'C13', 'C5', 'C6']],
+                             dihedral_atoms=[[['N', 'CA', 'C13', 'C5'],
+                                              ['CA', 'C13', 'C5', 'C6']],
+                                             [['N', 'CA', 'C13', 'C5'],
+                                              ['CA', 'C13', 'C5', 'C6']]],
                              site=15,
                              spin_atoms='Cu1')
 
@@ -269,29 +281,24 @@ def test_set_params():
     chilife.set_lj_params("charmm")
 
 
-def test_MMM():
-    omp = chilife.fetch("1omp")
-    SL1 = chilife.SpinLabel.from_mmm("R1M", 238, protein=omp)
+@pytest.mark.parametrize('key', from_mmm_rotlibs.keys())
+def test_from_MMM(key):
+    SL = from_mmm_SLs[key]
+    ans_coords, ans_weights = from_mmm_rotlibs[key]
 
-    ans = [
-        0.007018871557921462,
-        0.007611321209884533,
-        0.00874935025052478,
-        0.010485333838458726,
-        0.028454490756688582,
-        0.05022215305253955,
-        0.05461865851164981,
-        0.05994927468416553,
-        0.09271821128592427,
-        0.09877155092812952,
-        0.17535252824480543,
-        0.18778707975414155,
-        0.2182611759251661,
-    ]
+    np.testing.assert_allclose(SL.weights, ans_weights)
+    np.testing.assert_allclose(SL.weights, ans_weights)
 
-    np.testing.assert_almost_equal(SL1.weights, ans[::-1])
 
-    chilife.set_lj_params("charmm")
+@pytest.mark.parametrize('key', from_mmm_Ps.keys())
+def test_MMM_dd(key):
+    label, site1, site2, state = key
+    Pans = from_mmm_Ps[key]
+    SL1 = from_mmm_SLs[label, site1, state]
+    SL2 = from_mmm_SLs[label, site2, state]
+
+    Ptest = chilife.distance_distribution(SL1, SL2, from_mmm_r)
+    np.testing.assert_allclose(Ptest, Pans)
 
 
 def test_save():
@@ -317,8 +324,85 @@ def test_save_fail():
         chilife.save("tmp", np.array([1, 2, 3]))
 
 
-def test_add_new_default_library():
+def test_use_local_library():
+    weights = np.loadtxt(f'test_data/R1M.weights')
+    dihedral_names = np.loadtxt(f'test_data/R1M.chi', dtype='U').tolist()
+    spin_atoms = ['N1', 'O1']
+    chilife.add_library('RXL', f'test_data/R1M.pdb',
+                        dihedral_atoms=dihedral_names,
+                        spin_atoms=spin_atoms,
+                        weights=weights)
 
+    SLAns = chilife.SpinLabel('R1M')
+    for name in ('RXL', 'RXL_rotlib', 'RXL_rotlib.npz'):
+        SL = chilife.SpinLabel(name)
+        assert SL == SLAns
+    assert 'RXL' not in chilife.USER_LABELS
+
+    os.remove('RXL_rotlib.npz')
+
+
+def test_add_new_default_library():
+    weights = np.ones(216) / 216
+    oweights = np.loadtxt(f'test_data/R1M.weights')
+    dihedral_names = np.loadtxt(f'test_data/R1M.chi', dtype='U').tolist()
+    spin_atoms = ['N1', 'O1']
+    chilife.add_library('RXL', f'test_data/R1M.pdb', resname='R1M',
+                        dihedral_atoms=dihedral_names, spin_atoms=spin_atoms,
+                        weights=weights, permanent=True, default=True)
+    os.remove('RXL_rotlib.npz')
+
+    # Check that added label is now the default
+    SL = chilife.SpinLabel('R1M')
+    assert SL.rotlib == 'RXL'
+    assert np.all(SL.weights == weights)
+
+    # Check that the old default is still available and has not changed
+    SL2 = chilife.SpinLabel('R1M', rotlib='R1M')
+    assert SL2.rotlib == 'R1M'
+    assert np.all(oweights == SL2.weights)
+    assert np.all(SL2.weights != weights)
+
+    # Check that, after removing the new default, the old default becomes the actual default again
+    chilife.remove_label('RXL', prompt=False)
+    SL = chilife.SpinLabel('R1M')
+    assert np.all(weights != SL.weights)
+    assert np.all(oweights == SL.weights)
+
+
+def test_use_secondary_label():
+    weights = np.ones(216) / 216
+    oweights = np.loadtxt(f'test_data/R1M.weights')
+    dihedral_names = np.loadtxt(f'test_data/R1M.chi', dtype='U').tolist()
+    spin_atoms = ['N1', 'O1']
+    chilife.add_library('RXL', f'test_data/R1M.pdb', resname='R1M',
+                        dihedral_atoms=dihedral_names, spin_atoms=spin_atoms,
+                        weights=weights, permanent=True)
+    os.remove('RXL_rotlib.npz')
+
+    # Check that new rotlib is available
+    SLsecond = chilife.SpinLabel('R1M', rotlib='RXL')
+    assert SLsecond.rotlib == 'RXL'
+    assert np.all(SLsecond.weights == weights)
+
+    # Check that default label still acts as default
+    SLdefault = chilife.SpinLabel('R1M')
+    assert SLdefault.rotlib == 'R1M'
+    assert np.all(oweights == SLdefault.weights)
+    assert np.all(SLdefault.weights != weights)
+
+    chilife.remove_label('RXL', prompt=False)
+
+
+def test_add_library_fail():
+    with pytest.raises(NameError):
+        weights = np.loadtxt(f'test_data/R1M.weights')
+        dihedral_names = np.loadtxt(f'test_data/R1M.chi', dtype='U').tolist()
+        spin_atoms = ['N1', 'O1']
+        chilife.add_library('R1M', f'test_data/R1M.pdb', resname='R1M',
+                            dihedral_atoms=dihedral_names, spin_atoms=spin_atoms,
+                            weights=weights, permanent=True)
+    os.remove('R1M_rotlib.npz')
 
 # class TestProtein:
 #

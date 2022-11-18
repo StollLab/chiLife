@@ -1,3 +1,4 @@
+import os, hashlib
 import numpy as np
 import pytest
 import chilife
@@ -197,5 +198,44 @@ def test_ResidueSelection():
 def test_save_Protein():
     p = chilife.Protein.from_pdb('test_data/1omp.pdb')
     chilife.save('my_protein.pdb', p)
-    print('wait')
+
+    with open('test_data/test_save_xlprotein.pdb', 'r') as f:
+        ans = hashlib.md5(f.read().encode("utf-8")).hexdigest()
+
+    with open("my_protein.pdb", "r") as f:
+        test = hashlib.md5(f.read().encode("utf-8")).hexdigest()
+
+    os.remove('my_protein.pdb')
+    assert test == ans
+
+
+def test_xl_protein_repack():
+    np.random.seed(3000)
+    p = chilife.Protein.from_pdb('test_data/1omp.pdb')
+    SL = chilife.SpinLabel('R1M', 238, p)
+
+    traj, dE = chilife.repack(p, SL, repetitions=10, temp=300)
+
+    ans = np.array([ 4.29882146e-03,  5.38218655e-01, -7.73797120e-06,  6.96190997e-02,
+                     3.16121282e-02,  5.45366181e-01, -7.34109371e-01, -6.96171902e-02,
+                    -8.19977337e-04, -5.58844086e-03])
+
+    np.testing.assert_allclose(dE, ans)
+
+
+def test_xl_protein_mutate():
+    assert False
+
+
+def test_xl_protein_from_mda():
+    assert False
+
+
+def test_xl_protein_from_pose():
+    assert False
+
+
+def test_sl_form_xl_traj():
+    assert False
+
 

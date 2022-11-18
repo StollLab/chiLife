@@ -9,7 +9,7 @@ from scipy.spatial import cKDTree
 class BaseSystem:
 
     def __getattr__(self, item):
-        return np.squeeze(self.protein.__getattribute__(item)[self.mask])
+        return np.squeeze(self.protein.__getattribute__(item.lower())[self.mask])
 
     def select_atoms(self, selstr):
         mask = process_statement(selstr, self.logic_keywords, self.protein_keywords)
@@ -485,6 +485,7 @@ class Atom(BaseSystem):
         self.mask = mask
 
         self.name = protein.names[mask][0]
+        self.altLoc = protein.altlocs[mask][0]
         self.atype = protein.types[mask][0]
         self.type = self.atype
         self.index = protein.ix[mask][0]
@@ -506,7 +507,9 @@ class Residue(BaseSystem):
 
         self.resname = protein.resnames[self.mask][0]
         self.resnum = protein.resnums[self.mask][0]
+        self.resid = self.resnum
         self.segid = protein.segids[self.mask][0]
+        self.segindex = protein.segixs[self.mask][0]
         self.chain = protein.chains[self.mask][0]
 
     def __len__(self):
@@ -516,17 +519,17 @@ class Residue(BaseSystem):
         prev = self.atoms.resnums-1
         prev = np.unique(prev[prev > 0])
         resnums = np.unique(self.atoms.resnums)
-
-        return self.protein.select_atoms(f"(resnum {' '.join(str(r) for r in resnums)} and name N CA C) or "
-                                         f"(resnum {' '.join(str(r) for r in prev)} and name C))")
+        sel = self.protein.select_atoms(f"(resnum {' '.join(str(r) for r in resnums)} and name N CA C) or "
+                                        f"(resnum {' '.join(str(r) for r in prev)} and name C))")
+        return sel if len(sel) == 4 else None
 
     def psi_selection(self):
         nex = self.atoms.resnums + 1
         nex = np.unique(nex[nex <= self.protein.resnums.max()])
         resnums = np.unique(self.resnums)
-
-        return self.protein.select_atoms(f"(resnum {' '.join(str(r) for r in resnums)} and name N CA C) or "
-                                         f"(resnum {' '.join(str(r) for r in nex)} and name C))")
+        sel = self.protein.select_atoms(f"(resnum {' '.join(str(r) for r in resnums)} and name N CA C) or "
+                                        f"(resnum {' '.join(str(r) for r in nex)} and name C))")
+        return sel if len(sel) == 4 else None
 
 
 class Segment(BaseSystem):

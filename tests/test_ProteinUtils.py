@@ -286,7 +286,7 @@ def test_PRO_ics2():
 
 
 def test_ProteinIC_set_coords():
-    R1A = mda.Universe("../chilife/data/rotamer_libraries/residue_pdbs/R1A.pdb")
+    R1A = mda.Universe("test_data/R1A.pdb")
     R1A_IC = chilife.get_internal_coords(R1A)
     R1A_IC_c = R1A_IC.copy()
     R1A_IC_c.set_dihedral([np.pi/2, -np.pi/2, np.pi/2], 1, [['N', 'CA', 'CB', 'SG' ],

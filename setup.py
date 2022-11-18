@@ -21,7 +21,8 @@ setup(
                       'memoization>=0.3.1',
                       'argparse>=1.4.0',
                       'setuptools>=53.0.0'
-                      'networkx>=2.8'],
+                      'networkx>=2.8',
+                      'rtoml>=0.9.0'],
     description=''
 )
 

@@ -344,7 +344,7 @@ def write_protein(pdb_file: TextIO, protein: Union[mda.Universe, mda.AtomGroup])
         if len(seg.segid) > 1:
             seg.segid = next(available_segids)
 
-    traj = protein.universe.trajectory if isinstance(protein, mda.AtomGroup) else protein.protein.trajectory.coords
+    traj = protein.universe.trajectory if isinstance(protein, (mda.AtomGroup, mda.Universe)) else protein.protein.trajectory
 
     pdb_file.write(f'HEADER {Path(pdb_file.name).name.rstrip(".pdb")}\n')
     for mdl, ts in enumerate(traj):

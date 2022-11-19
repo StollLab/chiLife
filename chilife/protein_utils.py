@@ -462,7 +462,7 @@ class ProteinIC:
         self._nonbonded_pairs = kwargs.get('nonbonded_pairs', None)
 
         self.perturbed = False
-        self._coords = self.to_cartesian()
+        self._coords = kwargs['coords'] if 'coords' in kwargs else self.to_cartesian()
         self.dihedral_defs = self.collect_dih_list()
 
     @classmethod
@@ -536,7 +536,8 @@ class ProteinIC:
         zmat_idxs = {key: value.copy() for key, value in self.zmat_idxs.items()}
         kwargs = {"chain_operators": self.chain_operators,
                   "bonded_pairs": self.bonded_pairs,
-                  "_nonbonded_pairs": self._nonbonded_pairs}
+                  "_nonbonded_pairs": self._nonbonded_pairs,
+                  'coords': self.coords.copy()}
 
         return ProteinIC(zmats, zmat_idxs, self.atom_dict, self.ICs, **kwargs)
 

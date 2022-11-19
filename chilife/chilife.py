@@ -352,15 +352,10 @@ def repack(
 
             with np.errstate(divide="ignore"):
                 DummyLabel._coords = np.atleast_3d([coords])
-                E1 = energy_func(DummyLabel.protein, DummyLabel) - KT[
-                    temp[bidx]
-                ] * np.log(weight)
+                E1 = energy_func(DummyLabel.protein, DummyLabel) - KT[temp[bidx]] * np.log(weight)
 
             deltaE = E1 - DummyLabel.E0
             deltaE = np.maximum(deltaE, -10.0)
-            if deltaE == -np.inf:
-                print(SiteLibrary.name)
-                print(E1, DummyLabel.E0)
 
             acount += 1
             # Metropolis-Hastings criteria
@@ -395,7 +390,10 @@ def repack(
     logging.info(f"Total counts: {acount}")
 
     # Load MCMC trajectory into universe.
-    protein.universe.load_new(traj)
+    if isinstance(protein, (mda.Universe, mda.AtomGroup)):
+        protein.universe.load_new(traj)
+    else:
+        protein.protein.trajectory = chilife.Trajectory(traj, protein)
 
     return protein, np.squeeze(deltaEs)
 

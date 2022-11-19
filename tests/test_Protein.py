@@ -208,23 +208,73 @@ def test_save_Protein():
     os.remove('my_protein.pdb')
     assert test == ans
 
+def test_bool_index_atomsel():
+    bindex = prot.resnames == 'LYS'
+    x = prot.atoms[bindex]
+    assert False
+
+
+def test_trajectory_attribute():
+    thing = prot.select_atoms('resi 1-20').trajectory
+    assert False
+
+
+def test_save_trajectory():
+    traj = chilife.Protein.from_pdb('mda_traj.pdb')
+
+    chilife.save('xlsavetraj.pdb', traj)
+
+def test_trajectory_iter():
+
+    traj = chilife.Protein.from_pdb('mda_traj.pdb')
+    assert not np.all(traj.trajectory.coords[0] == traj.trajectory.coords[1])
+
+
+    prev_coords = np.zeros_like(traj.coords)
+    for ts in traj.trajectory:
+        arg = np.argwhere(traj.trajectory.coords[ts] != traj.trajectory.coords[ts + 1])
+        this_coords = traj.coords.copy()
+        [print(this_coords[ar]) for ar in arg]
+        # assert np.all(this_coords == traj.trajectory.coords[ts])
+        # assert not np.all(this_coords == prev_coords)
+        prev_coords = this_coords
+
 
 def test_xl_protein_repack():
     np.random.seed(3000)
     p = chilife.Protein.from_pdb('test_data/1omp.pdb')
+    pmda = mda.Universe('test_data/1omp.pdb')
     SL = chilife.SpinLabel('R1M', 238, p)
 
-    traj, dE = chilife.repack(p, SL, repetitions=10, temp=300)
+    #trajmda, dEmda = chilife.repack(pmda, SL, repetitions=100, temp=300)
+    traj, dE = chilife.repack(p, SL, repetitions=100, temp=300)
 
+    print('SOMETHIGN IS NOT SAVING RIGHT!')
+
+    # chilife.save('mda_traj.pdb', trajmda, mode='w')
+    chilife.save('chilife_traj.pdb', traj, mode='w')
     ans = np.array([ 4.29882146e-03,  5.38218655e-01, -7.73797120e-06,  6.96190997e-02,
                      3.16121282e-02,  5.45366181e-01, -7.34109371e-01, -6.96171902e-02,
                     -8.19977337e-04, -5.58844086e-03])
 
-    np.testing.assert_allclose(dE, ans)
+    np.testing.assert_almost_equal(dE, ans, decimal=5)
 
 
 def test_xl_protein_mutate():
-    assert False
+    p = chilife.Protein.from_pdb('test_data/1omp.pdb')
+    SL = chilife.SpinLabel('R1M', 238, p)
+    pSL = chilife.mutate(p, SL)
+
+    chilife.save('test_mutate.pdb', pSL)
+
+    with open('test_data/mutate_xlprotein.pdb', 'r') as f:
+        ans = hashlib.md5(f.read().encode("utf-8")).hexdigest()
+
+    with open("test_mutate.pdb", "r") as f:
+        test = hashlib.md5(f.read().encode("utf-8")).hexdigest()
+
+    os.remove('test_mutate.pdb')
+    assert ans == test
 
 
 def test_xl_protein_from_mda():
@@ -238,4 +288,7 @@ def test_xl_protein_from_pose():
 def test_sl_form_xl_traj():
     assert False
 
-
+def test_backbone_to_site():
+    # Noticed that when using chilife.Protein, the backbone O was being placed incorrectly because the atom selection
+    # coordinates were being returned as 1D not 2D. Added logic to fix it but need to add more rigerous tests
+    assert False

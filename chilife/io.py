@@ -1,4 +1,4 @@
-from typing import Tuple, Dict, Union, BinaryIO
+from typing import Tuple, Dict, Union, BinaryIO, TextIO
 from pathlib import Path
 import pickle
 import shutil
@@ -16,6 +16,8 @@ from .SpinLabel import SpinLabel
 from .dSpinLabel import dSpinLabel
 from .Protein import Protein
 
+
+fmt_str = "ATOM  {:5d} {:^4s} {:3s} {:1s}{:4d}    {:8.3f}{:8.3f}{:8.3f}{:6.2f}{:6.2f}          {:>2s}  \n"
 
 def read_distance_distribution(file_name: str) -> Tuple[np.ndarray, np.ndarray]:
     """Reads a DEER distance distribution file in the DeerAnalysis or similar format.
@@ -230,6 +232,7 @@ def save(
     file_name: str,
     *molecules: Union[RotamerEnsemble, Protein, mda.Universe, mda.AtomGroup, str],
     protein_path: Union[str, Path] = None,
+    mode: str =  'w',
     **kwargs,
 ) -> None:
     """Save a pdb file of the provided labels and proteins
@@ -309,21 +312,24 @@ def save(
     if protein_path is not None:
         print(protein_path, file_name)
         shutil.copy(protein_path, file_name)
+        pdb_file = open(file_name, 'a+')
+    else:
+        pdb_file = open(file_name, mode)
 
     for protein in proteins:
-        write_protein(file_name, protein, mode='a+')
+        write_protein(pdb_file, protein)
 
     if len(labels) > 0:
-        write_labels(file_name, *labels, **kwargs)
+        write_labels(pdb_file, *labels)
 
 
-def write_protein(file: str, protein: Union[mda.Universe, mda.AtomGroup], mode='a+') -> None:
+def write_protein(pdb_file: TextIO, protein: Union[mda.Universe, mda.AtomGroup]) -> None:
     """Helper function to write protein pdbs from mdanalysis objects.
 
     Parameters
     ----------
-    file : str
-        Name of file to save the protein to
+    pdb_file : TextIO
+        File to save the protein to
     protein : MDAnalysis.Universe, MDAnalysis.AtomGroup
         MDAnalyiss object to save
 
@@ -338,35 +344,32 @@ def write_protein(file: str, protein: Union[mda.Universe, mda.AtomGroup], mode='
         if len(seg.segid) > 1:
             seg.segid = next(available_segids)
 
-    traj = protein.universe.trajectory if isinstance(protein, mda.AtomGroup) else protein.trajectory
+    traj = protein.universe.trajectory if isinstance(protein, mda.AtomGroup) else protein.protein.trajectory.coords
 
-
-    fmt_str = "ATOM  {:5d} {:^4s} {:3s} {:1s}{:4d}    {:8.3f}{:8.3f}{:8.3f}{:6.2f}{:6.2f}          {:>2s}  \n"
-    with open(file, mode) as f:
-        f.write(f'HEADER {file.rstrip(".pdb")}\n')
-        for mdl, ts in enumerate(traj):
-            f.write(f"MODEL {mdl}\n")
-            [
-                f.write(
-                    fmt_str.format(
-                        atom.index,
-                        atom.name,
-                        atom.resname[:3],
-                        atom.segid,
-                        atom.resnum,
-                        *atom.position,
-                        1.00,
-                        1.0,
-                        atom.type,
-                    )
+    pdb_file.write(f'HEADER {Path(pdb_file.name).name.rstrip(".pdb")}\n')
+    for mdl, ts in enumerate(traj):
+        pdb_file.write(f"MODEL {mdl}\n")
+        [
+            pdb_file.write(
+                fmt_str.format(
+                    atom.index,
+                    atom.name,
+                    atom.resname[:3],
+                    atom.segid,
+                    atom.resnum,
+                    *atom.position,
+                    1.00,
+                    1.0,
+                    atom.type,
                 )
-                for atom in protein.atoms
-            ]
-            f.write("TER\n")
-            f.write("ENDMDL\n")
+            )
+            for atom in protein.atoms
+        ]
+        pdb_file.write("TER\n")
+        pdb_file.write("ENDMDL\n")
 
 
-def write_labels(file: str, *args: SpinLabel, KDE: bool = True, sorted: bool = True) -> None:
+def write_labels(pdb_file: TextIO, *args: SpinLabel, KDE: bool = True, sorted: bool = True) -> None:
     """Lower level helper function for saving SpinLabels and RotamerEnsembles. Loops over SpinLabel objects and appends
     atoms and electron coordinates to the provided file.
 
@@ -399,77 +402,77 @@ def write_labels(file: str, *args: SpinLabel, KDE: bool = True, sorted: bool = T
                 f"Cannot save {arg}. *args must be RotamerEnsemble SpinLabel or dSpinLabal objects"
             )
 
-    fmt_str = "ATOM  {:5d} {:^4s} {:3s} {:1s}{:4d}    {:8.3f}{:8.3f}{:8.3f}{:6.2f}{:6.2f}          {:>2s}  \n"
-    with open(file, "a+", newline="\n") as f:
-        # Write spin label models
-        f.write("\n")
-        for k, label in enumerate(ensembles):
-            f.write(f"HEADER {label.name}\n")
 
-            # Save models in order of weight
 
-            sorted_index = np.argsort(label.weights)[::-1] if sorted else np.arange(len(label.weights))
-            for mdl, (conformer, weight) in enumerate(
-                zip(label.coords[sorted_index], label.weights[sorted_index])
-            ):
-                f.write("MODEL {}\n".format(mdl))
+    # Write spin label models
+    pdb_file.write("\n")
+    for k, label in enumerate(ensembles):
+        pdb_file.write(f"HEADER {label.name}\n")
 
-                [
-                    f.write(
-                        fmt_str.format(
-                            i,
-                            label.atom_names[i],
-                            label.res[:3],
-                            label.chain,
-                            int(label.site),
-                            *conformer[i],
-                            1.00,
-                            weight * 100,
-                            label.atom_types[i],
-                        )
-                    )
-                    for i in range(len(label.atom_names))
-                ]
-                f.write("TER\n")
-                f.write("ENDMDL\n")
+        # Save models in order of weight
 
-        # Write electron density at electron coordinates
-        for k, label in enumerate(ensembles):
-            if not hasattr(label, "spin_centers"):
-                continue
-            if not np.any(label.spin_centers):
-                continue
-
-            f.write(f"HEADER {label.name}_density\n".format(label.label, k + 1))
-            spin_centers = np.atleast_2d(label.spin_centers)
-
-            if KDE and np.all(np.linalg.eigh(np.cov(spin_centers.T))[0] > 0) and len(spin_centers) > 5:
-                # Perform gaussian KDE to determine electron density
-                gkde = gaussian_kde(spin_centers.T, weights=label.weights)
-
-                # Map KDE density to pseudoatoms
-                vals = gkde.pdf(spin_centers.T)
-            else:
-                vals = label.weights
+        sorted_index = np.argsort(label.weights)[::-1] if sorted else np.arange(len(label.weights))
+        for mdl, (conformer, weight) in enumerate(
+            zip(label.coords[sorted_index], label.weights[sorted_index])
+        ):
+            pdb_file.write("MODEL {}\n".format(mdl))
 
             [
-                f.write(
+                pdb_file.write(
                     fmt_str.format(
                         i,
-                        "NEN",
-                        label.label[:3],
+                        label.atom_names[i],
+                        label.res[:3],
                         label.chain,
                         int(label.site),
-                        *spin_centers[i],
+                        *conformer[i],
                         1.00,
-                        vals[i] * 100,
-                        "N",
+                        weight * 100,
+                        label.atom_types[i],
                     )
                 )
-                for i in range(len(vals))
+                for i in range(len(label.atom_names))
             ]
+            pdb_file.write("TER\n")
+            pdb_file.write("ENDMDL\n")
 
-            f.write("TER\n")
+    # Write electron density at electron coordinates
+    for k, label in enumerate(ensembles):
+        if not hasattr(label, "spin_centers"):
+            continue
+        if not np.any(label.spin_centers):
+            continue
+
+        pdb_file.write(f"HEADER {label.name}_density\n".format(label.label, k + 1))
+        spin_centers = np.atleast_2d(label.spin_centers)
+
+        if KDE and np.all(np.linalg.eigh(np.cov(spin_centers.T))[0] > 0) and len(spin_centers) > 5:
+            # Perform gaussian KDE to determine electron density
+            gkde = gaussian_kde(spin_centers.T, weights=label.weights)
+
+            # Map KDE density to pseudoatoms
+            vals = gkde.pdf(spin_centers.T)
+        else:
+            vals = label.weights
+
+        [
+            pdb_file.write(
+                fmt_str.format(
+                    i,
+                    "NEN",
+                    label.label[:3],
+                    label.chain,
+                    int(label.site),
+                    *spin_centers[i],
+                    1.00,
+                    vals[i] * 100,
+                    "N",
+                )
+            )
+            for i in range(len(vals))
+        ]
+
+        pdb_file.write("TER\n")
 
 rotlib_formats = {1.0 : ('rotlib', 'resname', 'coords', 'internal_coords', 'weights', 'atom_types', 'atom_names',
                          'dihedrals', 'dihedral_atoms', 'type', 'format_version')}

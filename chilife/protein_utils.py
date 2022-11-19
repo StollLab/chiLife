@@ -1333,9 +1333,7 @@ def get_missing_residues(
 
         # Check if there are any missing heavy atoms
         heavy_atoms = res.atoms.types[res.atoms.types != "H"]
-        if len(heavy_atoms) != cache.get(
-            res.resname, len(RotamerEnsemble(res.resname).atom_names)
-        ):
+        if len(heavy_atoms) != cache.get(res.resname, len(RotamerEnsemble(res.resname).atom_names)):
             missing_residues.append(
                 RotamerEnsemble(
                     res.resname,
@@ -1461,37 +1459,11 @@ def mutate(
     residx, atom_names, atom_types = zip(*atom_info)
     segids = list(Counter(protein.residues.segids))
     # Allocate a new universe with the appropriate information
-    U = mda.Universe.empty(
-        n_atoms,
-        n_residues=n_residues,
-        atom_resindex=residx,
-        residue_segindex=segidx,
-        trajectory=True,
-    )
 
-    # Add necessary topology attributes
-    U.add_TopologyAttr("name", atom_names)
-    U.add_TopologyAttr("type", atom_types)
-    U.add_TopologyAttr("resname", res_names)
-    U.add_TopologyAttr("resid", resids)
-    U.add_TopologyAttr("altLoc", ["A" for atom in range(n_atoms)])
-    U.add_TopologyAttr("resnum", resids)
-    U.add_TopologyAttr("segid")
-
-    for i, segid in enumerate(segids):
-        if i == 0:
-            i_segment = U.segments[0]
-            i_segment.segid = segid
-        else:
-            i_segment = U.add_Segment(segid=str(segid))
-
-        mask = np.argwhere(np.asarray(segidx) == i).squeeze()
-        U.residues[mask.tolist()].segments = i_segment
-
-    U.add_TopologyAttr(Segids(np.array(segids)))
-    U.add_TopologyAttr(Atomindices())
-    U.add_TopologyAttr(Resindices())
-    U.add_TopologyAttr(Segindices())
+    if isinstance(protein, (mda.Universe, mda.AtomGroup)):
+        U = make_mda_uni(atom_names, atom_types, res_names, residx, resids, segidx, segids)
+    elif isinstance(protein, chilife.BaseSystem):
+        U = chilife.Protein.from_arrays(atom_names, atom_types, res_names, residx, resids, segidx, segids)
 
     # Apply old coordinates to non-spinlabel atoms
     new_other_atoms = U.select_atoms(f"not ({label_selstr})")
@@ -1674,28 +1646,13 @@ def pose2mda(pose) -> MDAnalysis.Universe:
     )
 
     n_residues = len(pose)
-    n_atoms = len(coords)
 
     segindices = np.array([0] * n_residues)
     resnames = np.array([res.name() for res in pose])
     resnums = np.array([res.seqpos() for res in pose])
 
-    mda_protein = mda.Universe.empty(
-        n_atoms,
-        n_residues=n_residues,
-        atom_resindex=resindices,
-        residue_segindex=segindices,
-        trajectory=True,
-    )
-
-    mda_protein.add_TopologyAttr("type", atypes)
-    mda_protein.add_TopologyAttr("resnum", resnums)
-    mda_protein.add_TopologyAttr("resids", resnums)
-    mda_protein.add_TopologyAttr("resname", resnames)
-    mda_protein.add_TopologyAttr("name", anames)
-    mda_protein.add_TopologyAttr("segid", ["A"])
-    mda_protein.add_TopologyAttr("altLocs", [""] * len(atypes))
-    mda_protein.atoms.positions = coords
+    mda_protein = make_mda_uni(anames, atypes, resnames, resindices, resnums, segindices)
+    mda_protein.positions = coords
 
     return mda_protein
 
@@ -1917,6 +1874,55 @@ def sort_pdb(pdbfile: Union[str, List[str], List[List[str]]],
     lines = [line[:6] + f"{i + 1:5d}" + line[11:] for i, line in enumerate(lines)]
 
     return lines
+
+
+def make_mda_uni(anames: ArrayLike,
+                 atypes: ArrayLike,
+                 resnames: ArrayLike,
+                 resindices: ArrayLike,
+                 resnums: ArrayLike,
+                 segindices: ArrayLike,
+                 segids: ArrayLike = None,
+) -> MDAnalysis.Universe:
+
+    n_atoms = len(anames)
+    n_residues = len(np.unique(resindices))
+
+    if segids is None:
+        segids = np.array(["ABCDEFGHIJKLMNOPQRSTUVWXYZ"[i] for i in range(len(np.unique(segindices)))])
+
+    mda_uni = mda.Universe.empty(
+        n_atoms,
+        n_residues=n_residues,
+        atom_resindex=resindices,
+        residue_segindex=segindices,
+        trajectory=True,
+    )
+
+    mda_uni.add_TopologyAttr("type", atypes)
+    mda_uni.add_TopologyAttr("resnum", resnums)
+    mda_uni.add_TopologyAttr("resids", resnums)
+    mda_uni.add_TopologyAttr("resname", resnames)
+    mda_uni.add_TopologyAttr("name", anames)
+    mda_uni.add_TopologyAttr("altLocs", [""] * len(atypes))
+    mda_uni.add_TopologyAttr("segid")
+
+    for i, segid in enumerate(segids):
+        if i == 0:
+            i_segment = mda_uni.segments[0]
+            i_segment.segid = segid
+        else:
+            i_segment = mda_uni.add_Segment(segid=str(segid))
+
+        mask = np.argwhere(np.asarray(segindices) == i).squeeze()
+        mda_uni.residues[mask.tolist()].segments = i_segment
+
+    mda_uni.add_TopologyAttr(Segids(np.array(segids)))
+    mda_uni.add_TopologyAttr(Atomindices())
+    mda_uni.add_TopologyAttr(Resindices())
+    mda_uni.add_TopologyAttr(Segindices())
+
+    return mda_uni
 
 DATA_DIR = Path(__file__).parent.absolute() / "data/"
 RL_DIR = Path(__file__).parent.absolute() / "data/rotamer_libraries/"

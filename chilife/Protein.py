@@ -1,15 +1,21 @@
+from __future__ import annotations
+from copy import deepcopy
 import functools
 import operator
 from functools import partial, update_wrapper
 from .protein_utils import sort_pdb
 import numpy as np
+from numpy.typing import ArrayLike
 from scipy.spatial import cKDTree
 
 
 class BaseSystem:
 
     def __getattr__(self, item):
-        return np.squeeze(self.protein.__getattribute__(item.lower())[self.mask])
+        if item == 'trajectory':
+            return self.protein.trajectory
+        else:
+            return np.squeeze(self.protein.__getattribute__(item)[self.mask])
 
     def select_atoms(self, selstr):
         mask = process_statement(selstr, self.logic_keywords, self.protein_keywords)
@@ -26,9 +32,17 @@ class BaseSystem:
     def positions(self):
         return self.coords
 
+    @positions.setter
+    def positions(self, val):
+        self.coords = np.asarray(val)
+
     @property
     def coords(self):
         return np.squeeze(self.protein._coords[self.mask])
+
+    @coords.setter
+    def coords(self, val):
+        self.protein._coords[self.mask] = np.asarray(val)
 
     @property
     def resindices(self):
@@ -70,6 +84,10 @@ class BaseSystem:
     def types(self):
         return self.protein.atypes[self.mask]
 
+    def __iter__(self):
+        for idx in self.protein.ix[self.mask]:
+            yield Atom(self.protein, idx)
+
 
 class Protein(BaseSystem):
     def __init__(
@@ -94,7 +112,6 @@ class Protein(BaseSystem):
         self.resnames = resnames.copy()
         self.resnums = resnums.copy()
         self.chains = chains.copy()
-        self._coords = None
         self.trajectory = Trajectory(trajectory.copy(), self)
         self.occupancies = occupancies.copy()
         self.bs = bs.copy()
@@ -193,6 +210,63 @@ class Protein(BaseSystem):
 
         return cls(**pdb_dict)
 
+    @property
+    def _coords(self):
+        return self.trajectory.coords[self.trajectory.frame]
+
+
+    @classmethod
+    def from_arrays(cls,
+                    anames: ArrayLike,
+                    atypes: ArrayLike,
+                    resnames: ArrayLike,
+                    resindices: ArrayLike,
+                    resnums: ArrayLike,
+                    segindices: ArrayLike,
+                    segids: ArrayLike = None,
+                    trajectory: ArrayLike = None,
+    ) -> Protein:
+        anames = np.asarray(anames)
+        atypes = np.asarray(atypes)
+        resindices = np.asarray(resindices)
+        segindices = np.asarray(segindices)
+
+        n_atoms = len(anames)
+        atomids = np.arange(n_atoms)
+        altlocs = np.array([''] * n_atoms)
+
+        if len(resnums) != n_atoms:
+            resnums = np.array([resnums[residx] for residx in resindices])
+        else:
+            resnums = np.asarray(resnums)
+
+        if len(resnames) != n_atoms:
+            resnames = np.array([resnames[residx] for residx in resindices])
+        else:
+            resnames = np.asarray(resnames)
+
+        if len(segindices) != n_atoms:
+            segindices = np.array([segindices[x] for x in resindices])
+
+        if segids is None:
+            segids = np.array(["ABCDEFGHIJKLMNOPQRSTUVWXYZ"[i] for i in segindices])
+        elif len(segids) != n_atoms:
+            segids = np.array([segids[i] for i in segindices])
+        else:
+            segids = np.asarray(segids)
+
+        chains = segids
+
+        if trajectory is None:
+            trajectory = np.empty((1, n_atoms, 3))
+
+        occupancies = np.ones(n_atoms)
+        bs = np.ones(n_atoms)
+        charges = np.zeros(n_atoms)
+
+        return cls(atomids, anames, altlocs, resnames, resnums, chains,
+                   trajectory, occupancies, bs, segids, atypes, charges)
+
 
 class Trajectory:
 
@@ -201,12 +275,15 @@ class Trajectory:
         self.timestep = timestep
         self.coords = coordinates
         self._frame = 0
-        self.protein._coords = self.coords[self.frame]
         self.time = np.arange(0, len(self.coords)) * self.timestep
 
     def __getitem__(self, item):
-        self.protein._coords = self.coords[item]
-        return self.time[item]
+        self._frame = item
+
+    def __iter__(self):
+        for i, ts in enumerate(self.time):
+            self._frame = i
+            yield ts
 
     @property
     def frame(self):
@@ -270,9 +347,11 @@ def process_statement(statement, logickws, subjectkws):
             cont = True
             sub_out = process_statement(stat, logickws, subjectkws)
 
+        if len(stat_split) == 0:
+            continue
+
         if stat_split[0] not in subjectkws and not cont:
             raise ValueError(f"{stat_split[0]} is not a valid keyword. Please start expressions with valid keywords")
-
 
         if stat_split[0] in subjectkws:
             finished = False
@@ -387,25 +466,41 @@ def parse_paren(string):
 
 class AtomSelection(BaseSystem):
 
+    def __new__(cls, protein, mask):
+        if sum(mask) == 1:
+            return Atom(protein, mask)
+        else:
+            return object.__new__(cls)
+
+
     def __init__(self, protein, mask):
         self.protein = protein
         self.mask = mask
 
     def __getitem__(self, item):
+
+        if np.issubdtype(type(item), int):
+            return Atom(self.protein, item)
+
         self_args = np.argwhere(self.mask)
         new_args = self_args[item]
         new_mask = np.zeros_like(self.mask, dtype=bool)
         new_mask[new_args] = True
 
-        if np.issubdtype(type(item), int):
-            return Atom(self.protein, new_mask)
-        elif isinstance(item, slice):
+        if isinstance(item, slice):
             return AtomSelection(self.protein, new_mask)
+
+        elif isinstance(item, np.ndarray):
+            if len(item) == 1 or item.sum() == 1:
+                return Atom(self.protein, new_mask)
+            elif item.dtype in (int, bool):
+                return AtomSelection(self.protein, new_mask)
+
         elif hasattr(item, '__iter__'):
             if all([np.issubdtype(type(x), int) for x in item]):
                 return AtomSelection(self.protein, new_mask)
 
-        raise TypeError('Only integer and slice type arguments are supported at this time')
+        raise TypeError('Only integer, slice type, and boolean mask arguments are supported at this time')
 
     def __len__(self):
         return self.mask.sum()
@@ -446,6 +541,11 @@ class ResidueSelection(BaseSystem):
     def __len__(self):
         return len(self.first_ix)
 
+    def __iter__(self):
+        for resnum in self.resnums:
+            mask = self.protein.resnums == resnum
+            yield Residue(self.protein, mask)
+
 
 class SegmentSelection(BaseSystem):
 
@@ -481,21 +581,32 @@ class SegmentSelection(BaseSystem):
 
 class Atom(BaseSystem):
     def __init__(self, protein, mask):
-        self.protein = protein
-        self.mask = mask
+        if np.issubdtype(type(mask), int):
+            self.index = mask
+            self._mask = None
+        else:
+            self._mask = mask
+            self.index = np.argwhere(mask).flat[0]
 
-        self.name = protein.names[mask][0]
-        self.altLoc = protein.altlocs[mask][0]
-        self.atype = protein.types[mask][0]
+        self.protein = protein
+        self.name = protein.names[self.index]
+        self.altLoc = protein.altlocs[self.index]
+        self.atype = protein.types[self.index]
         self.type = self.atype
-        self.index = protein.ix[mask][0]
-        self.resn = protein.resnames[mask][0]
+
+        self.resn = protein.resnames[self.index]
         self.resname = self.resn
-        self.resi = protein.resnums[mask][0]
+        self.resi = protein.resnums[self.index]
         self.resnum = self.resi
-        self.chain = protein.segids[mask][0]
-        self.segid = protein.chains[mask][0]
-        self.position = self.coords
+        self.chain = protein.segids[self.index]
+        self.segid = protein.chains[self.index]
+        self.position = protein.coords[self.index]
+
+    @property
+    def mask(self):
+        if self._mask is None:
+            self._mask = np.zeros_like(self.protein.mask, dtype=bool)
+        return self._mask
 
 
 class Residue(BaseSystem):

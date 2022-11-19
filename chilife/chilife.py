@@ -574,7 +574,8 @@ def add_dlibrary(
         If set to True and permanent is also set to true this library will overwrite any existing library with the same
         name.
     spin_atoms : list, dict
-        List dictionary of atom names on which the spin density is localized.
+        List of atom names on which the spin density is localized, e.g ['N', 'O'], or dictionary with spin atom
+        names (key 'spin_atoms') and spin atom weights (key 'spin_weights').
     Returns
     -------
     None

@@ -297,7 +297,7 @@ class RotamerEnsemble:
         res = residue.resname
         site = residue.resnum
         chain = residue.segid
-        protein = residue.universe
+        protein = residue.universe if isinstance(residue, mda.core.groups.Residue) else residue.protein
         return cls(res, site, protein, chain, **kwargs)
 
     @classmethod
@@ -432,7 +432,7 @@ class RotamerEnsemble:
             elif self.__dict__[item] is None:
                 new_copy.protein = None
             else:
-                new_copy.protein = self.protein.copy()
+                new_copy.protein = self.protein
         return new_copy
 
     def to_site(self, site_pos=None):

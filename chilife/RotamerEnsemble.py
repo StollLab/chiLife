@@ -580,17 +580,18 @@ class RotamerEnsemble:
 
         if not any(off_rotamer):
             if not np.allclose(np.squeeze(self._lib_coords[0, self.backbone_idx]), self.backbone):
+
+                #####Should not be computing this every time
                 N, CA, C = self.backbone
                 mx, ori = chilife.global_mx(N, CA, C, method=self.superimposition_method)
-
                 N, CA, C = np.squeeze(self._lib_coords[0, self.backbone_idx])
                 old_ori, ori_mx = chilife.local_mx(N, CA, C, method=self.superimposition_method)
+                ######
 
                 self._lib_coords -= old_ori
                 mx = ori_mx @ mx
 
                 self._lib_coords = np.einsum("ijk,kl->ijl", self._lib_coords, mx) + ori
-
                 for atom in ["H", "O"]:
                     mask = self.atom_names == atom
                     if any(mask) and self.protein is not None:
@@ -599,7 +600,7 @@ class RotamerEnsemble:
                             f"and name {atom} and not altloc B"
                         ).positions
                         if len(pos) > 0:
-                            self._lib_coords[:, mask] = pos[0]
+                            self._lib_coords[:, mask] = pos[0] if len(pos.shape) > 1 else pos
 
             return np.squeeze(self._lib_coords[idx]), np.squeeze(self._weights[idx])
 

@@ -627,7 +627,7 @@ class Residue(BaseSystem):
         return self.mask.sum()
 
     def phi_selection(self):
-        prev = self.atoms.resnums-1
+        prev = self.atoms.resnums - 1
         prev = np.unique(prev[prev > 0])
         resnums = np.unique(self.atoms.resnums)
         sel = self.protein.select_atoms(f"(resnum {' '.join(str(r) for r in resnums)} and name N CA C) or "
@@ -639,7 +639,7 @@ class Residue(BaseSystem):
         nex = np.unique(nex[nex <= self.protein.resnums.max()])
         resnums = np.unique(self.resnums)
         sel = self.protein.select_atoms(f"(resnum {' '.join(str(r) for r in resnums)} and name N CA C) or "
-                                        f"(resnum {' '.join(str(r) for r in nex)} and name C))")
+                                        f"(resnum {' '.join(str(r) for r in nex)} and name N))")
         return sel if len(sel) == 4 else None
 
 

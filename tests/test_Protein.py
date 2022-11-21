@@ -208,57 +208,70 @@ def test_save_Protein():
     os.remove('my_protein.pdb')
     assert test == ans
 
+
 def test_bool_index_atomsel():
     bindex = prot.resnames == 'LYS'
     x = prot.atoms[bindex]
-    assert False
-
-
-def test_trajectory_attribute():
-    thing = prot.select_atoms('resi 1-20').trajectory
-    assert False
+    assert len(x) == 768
+    assert np.all(x.resname == 'LYS')
 
 
 def test_save_trajectory():
     traj = chilife.Protein.from_pdb('mda_traj.pdb')
-
     chilife.save('xlsavetraj.pdb', traj)
+
+    with open('test_data/xlsavetraj.pdb', 'r') as f:
+        ans = hashlib.md5(f.read().encode("utf-8")).hexdigest()
+
+    with open("xlsavetraj.pdb", "r") as f:
+        test = hashlib.md5(f.read().encode("utf-8")).hexdigest()
+
+    os.remove('xlsavetraj.pdb')
+    assert test == ans
+
+
 
 def test_trajectory_iter():
 
     traj = chilife.Protein.from_pdb('mda_traj.pdb')
     assert not np.all(traj.trajectory.coords[0] == traj.trajectory.coords[1])
 
-
     prev_coords = np.zeros_like(traj.coords)
     for ts in traj.trajectory:
-        arg = np.argwhere(traj.trajectory.coords[ts] != traj.trajectory.coords[ts + 1])
-        this_coords = traj.coords.copy()
-        [print(this_coords[ar]) for ar in arg]
-        # assert np.all(this_coords == traj.trajectory.coords[ts])
-        # assert not np.all(this_coords == prev_coords)
-        prev_coords = this_coords
+        this_coords = traj.coords
+        assert not np.all(this_coords == prev_coords)
+        prev_coords = this_coords.copy()
 
 
 def test_xl_protein_repack():
-    np.random.seed(3000)
+
     p = chilife.Protein.from_pdb('test_data/1omp.pdb')
     pmda = mda.Universe('test_data/1omp.pdb')
     SL = chilife.SpinLabel('R1M', 238, p)
+    np.random.seed(3000)
+    trajmda, dEmda = chilife.repack(pmda, SL, repetitions=100, temp=300, off_rotamer=True)
+    np.random.seed(3000)
+    traj, dE = chilife.repack(p, SL, repetitions=100, temp=300, off_rotamer=True)
 
-    #trajmda, dEmda = chilife.repack(pmda, SL, repetitions=100, temp=300)
-    traj, dE = chilife.repack(p, SL, repetitions=100, temp=300)
-
-    print('SOMETHIGN IS NOT SAVING RIGHT!')
+    print('SHUOLD !')
 
     # chilife.save('mda_traj.pdb', trajmda, mode='w')
     chilife.save('chilife_traj.pdb', traj, mode='w')
+    chilife.save('mda_traj.pdb', traj, mode='w')
     ans = np.array([ 4.29882146e-03,  5.38218655e-01, -7.73797120e-06,  6.96190997e-02,
                      3.16121282e-02,  5.45366181e-01, -7.34109371e-01, -6.96171902e-02,
                     -8.19977337e-04, -5.58844086e-03])
 
     np.testing.assert_almost_equal(dE, ans, decimal=5)
 
+
+def test_same_as_mda():
+    RE1 = chilife.RotamerEnsemble('ILE', 116, mda_prot)
+    RE2 = chilife.RotamerEnsemble('ILE', 116, prot)
+
+    np.testing.assert_almost_equal(RE1.coords, RE2.coords)
+    np.testing.assert_almost_equal(RE1.atom_energies, RE2.atom_energies)
+    np.testing.assert_almost_equal(RE1.weights, RE2.weights)
 
 def test_xl_protein_mutate():
     p = chilife.Protein.from_pdb('test_data/1omp.pdb')

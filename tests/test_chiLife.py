@@ -123,21 +123,21 @@ def test_spin_populations():
     assert np.abs(r[np.argmax(dd2)] - 50.19607843137255) < 1e-7
 
 
-def test_get_dd_uq():
-    SL1 = chilife.SpinLabel("R1M", 238, protein=protein, sample=1000)
-    SL2 = chilife.SpinLabel("R1M", 20, protein=protein, sample=1000)
-
-    print(SL1.weights.sum(), SL2.weights.sum())
-    P = chilife.distance_distribution(SL1, SL2, r=r, uq=500)
-
-    mean = P.mean(axis=0)
-    # mean /= np.trapz(mean, r)
-    std = P.std(axis=0)
-    print(mean.shape, std.shape)
-
-    plt.plot(r, mean)
-    plt.fill_between(r, (mean - std / 2).clip(0), mean + std / 2, alpha=0.5)
-    plt.show()
+# def test_get_dd_uq():
+#     SL1 = chilife.SpinLabel("R1M", 238, protein=protein, sample=1000)
+#     SL2 = chilife.SpinLabel("R1M", 20, protein=protein, sample=1000)
+#
+#     print(SL1.weights.sum(), SL2.weights.sum())
+#     P = chilife.distance_distribution(SL1, SL2, r=r, uq=500)
+#
+#     mean = P.mean(axis=0)
+#     # mean /= np.trapz(mean, r)
+#     std = P.std(axis=0)
+#     print(mean.shape, std.shape)
+#
+#     plt.plot(r, mean)
+#     plt.fill_between(r, (mean - std / 2).clip(0), mean + std / 2, alpha=0.5)
+#     plt.show()
 
 
 # def test_get_dd_uq2():

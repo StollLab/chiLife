@@ -297,7 +297,7 @@ class RotamerEnsemble:
         res = residue.resname
         site = residue.resnum
         chain = residue.segid
-        protein = residue.universe
+        protein = residue.universe if isinstance(residue, mda.core.groups.Residue) else residue.protein
         return cls(res, site, protein, chain, **kwargs)
 
     @classmethod
@@ -325,16 +325,18 @@ class RotamerEnsemble:
         """
 
         chain = guess_chain(traj, site) if chain is None else chain
-
-        if hasattr(traj.universe._topology, "altLocs"):
-            res = traj.select_atoms(f"segid {chain} and resnum {site} and not altloc B")
+        if isinstance(traj, (mda.AtomGroup, mda.Universe)):
+            if not hasattr(traj.universe._topology, "altLocs"):
+                res = traj.select_atoms(f"segid {chain} and resnum {site}")
         else:
-            res = traj.select_atoms(f"segid {chain} and resnum {site}")
+            res = traj.select_atoms(f"segid {chain} and resnum {site} and not altloc B")
 
         resname = res.residues[0].resname
 
         coords = []
-        for ts in traj.universe.trajectory[burn_in:]:
+        traj = traj.universe if isinstance(traj, mda.AtomGroup) else traj
+
+        for ts in traj.trajectory[burn_in:]:
             coords.append(res.atoms.positions)
 
         coords = np.array(coords)
@@ -354,7 +356,7 @@ class RotamerEnsemble:
             pi = np.exp(-energy / (chilife.GAS_CONST * T))
             pi /= pi.sum()
         else:
-            pi = np.ones(len(traj.universe.trajectory[burn_in:]))
+            pi = np.ones(len(traj.trajectory[burn_in:]))
             pi = np.array(
                 [pi[non_unique_idx == idx].sum() for idx in range(len(unique_idx))]
             )
@@ -427,12 +429,14 @@ class RotamerEnsemble:
     def __deepcopy__(self, memodict={}):
         new_copy = chilife.RotamerEnsemble(self.res, self.site)
         for item in self.__dict__:
+            if isinstance(item, np.ndarray):
+                new_copy.__dict__[item] = self.__dict__[item].copy()
             if item != "protein":
                 new_copy.__dict__[item] = deepcopy(self.__dict__[item])
             elif self.__dict__[item] is None:
                 new_copy.protein = None
             else:
-                new_copy.protein = self.protein.copy()
+                new_copy.protein = self.protein
         return new_copy
 
     def to_site(self, site_pos=None):
@@ -580,17 +584,18 @@ class RotamerEnsemble:
 
         if not any(off_rotamer):
             if not np.allclose(np.squeeze(self._lib_coords[0, self.backbone_idx]), self.backbone):
+
+                #####Should not be computing this every time
                 N, CA, C = self.backbone
                 mx, ori = chilife.global_mx(N, CA, C, method=self.superimposition_method)
-
                 N, CA, C = np.squeeze(self._lib_coords[0, self.backbone_idx])
                 old_ori, ori_mx = chilife.local_mx(N, CA, C, method=self.superimposition_method)
+                ######
 
                 self._lib_coords -= old_ori
                 mx = ori_mx @ mx
 
                 self._lib_coords = np.einsum("ijk,kl->ijl", self._lib_coords, mx) + ori
-
                 for atom in ["H", "O"]:
                     mask = self.atom_names == atom
                     if any(mask) and self.protein is not None:
@@ -599,7 +604,7 @@ class RotamerEnsemble:
                             f"and name {atom} and not altloc B"
                         ).positions
                         if len(pos) > 0:
-                            self._lib_coords[:, mask] = pos[0]
+                            self._lib_coords[:, mask] = pos[0] if len(pos.shape) > 1 else pos
 
             return np.squeeze(self._lib_coords[idx]), np.squeeze(self._weights[idx])
 
@@ -854,12 +859,12 @@ class RotamerEnsemble:
             #  If non exist
             else:
                 # if rotlib wasnt specified look for default  in chilife/permanent libraries
-                if rotlib in chilife.USER_LABELS and was_none:
+                if rotlib in chilife.USER_LIBRARIES and was_none:
                     rotlib = chilife.RL_DIR / 'user_rotlibs' / (chilife.rotlib_defaults[self.res][0] + '_rotlib.npz')
                 # If rotlib was specified look for a rotlib with that name
-                elif rotlib in chilife.USER_LABELS:
+                elif rotlib in chilife.USER_LIBRARIES:
                     rotlib = chilife.RL_DIR / 'user_rotlibs' / (rotlib + '_rotlib.npz')
-                # If rotlib is not in USER_LABELS or SUPPOERTED LABELS throw and error.
+                # If rotlib is not in USER_LIBRARIES or SUPPOERTED LABELS throw and error.
                 elif rotlib not in chilife.SUPPORTED_RESIDUES:
                     raise NameError(f'There is no rotamer library called {rotlib} in this directory or in chilife')
 

@@ -36,8 +36,8 @@ def test_distance_distribution():
     dd = xl.distance_distribution(SL1, SL2, r)
     d = r[np.argmax(dd)]
     p = np.max(dd)
-    assert d == 26.529411764705884
-    assert p == 0.3404745271493756
+    assert abs(d - 26.529411764705884) < 1e-7
+    assert abs(p - 0.3404745271493756) < 1e-7
 
 
 def test_centroid():

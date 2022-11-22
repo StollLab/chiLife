@@ -33,9 +33,9 @@ RL_DIR = Path(__file__).parent.absolute() / "data/rotamer_libraries/"
 with open(RL_DIR / "defaults.toml", "r") as f:
     rotlib_defaults = rtoml.load(f)
 
-USER_LABELS = {f.name[:-11] for f in (RL_DIR / "user_rotlibs").glob("*rotlib.npz")}
-USER_dLABELS = {f.name[:-12] for f in (RL_DIR / "user_rotlibs").glob("*drotlib.zip")}
-USER_dLABELS = USER_dLABELS | {f.name[:-15] for f in (RL_DIR / "user_rotlibs").glob("*drotlib.zip")}
+USER_LIBRARIES = {f.name[:-11] for f in (RL_DIR / "user_rotlibs").glob("*rotlib.npz")}
+USER_dLIBRARIES = {f.name[:-12] for f in (RL_DIR / "user_rotlibs").glob("*drotlib.zip")}
+USER_dLIBRARIES = USER_dLIBRARIES | {f.name[:-15] for f in (RL_DIR / "user_rotlibs").glob("*drotlib.zip")}
 SUPPORTED_RESIDUES = set(dihedral_defs.keys())
 [SUPPORTED_RESIDUES.remove(lab) for lab in ("CYR1", "MTN")]
 
@@ -352,15 +352,10 @@ def repack(
 
             with np.errstate(divide="ignore"):
                 DummyLabel._coords = np.atleast_3d([coords])
-                E1 = energy_func(DummyLabel.protein, DummyLabel) - KT[
-                    temp[bidx]
-                ] * np.log(weight)
+                E1 = energy_func(DummyLabel.protein, DummyLabel) - KT[temp[bidx]] * np.log(weight)
 
             deltaE = E1 - DummyLabel.E0
             deltaE = np.maximum(deltaE, -10.0)
-            if deltaE == -np.inf:
-                print(SiteLibrary.name)
-                print(E1, DummyLabel.E0)
 
             acount += 1
             # Metropolis-Hastings criteria
@@ -395,7 +390,10 @@ def repack(
     logging.info(f"Total counts: {acount}")
 
     # Load MCMC trajectory into universe.
-    protein.universe.load_new(traj)
+    if isinstance(protein, (mda.Universe, mda.AtomGroup)):
+        protein.universe.load_new(traj)
+    else:
+        protein.protein.trajectory = chilife.Trajectory(traj, protein)
 
     return protein, np.squeeze(deltaEs)
 
@@ -514,8 +512,8 @@ def add_library(
         if force or not store_loc.exists():
             np.savez(store_loc, **save_dict, allow_pickle=True)
             add_dihedral_def(libname, dihedral_atoms, force=force)
-            global USER_LABELS
-            USER_LABELS.add(libname)
+            global USER_LIBRARIES
+            USER_LIBRARIES.add(libname)
         else:
             raise NameError("A rotamer library with this name already exists! Please choose a different name or do"
                             "not store as a permanent rotamer library")
@@ -574,7 +572,8 @@ def add_dlibrary(
         If set to True and permanent is also set to true this library will overwrite any existing library with the same
         name.
     spin_atoms : list, dict
-        List dictionary of atom names on which the spin density is localized.
+        List of atom names on which the spin density is localized, e.g ['N', 'O'], or dictionary with spin atom
+        names (key 'spin_atoms') and spin atom weights (key 'spin_weights').
     Returns
     -------
     None
@@ -694,8 +693,8 @@ def add_dlibrary(
         add_to_defaults(resname, libname, default)
         if force or not store_loc.exists():
             shutil.copy(f'{libname}_drotlib.zip', str(store_loc))
-            global USER_dLABELS
-            USER_dLABELS.add(libname)
+            global USER_dLIBRARIES
+            USER_dLIBRARIES.add(libname)
             add_dihedral_def(libname, dihedral_atoms, force=force)
         else:
             raise NameError("A rotamer library with this name already exists! Please choose a different name or do"
@@ -878,9 +877,9 @@ def add_dihedral_def(name: str, dihedrals: ArrayLike, force: bool = False) -> No
     chilife.dihedral_defs[name] = dihedrals
 
 
-def remove_label(name, prompt=True):
-    global USER_LABELS, USER_dLABELS
-    if (name not in USER_LABELS) and (name not in USER_dLABELS) and prompt:
+def remove_library(name, prompt=True):
+    global USER_LIBRARIES, USER_dLIBRARIES
+    if (name not in USER_LIBRARIES) and (name not in USER_dLIBRARIES) and prompt:
         raise ValueError(f'{name} is not in the set of user labels or user dLables. Check to make sure you have the '
                          f'right label. Note that only user labels can be removed.')
 
@@ -905,11 +904,11 @@ def remove_label(name, prompt=True):
         if file.exists():
             os.remove(str(file))
 
-    if name in USER_dLABELS:
-        USER_dLABELS.remove(name)
+    if name in USER_dLIBRARIES:
+        USER_dLIBRARIES.remove(name)
 
-    if name in USER_LABELS:
-        USER_LABELS.remove(name)
+    if name in USER_LIBRARIES:
+        USER_LIBRARIES.remove(name)
 
     if name in dihedral_defs:
         del dihedral_defs[name]

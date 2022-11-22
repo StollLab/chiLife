@@ -130,7 +130,7 @@ class dSpinLabel:
         #  If non exist
         else:
             # Check for the lib in chilife/permanent libraries
-            if rotlib in chilife.USER_dLABELS:
+            if rotlib in chilife.USER_dLIBRARIES:
                 rotlib = chilife.RL_DIR / 'user_rotlibs' / (rotlib + '_drotlib.zip')
             # Or check if its a non-user library, e.g. a natural amino acid library. If not throw and error.
             else:

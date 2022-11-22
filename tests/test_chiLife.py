@@ -119,8 +119,8 @@ def test_spin_populations():
 
     dd2 = chilife.distance_distribution(SL1, SL2, r, use_spin_centers=False)
 
-    assert dd2.max() == 0.1299553885263942
-    assert r[np.argmax(dd2)] == 50.19607843137255
+    assert np.abs(dd2.max() - 0.1299553885263942) < 1e-7
+    assert np.abs(r[np.argmax(dd2)] - 50.19607843137255) < 1e-7
 
 
 def test_get_dd_uq():
@@ -252,11 +252,11 @@ def test_add_library():
     struct = mda.Universe('test_data/trt_sorted.pdb')
     pos = struct.atoms[:3].positions
     SL.to_site(pos)
-    assert "___" in chilife.USER_LABELS
+    assert "___" in chilife.USER_LIBRARIES
     np.testing.assert_almost_equal(SL.coords[0, 5:], struct.atoms.positions[5:], decimal=3)
 
-    chilife.remove_label('___', prompt=False)
-    assert "___" not in chilife.USER_LABELS
+    chilife.remove_library('___', prompt=False)
+    assert "___" not in chilife.USER_LIBRARIES
 
     os.remove('____rotlib.npz')
 
@@ -286,8 +286,8 @@ def test_from_MMM(key):
     SL = from_mmm_SLs[key]
     ans_coords, ans_weights = from_mmm_rotlibs[key]
 
-    np.testing.assert_allclose(SL.weights, ans_weights)
-    np.testing.assert_allclose(SL.weights, ans_weights)
+    np.testing.assert_almost_equal(SL.weights, ans_weights, decimal=6)
+    np.testing.assert_almost_equal(SL.coords, ans_coords, decimal=4)
 
 
 @pytest.mark.parametrize('key', from_mmm_Ps.keys())
@@ -298,7 +298,7 @@ def test_MMM_dd(key):
     SL2 = from_mmm_SLs[label, site2, state]
 
     Ptest = chilife.distance_distribution(SL1, SL2, from_mmm_r)
-    np.testing.assert_allclose(Ptest, Pans)
+    np.testing.assert_almost_equal(Ptest, Pans, decimal=6)
 
 
 def test_save():
@@ -336,8 +336,10 @@ def test_use_local_library():
     SLAns = chilife.SpinLabel('R1M')
     for name in ('RXL', 'RXL_rotlib', 'RXL_rotlib.npz'):
         SL = chilife.SpinLabel(name)
-        assert SL == SLAns
-    assert 'RXL' not in chilife.USER_LABELS
+        np.testing.assert_almost_equal(SL.coords, SLAns.coords, decimal=5)
+        np.testing.assert_almost_equal(SL.weights, SLAns.weights)
+
+    assert 'RXL' not in chilife.USER_LIBRARIES
 
     os.remove('RXL_rotlib.npz')
 
@@ -364,7 +366,7 @@ def test_add_new_default_library():
     assert np.all(SL2.weights != weights)
 
     # Check that, after removing the new default, the old default becomes the actual default again
-    chilife.remove_label('RXL', prompt=False)
+    chilife.remove_library('RXL', prompt=False)
     SL = chilife.SpinLabel('R1M')
     assert np.all(weights != SL.weights)
     assert np.all(oweights == SL.weights)
@@ -391,7 +393,7 @@ def test_use_secondary_label():
     assert np.all(oweights == SLdefault.weights)
     assert np.all(SLdefault.weights != weights)
 
-    chilife.remove_label('RXL', prompt=False)
+    chilife.remove_library('RXL', prompt=False)
 
 
 def test_add_library_fail():

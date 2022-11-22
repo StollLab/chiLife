@@ -14,8 +14,8 @@ resis = [
     for key in chilife.dihedral_defs
     if key
     not in (("R1B", "R1C", "CYR1", "MTN", "ALA", "GLY") +
-            tuple(chilife.USER_LABELS) +
-            tuple(chilife.USER_dLABELS))
+            tuple(chilife.USER_LIBRARIES) +
+            tuple(chilife.USER_dLIBRARIES))
 ]
 ICs = chilife.get_internal_coords(ubq)
 gd_kwargs = [
@@ -254,8 +254,8 @@ def test_polypro_IC():
 @pytest.mark.parametrize(
     "res", set(chilife.dihedral_defs.keys()) -
            {"CYR1", "MTN", "R1M", "R1C"} -
-           chilife.USER_dLABELS -
-           chilife.USER_LABELS
+           chilife.USER_dLIBRARIES -
+           chilife.USER_LIBRARIES
 )
 def test_sort_and_internal_coords(res):
     pdbfile = chilife.RL_DIR / f"residue_pdbs/{res.lower()}.pdb"

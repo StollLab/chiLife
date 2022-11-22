@@ -325,16 +325,18 @@ class RotamerEnsemble:
         """
 
         chain = guess_chain(traj, site) if chain is None else chain
-
-        if hasattr(traj.universe._topology, "altLocs"):
-            res = traj.select_atoms(f"segid {chain} and resnum {site} and not altloc B")
+        if isinstance(traj, (mda.AtomGroup, mda.Universe)):
+            if not hasattr(traj.universe._topology, "altLocs"):
+                res = traj.select_atoms(f"segid {chain} and resnum {site}")
         else:
-            res = traj.select_atoms(f"segid {chain} and resnum {site}")
+            res = traj.select_atoms(f"segid {chain} and resnum {site} and not altloc B")
 
         resname = res.residues[0].resname
 
         coords = []
-        for ts in traj.universe.trajectory[burn_in:]:
+        traj = traj.universe if isinstance(traj, mda.AtomGroup) else traj
+
+        for ts in traj.trajectory[burn_in:]:
             coords.append(res.atoms.positions)
 
         coords = np.array(coords)
@@ -354,7 +356,7 @@ class RotamerEnsemble:
             pi = np.exp(-energy / (chilife.GAS_CONST * T))
             pi /= pi.sum()
         else:
-            pi = np.ones(len(traj.universe.trajectory[burn_in:]))
+            pi = np.ones(len(traj.trajectory[burn_in:]))
             pi = np.array(
                 [pi[non_unique_idx == idx].sum() for idx in range(len(unique_idx))]
             )
@@ -427,6 +429,8 @@ class RotamerEnsemble:
     def __deepcopy__(self, memodict={}):
         new_copy = chilife.RotamerEnsemble(self.res, self.site)
         for item in self.__dict__:
+            if isinstance(item, np.ndarray):
+                new_copy.__dict__[item] = self.__dict__[item].copy()
             if item != "protein":
                 new_copy.__dict__[item] = deepcopy(self.__dict__[item])
             elif self.__dict__[item] is None:

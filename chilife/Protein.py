@@ -1,5 +1,4 @@
 from __future__ import annotations
-from copy import deepcopy
 import functools
 import operator
 from functools import partial, update_wrapper
@@ -8,6 +7,9 @@ import numpy as np
 from numpy.typing import ArrayLike
 from scipy.spatial import cKDTree
 
+# TODO:
+#   Performance enhancement: use indext instead of mask for groups
+#   Performance enhancement: Preconstruct Atom objects
 
 class BaseSystem:
 
@@ -38,11 +40,11 @@ class BaseSystem:
 
     @property
     def coords(self):
-        return np.squeeze(self.protein._coords[self.mask])
+        return self.trajectory.coords[self.trajectory.frame, self.mask]
 
     @coords.setter
     def coords(self, val):
-        self.protein._coords[self.mask] = np.asarray(val)
+        self.trajectory.coords[self.trajectory.frame, self.mask] = np.asarray(val)
 
     @property
     def resindices(self):
@@ -210,10 +212,6 @@ class Protein(BaseSystem):
 
         return cls(**pdb_dict)
 
-    @property
-    def _coords(self):
-        return self.trajectory.coords[self.trajectory.frame]
-
 
     @classmethod
     def from_arrays(cls,
@@ -278,12 +276,15 @@ class Trajectory:
         self.time = np.arange(0, len(self.coords)) * self.timestep
 
     def __getitem__(self, item):
-        self._frame = item
+        if isinstance(item, slice):
+            return TrajectoryIterator(self, item)
+
+        elif isinstance(item, int):
+            self._frame = item
+            return self.time[self._frame]
 
     def __iter__(self):
-        for i, ts in enumerate(self.time):
-            self._frame = i
-            yield ts
+        return iter(TrajectoryIterator(self))
 
     @property
     def frame(self):
@@ -292,7 +293,31 @@ class Trajectory:
     @frame.setter
     def frame(self, value):
         self._frame = value
-        self.protein._coords = self.coords[value]
+
+class TrajectoryIterator:
+
+    def __init__(self, trajectory, arg=None):
+        self.trajectory = trajectory
+        if arg is None:
+            self.indices = range(len(self.trajectory.time))
+        elif isinstance(arg, slice):
+            self.indices = range(*arg.indices(len(self.trajectory.time)))
+        elif isinstance(arg, np.ndarry):
+            if np.issubdtype(arg.dtype, int):
+                self.indices = self.indices
+            elif np.dtype == bool:
+                self.indices = np.argwhere(arg)
+            else:
+                raise TypeError(f'{arg.dtype} is not a valid indexor for a trajectory' )
+        else:
+            raise TypeError(f'{arg} is not a valid indexor for a trajectory')
+
+    def __iter__(self):
+        for frame in self.indices:
+            yield self.trajectory[frame]
+
+    def __len__(self):
+        return len(self.indices)
 
 
 def process_statement(statement, logickws, subjectkws):

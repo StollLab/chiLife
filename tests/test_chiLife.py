@@ -231,8 +231,8 @@ def test_repack_add_atoms():
     traj, de = chilife.repack(omp, SL1, SL2, repetitions=10)
 
 
-def test_add_library():
-    chilife.add_library(
+def test_create_library():
+    chilife.create_library(
         libname="___",
         resname="___",
         pdb="test_data/trt_sorted.pdb",
@@ -263,15 +263,16 @@ def test_add_library():
 
 def test_single_chain_error():
     with pytest.raises(ValueError):
-        chilife.add_dlibrary(libname='___',
-                             pdb='test_data/chain_broken_dlabel.pdb',
-                             increment=2,
-                             dihedral_atoms=[[['N', 'CA', 'C13', 'C5'],
+        chilife.create_dlibrary(libname='___',
+                                pdb='test_data/chain_broken_dlabel.pdb',
+                                increment=2,
+                                dihedral_atoms=[[['N', 'CA', 'C13', 'C5'],
                                               ['CA', 'C13', 'C5', 'C6']],
                                              [['N', 'CA', 'C13', 'C5'],
                                               ['CA', 'C13', 'C5', 'C6']]],
-                             site=15,
-                             spin_atoms='Cu1')
+                                site=15,
+                                spin_atoms='Cu1')
+
 
 def test_set_params():
     chilife.set_lj_params("uff")
@@ -328,10 +329,10 @@ def test_use_local_library():
     weights = np.loadtxt(f'test_data/R1M.weights')
     dihedral_names = np.loadtxt(f'test_data/R1M.chi', dtype='U').tolist()
     spin_atoms = ['N1', 'O1']
-    chilife.add_library('RXL', f'test_data/R1M.pdb',
-                        dihedral_atoms=dihedral_names,
-                        spin_atoms=spin_atoms,
-                        weights=weights)
+    chilife.create_library('RXL', f'test_data/R1M.pdb',
+                           dihedral_atoms=dihedral_names,
+                           spin_atoms=spin_atoms,
+                           weights=weights)
 
     SLAns = chilife.SpinLabel('R1M')
     for name in ('RXL', 'RXL_rotlib', 'RXL_rotlib.npz'):
@@ -342,6 +343,7 @@ def test_use_local_library():
     assert 'RXL' not in chilife.USER_LIBRARIES
 
     os.remove('RXL_rotlib.npz')
+    chilife.read_rotlib.cache_clear()
 
 
 def test_add_new_default_library():
@@ -349,9 +351,9 @@ def test_add_new_default_library():
     oweights = np.loadtxt(f'test_data/R1M.weights')
     dihedral_names = np.loadtxt(f'test_data/R1M.chi', dtype='U').tolist()
     spin_atoms = ['N1', 'O1']
-    chilife.add_library('RXL', f'test_data/R1M.pdb', resname='R1M',
-                        dihedral_atoms=dihedral_names, spin_atoms=spin_atoms,
-                        weights=weights, permanent=True, default=True)
+    chilife.create_library('RXL', f'test_data/R1M.pdb', resname='R1M',
+                           dihedral_atoms=dihedral_names, spin_atoms=spin_atoms,
+                           weights=weights, permanent=True, default=True)
     os.remove('RXL_rotlib.npz')
 
     # Check that added label is now the default
@@ -377,9 +379,9 @@ def test_use_secondary_label():
     oweights = np.loadtxt(f'test_data/R1M.weights')
     dihedral_names = np.loadtxt(f'test_data/R1M.chi', dtype='U').tolist()
     spin_atoms = ['N1', 'O1']
-    chilife.add_library('RXL', f'test_data/R1M.pdb', resname='R1M',
-                        dihedral_atoms=dihedral_names, spin_atoms=spin_atoms,
-                        weights=weights, permanent=True)
+    chilife.create_library('RXL', f'test_data/R1M.pdb', resname='R1M',
+                           dihedral_atoms=dihedral_names, spin_atoms=spin_atoms,
+                           weights=weights, permanent=True)
     os.remove('RXL_rotlib.npz')
 
     # Check that new rotlib is available
@@ -401,9 +403,9 @@ def test_add_library_fail():
         weights = np.loadtxt(f'test_data/R1M.weights')
         dihedral_names = np.loadtxt(f'test_data/R1M.chi', dtype='U').tolist()
         spin_atoms = ['N1', 'O1']
-        chilife.add_library('R1M', f'test_data/R1M.pdb', resname='R1M',
-                            dihedral_atoms=dihedral_names, spin_atoms=spin_atoms,
-                            weights=weights, permanent=True)
+        chilife.create_library('R1M', f'test_data/R1M.pdb', resname='R1M',
+                               dihedral_atoms=dihedral_names, spin_atoms=spin_atoms,
+                               weights=weights, permanent=True)
     os.remove('R1M_rotlib.npz')
 
 # class TestProtein:

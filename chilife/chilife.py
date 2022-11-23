@@ -399,7 +399,7 @@ def repack(
     return protein, np.squeeze(deltaEs)
 
 
-def add_library(
+def create_library(
     libname: str,
     pdb: str,
     dihedral_atoms: List[List[str]],
@@ -508,19 +508,10 @@ def add_library(
     np.savez(Path().cwd() / f'{libname}_rotlib.npz', **save_dict, allow_pickle=True)
 
     if permanent:
-        store_loc = RL_DIR / f"user_rotlibs/{libname}_rotlib.npz"
-        add_to_defaults(resname, libname, default)
-        if force or not store_loc.exists():
-            np.savez(store_loc, **save_dict, allow_pickle=True)
-            add_dihedral_def(libname, dihedral_atoms, force=force)
-            global USER_LIBRARIES
-            USER_LIBRARIES.add(libname)
-        else:
-            raise NameError("A rotamer library with this name already exists! Please choose a different name or do"
-                            "not store as a permanent rotamer library")
+        add_library(f'{libname}_rotlib.npz', libname=libname, default=default, force=force)
 
 
-def add_dlibrary(
+def create_dlibrary(
     libname: str,
     pdb: str,
     increment: int,
@@ -690,16 +681,8 @@ def add_dlibrary(
     os.remove(f'{libname}_csts.npz')
 
     if permanent:
-        store_loc = RL_DIR / f"user_rotlibs/{libname}_drotlib.zip"
-        add_to_defaults(resname, libname, default)
-        if force or not store_loc.exists():
-            shutil.copy(f'{libname}_drotlib.zip', str(store_loc))
-            global USER_dLIBRARIES
-            USER_dLIBRARIES.add(libname)
-            add_dihedral_def(libname, dihedral_atoms, force=force)
-        else:
-            raise NameError("A rotamer library with this name already exists! Please choose a different name or do"
-                            "not store as a permanent rotamer library")
+        add_library(f'{libname}_drotlib.zip', libname=libname, default=default, force=force)
+
 
 def pre_add_library(
         pdb: str,
@@ -851,6 +834,35 @@ def prep_restype_savedict(
     save_dict['format_version'] = 1.0
 
     return save_dict
+
+
+def add_library(filename, libname=None, default=False, force=False):
+
+    store_loc = (RL_DIR / f"user_rotlibs/") / filename
+    filename = Path(filename)
+    if libname is None:
+        libname = re.sub("_d{0,1}rotlib.(npz|zip)", "", filename.name)
+
+    library = chilife.read_library(Path(filename), None, None)
+    drotlib=False
+    if isinstance(library, tuple):
+        drotlib=True
+        library, _, _ = library
+
+    resname = str(library['resname'])
+    add_to_defaults(resname, libname, default)
+    if force or not store_loc.exists():
+        shutil.copy(filename, str(store_loc))
+        if drotlib:
+            global USER_dLIBRARIES
+            USER_dLIBRARIES.add(libname)
+        else:
+            global USER_LIBRARIES
+            USER_LIBRARIES.add(libname)
+        add_dihedral_def(libname, library['dihedral_atoms'].tolist(), force=force)
+    else:
+        raise NameError("A rotamer library with this name already exists! Please choose a different name or do"
+                        "not store as a permanent rotamer library")
 
 
 def add_dihedral_def(name: str, dihedrals: ArrayLike, force: bool = False) -> None:

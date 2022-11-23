@@ -164,15 +164,15 @@ spin labels and custom rotamer libraries. To create a custom rotamer library, al
 the spin label (2) A list of the rotatable dihedral bonds, and (3) a list of the atoms where the spin is.
 
 ```python
-xl.add_library(name='TRT_1.0',
-               resname = 'TRT',
-               pdb='test_data/trt.pdb',
-               dihedral_atoms=[['N', 'CA', 'CB', 'SG'],
-                               ['CA', 'CB', 'SG', 'SD'],
-                               ['CB', 'SG', 'SD', 'CAD'],
-                               ['SG', 'SD', 'CAD', 'CAE'],
-                               ['SD', 'CAD', 'CAE', 'OAC']],
-               spin_atoms='CAQ')
+xl.create_library(name='TRT_1.0',
+                  resname='TRT',
+                  pdb='test_data/trt.pdb',
+                  dihedral_atoms=[['N', 'CA', 'CB', 'SG'],
+                                  ['CA', 'CB', 'SG', 'SD'],
+                                  ['CB', 'SG', 'SD', 'CAD'],
+                                  ['SG', 'SD', 'CAD', 'CAE'],
+                                  ['SD', 'CAD', 'CAE', 'OAC']],
+                  spin_atoms='CAQ')
 ```
 
 This function will create a portable `TRT_1.0_rotlib.npz` file that can be called specified by the `SpinLabel` 

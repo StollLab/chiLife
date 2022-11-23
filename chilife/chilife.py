@@ -1,6 +1,7 @@
 from __future__ import annotations
-import tempfile, logging, os, rtoml
+import tempfile, logging, os, rtoml, re
 import zipfile, shutil
+from copy import deepcopy
 from pathlib import Path
 from itertools import combinations, product
 from typing import Callable, Tuple, Union, List, Dict
@@ -950,6 +951,7 @@ def add_to_defaults(resname, rotlibname, default=False):
     file = RL_DIR / 'defaults.toml'
     with open(file, 'r') as f:
         local = rtoml.load(f)
+        backup = deepcopy(local)
 
     if resname not in local:
         local[resname] = []
@@ -963,14 +965,13 @@ def add_to_defaults(resname, rotlibname, default=False):
     if rotlibname not in local[resname]:
         local[resname].insert(pos, rotlibname)
 
-    with open(file, 'w') as f:
-        rtoml.dump(local, f)
-
+    safe_save(file, local, backup)
 
 def remove_from_defaults(rotlibname):
     file = RL_DIR / 'defaults.toml'
     with open(file, 'r') as f:
         local = rtoml.load(f)
+        backup = deepcopy(local)
 
     keys = [key for key, val in local.items() if rotlibname in val]
 
@@ -980,5 +981,14 @@ def remove_from_defaults(rotlibname):
         if local[key] == []:
             del local[key]
 
-    with open(file, 'w') as f:
-        rtoml.dump(local, f)
+    safe_save(file, local, backup)
+
+
+def safe_save(file, data, backup):
+    try:
+        with open(file, 'w') as f:
+            rtoml.dump(data, f)
+    except rtoml._rtoml.TomlSerializationError:
+        with open(file, 'w') as f:
+            rtoml.dump(backup, f)
+        raise

@@ -28,7 +28,7 @@ class SpinLabel(RotamerEnsemble):
         k-dimensional tree object associated with the protein coordinates.
     """
 
-    def __init__(self, label, site=1, protein=None, chain=None, rotlib=None, **kwargs):
+    def __init__(self, label, site=None, protein=None, chain=None, rotlib=None, **kwargs):
 
         # Overide RotamerEnsemble default of not evaluating clashes
         kwargs.setdefault("eval_clash", True)

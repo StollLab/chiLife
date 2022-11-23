@@ -21,7 +21,7 @@ class FluorLabel(RotamerEnsemble):
             k-dimensional tree object associated with the protein coordinates.
     """
 
-    def __init__(self, label, site=1, protein=None, chain=None, **kwargs):
+    def __init__(self, label, site=None, protein=None, chain=None, **kwargs):
         """
         Create new SpinLabel object.
 

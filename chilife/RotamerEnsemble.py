@@ -83,7 +83,7 @@ class RotamerEnsemble:
 
     backbone_atoms = ["H", "N", "CA", "HA", "C", "O"]
 
-    def __init__(self, res, site=1, protein=None, chain=None, rotlib=None, **kwargs):
+    def __init__(self, res, site=None, protein=None, chain=None, rotlib=None, **kwargs):
         """Create new RotamerEnsemble object.
 
         Parameters
@@ -139,6 +139,12 @@ class RotamerEnsemble:
         """
 
         self.res = res
+        if site is None and protein is not None:
+            raise ValueError('A protein has been provided but a site has not. If you wish to construct an ensemble '
+                             'associated with a protein you must include the site you wish to model.')
+        elif site is None:
+            site = 1
+
         self.site = int(site)
         self.protein = protein
         self.nataa = ""

@@ -11,7 +11,7 @@ def _get_spin_label(frame, label, site, chain, protein, **kwargs):
 
 
 class SpinLabelTraj:
-    def __init__(self, label, site=1, chain="A", protein=None, **kwargs):
+    def __init__(self, label, site=None, chain="A", protein=None, **kwargs):
         get_sl_frame = partial(
             _get_spin_label,
             label=label,

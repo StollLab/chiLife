@@ -739,6 +739,7 @@ def pre_add_library(
         if isinstance(spin_atoms, dict):
             spin_weights = list(spin_atoms.values())
             spin_atoms = list(spin_atoms.keys())
+
         else:
             w = 1/len(spin_atoms)
             spin_weights = [w for _ in spin_atoms]

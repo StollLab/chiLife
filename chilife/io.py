@@ -350,7 +350,8 @@ def write_protein(pdb_file: TextIO, protein: Union[mda.Universe, mda.AtomGroup])
         traj = protein.trajectory
         name = protein.fname
 
-    name = name.rstrip(".pdb")
+    name = name[:-4] if name.endswith(".pdb") else name
+
     pdb_file.write(f'HEADER {name}\n')
     for mdl, ts in enumerate(traj):
         pdb_file.write(f"MODEL {mdl}\n")

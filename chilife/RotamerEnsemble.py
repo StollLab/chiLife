@@ -331,27 +331,24 @@ class RotamerEnsemble:
         """
 
         chain = guess_chain(traj, site) if chain is None else chain
+
+        altlocs = True
         if isinstance(traj, (mda.AtomGroup, mda.Universe)):
             if not hasattr(traj.universe._topology, "altLocs"):
                 res = traj.select_atoms(f"segid {chain} and resnum {site}")
-        else:
+                altlocs = False
+
+        if altlocs:
             res = traj.select_atoms(f"segid {chain} and resnum {site} and not altloc B")
 
         resname = res.residues[0].resname
+        dihedral_defs = kwargs.get('dihedral_atoms', chilife.dihedral_defs[resname])
 
-        coords = []
         traj = traj.universe if isinstance(traj, mda.AtomGroup) else traj
-
-        for ts in traj.trajectory[burn_in:]:
-            coords.append(res.atoms.positions)
-
-        coords = np.array(coords)
+        coords = np.array([res.atoms.positions for ts in traj.trajectory[burn_in:]])
 
         _, unique_idx, non_unique_idx = np.unique(coords, axis=0, return_inverse=True, return_index=True)
         coords = coords[unique_idx]
-
-        prelib = cls(resname, site, chain=chain, protein=traj, eval_clash=False, **kwargs)
-        prelib._coords = np.atleast_3d(coords)
 
         if energy is not None:
             energy = energy[burn_in:]  # - energy[burn_in]
@@ -368,18 +365,45 @@ class RotamerEnsemble:
             )
             pi /= pi.sum()
 
-        prelib.weights = pi
+        weights = pi
 
-        dihedrals = []
-        masks = [np.isin(prelib.atom_names, ddef) for ddef in prelib.dihedral_atoms]
-        for i in range(len(prelib.weights)):
-            dihedrals.append([chilife.get_dihedral(coords[i][mask]) for mask in masks])
+        ICs = [chilife.get_internal_coords(res.atoms) for ts in traj.trajectory[unique_idx]]
 
-        dihedrals = np.rad2deg(np.array(dihedrals))
-        prelib._dihedrals = dihedrals
-        prelib.backbone_to_site()
+        for ic in ICs:
+            ic.shift_resnum(-(site - 1))
 
-        return prelib
+        dihedrals = np.array([ic.get_dihedral(1, dihedral_defs) for ic in ICs])
+        sigmas = kwargs.get('sigmas', np.array([]))
+
+        lib = {'rotlib': f'{resname}_from_traj',
+               'resname': resname,
+               'coords': coords,
+               'internal_coords': ICs,
+               'weights': weights,
+               'atom_types': res.types.copy(),
+               'atom_names': res.names.copy(),
+               'dihedral_atoms': dihedral_defs,
+               'dihedrals': np.rad2deg(dihedrals),
+               '_dihedrals': dihedrals.copy(),
+               '_rdihedrals': dihedrals,
+               'sigmas': sigmas,
+               '_rsigmas': np.deg2rad(sigmas),
+               'type': 'chilife rotamer library from a trajectory',
+               'format_version': 1.0}
+
+        if 'spin_atoms' in kwargs:
+            spin_atoms = kwargs['spin_atoms']
+            if isinstance(spin_atoms, (list, tuple)):
+                spin_atoms = {sa: 1 / len(spin_atoms) for sa in spin_atoms}
+            elif isinstance(spin_atoms, dict):
+                pass
+            else:
+                raise TypeError('the `spin_atoms` kwarg must be a dict, list or tuple')
+
+            lib['spin_atoms'] = np.array(spin_atoms.keys())
+            lib['spin_weights'] = np.array(spin_atoms.values())
+
+        return cls(resname, site, traj, chain, lib, **kwargs)
 
     def __eq__(self, other):
         """Equivalence measurement between a spin label and another object. A SpinLabel cannot be equivalent to a

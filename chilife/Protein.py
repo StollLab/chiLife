@@ -1,5 +1,6 @@
 from __future__ import annotations
 import functools
+import numbers
 import operator
 from functools import partial, update_wrapper
 from .protein_utils import sort_pdb
@@ -10,6 +11,7 @@ from scipy.spatial import cKDTree
 # TODO:
 #   Performance enhancement: use indext instead of mask for groups
 #   Performance enhancement: Preconstruct Atom objects
+#   Behavior: AtomSelections should have orders to be enforced when indexing.
 
 class BaseSystem:
 
@@ -25,6 +27,14 @@ class BaseSystem:
             mask *= self.mask
 
         return AtomSelection(self.protein, mask)
+
+    @property
+    def fname(self):
+        return self.protein._fname
+
+    @fname.setter
+    def fname(self, val):
+        self.protein.fname = val
 
     @property
     def atoms(self):
@@ -106,6 +116,7 @@ class Protein(BaseSystem):
         segs: np.ndarray,
         atypes: np.ndarray,
         charges: np.ndarray,
+        name: str = 'Noname_Protein'
     ):
         self.protein = self
         self.atomids = atomids.copy()
@@ -121,6 +132,7 @@ class Protein(BaseSystem):
         self.segids = self.chains
         self.atypes = atypes.copy()
         self.charges = charges.copy()
+        self._fname = name
 
         self.ix = np.arange(len(self.atomids))
         self.mask = np.ones_like(self.atomids, dtype=bool)
@@ -209,7 +221,7 @@ class Protein(BaseSystem):
                 trajectory.append(frame_coords)
 
         pdb_dict['trajectory'] = np.array(trajectory, dtype=float)
-
+        pdb_dict['name'] = file_name
         return cls(**pdb_dict)
 
 
@@ -276,10 +288,10 @@ class Trajectory:
         self.time = np.arange(0, len(self.coords)) * self.timestep
 
     def __getitem__(self, item):
-        if isinstance(item, slice):
+        if isinstance(item, (slice, list, np.ndarray)):
             return TrajectoryIterator(self, item)
 
-        elif isinstance(item, int):
+        elif isinstance(item, numbers.Integral):
             self._frame = item
             return self.time[self._frame]
 
@@ -302,9 +314,9 @@ class TrajectoryIterator:
             self.indices = range(len(self.trajectory.time))
         elif isinstance(arg, slice):
             self.indices = range(*arg.indices(len(self.trajectory.time)))
-        elif isinstance(arg, np.ndarry):
-            if np.issubdtype(arg.dtype, int):
-                self.indices = self.indices
+        elif isinstance(arg, (np.ndarray, list, tuple)):
+            if np.issubdtype(arg.dtype, np.integer):
+                self.indices = arg
             elif np.dtype == bool:
                 self.indices = np.argwhere(arg)
             else:
@@ -504,8 +516,9 @@ class AtomSelection(BaseSystem):
 
     def __getitem__(self, item):
 
-        if np.issubdtype(type(item), int):
-            return Atom(self.protein, item)
+        if np.issubdtype(type(item), np.integer):
+            relidx = self.protein.ix[self.mask][item]
+            return Atom(self.protein, relidx)
 
         self_args = np.argwhere(self.mask)
         new_args = self_args[item]
@@ -515,10 +528,11 @@ class AtomSelection(BaseSystem):
         if isinstance(item, slice):
             return AtomSelection(self.protein, new_mask)
 
-        elif isinstance(item, np.ndarray):
+        elif isinstance(item, (np.ndarray, list, tuple)):
+            item = np.asarray(item)
             if len(item) == 1 or item.sum() == 1:
                 return Atom(self.protein, new_mask)
-            elif item.dtype in (int, bool):
+            else:
                 return AtomSelection(self.protein, new_mask)
 
         elif hasattr(item, '__iter__'):
@@ -606,7 +620,7 @@ class SegmentSelection(BaseSystem):
 
 class Atom(BaseSystem):
     def __init__(self, protein, mask):
-        if np.issubdtype(type(mask), int):
+        if np.issubdtype(type(mask), np.integer):
             self.index = mask
             self._mask = None
         else:
@@ -622,6 +636,7 @@ class Atom(BaseSystem):
         self.resn = protein.resnames[self.index]
         self.resname = self.resn
         self.resi = protein.resnums[self.index]
+        self.resid = self.resi
         self.resnum = self.resi
         self.chain = protein.segids[self.index]
         self.segid = protein.chains[self.index]

@@ -343,10 +343,19 @@ def write_protein(pdb_file: TextIO, protein: Union[mda.Universe, mda.AtomGroup])
     for seg in protein.segments:
         if len(seg.segid) > 1:
             seg.segid = next(available_segids)
+    if isinstance(protein, (mda.AtomGroup, mda.Universe)):
+        traj = protein.universe.trajectory
+        name = protein.universe.filename if hasattr(protein.universe, 'filename') else Path(pdb_file.name).name
+    else:
+        traj = protein.trajectory
+        name = protein.fname
 
-    traj = protein.universe.trajectory if isinstance(protein, (mda.AtomGroup, mda.Universe)) else protein.trajectory
+    if name is None:
+        name = Path(pdb_file.name).name
 
-    pdb_file.write(f'HEADER {Path(pdb_file.name).name.rstrip(".pdb")}\n')
+    name = name[:-4] if name.endswith(".pdb") else name
+
+    pdb_file.write(f'HEADER {name}\n')
     for mdl, ts in enumerate(traj):
         pdb_file.write(f"MODEL {mdl}\n")
         [

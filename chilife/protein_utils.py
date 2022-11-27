@@ -989,7 +989,9 @@ def get_ICAtom(
         )
 
     else:
-        atom4, atom3, atom2 = mol.atoms[dihedral[:-1]]
+        atom4 = mol.atoms[dihedral[0]]
+        atom3 = mol.atoms[dihedral[1]]
+        atom2 = mol.atoms[dihedral[2]]
         atom_names = (atom.name, atom2.name, atom3.name, atom4.name)
 
         if atom_names == ("N", "C", "CA", "N"):
@@ -1166,7 +1168,6 @@ def get_internal_coords(
 
     """
     mol = mol.select_atoms("not (byres name OH2 or resname HOH)")
-    U = mol.universe
     bonds = bonds if bonds is not None else guess_bonds(mol.atoms.positions, mol.atoms.types)
 
     G = nx.DiGraph()

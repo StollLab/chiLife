@@ -1,5 +1,6 @@
 from __future__ import annotations
 import functools
+import numbers
 import operator
 from functools import partial, update_wrapper
 from .protein_utils import sort_pdb
@@ -10,6 +11,7 @@ from scipy.spatial import cKDTree
 # TODO:
 #   Performance enhancement: use indext instead of mask for groups
 #   Performance enhancement: Preconstruct Atom objects
+#   Behavior: AtomSelections should have orders to be enforced when indexing.
 
 class BaseSystem:
 
@@ -289,7 +291,7 @@ class Trajectory:
         if isinstance(item, (slice, list, np.ndarray)):
             return TrajectoryIterator(self, item)
 
-        elif isinstance(item, int):
+        elif isinstance(item, numbers.Integral):
             self._frame = item
             return self.time[self._frame]
 

@@ -350,6 +350,9 @@ def write_protein(pdb_file: TextIO, protein: Union[mda.Universe, mda.AtomGroup])
         traj = protein.trajectory
         name = protein.fname
 
+    if name is None:
+        name = Path(pdb_file.name).name
+
     name = name[:-4] if name.endswith(".pdb") else name
 
     pdb_file.write(f'HEADER {name}\n')

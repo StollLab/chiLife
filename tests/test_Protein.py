@@ -197,6 +197,7 @@ def test_ResidueSelection():
 
 def test_save_Protein():
     p = chilife.Protein.from_pdb('test_data/1omp.pdb')
+    p._fname = "my_protein"
     chilife.save('my_protein.pdb', p)
 
     with open('test_data/test_save_xlprotein.pdb', 'r') as f:
@@ -218,6 +219,7 @@ def test_bool_index_atomsel():
 
 def test_save_trajectory():
     traj = chilife.Protein.from_pdb('test_data/xlsavetraj.pdb')
+    traj._fname = 'xlsavetraj'
     chilife.save('xlsavetraj.pdb', traj)
 
     with open('test_data/xlsavetraj.pdb', 'r') as f:
@@ -273,7 +275,7 @@ def test_xl_protein_mutate():
     p = chilife.Protein.from_pdb('test_data/1omp.pdb')
     SL = chilife.SpinLabel('R1M', 238, p)
     pSL = chilife.mutate(p, SL)
-
+    pSL._fname = 'test_mutate'
     chilife.save('test_mutate.pdb', pSL)
 
     with open('test_data/mutate_xlprotein.pdb', 'r') as f:

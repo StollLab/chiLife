@@ -352,19 +352,14 @@ class RotamerEnsemble:
 
         if energy is not None:
             energy = energy[burn_in:]  # - energy[burn_in]
-            energy = np.array(
-                [energy[non_unique_idx == idx].mean() for idx in range(len(unique_idx))]
-            )
+            energy = np.array([energy[non_unique_idx == idx].mean() for idx in range(len(unique_idx))])
             T = kwargs.setdefault("T", 1)
             pi = np.exp(-energy / (chilife.GAS_CONST * T))
-            pi /= pi.sum()
         else:
             pi = np.ones(len(traj.trajectory[burn_in:]))
-            pi = np.array(
-                [pi[non_unique_idx == idx].sum() for idx in range(len(unique_idx))]
-            )
-            pi /= pi.sum()
+            pi = np.array([pi[non_unique_idx == idx].sum() for idx in range(len(unique_idx))])
 
+        pi /= pi.sum()
         weights = pi
 
         ICs = [chilife.get_internal_coords(res.atoms) for ts in traj.trajectory[unique_idx]]
@@ -404,6 +399,29 @@ class RotamerEnsemble:
             lib['spin_weights'] = np.array(spin_atoms.values())
 
         return cls(resname, site, traj, chain, lib, **kwargs)
+
+    def to_rotlib(self, libname=None):
+        if libname is None:
+            libname = self.name
+
+        lib = {'rotlib': libname,
+               'resname': self.res,
+               'coords': self.coords,
+               'internal_coords': self.ICs,
+               'weights': self.weights,
+               'atom_types': self.atom_types.copy(),
+               'atom_names': self.atom_names.copy(),
+               'dihedral_atoms': self.dihedral_atoms,
+               'dihedrals': self.dihedrals,
+               'sigmas': self.sigmas,
+               'type': 'chilife rotamer library',
+               'format_version': 1.0}
+
+        if hasattr(self, 'spin_atoms'):
+            lib['spin_atoms'] = self.spin_atoms
+            lib['spin_weights'] = self.spin_weights
+
+        np.savez(Path().cwd() / f'{libname}_rotlib.npz', **lib, allow_pickle=True)
 
     def __eq__(self, other):
         """Equivalence measurement between a spin label and another object. A SpinLabel cannot be equivalent to a

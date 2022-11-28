@@ -9,9 +9,10 @@ from numpy.typing import ArrayLike
 from scipy.spatial import cKDTree
 
 # TODO:
-#   Performance enhancement: use indext instead of mask for groups
+#   Performance enhancement: Use index instead of mask for groups
 #   Performance enhancement: Preconstruct Atom objects
 #   Behavior: AtomSelections should have orders to be enforced when indexing.
+#   Performance enhancement: Find a faster way to retrieve coordinate data from trajectory @property seems to have
 
 class BaseSystem:
 

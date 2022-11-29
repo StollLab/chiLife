@@ -353,7 +353,7 @@ def test_to_rotlib():
 
     os.remove('Test_rotlib.npz')
 
-    np.testing.assert_almost_equal(test['coords'], ans['coords'])
-    np.testing.assert_almost_equal(test['weights'], ans['weights'])
-    np.testing.assert_almost_equal(test['dihedrals'], ans['dihedrals'])
+    np.testing.assert_almost_equal(test['coords'], ans['coords'], decimal=6)
+    np.testing.assert_almost_equal(test['weights'], ans['weights'], decimal=6)
+    np.testing.assert_almost_equal(test['dihedrals'], ans['dihedrals'], decimal=6)
 

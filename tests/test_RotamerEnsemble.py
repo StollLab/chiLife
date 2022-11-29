@@ -346,9 +346,11 @@ def test_to_rotlib():
                                                    [ -69.90840475,  161.67407146]])
 
     with open(f"test_data/Test_rotlib.npz", "rb") as f:
+        f.seek(128)
         ans = hashlib.md5(f.read()).hexdigest()
 
     with open(f"Test_rotlib.npz", "rb") as f:
+        f.seek(128)
         test = hashlib.md5(f.read()).hexdigest()
 
     os.remove('Test_rotlib.npz')

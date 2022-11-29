@@ -309,7 +309,7 @@ def test_from_trajectory():
     assert RE2.res == 'ALA'
     assert RE3.res == 'TRP'
 
-    np.testing.assert_almost_equal(RE1.dihedrals, [[-72.49934635, 164.56177856]])
+    np.testing.assert_almost_equal(RE1.dihedrals, [[-72.49934635, 164.56177856]], decimal=5)
     np.testing.assert_almost_equal(RE2.dihedrals, [[]])
     np.testing.assert_almost_equal(RE3.dihedrals, [[-176.38805017,  -20.15226419],
                                                    [-176.38805017,  -52.83812431],
@@ -320,7 +320,7 @@ def test_from_trajectory():
                                                    [-176.38805017,  164.59451953],
                                                    [  62.16344279,  -93.79344738],
                                                    [ -69.90840475,  -39.25944367],
-                                                   [ -69.90840475,  161.67407146]])
+                                                   [ -69.90840475,  161.67407146]], decimal=5)
 
     with pytest.raises(ValueError):
         RE = chilife.RotamerEnsemble.from_trajectory(traj, 232)
@@ -343,7 +343,7 @@ def test_to_rotlib():
                                                    [-176.38805017,  164.59451953],
                                                    [  62.16344279,  -93.79344738],
                                                    [ -69.90840475,  -39.25944367],
-                                                   [ -69.90840475,  161.67407146]])
+                                                   [ -69.90840475,  161.67407146]], decimal=5)
 
     with np.load(f"test_data/Test_rotlib.npz", allow_pickle=True) as f:
         ans = dict(f)
@@ -353,7 +353,7 @@ def test_to_rotlib():
 
     os.remove('Test_rotlib.npz')
 
-    np.testing.assert_almost_equal(test['coords'], ans['coords'], decimal=6)
-    np.testing.assert_almost_equal(test['weights'], ans['weights'], decimal=6)
-    np.testing.assert_almost_equal(test['dihedrals'], ans['dihedrals'], decimal=6)
+    np.testing.assert_almost_equal(test['coords'], ans['coords'], decimal=5)
+    np.testing.assert_almost_equal(test['weights'], ans['weights'], decimal=5)
+    np.testing.assert_almost_equal(test['dihedrals'], ans['dihedrals'], decimal=5)
 

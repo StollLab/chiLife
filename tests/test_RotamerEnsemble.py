@@ -3,17 +3,12 @@ from functools import partial
 import numpy as np
 import chilife
 import pytest
+import MDAnalysis as mda
 
 ubq = chilife.fetch("1ubq")
 U = chilife.fetch("1omp")
 exou = chilife.fetch("3tu3")
-
-hashes = {}
-with open("test_data/hashes.txt", "r") as f:
-    for line in f:
-        if len(line.split()) == 2:
-            a, b = line.split()
-            hashes[a] = b
+traj = mda.Universe('test_data/xlsavetraj.pdb', in_memory=True)
 
 
 def test_from_mda():
@@ -103,12 +98,11 @@ def test_sample():
                      [21.54999924, 26.79599953, 23.13299942],
                      [23.02842999, 27.03777002, 22.93937713],
                      [23.39710135, 27.56595972, 21.90105423],
-                     [21.1101072,  25.47090301, 22.45317533],
+                     [21.1101072, 25.47090301, 22.45317533],
                      [21.19895831, 25.51252905, 20.90717057],
-                     [21.03430238, 24.15607743, 20.2156025 ],
+                     [21.03430238, 24.15607743, 20.2156025],
                      [22.11572213, 23.19412351, 20.72492909],
                      [22.16827211, 22.00913727, 19.85099131]])
-
 
     np.testing.assert_almost_equal(coords, cans)
     assert weight == wans
@@ -172,7 +166,7 @@ def test_catch_unused_kwargs():
     with pytest.raises(TypeError) as e_info:
         SL = chilife.SpinLabel("R1C", site=28, protein=ubq, supermposition_method="mmm")
     assert (
-        str(e_info.value) == "Got unexpected keyword argument(s): supermposition_method"
+            str(e_info.value) == "Got unexpected keyword argument(s): supermposition_method"
     )
 
 
@@ -205,8 +199,10 @@ def test_label_as_library():
             ic.coords[2], [38.73227962, 26.58109478, 12.6243569]
         )
 
+
 def test_coord_setter0():
     R1C1 = chilife.RotamerEnsemble("R1C", site=28, protein=ubq)
+
 
 def test_coord_setter():
     R1C1 = chilife.RotamerEnsemble("R1C", site=28, protein=ubq)
@@ -246,32 +242,38 @@ def test_get_sasa():
     sasans = np.load('test_data/sasas.npy')
     np.testing.assert_allclose(sasas, sasans)
 
+
 def test_default_dihedral_sigmas():
     rotlib = chilife.read_bbdep('R1C', -60, -50)
     SL = chilife.SpinLabel('R1C')
     np.testing.assert_allclose(rotlib['sigmas'][rotlib['sigmas'] != 0], SL.sigmas[SL.sigmas != 35.])
+
 
 def test_construct_with_dihedral_sigmas():
     SL = chilife.SpinLabel('R1C', dihedral_sigmas=25)
     assert np.all(SL.sigmas == 25.)
     assert SL.sigmas.shape == (len(SL), len(SL.dihedral_atoms))
 
+
 def test_construct_with_array_of_dihedral_sigmas():
     set_sigmas = [10, 20, 30, 40, 50]
     SL = chilife.SpinLabel('R1C', dihedral_sigmas=set_sigmas)
     for i in range(5):
-        assert np.all(SL.sigmas[:,i] == set_sigmas[i])
+        assert np.all(SL.sigmas[:, i] == set_sigmas[i])
 
     assert SL.sigmas.shape == (len(SL), len(SL.dihedral_atoms))
+
 
 def test_construct_with_full_array_of_dihedral_sigmas():
     set_sigmas = np.random.rand(148, 5)
     SL = chilife.SpinLabel('R1C', dihedral_sigmas=set_sigmas)
     np.testing.assert_allclose(set_sigmas, SL.sigmas)
 
+
 def test_dihedral_sigmas_fail():
     with pytest.raises(ValueError):
         SL = chilife.SpinLabel('R1C', dihedral_sigmas=[5, 2, 1])
+
 
 def test_set_dihedral_sigmas():
     SL = chilife.SpinLabel('R1A')
@@ -288,6 +290,68 @@ def test_clash_radius():
     RL = chilife.SpinLabel('TRT')
     assert RL.clash_radius == np.linalg.norm(RL.coords - RL.clash_ori, axis=-1).max() + 5
 
+
 def test_nataa():
     SL = chilife.SpinLabel('R1A', 28, ubq)
     assert SL.nataa == 'A'
+
+
+def test_from_trajectory():
+    RE1 = chilife.RotamerEnsemble.from_trajectory(traj, 232, burn_in=0)
+    RE2 = chilife.RotamerEnsemble.from_trajectory(traj, 231, burn_in=0)
+    RE3 = chilife.RotamerEnsemble.from_trajectory(traj, 230, burn_in=0)
+
+    assert len(RE1) == 1
+    assert len(RE2) == 1
+    assert len(RE3) == 10
+
+    assert RE1.res == 'TRP'
+    assert RE2.res == 'ALA'
+    assert RE3.res == 'TRP'
+
+    np.testing.assert_almost_equal(RE1.dihedrals, [[-72.49934635, 164.56177856]])
+    np.testing.assert_almost_equal(RE2.dihedrals, [[]])
+    np.testing.assert_almost_equal(RE3.dihedrals, [[-176.38805017,  -20.15226419],
+                                                   [-176.38805017,  -52.83812431],
+                                                   [-176.38805017, -111.39416684],
+                                                   [-176.38805017,   73.81697923],
+                                                   [-176.38805017, -134.54899132],
+                                                   [-176.38805017,  118.2802729 ],
+                                                   [-176.38805017,  164.59451953],
+                                                   [  62.16344279,  -93.79344738],
+                                                   [ -69.90840475,  -39.25944367],
+                                                   [ -69.90840475,  161.67407146]])
+
+    with pytest.raises(ValueError):
+        RE = chilife.RotamerEnsemble.from_trajectory(traj, 232)
+
+
+def test_to_rotlib():
+
+    RE = chilife.RotamerEnsemble.from_trajectory(traj, 230, burn_in=0)
+    RE.to_rotlib('Test')
+    RE2 = chilife.RotamerEnsemble('TRP', rotlib='Test')
+    assert RE2.res == 'TRP'
+    assert len(RE2) == 10
+
+    np.testing.assert_almost_equal(RE2.dihedrals, [[-176.38805017,  -20.15226419],
+                                                   [-176.38805017,  -52.83812431],
+                                                   [-176.38805017, -111.39416684],
+                                                   [-176.38805017,   73.81697923],
+                                                   [-176.38805017, -134.54899132],
+                                                   [-176.38805017,  118.2802729 ],
+                                                   [-176.38805017,  164.59451953],
+                                                   [  62.16344279,  -93.79344738],
+                                                   [ -69.90840475,  -39.25944367],
+                                                   [ -69.90840475,  161.67407146]])
+
+    with open(f"test_data/Test_rotlib.npz", "rb") as f:
+        ans = hashlib.md5(f.read()).hexdigest()
+
+    with open(f"Test_rotlib.npz", "rb") as f:
+        test = hashlib.md5(f.read()).hexdigest()
+
+    os.remove('Test_rotlib.npz')
+
+    assert ans == test
+

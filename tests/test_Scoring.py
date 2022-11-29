@@ -27,3 +27,6 @@ def test_lj(func, ans):
 def test_prep_internal_clash():
     SL = chilife.RotamerEnsemble('TRP', 28, protein)
     stuff = chilife.scoring.prep_internal_clash(SL)
+
+def test_molar_gas_constant():
+    np.testing.assert_almost_equal(chilife.scoring.GAS_CONST, 1.987204258640832e-3, decimal=10)

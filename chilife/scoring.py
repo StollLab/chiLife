@@ -548,6 +548,7 @@ def set_lj_params(forcefield):
 
 set_lj_params("charmm")
 
-GAS_CONST = 1.98720425864083e-3  # Kcal/K-1 mol-1  # 8.314472  # J/(K*mol)
-BOLTZ_CONST = 1.3806503e-23  # J/K
-KCAL2J = 4.184e3
+KCAL2J = 4.184e3  # conversion factor form kcal to J (exact)
+BOLTZ_CONST = 1.380649e-23  # Boltzmann constant, J K^-1 (exact)
+AVOGADRO_CONST = 6.02214076e23  # Avogadro constant, mol^-1 (exact)
+GAS_CONST = BOLTZ_CONST*AVOGADRO_CONST/KCAL2J  # molar gas constant, kcal mol^1 K^-1

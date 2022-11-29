@@ -97,6 +97,10 @@ class BaseSystem:
     def types(self):
         return self.protein.atypes[self.mask]
 
+    @property
+    def universe(self):
+        return self.protein
+
     def __iter__(self):
         for idx in self.protein.ix[self.mask]:
             yield Atom(self.protein, idx)

@@ -303,6 +303,9 @@ class Trajectory:
     def __iter__(self):
         return iter(TrajectoryIterator(self))
 
+    def __len__(self):
+        return len(self.time)
+
     @property
     def frame(self):
         return self._frame

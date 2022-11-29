@@ -294,7 +294,7 @@ def save(
             file_name = ""
             for protein in proteins:
                 if getattr(protein, "filename", None):
-                    file_name += ' ' + getattr(protein, "filename", None)
+                    file_name += ' ' + Path(protein.filename).name
                     file_name = file_name[:-4]
 
         if file_name == '':
@@ -345,7 +345,8 @@ def write_protein(pdb_file: TextIO, protein: Union[mda.Universe, mda.AtomGroup])
             seg.segid = next(available_segids)
     if isinstance(protein, (mda.AtomGroup, mda.Universe)):
         traj = protein.universe.trajectory
-        name = protein.universe.filename if hasattr(protein.universe, 'filename') else Path(pdb_file.name).name
+        name = Path(protein.universe.filename) if protein.universe.filename is not None else Path(pdb_file.name)
+        name = name.name
     else:
         traj = protein.trajectory
         name = protein.fname
@@ -414,7 +415,6 @@ def write_labels(pdb_file: TextIO, *args: SpinLabel, KDE: bool = True, sorted: b
 
 
     # Write spin label models
-    pdb_file.write("\n")
     for k, label in enumerate(ensembles):
         pdb_file.write(f"HEADER {label.name}\n")
 

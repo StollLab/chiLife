@@ -1,4 +1,4 @@
-HEADER test_data/m1omp
+HEADER m1omp
 MODEL 0
 ATOM      0  N   LYS A   1      -4.615 -25.992 -23.912  1.00  1.00           N  
 ATOM      1  CA  LYS A   1      -4.685 -24.684 -23.241  1.00  1.00           C  
@@ -2864,7 +2864,6 @@ ATOM   2860  NZ  LYS A 370      13.875 -20.513  18.478  1.00  1.00           N
 ATOM   2861 OXT  LYS A 370      14.440 -17.721  13.568  1.00  1.00           O  
 TER
 ENDMDL
-
 HEADER 20R1C_A
 MODEL 0
 ATOM      0  N   R1C A  20      -8.859  -1.374 -18.914  1.00 57.80           N  

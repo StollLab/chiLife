@@ -345,15 +345,15 @@ def test_to_rotlib():
                                                    [ -69.90840475,  -39.25944367],
                                                    [ -69.90840475,  161.67407146]])
 
-    with open(f"test_data/Test_rotlib.npz", "rb") as f:
-        f.seek(128)
-        ans = hashlib.md5(f.read()).hexdigest()
+    with np.load(f"test_data/Test_rotlib.npz", allow_pickle=True) as f:
+        ans = dict(f)
 
-    with open(f"Test_rotlib.npz", "rb") as f:
-        f.seek(128)
-        test = hashlib.md5(f.read()).hexdigest()
+    with np.load(f"Test_rotlib.npz", allow_pickle=True) as f:
+        test = dict(f)
 
     os.remove('Test_rotlib.npz')
 
-    assert ans == test
+    np.testing.assert_almost_equal(test['coords'], ans['coords'])
+    np.testing.assert_almost_equal(test['weights'], ans['weights'])
+    np.testing.assert_almost_equal(test['dihedrals'], ans['dihedrals'])
 

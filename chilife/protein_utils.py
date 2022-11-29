@@ -728,7 +728,8 @@ class ProteinIC:
         angles: numpy.ndarray
             Array of dihedral angles corresponding to the atom sets in atom list.
         """
-
+        if atom_list == []:
+            return np.array([])
         if chain is None and len(self.ICs) == 1:
             chain = list(self.ICs.keys())[0]
         elif chain is None and len(self.ICs) > 1:

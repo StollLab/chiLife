@@ -329,6 +329,8 @@ class RotamerEnsemble:
         -------
 
         """
+        if burn_in >= len(traj.universe.trajectory):
+            raise ValueError("Burn in is longer than the provided trajectory.")
 
         chain = guess_chain(traj, site) if chain is None else chain
 
@@ -342,7 +344,7 @@ class RotamerEnsemble:
             res = traj.select_atoms(f"segid {chain} and resnum {site} and not altloc B")
 
         resname = res.residues[0].resname
-        dihedral_defs = kwargs.get('dihedral_atoms', chilife.dihedral_defs[resname])
+        dihedral_defs = kwargs.get('dihedral_atoms', chilife.dihedral_defs.get(resname, ()))
 
         traj = traj.universe if isinstance(traj, mda.AtomGroup) else traj
         coords = np.array([res.atoms.positions for ts in traj.trajectory[burn_in:]])
@@ -372,7 +374,7 @@ class RotamerEnsemble:
 
         lib = {'rotlib': f'{resname}_from_traj',
                'resname': resname,
-               'coords': coords,
+               'coords': np.atleast_3d(coords),
                'internal_coords': ICs,
                'weights': weights,
                'atom_types': res.types.copy(),
@@ -407,7 +409,7 @@ class RotamerEnsemble:
         lib = {'rotlib': libname,
                'resname': self.res,
                'coords': self.coords,
-               'internal_coords': self.ICs,
+               'internal_coords': self.internal_coords,
                'weights': self.weights,
                'atom_types': self.atom_types.copy(),
                'atom_names': self.atom_names.copy(),

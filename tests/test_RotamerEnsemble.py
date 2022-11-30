@@ -5,9 +5,9 @@ import chilife
 import pytest
 import MDAnalysis as mda
 
-ubq = chilife.fetch("1ubq")
-U = chilife.fetch("1omp")
-exou = chilife.fetch("3tu3")
+ubq = mda.Universe("test_data/1ubq.pdb", in_memory=True)
+U = mda.Universe("test_data/1omp.pdb", in_memory=True)
+exou = mda.Universe("test_data/3tu3.pdb", in_memory=True)
 traj = mda.Universe('test_data/xlsavetraj.pdb', in_memory=True)
 
 
@@ -43,19 +43,17 @@ def test_with_sample():
 
 def test_user_label():
     SL = chilife.SpinLabel("TRT", 28, ubq, "A")
-    chilife.save(
-        "test_data/1ubq_28TRT_tmp.pdb", SL, protein_path="test_data/1ubq.pdb", KDE=False
-    )
+    chilife.save("28TRT.pdb", SL, KDE=False)
 
-    with open("test_data/1ubq_28TRT.pdb", "r") as f:
+    with open("test_data/28TRT.pdb", "r") as f:
         nohstring1 = "".join((line for line in f.readlines() if line[76:79].strip() != 'H'))
         ans = hashlib.md5(nohstring1.encode('utf-8')).hexdigest()
 
-    with open("test_data/1ubq_28TRT_tmp.pdb", "r") as f:
+    with open("28TRT.pdb", "r") as f:
         nohstring2 = "".join((line for line in f.readlines() if line[76:79].strip() != 'H'))
         test = hashlib.md5(nohstring2.encode('utf-8')).hexdigest()
 
-    os.remove("test_data/1ubq_28TRT_tmp.pdb")
+    os.remove("28TRT.pdb")
 
     assert test == ans
 
@@ -89,7 +87,6 @@ def test_save_pkl_2():
 
 def test_sample():
     np.random.seed(200)
-    ubq = chilife.fetch("1ubq")
     K48 = chilife.RotamerEnsemble.from_mda(ubq.residues[47])
     coords, weight = K48.sample(off_rotamer=True)
 
@@ -109,7 +106,6 @@ def test_sample():
 
 
 def test_multisample():
-    ubq = chilife.fetch("1ubq")
     R1M = chilife.SpinLabel.from_wizard("R1M", site=48, protein=ubq, to_find=10000)
 
 
@@ -149,16 +145,16 @@ def test_superimposition_method(method):
             energy_func=partial(chilife.get_lj_rep, forgive=0.8),
         )
         chilife.save(
-            f"A28R1_{method}_superimposition.pdb", SL, "test_data/1ubq.pdb", KDE=False
+            f"A28R1_{method}_aln_method.pdb", SL, KDE=False
         )
 
-        with open(f"A28R1_{method}_superimposition.pdb", "r") as f:
+        with open(f"A28R1_{method}_aln_method.pdb", "r") as f:
             test = hashlib.md5(f.read().encode('utf-8')).hexdigest()
 
-        with open(f"test_data/A28R1_{method}_superimposition.pdb", "r") as f:
+        with open(f"test_data/A28R1_{method}_aln_method.pdb", "r") as f:
             ans = hashlib.md5(f.read().encode('utf-8')).hexdigest()
 
-        os.remove(f"A28R1_{method}_superimposition.pdb")
+        os.remove(f"A28R1_{method}_aln_method.pdb")
         assert ans == test
 
 
@@ -171,7 +167,7 @@ def test_catch_unused_kwargs():
 
 
 def test_guess_chain():
-    anf = chilife.fetch("1anf")
+    anf = mda.Universe("test_data/1anf.pdb", in_memory=True)
     SL = chilife.SpinLabel.from_mmm("R1M", 20, forgive=0.9)
 
 

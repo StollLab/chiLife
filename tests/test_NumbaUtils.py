@@ -3,6 +3,7 @@ from scipy.stats import norm
 from scipy.special import kl_div
 from scipy.spatial.distance import cdist
 import pytest
+import MDAnalysis as mda
 import chilife.numba_utils as nu
 import chilife as xl
 
@@ -107,7 +108,7 @@ def test_fib_points():
 
 
 def test_get_sasa1():
-    ubq = xl.fetch('1ubq')
+    ubq = mda.Universe('test_data/1ubq.pdb').select_atoms('protein')
     SL = xl.SpinLabel('R1A', 28, ubq)
     atom_coords = SL.coords[0]
     atom_radii = xl.get_lj_rmin(SL.atom_types)
@@ -121,7 +122,7 @@ def test_get_sasa1():
 
 
 def test_get_sasa2():
-    ubq = xl.fetch('1ubq').select_atoms('protein')
+    ubq = mda.Universe('test_data/1ubq.pdb').select_atoms('protein')
 
     atom_coords = ubq.atoms.positions
     atom_radii = xl.get_lj_rmin(ubq.atoms.types)

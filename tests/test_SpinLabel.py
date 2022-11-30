@@ -1,13 +1,13 @@
 import hashlib, os, pickle
 from functools import partial
 import numpy as np
-from scipy.spatial import cKDTree
+import MDAnalysis as mda
 import pytest
 import chilife
 
 labels = ["R1M", "R7M", "V1M", "M1M", "I1M"]
-ubq = chilife.fetch("1ubq")
-U = chilife.fetch("1omp")
+ubq = mda.Universe("test_data/1ubq.pdb", in_memory=True)
+U = mda.Universe("test_data/1omp.pdb", in_memory=True)
 protein = U.select_atoms("protein")
 
 hashes = {}

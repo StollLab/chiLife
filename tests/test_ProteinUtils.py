@@ -8,7 +8,7 @@ import chilife
 import networkx as nx
 
 pdbids = ["1ubq", "1a2w", '1az5']
-ubq = chilife.fetch("1ubq")
+ubq = mda.Universe("test_data/1ubq.pdb", in_memory=True)
 resis = [
     (key, -90, 160)
     for key in chilife.dihedral_defs
@@ -47,7 +47,7 @@ def test_read_dunbrack(res):
 
 @pytest.mark.parametrize("pdbid", pdbids)
 def test_get_internal_coordinates(pdbid):
-    protein = chilife.fetch(pdbid).select_atoms("protein and not altloc B")
+    protein = mda.Universe(f"test_data/{pdbid}.pdb", in_memory=True).select_atoms("protein and not altloc B")
 
     t1 = time.perf_counter()
     ICs = chilife.get_internal_coords(protein)
@@ -62,7 +62,7 @@ def test_icset_dihedral():
         [-np.pi / 2, np.pi / 2], 72, [["C", "N", "CA", "C"], ["N", "CA", "C", "N"]]
     )
 
-    ans = mda.Universe("test_data/1ubq.pdb")
+    ans = mda.Universe("test_data/test_icset.pdb")
 
     np.testing.assert_almost_equal(ans.atoms.positions, ICs.coords, decimal=3)
 
@@ -135,7 +135,7 @@ def test_makeics():
 
 
 def test_mutate():
-    protein = chilife.fetch("1ubq").select_atoms("protein")
+    protein = mda.Universe("test_data/1ubq.pdb", in_memory=True).select_atoms("protein")
     SL = chilife.SpinLabel(
         "R1C",
         site=28,
@@ -144,7 +144,7 @@ def test_mutate():
     )
 
     labeled_protein = chilife.mutate(protein, SL)
-    ub1_A28R1 = mda.Universe("test_data/1ubq_A28R1.pdb")
+    ub1_A28R1 = mda.Universe("test_data/1ubq_A28R1.pdb", in_memory=True)
 
     np.testing.assert_almost_equal(
         ub1_A28R1.atoms.positions, labeled_protein.atoms.positions, decimal=3
@@ -152,7 +152,7 @@ def test_mutate():
 
 
 def test_mutate2():
-    protein = chilife.fetch("1ubq").select_atoms("protein")
+    protein = mda.Universe('test_data/1ubq.pdb', in_memory=True).select_atoms("protein")
     SL1 = chilife.SpinLabel(
         "R1C",
         site=28,
@@ -240,7 +240,7 @@ def test_has_clashes():
 
 
 def test_add_missing_atoms():
-    protein = chilife.fetch("1omp").select_atoms("protein")
+    protein = mda.Universe("test_data/1omp.pdb", in_memory=True).select_atoms("protein")
     new_prot = chilife.mutate(protein)
     assert len(new_prot.atoms) != len(protein.atoms)
     assert len(new_prot.atoms) == 2877

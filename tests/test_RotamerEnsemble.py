@@ -129,11 +129,11 @@ methods = ["rosetta", "bisect", "mmm", "fit"]
 
 
 @pytest.mark.parametrize(("method"), methods)
-def test_superimposition_method(method):
+def test_alignment_method(method):
     if method == "fit":
         with pytest.raises(NotImplementedError) as e_info:
             SL = chilife.SpinLabel(
-                "R1C", site=28, protein=ubq, superimposition_method=method, eval_clash=False
+                "R1C", site=28, protein=ubq, alignment_method=method, eval_clash=False
             )
             chilife.save(SL, ubq)
     else:
@@ -141,7 +141,7 @@ def test_superimposition_method(method):
             "R1C",
             site=28,
             protein=ubq,
-            superimposition_method=method,
+            alignment_method=method,
             energy_func=partial(chilife.get_lj_rep, forgive=0.8),
         )
         chilife.save(
@@ -160,9 +160,9 @@ def test_superimposition_method(method):
 
 def test_catch_unused_kwargs():
     with pytest.raises(TypeError) as e_info:
-        SL = chilife.SpinLabel("R1C", site=28, protein=ubq, supermposition_method="mmm")
+        SL = chilife.SpinLabel("R1C", site=28, protein=ubq, fake_keyword="mmm")
     assert (
-            str(e_info.value) == "Got unexpected keyword argument(s): supermposition_method"
+            str(e_info.value) == "Got unexpected keyword argument(s): fake_keyword"
     )
 
 

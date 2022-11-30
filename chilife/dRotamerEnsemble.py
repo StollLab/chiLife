@@ -205,7 +205,8 @@ class dRotamerEnsemble(RotamerEnsemble):
             self.protein, self.protein_tree, ignore_idx=self.clash_ignore_idx
         )
 
-        self.trim()
+        # Remove low-weight rotamers from ensemble
+        self.trim_rotamers()
 
     def evaluate_clashes(
         self, environment, environment_tree=None, ignore_idx=None, temp=298
@@ -241,7 +242,5 @@ class dRotamerEnsemble(RotamerEnsemble):
             forgive=self.forgive,
         )
 
-        self.weights, self.partition = chiLife.reweight_rotamers(
-            probabilities, self.weights, return_partition=True
-        )
+        self.weights, self.partition = chiLife.reweight_rotamers(probabilities, self.weights)
         logging.info(f"Relative partition function: {self.partition:.3}")

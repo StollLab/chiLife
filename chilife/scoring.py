@@ -365,34 +365,36 @@ def prep_internal_clash(ensemble):
     return dist, rmin_ij, eps_ij, shape
 
 
-def reweight_rotamers(probabilities, weights, return_partition=False):
-    """Adjust rotamer population frequencies based on energy calculated from clashes.
+def reweight_rotamers(energies, temp, weights):
+    """Adjust rotamer population weights based on external energies (from clash evaluations).
 
     Parameters
     ----------
-    probabilities : numpy.ndarray
-        Array of Boltzmann weighted probabilities from lennard jones potential
+    energies : numpy.ndarray
+        Array of external energies, in kcal/mol
+    temp : scalar
+        Temperature, in kelvin
     weights : numpy.ndarray
         Current weights of rotamers
     return_partition : bool
-        Optionally return an additional argument, ``partition`` described below
+        If True, return the value of the partition function an additional argument; see below
 
     Returns
     -------
     new_weights : numpy.ndarray
-        New weights adjusted by rotamer interaction energies.
+        Adjusted weights
     partition : float (optional)
         The partition function relative to the free label. A small partition function suggests the interactions with
         neighboring atoms are unfavorable while a large partition function suggests the opposite.
     """
-    partition = np.sum(probabilities * weights) / weights.sum()
-    new_weights = (probabilities / probabilities.sum()) * weights
-    new_weights /= new_weights.sum()
 
-    if return_partition:
-        return new_weights, partition
+    probabilities = np.exp(-energies / (chilife.GAS_CONST * temp))
+    p = probabilities * weights
+    p_sum = np.sum(p)
+    new_weights = p/p_sum
+    partition = p_sum / weights.sum()
 
-    return new_weights
+    return new_weights, partition
 
 
 def get_lj_params(ensemble):

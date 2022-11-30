@@ -328,9 +328,22 @@ def test_from_trajectory():
 
 def test_to_rotlib():
 
+    # Generate rotamer library from trajectory
     RE = chilife.RotamerEnsemble.from_trajectory(traj, 230, burn_in=0)
     RE.to_rotlib('Test')
+    
+    # Build rotamer ensemble from new rotamer library
     RE2 = chilife.RotamerEnsemble('TRP', rotlib='Test')
+
+    # Load new rotamer libary, then delete file
+    with np.load(f"Test_rotlib.npz", allow_pickle=True) as f:
+        rotlib_test = dict(f)
+    os.remove('Test_rotlib.npz')
+
+    # Load previously saved reference rotamer libary
+    with np.load(f"test_data/Test_rotlib.npz", allow_pickle=True) as f:
+        rotlib_reference = dict(f)
+
     assert RE2.res == 'TRP'
     assert len(RE2) == 10
 
@@ -356,4 +369,3 @@ def test_to_rotlib():
     np.testing.assert_almost_equal(test['coords'], ans['coords'], decimal=5)
     np.testing.assert_almost_equal(test['weights'], ans['weights'], decimal=5)
     np.testing.assert_almost_equal(test['dihedrals'], ans['dihedrals'], decimal=5)
-

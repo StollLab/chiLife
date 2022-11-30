@@ -298,22 +298,19 @@ class dSpinLabel:
     def eps(self):
         return np.concatenate([self.SL1.eps, self.SL2.eps])
 
-    def trim(self):
-        self.SL1.trim()
-        self.SL2.trim()
+    def trim_rotamers(self):
+        self.SL1.trim_rotamers()
+        self.SL2.trim_rotamers()
 
     def evaluate(self):
+        """Place rotamer ensemble on protein site and recalculate rotamer weights."""
 
-        if self.protein_tree is None:
-            self.protein_tree = cKDTree(self.protein.atoms.positions)
+        # Calculate external energies
+        energies = self.energy_func(self.protein, self)
 
-        rotamer_energies = self.energy_func(self.protein, self)
-        rotamer_probabilities = np.exp(
-            -rotamer_energies / (chilife.GAS_CONST * self.temp)
-        )
-
-        self.weights, self.partition = chilife.reweight_rotamers(
-            rotamer_probabilities, self.weights, return_partition=True
-        )
+        # Calculate total weights (combining internal and external)
+        self.weights, self.partition = chilife.reweight_rotamers(energies, self.temp, self.weights)
         logging.info(f"Relative partition function: {self.partition:.3}")
-        self.trim()
+
+        # Remove low-weight rotamers from ensemble
+        self.trim_rotamers()

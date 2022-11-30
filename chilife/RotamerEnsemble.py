@@ -769,15 +769,15 @@ class RotamerEnsemble:
             )
 
         self.weights /= self.weights.sum()
-        self.trim()
+        self.trim_rotamers()
 
-    def trim(self, tol=0.005):
-        """Remove insignificant rotamers from Library
+    def trim_rotamers(self, tol=0.005):
+        """Remove rotamers with small weights from ensemble
 
         Parameters
         ----------
         tol :
-             (Default value = 0.005)
+             cutoff value (default 0.005)
 
         Returns
         -------
@@ -796,6 +796,8 @@ class RotamerEnsemble:
             self.internal_coords = [
                 self.internal_coords[x] for x in arg_sort_weights[:cutoff]
             ]
+
+        # Renormalize weights
         self.weights /= self.weights.sum()
 
         logging.info(
@@ -804,26 +806,21 @@ class RotamerEnsemble:
         )
 
     def centroid(self):
-        """get the centroid of the whole rotamer ensemble."""
+        """Get the centroid of the whole rotamer ensemble."""
         return self._coords.mean(axis=(0, 1))
 
     def evaluate(self):
-        """place spin label on protein site and recalculate rotamer weights"""
+        """Place rotamer ensemble on protein site and recalculate rotamer weights."""
 
-        if self.protein_tree is None:
-            self.protein_tree = cKDTree(self.protein.atoms.positions)
+        # Calculate external energies
+        energies = self.energy_func(self.protein, self)
 
-        rotamer_energies = self.energy_func(self.protein, self)
-        rotamer_probabilities = np.exp(
-            -rotamer_energies / (chilife.GAS_CONST * self.temp)
-        )
-
-        self.weights, self.partition = chilife.reweight_rotamers(
-            rotamer_probabilities, self.weights, return_partition=True
-        )
+        # Calculate total weights (combining internal and external)
+        self.weights, self.partition = chilife.reweight_rotamers(energies, self.temp, self.weights)
         logging.info(f"Relative partition function: {self.partition:.3}")
 
-        self.trim()
+        # Remove low-weight rotamers from ensemble
+        self.trim_rotamers()
 
     def save_pdb(self, name=None):
         """
@@ -979,6 +976,7 @@ class RotamerEnsemble:
         else:
             self.current_weight = 0
 
+        # Evaluate external clash energies and reweight rotamers
         if self.eval_clash:
             self.evaluate()
 

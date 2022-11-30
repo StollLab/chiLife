@@ -299,15 +299,13 @@ def test_xl_protein_mutate():
 def test_re_form_xl_traj():
     traj = Protein.from_pdb('test_data/xlsavetraj.pdb')
     SL = chilife.RotamerEnsemble.from_trajectory(traj, 236, burn_in=0)
-    ans_dihedrals = np.array([[-175.57682647,  -58.20773593],
-                              [-175.57682647,  -23.12323366],
+    ans_dihedrals = np.array([[-175.57682647,  -23.12323366],
                               [-175.57682647,    5.02763709],
-                              [-175.57682647,   35.3358693 ],
                               [-175.57682647,   63.16005353],
                               [-175.57682647,   63.65448686],
                               [-175.57682647,   89.75074833]])
 
-    assert len(SL) == 7
+    assert len(SL) == 5
     np.testing.assert_almost_equal(SL.dihedrals, ans_dihedrals)
 
 # def test_backbone_to_site():

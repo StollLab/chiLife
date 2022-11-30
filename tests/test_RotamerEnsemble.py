@@ -338,6 +338,7 @@ def test_to_rotlib():
     # Load new rotamer libary, then delete file
     with np.load(f"Test_rotlib.npz", allow_pickle=True) as f:
         rotlib_test = dict(f)
+
     os.remove('Test_rotlib.npz')
 
     # Load previously saved reference rotamer libary
@@ -358,14 +359,6 @@ def test_to_rotlib():
                                                    [ -69.90840475,  -39.25944367],
                                                    [ -69.90840475,  161.67407146]], decimal=5)
 
-    with np.load(f"test_data/Test_rotlib.npz", allow_pickle=True) as f:
-        ans = dict(f)
-
-    with np.load(f"Test_rotlib.npz", allow_pickle=True) as f:
-        test = dict(f)
-
-    os.remove('Test_rotlib.npz')
-
-    np.testing.assert_almost_equal(test['coords'], ans['coords'], decimal=5)
-    np.testing.assert_almost_equal(test['weights'], ans['weights'], decimal=5)
-    np.testing.assert_almost_equal(test['dihedrals'], ans['dihedrals'], decimal=5)
+    np.testing.assert_almost_equal(rotlib_test['coords'], rotlib_reference['coords'], decimal=5)
+    np.testing.assert_almost_equal(rotlib_test['weights'], rotlib_reference['weights'], decimal=5)
+    np.testing.assert_almost_equal(rotlib_test['dihedrals'], rotlib_reference['dihedrals'], decimal=5)

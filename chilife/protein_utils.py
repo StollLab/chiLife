@@ -15,7 +15,7 @@ import MDAnalysis as mda
 
 import chilife
 from .numba_utils import _ic_to_cart, get_sasa
-from .superimpositions import superimpositions
+from .alignment_methods import alignment_methods
 from .RotamerEnsemble import RotamerEnsemble
 from .SpinLabel import SpinLabel
 from .dSpinLabel import dSpinLabel
@@ -189,11 +189,11 @@ def local_mx(*p, method: Union[str, callable] = "bisect") -> Tuple[ArrayLike, Ar
     """
 
     if isinstance(method, str):
-        method = chilife.superimpositions[method]
+        method = chilife.alignment_methods[method]
 
     p1, p2, p3 = p
 
-    if method.__name__ == 'fit_superimposition':
+    if method.__name__ == 'fit_alignment':
         rotation_matrix, _ = method(p1, p2, p3)
         origin = np.mean([p1[0], p2[0], p3[0]], axis=0)
     else:
@@ -232,9 +232,9 @@ def global_mx(*p: ArrayLike, method: Union[str, callable] = "bisect") -> Tuple[A
     """
 
     if isinstance(method, str):
-        method = chilife.superimpositions[method]
+        method = chilife.alignment_methods[method]
 
-    if method.__name__ == 'fit_superimposition':
+    if method.__name__ == 'fit_alignment':
         p = [pi[::-1] for pi in p]
 
     rotation_matrix, origin = method(*p)

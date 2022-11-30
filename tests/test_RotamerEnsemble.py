@@ -5,9 +5,9 @@ import chilife
 import pytest
 import MDAnalysis as mda
 
-ubq = chilife.fetch("1ubq")
-U = chilife.fetch("1omp")
-exou = chilife.fetch("3tu3")
+ubq = mda.Universe("test_data/1ubq.pdb", in_memory=True)
+U = mda.Universe("test_data/1omp.pdb", in_memory=True)
+exou = mda.Universe("test_data/3tu3.pdb", in_memory=True)
 traj = mda.Universe('test_data/xlsavetraj.pdb', in_memory=True)
 
 
@@ -43,19 +43,17 @@ def test_with_sample():
 
 def test_user_label():
     SL = chilife.SpinLabel("TRT", 28, ubq, "A")
-    chilife.save(
-        "test_data/1ubq_28TRT_tmp.pdb", SL, protein_path="test_data/1ubq.pdb", KDE=False
-    )
+    chilife.save("28TRT.pdb", SL, KDE=False)
 
-    with open("test_data/1ubq_28TRT.pdb", "r") as f:
+    with open("test_data/28TRT.pdb", "r") as f:
         nohstring1 = "".join((line for line in f.readlines() if line[76:79].strip() != 'H'))
         ans = hashlib.md5(nohstring1.encode('utf-8')).hexdigest()
 
-    with open("test_data/1ubq_28TRT_tmp.pdb", "r") as f:
+    with open("28TRT.pdb", "r") as f:
         nohstring2 = "".join((line for line in f.readlines() if line[76:79].strip() != 'H'))
         test = hashlib.md5(nohstring2.encode('utf-8')).hexdigest()
 
-    os.remove("test_data/1ubq_28TRT_tmp.pdb")
+    os.remove("28TRT.pdb")
 
     assert test == ans
 
@@ -89,7 +87,6 @@ def test_save_pkl_2():
 
 def test_sample():
     np.random.seed(200)
-    ubq = chilife.fetch("1ubq")
     K48 = chilife.RotamerEnsemble.from_mda(ubq.residues[47])
     coords, weight = K48.sample(off_rotamer=True)
 
@@ -109,7 +106,6 @@ def test_sample():
 
 
 def test_multisample():
-    ubq = chilife.fetch("1ubq")
     R1M = chilife.SpinLabel.from_wizard("R1M", site=48, protein=ubq, to_find=10000)
 
 
@@ -133,11 +129,11 @@ methods = ["rosetta", "bisect", "mmm", "fit"]
 
 
 @pytest.mark.parametrize(("method"), methods)
-def test_superimposition_method(method):
+def test_alignment_method(method):
     if method == "fit":
         with pytest.raises(NotImplementedError) as e_info:
             SL = chilife.SpinLabel(
-                "R1C", site=28, protein=ubq, superimposition_method=method, eval_clash=False
+                "R1C", site=28, protein=ubq, alignment_method=method, eval_clash=False
             )
             chilife.save(SL, ubq)
     else:
@@ -145,33 +141,33 @@ def test_superimposition_method(method):
             "R1C",
             site=28,
             protein=ubq,
-            superimposition_method=method,
+            alignment_method=method,
             energy_func=partial(chilife.get_lj_rep, forgive=0.8),
         )
         chilife.save(
-            f"A28R1_{method}_superimposition.pdb", SL, "test_data/1ubq.pdb", KDE=False
+            f"A28R1_{method}_aln_method.pdb", SL, KDE=False
         )
 
-        with open(f"A28R1_{method}_superimposition.pdb", "r") as f:
+        with open(f"A28R1_{method}_aln_method.pdb", "r") as f:
             test = hashlib.md5(f.read().encode('utf-8')).hexdigest()
 
-        with open(f"test_data/A28R1_{method}_superimposition.pdb", "r") as f:
+        with open(f"test_data/A28R1_{method}_aln_method.pdb", "r") as f:
             ans = hashlib.md5(f.read().encode('utf-8')).hexdigest()
 
-        os.remove(f"A28R1_{method}_superimposition.pdb")
+        os.remove(f"A28R1_{method}_aln_method.pdb")
         assert ans == test
 
 
 def test_catch_unused_kwargs():
     with pytest.raises(TypeError) as e_info:
-        SL = chilife.SpinLabel("R1C", site=28, protein=ubq, supermposition_method="mmm")
+        SL = chilife.SpinLabel("R1C", site=28, protein=ubq, fake_keyword="mmm")
     assert (
-            str(e_info.value) == "Got unexpected keyword argument(s): supermposition_method"
+            str(e_info.value) == "Got unexpected keyword argument(s): fake_keyword"
     )
 
 
 def test_guess_chain():
-    anf = chilife.fetch("1anf")
+    anf = mda.Universe("test_data/1anf.pdb", in_memory=True)
     SL = chilife.SpinLabel.from_mmm("R1M", 20, forgive=0.9)
 
 
@@ -309,7 +305,7 @@ def test_from_trajectory():
     assert RE2.res == 'ALA'
     assert RE3.res == 'TRP'
 
-    np.testing.assert_almost_equal(RE1.dihedrals, [[-72.49934635, 164.56177856]])
+    np.testing.assert_almost_equal(RE1.dihedrals, [[-72.49934635, 164.56177856]], decimal=5)
     np.testing.assert_almost_equal(RE2.dihedrals, [[]])
     np.testing.assert_almost_equal(RE3.dihedrals, [[-176.38805017,  -20.15226419],
                                                    [-176.38805017,  -52.83812431],
@@ -320,7 +316,7 @@ def test_from_trajectory():
                                                    [-176.38805017,  164.59451953],
                                                    [  62.16344279,  -93.79344738],
                                                    [ -69.90840475,  -39.25944367],
-                                                   [ -69.90840475,  161.67407146]])
+                                                   [ -69.90840475,  161.67407146]], decimal=5)
 
     with pytest.raises(ValueError):
         RE = chilife.RotamerEnsemble.from_trajectory(traj, 232)
@@ -338,6 +334,7 @@ def test_to_rotlib():
     # Load new rotamer libary, then delete file
     with np.load(f"Test_rotlib.npz", allow_pickle=True) as f:
         rotlib_test = dict(f)
+
     os.remove('Test_rotlib.npz')
 
     # Load previously saved reference rotamer libary
@@ -356,9 +353,8 @@ def test_to_rotlib():
                                                    [-176.38805017,  164.59451953],
                                                    [  62.16344279,  -93.79344738],
                                                    [ -69.90840475,  -39.25944367],
-                                                   [ -69.90840475,  161.67407146]])
+                                                   [ -69.90840475,  161.67407146]], decimal=5)
 
-
-    np.testing.assert_almost_equal(rotlib_test['coords'], rotlib_reference['coords'], decimal=6)
-    np.testing.assert_almost_equal(rotlib_test['weights'], rotlib_reference['weights'], decimal=6)
-    np.testing.assert_almost_equal(rotlib_test['dihedrals'], rotlib_reference['dihedrals'], decimal=6)
+    np.testing.assert_almost_equal(rotlib_test['coords'], rotlib_reference['coords'], decimal=5)
+    np.testing.assert_almost_equal(rotlib_test['weights'], rotlib_reference['weights'], decimal=5)
+    np.testing.assert_almost_equal(rotlib_test['dihedrals'], rotlib_reference['dihedrals'], decimal=5)

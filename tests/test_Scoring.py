@@ -1,5 +1,6 @@
 import numpy as np
 import pytest
+import MDAnalysis as mda
 import chilife
 
 import matplotlib.pyplot as plt
@@ -7,7 +8,7 @@ import matplotlib.pyplot as plt
 r = np.linspace(1e-3, 3, 256)
 eps = np.ones(len(r))
 rmin = np.ones(len(r))
-protein = chilife.fetch('1ubq')
+protein = mda.Universe("test_data/1ubq.pdb", in_memory=True)
 lj_funcs = [chilife.get_lj_energy, chilife.get_lj_scwrl, chilife.get_lj_rep]
 lj_ans = [
     [10.0, 6.80522669, -0.1013122, -0.99520751, -0.85544423, -0.61060211, -0.41786489],

@@ -5,12 +5,10 @@ import pytest
 import MDAnalysis as mda
 import chilife as xl
 
-import matplotlib.pyplot as plt
-
-
-protein = xl.fetch("1ubq")
-gb1 = xl.fetch("4wh4").select_atoms("protein and segid A")
+protein = mda.Universe("test_data/1ubq.pdb", in_memory=True)
+gb1 = mda.Universe("test_data/4wh4.pdb", in_memory=True).select_atoms("protein and segid A")
 SL2 = xl.dSpinLabel("DHC", [28, 28+4], gb1)
+
 
 def test_add_dlabel():
     Energies = np.loadtxt("test_data/DHC.energies")[:, 1]

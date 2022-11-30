@@ -199,8 +199,8 @@ def traj_dd(
     sigma: float,
     **kwargs,
 ) -> np.ndarray:
-    """Calculate a distance distribution from a trajectory of spin labels by calling ``distance_distribution`` on each frame and
-    averaging the resulting distributions.
+    """Calculate a distance distribution from a trajectory of spin labels by calling ``distance_distribution`` on each
+    frame and averaging the resulting distributions.
 
     Parameters
     ----------
@@ -210,9 +210,6 @@ def traj_dd(
         Distance domain to use when calculating distance distribution.
     sigma : float
         Standard deviation of the gaussian kernel used to smooth the distance distribution
-    filter : bool, float
-        Option to prune out negligible population rotamer pairs from distance distribution calculation. The fraction
-        omitted can be specified by assigning a float to ``prune``
     **kwargs : dict, optional
         Additional keyword arguments to pass to ``distance_distribution`` .
 
@@ -259,8 +256,8 @@ def repack(
     temp : float, ArrayLike
         Temperature (Kelvin) for both clash evaluation and metropolis-hastings acceptance criteria. Accepts a list or
         array like object of temperatures if a temperature schedule is desired
-    energy_func : Callabale
-        Energy function to be used for clash evaluation. Must accept a protein and RotmerLibrary object and return an
+    energy_func : Callable
+        Energy function to be used for clash evaluation. Must accept a protein and RotamerEnsemble object and return an
         array of potentials in kcal/mol, with one energy per rotamer in the rotamer ensemble
     off_rotamer : bool
         Boolean argument that decides whether off rotamer sampling is used when repacking the provided residues.
@@ -427,7 +424,7 @@ def create_library(
     resname : str
         3-letter residue code.
     dihedral_atoms : list
-        List of rotatable dihedrals. List should contain sublists of 4 atom names. Atom names must be the same as
+        List of rotatable dihedrals. List should contain sub-lists of 4 atom names. Atom names must be the same as
         defined in the pdb file eg:
         
         .. code-block:: python
@@ -443,9 +440,6 @@ def create_library(
         weight per rotamer and the rotamer weights should sum to 1.
     sigmas : ArrayLike, optional
         Sigma parameter for distributions of dihedral angles. Should be n x m matrix where n is the number of rotamers
-        and m is the number of dihedrals. This feature will be used when performing off rotamer samplings.
-    skews : ArrayLike, optional
-        Skew parameter for distributions of dihedral angles. Should be n x m matrix where n is the number of rotamers
         and m is the number of dihedrals. This feature will be used when performing off rotamer samplings.
     permanent: bool
         If set to True the library will be stored in the chilife user_rotlibs directory in addition to the current
@@ -610,7 +604,7 @@ def create_dlibrary(
         ic1.shift_resnum(-(site - 1))
         ic2.shift_resnum(-(site + increment - 1))
 
-    # Identify atoms that dont move with respect to each other but move with the dihedrals
+    # Identify atoms that don't move with respect to each other but move with the dihedrals
     maxindex1 = (
         max([IC1[0].ICs[1][1][tuple(d[::-1])].index for d in dihedral_atoms[0]]) - 1
     )
@@ -689,7 +683,7 @@ def pre_add_library(
         spin_atoms: List[str],
         uniform_topology: bool = True,
 ) -> Tuple[MDAnalysis.Universe, Dict]:
-    """Helper function to sort pdbs, save spin atoms, update lists, etc when adding a SpinLabel or dSpinLabel.
+    """Helper function to sort PDBs, save spin atoms, update lists, etc. when adding a SpinLabel or dSpinLabel.
 
     Parameters
     ----------
@@ -837,7 +831,22 @@ def prep_restype_savedict(
     return save_dict
 
 
-def add_library(filename, libname=None, default=False, force=False):
+def add_library(filename: Union[str, Path], libname: str = None, default: bool=False, force: bool=False):
+    """
+    Add the provided rotamer library to the chilife rotamer library directory so that it does not need to be
+    in the working directory when utilizing.
+
+    Parameters
+    ----------
+    filename : str, Path
+        Name or Path object oof the rotamer library npz file.
+    libname : str
+        Uniqe name of the rotamer library
+    default : bool
+        If True, chilife will make this the default rotamer library for this residue type.
+    force : bool
+        If True, chilife will overwrite any existing rotamer library with the same name if it exists.
+    """
 
     store_loc = (RL_DIR / f"user_rotlibs/") / filename
     filename = Path(filename)
@@ -878,9 +887,6 @@ def add_dihedral_def(name: str, dihedrals: ArrayLike, force: bool = False) -> No
         List of lists of atom names defining the dihedrals.
     force : bool
         Overwrite any dihedral definition with the same name if it exists.
-    Returns
-    -------
-    None
     """
 
     # Reload in case there were other changes
@@ -892,6 +898,16 @@ def add_dihedral_def(name: str, dihedrals: ArrayLike, force: bool = False) -> No
 
 
 def remove_library(name, prompt=True):
+    """
+    Removes a library from the chilife rotamer library directory and from the chilife dihedral definitions
+
+    Parameters
+    ----------
+    name : str
+        Name of the rotamer library
+    prompt : bool
+        If set to False al warnings will be ignored.
+    """
     global USER_LIBRARIES, USER_dLIBRARIES
     if (name not in USER_LIBRARIES) and (name not in USER_dLIBRARIES) and prompt:
         raise ValueError(f'{name} is not in the set of user labels or user dLables. Check to make sure you have the '
@@ -931,7 +947,12 @@ def remove_library(name, prompt=True):
     remove_from_defaults(name)
 
 
-def add_to_toml(file, key, value, force=False):
+def add_to_toml(file: Union[str, Path], key: str, value: Union[str, List, dict], force: bool = False):
+    """
+    Helper function to add new key:value pairs to toml files like dihedral_defs.toml
+
+
+    """
     with open(file, 'r') as f:
         local = rtoml.load(f)
 

@@ -28,8 +28,8 @@ class dRotamerEnsemble(RotamerEnsemble):
         self.forgive = kwargs.setdefault("forgive", 1.0)
         self.clash_radius = kwargs.setdefault("clash_radius", 14.0)
         self._clash_ori_inp = kwargs.setdefault("clash_ori", "cen")
-        self.superimposition_method = kwargs.setdefault(
-            "superimposition_method", "bisect"
+        self.alignment_method = kwargs.setdefault(
+            "alignment_method", "bisect"
         ).lower()
         self.dihedral_sigma = kwargs.setdefault("dihedral_sigma", 25)
         self.minimize = kwargs.pop("minimize", True)

@@ -18,8 +18,8 @@ with open('test_data/test_from_MMM.pkl', 'rb') as f:
     from_mmm_Ps, from_mmm_rotlibs = pickle.load(f)
 
 from_mmm_r = from_mmm_Ps.pop('r')
-omp = chilife.fetch("1omp")
-anf = chilife.fetch('1anf')
+omp = mda.Universe('test_data/1omp.pdb', in_memory=True)
+anf = mda.Universe('test_data/1anf.pdb', in_memory=True)
 from_mmm_SLs = {}
 for key in from_mmm_rotlibs:
     label, site, state = key
@@ -42,8 +42,6 @@ for SL in labels:
     kws.append({'use_spin_centers': False})
     kws.append({'sigma': 2})
     kws.append({'sigma': 0.5, 'use_spin_centers': False})
-
-
 
 ans = []
 with np.load("test_data/get_dd_tests.npz") as f:
@@ -207,7 +205,7 @@ def test_fetch2(pdbid, names):
 
 def test_repack():
     np.random.seed(1000)
-    protein = chilife.fetch("1ubq").select_atoms("protein")
+    protein = mda.Universe("test_data/1ubq.pdb", in_memory=True).select_atoms("protein")
     SL = chilife.SpinLabel("R1C", site=28, protein=protein)
 
     traj1, deltaE1 = chilife.repack(protein, SL, repetitions=50, repack_radius=10)

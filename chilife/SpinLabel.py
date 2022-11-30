@@ -83,6 +83,7 @@ class SpinLabel(RotamerEnsemble):
             idx for idx in protein_clash_idx if idx not in self.clash_ignore_idx
         ]
 
+        # Evaluate external clash energies and reweight rotamers
         if self.eval_clash:
             self.evaluate()
 

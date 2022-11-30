@@ -61,7 +61,7 @@ class RotamerEnsemble:
     clash_radius : float
         Cutoff distance (angstroms) for inclusion of atoms in clash evaluations. This distance is measured from
         ``clash_ori`` Defaults to the longest distance between any two atoms in the rotamer ensemble plus 5 angstroms.
-    superimposition_method : str, callable
+    alignment_method : str, callable
         Method to use when attaching or aligning the rotamer ensemble backbone with the protein backbone. Defaults to
         ``'bisect'`` which aligns the CA atom, the vectors bisecting the N-CA-C angle and the N-CA-C plane.
     dihedral_sigmas : float, numpy.ndarray
@@ -114,7 +114,7 @@ class RotamerEnsemble:
             clash_ori : str
                 Atom selection to use as the origin when finding atoms within the ``clash_radius``. Defaults to 'cen',
                 the centroid of the rotamer ensemble heavy atoms.
-            superimposition_method : str
+            alignment_method : str
                 Method to use when attaching or aligning the rotamer ensemble backbone with the protein backbone.
                 Defaults to ``'bisect'`` which aligns the CA atom, the vectors bisecting the N-CA-C angle and the
                 N-CA-C plane.
@@ -153,9 +153,9 @@ class RotamerEnsemble:
         self.input_kwargs = kwargs
         self.__dict__.update(assign_defaults(kwargs))
 
-        # Convert string arguments for superimposition_method to respective function
-        if isinstance(self.superimposition_method, str):
-            self.superimposition_method = chilife.superimpositions[self.superimposition_method]
+        # Convert string arguments for alignment_method to respective function
+        if isinstance(self.alignment_method, str):
+            self.alignment_method = chilife.alignment_methods[self.alignment_method]
 
         lib = self.get_lib(rotlib)
         self.__dict__.update(lib)
@@ -507,11 +507,11 @@ class RotamerEnsemble:
         else:
             N, CA, C = site_pos
 
-        mx, ori = chilife.global_mx(N, CA, C, method=self.superimposition_method)
+        mx, ori = chilife.global_mx(N, CA, C, method=self.alignment_method)
 
-        # if self.superimposition_method not in {'fit', 'rosetta'}:
+        # if self.alignment_method not in {'fit', 'rosetta'}:
         N, CA, C = chilife.parse_backbone(self, kind="local")
-        old_ori, ori_mx = chilife.local_mx(N, CA, C, method=self.superimposition_method)
+        old_ori, ori_mx = chilife.local_mx(N, CA, C, method=self.alignment_method)
         self._coords -= old_ori
         mx = ori_mx @ mx
 
@@ -524,14 +524,14 @@ class RotamerEnsemble:
         # Update chain operators
         ic_backbone = np.squeeze(self.internal_coords[0].coords[:3])
 
-        if self.superimposition_method.__name__ == 'fit_superimposition':
+        if self.alignment_method.__name__ == 'fit_alignment':
             N, CA, C = chilife.parse_backbone(self, kind="global")
             ic_backbone = np.array([[ic_backbone[0], N[1]],
                                     [ic_backbone[1], CA[1]],
                                     [ic_backbone[2], C[1]]])
 
         self.ic_ori, self.ic_mx = chilife.local_mx(
-            *ic_backbone, method=self.superimposition_method
+            *ic_backbone, method=self.alignment_method
         )
         m2m3 = self.ic_mx @ self.mx
         op = {}
@@ -637,9 +637,9 @@ class RotamerEnsemble:
 
                 #####Should not be computing this every time
                 N, CA, C = self.backbone
-                mx, ori = chilife.global_mx(N, CA, C, method=self.superimposition_method)
+                mx, ori = chilife.global_mx(N, CA, C, method=self.alignment_method)
                 N, CA, C = np.squeeze(self._lib_coords[0, self.backbone_idx])
-                old_ori, ori_mx = chilife.local_mx(N, CA, C, method=self.superimposition_method)
+                old_ori, ori_mx = chilife.local_mx(N, CA, C, method=self.alignment_method)
                 ######
 
                 self._lib_coords -= old_ori
@@ -1164,7 +1164,7 @@ class RotamerEnsemble:
     @property
     def mx(self):
         """ """
-        mx, ori = chilife.global_mx(*chilife.parse_backbone(self, kind="local"), method=self.superimposition_method)
+        mx, ori = chilife.global_mx(*chilife.parse_backbone(self, kind="local"), method=self.alignment_method)
         return mx
 
     @property
@@ -1236,7 +1236,7 @@ def assign_defaults(kwargs):
         "temp": 298,
         "clash_radius": None,
         "_clash_ori_inp": kwargs.pop("clash_ori", "cen"),
-        "superimposition_method": "bisect",
+        "alignment_method": "bisect",
         "dihedral_sigmas": 35,
         "weighted_sampling": False,
         "eval_clash": False,

@@ -92,7 +92,7 @@ class FluorLabel(RotamerEnsemble):
         chilife.set_lj_params(user_lj)
 
         clash_radius = kwargs.pop("clash_radius", MMM_maxdist[label] + 4)
-        superimposition_method = kwargs.pop("superimposition_method", "mmm")
+        alignment_method = kwargs.pop("alignment_method", "mmm")
         clash_ori = kwargs.pop("clash_ori", "CA")
         energy_func = kwargs.pop(
             "energy_func", partial(chilife.get_lj_energy, cap=np.inf)
@@ -106,7 +106,7 @@ class FluorLabel(RotamerEnsemble):
             site,
             protein,
             chain,
-            superimposition_method=superimposition_method,
+            alignment_method=alignment_method,
             clash_radius=clash_radius,
             clash_ori=clash_ori,
             energy_func=energy_func,

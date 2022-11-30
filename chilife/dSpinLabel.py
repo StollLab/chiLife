@@ -36,10 +36,8 @@ class dSpinLabel:
         self.forgive = kwargs.setdefault("forgive", 1.0)
         self.clash_radius = kwargs.setdefault("clash_radius", 14.0)
         self._clash_ori_inp = kwargs.setdefault("clash_ori", "cen")
-        self.restraint_weight = kwargs.pop("restraint_weight") if "restraint_weight" in kwargs else 200     # kcal/mol/A^2
-        self.superimposition_method = kwargs.setdefault(
-            "superimposition_method", "bisect"
-        ).lower()
+        self.restraint_weight = kwargs.pop("restraint_weight") if "restraint_weight" in kwargs else 200  # kcal/mol/A^2
+        self.alignment_method = kwargs.setdefault("alignment_method", "bisect".lower())
         self.dihedral_sigmas = kwargs.setdefault("dihedral_sigmas", 25)
         self.minimize = kwargs.pop("minimize", True)
         self.eval_clash = kwargs.pop("eval_clash", True)

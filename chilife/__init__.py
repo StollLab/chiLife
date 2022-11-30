@@ -7,4 +7,4 @@ from .SpinLabelTraj import *
 from .Protein import *
 from .protein_utils import *
 from .scoring import *
-from .superimpositions import parse_backbone
+from .alignment_methods import parse_backbone

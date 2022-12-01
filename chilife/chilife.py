@@ -340,9 +340,8 @@ def repack(
                 )
 
                 with np.errstate(divide="ignore"):
-                    SiteLibrary.dummy_label.E0 = energy_func(
-                        SiteLibrary.dummy_label.protein, SiteLibrary.dummy_label
-                    ) - KT[temp[bidx]] * np.log(SiteLibrary.current_weight)
+                    SiteLibrary.dummy_label.E0 = energy_func(SiteLibrary.dummy_label) - \
+                                                 KT[temp[bidx]] * np.log(SiteLibrary.current_weight)
 
             DummyLabel = SiteLibrary.dummy_label
 
@@ -350,7 +349,7 @@ def repack(
 
             with np.errstate(divide="ignore"):
                 DummyLabel._coords = np.atleast_3d([coords])
-                E1 = energy_func(DummyLabel.protein, DummyLabel) - KT[temp[bidx]] * np.log(weight)
+                E1 = energy_func(DummyLabel) - KT[temp[bidx]] * np.log(weight)
 
             deltaE = E1 - DummyLabel.E0
             deltaE = np.maximum(deltaE, -10.0)

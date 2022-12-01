@@ -750,7 +750,7 @@ class RotamerEnsemble:
             """
             coords = ic.set_dihedral(dihedrals, 1, self.dihedral_atoms).to_cartesian()
             temp_ensemble._coords = np.atleast_3d([coords[self.ic_mask]])
-            return self.energy_func(temp_ensemble.protein, temp_ensemble)
+            return self.energy_func(temp_ensemble)
 
         temp_ensemble = self.copy()
         for i, IC in enumerate(self.internal_coords):
@@ -813,7 +813,7 @@ class RotamerEnsemble:
         """Place rotamer ensemble on protein site and recalculate rotamer weights."""
 
         # Calculate external energies
-        energies = self.energy_func(self.protein, self)
+        energies = self.energy_func(self)
 
         # Calculate total weights (combining internal and external)
         self.weights, self.partition = chilife.reweight_rotamers(energies, self.temp, self.weights)

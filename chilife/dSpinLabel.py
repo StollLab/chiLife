@@ -304,7 +304,7 @@ class dSpinLabel:
         """Place rotamer ensemble on protein site and recalculate rotamer weights."""
 
         # Calculate external energies
-        energies = self.energy_func(self.protein, self)
+        energies = self.energy_func(self)
 
         # Calculate total weights (combining internal and external)
         self.weights, self.partition = chilife.reweight_rotamers(energies, self.temp, self.weights)

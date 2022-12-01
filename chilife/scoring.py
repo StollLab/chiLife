@@ -3,6 +3,7 @@ import numpy as np
 from scipy.spatial import cKDTree
 from scipy.spatial.distance import cdist
 from numba import njit
+import MDAnalysis as mda
 import chilife
 
 
@@ -23,44 +24,59 @@ def clash_only(func):
     """
 
     @wraps(func)
-    def energy_func(protein, ensemble=None, **kwargs):
+    def energy_func(system, **kwargs):
         """
 
         Parameters
         ----------
-        protein :
-            param ensemble:  (Default value = None)
-        ensemble :
-             (Default value = None)
+        system : MDAnalysis.Universe, MDAnalysis.AtomGroup, RotamerEnsemble, Protein
+            Molecular system for which you wish to calculate the energy of
+
         **kwargs :
             
 
         Returns
         -------
+        E : numpy.ndarray
+            Array of energy values (kcal/mol) for each rotamer in an ensemble or for the whole system.
 
         """
 
         rmax = kwargs.get("rmax", 10)
         forgive = kwargs.get("forgive", 1)
+        _protein = kwargs.pop('protein', None)
 
-        if ensemble is None:
-            bonds = {(a, b) for a, b in protein.atoms.bonds.indices}
-            tree = cKDTree(protein.atoms.positions)
+        if isinstance(system, (chilife.RotamerEnsemble, chilife.dSpinLabel)):
+            if system.protein is None and _protein is not None:
+                system.protein = _protein
+
+            r, rmin, eps, shape = prep_external_clash(system)
+            E = func(r, rmin, eps, **kwargs).reshape(shape)
+
+            if kwargs.get("internal", False):
+                r, rmin, eps, shape = prep_internal_clash(system)
+                E += func(r, rmin, eps, **kwargs).reshape(system._coords.shape[:2])
+
+            E = E.sum(axis=1)
+
+        elif isinstance(system, (mda.Universe, mda.AtomGroup, chilife.Protein)):
+            bonds = {(a, b) for a, b in system.atoms.bonds.indices}
+            tree = cKDTree(system.atoms.positions)
             pairs = tree.query_pairs(rmax)
             pairs = pairs - bonds
             pairs = np.array(list(pairs))
 
             r = np.linalg.norm(
-                protein.atoms.positions[pairs[:, 0]]
-                - protein.atoms.positions[pairs[:, 1]],
+                system.atoms.positions[pairs[:, 0]]
+                - system.atoms.positions[pairs[:, 1]],
                 axis=1,
                 )
 
-            lj_radii_1 = chilife.get_lj_rmin(protein.atoms.types[pairs[:, 0]])
-            lj_radii_2 = chilife.get_lj_rmin(protein.atoms.types[pairs[:, 1]])
+            lj_radii_1 = chilife.get_lj_rmin(system.atoms.types[pairs[:, 0]])
+            lj_radii_2 = chilife.get_lj_rmin(system.atoms.types[pairs[:, 1]])
 
-            lj_eps_1 = chilife.get_lj_eps(protein.atoms.types[pairs[:, 0]])
-            lj_eps_2 = chilife.get_lj_eps(protein.atoms.types[pairs[:, 1]])
+            lj_eps_1 = chilife.get_lj_eps(system.atoms.types[pairs[:, 0]])
+            lj_eps_2 = chilife.get_lj_eps(system.atoms.types[pairs[:, 1]])
 
             join_rmin = chilife.get_lj_rmin("join_protocol")[()]
             join_eps = chilife.get_lj_eps("join_protocol")[()]
@@ -71,26 +87,8 @@ def clash_only(func):
             E = E.sum()
 
         else:
-            if hasattr(ensemble, "protein"):
-                if ensemble.protein is not protein:
-                    raise NotImplementedError(
-                        "The protein passed must be the same as the protein associated with the "
-                        "rotamer ensemble passed"
-                    )
-            else:
-                # Attach the protein to the ensemble in case it is passed again but don't evaluate clashes
-                ensemble.protein = protein
-                ensemble.eval_clash = False
-                ensemble.protein_setup()
-
-            r, rmin, eps, shape = prep_external_clash(ensemble)
-            E = func(r, rmin, eps, **kwargs).reshape(shape)
-
-            if kwargs.get("internal", False):
-                r, rmin, eps, shape = prep_internal_clash(ensemble)
-                E += func(r, rmin, eps, **kwargs).reshape(ensemble._coords.shape[:2])
-
-            E = E.sum(axis=1)
+            raise TypeError(f'Energy evaluations of a {type(system)} object are not supported at this time. Please '
+                            f'pass an chilife.RotamerEnsemble, mda.Universe, mda.AtomGroup or chilife.Protein')
 
         return E
 

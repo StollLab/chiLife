@@ -773,7 +773,6 @@ class RotamerEnsemble:
 
     def trim_rotamers(self):
         """Remove rotamers with small weights from ensemble"""
-        old_len = len(self.weights)
         arg_sort_weights = np.argsort(self.weights)[::-1]
         sorted_weights = self.weights[arg_sort_weights]
         cumulative_weights = np.cumsum(sorted_weights)
@@ -790,8 +789,8 @@ class RotamerEnsemble:
         self.weights /= self.weights.sum()
 
         logging.info(
-            f"{len(self.weights)} of {old_len} {self.res} rotamers make up at least {100 * (1-self.trim_tol):.2f}% of "
-            f"rotamer density for site {self.site}"
+            f"{len(self.weights)} of {len(self._weights)} {self.res} rotamers make up at least "
+            f"{100 * (1-self.trim_tol):.2f}% of rotamer density for site {self.site}"
         )
 
     def centroid(self):

@@ -22,14 +22,12 @@ from .SpinLabel import SpinLabel
 from .RotamerEnsemble import RotamerEnsemble
 from .SpinLabelTraj import SpinLabelTraj
 
-
 logging.captureWarnings(True)
 
 # Define useful global variables
 SUPPORTED_BB_LABELS = ("R1C",)
 DATA_DIR = Path(__file__).parent.absolute() / "data/"
 RL_DIR = Path(__file__).parent.absolute() / "data/rotamer_libraries/"
-
 
 with open(RL_DIR / "defaults.toml", "r") as f:
     rotlib_defaults = rtoml.load(f)
@@ -40,12 +38,13 @@ USER_dLIBRARIES = USER_dLIBRARIES | {f.name[:-15] for f in (RL_DIR / "user_rotli
 SUPPORTED_RESIDUES = set(dihedral_defs.keys())
 [SUPPORTED_RESIDUES.remove(lab) for lab in ("CYR1", "MTN")]
 
+
 def distance_distribution(
-    *args: SpinLabel,
-    r: ArrayLike = None,
-    sigma: float = 1.0,
-    use_spin_centers: bool = True,
-    uq: bool = False,
+        *args: SpinLabel,
+        r: ArrayLike = None,
+        sigma: float = 1.0,
+        use_spin_centers: bool = True,
+        uq: bool = False,
 ) -> np.ndarray:
     """Calculates total distribution of spin-spin distances among an arbitrary number of spin labels, using the
     distance range ``r`` (in angstrom).
@@ -82,7 +81,7 @@ def distance_distribution(
         r = args[-1]
         args = args[:-1]
 
-    if len(args)<2:
+    if len(args) < 2:
         raise TypeError('At least two spin label objects are required.')
 
     if r is None:
@@ -160,7 +159,7 @@ def pair_dd(*args, r: ArrayLike, sigma: float = 1.0, use_spin_centers: bool = Tr
             weights1 = SL1.weights
             weights2 = SL2.weights
         else:
-            coords1 = SL1.spin_coords.reshape(-1 ,3)
+            coords1 = SL1.spin_coords.reshape(-1, 3)
             coords2 = SL2.spin_coords.reshape(-1, 3)
             weights1 = np.outer(SL1.weights, SL1.spin_weights).flatten()
             weights2 = np.outer(SL2.weights, SL2.spin_weights).flatten()
@@ -185,7 +184,7 @@ def pair_dd(*args, r: ArrayLike, sigma: float = 1.0, use_spin_centers: bool = Tr
         P = hist
 
     # Normalize distribution
-    integral = np.trapz(P,r)
+    integral = np.trapz(P, r)
     if integral != 0:
         P /= integral
 
@@ -193,11 +192,11 @@ def pair_dd(*args, r: ArrayLike, sigma: float = 1.0, use_spin_centers: bool = Tr
 
 
 def traj_dd(
-    SL1: SpinLabelTraj,
-    SL2: SpinLabelTraj,
-    r: ArrayLike,
-    sigma: float,
-    **kwargs,
+        SL1: SpinLabelTraj,
+        SL2: SpinLabelTraj,
+        r: ArrayLike,
+        sigma: float,
+        **kwargs,
 ) -> np.ndarray:
     """Calculate a distance distribution from a trajectory of spin labels by calling ``distance_distribution`` on each
     frame and averaging the resulting distributions.
@@ -235,13 +234,13 @@ def traj_dd(
 
 
 def repack(
-    protein: Union[mda.Universe, mda.AtomGroup],
-    *spin_labels: RotamerEnsemble,
-    repetitions: int = 200,
-    temp: float = 1,
-    energy_func: Callable = get_lj_rep,
-    off_rotamer=False,
-    **kwargs,
+        protein: Union[mda.Universe, mda.AtomGroup],
+        *spin_labels: RotamerEnsemble,
+        repetitions: int = 200,
+        temp: float = 1,
+        energy_func: Callable = get_lj_rep,
+        off_rotamer=False,
+        **kwargs,
 ) -> Tuple[mda.Universe, ArrayLike]:
     """Markov chain Monte Carlo repack a protein around any number of SpinLabel or RotamerEnsemble objects.
 
@@ -277,7 +276,7 @@ def repack(
 
     repack_radius = kwargs.pop("repack_radius") if "repack_radius" in kwargs else None  # Angstroms
     if repack_radius is None:
-            repack_radius = max([SL.clash_radius for SL in spin_labels])
+        repack_radius = max([SL.clash_radius for SL in spin_labels])
     # Construct a new spin labeled protein and preallocate variables to retain monte carlo trajectory
     spin_label_str = " or ".join(
         f"( {spin_label.selstr} )" for spin_label in spin_labels
@@ -358,8 +357,8 @@ def repack(
             # Metropolis-Hastings criteria
 
             if (
-                E1 < DummyLabel.E0
-                or np.exp(-deltaE / KT[temp[bidx]]) > np.random.rand()
+                    E1 < DummyLabel.E0
+                    or np.exp(-deltaE / KT[temp[bidx]]) > np.random.rand()
             ):
 
                 deltaEs.append(deltaE)
@@ -396,18 +395,18 @@ def repack(
 
 
 def create_library(
-    libname: str,
-    pdb: str,
-    dihedral_atoms: List[List[str]],
-    site: int = 1,
-    resname: str = None,
-    dihedrals: ArrayLike = None,
-    weights: ArrayLike = None,
-    sigmas: ArrayLike = None,
-    permanent: bool = False,
-    default: bool = False,
-    force: bool = False,
-    spin_atoms: List[str] = None
+        libname: str,
+        pdb: str,
+        dihedral_atoms: List[List[str]],
+        site: int = 1,
+        resname: str = None,
+        dihedrals: ArrayLike = None,
+        weights: ArrayLike = None,
+        sigmas: ArrayLike = None,
+        permanent: bool = False,
+        default: bool = False,
+        force: bool = False,
+        spin_atoms: List[str] = None
 ) -> None:
     """Add a user defined SpinLabel from a pdb file.
 
@@ -505,18 +504,18 @@ def create_library(
 
 
 def create_dlibrary(
-    libname: str,
-    pdb: str,
-    increment: int,
-    dihedral_atoms: List[List[List[str]]],
-    site: int = 1,
-    resname: str = None,
-    dihedrals: ArrayLike = None,
-    weights: ArrayLike = None,
-    permanent: bool = False,
-    default: bool = False,
-    force: bool = False,
-    spin_atoms: List[str] = None,
+        libname: str,
+        pdb: str,
+        increment: int,
+        dihedral_atoms: List[List[List[str]]],
+        site: int = 1,
+        resname: str = None,
+        dihedrals: ArrayLike = None,
+        weights: ArrayLike = None,
+        permanent: bool = False,
+        default: bool = False,
+        force: bool = False,
+        spin_atoms: List[str] = None,
 ) -> None:
     """Add a user defined dSpinLabel from a pdb file.
 
@@ -605,10 +604,10 @@ def create_dlibrary(
 
     # Identify atoms that don't move with respect to each other but move with the dihedrals
     maxindex1 = (
-        max([IC1[0].ICs[1][1][tuple(d[::-1])].index for d in dihedral_atoms[0]]) - 1
+            max([IC1[0].ICs[1][1][tuple(d[::-1])].index for d in dihedral_atoms[0]]) - 1
     )
     maxindex2 = (
-        max([IC2[0].ICs[1][1][tuple(d[::-1])].index for d in dihedral_atoms[1]]) - 1
+            max([IC2[0].ICs[1][1][tuple(d[::-1])].index for d in dihedral_atoms[1]]) - 1
     )
 
     # Get constraint pairs between SLs as constriants
@@ -638,7 +637,7 @@ def create_dlibrary(
     if dihedrals is None:
         dihedrals = []
         for IC, resnum, dihedral_set in zip(
-            [IC1, IC2], [site, site + increment], dihedral_atoms
+                [IC1, IC2], [site, site + increment], dihedral_atoms
         ):
             dihedrals.append(
                 [[ICi.get_dihedral(1, ddef) for ddef in dihedral_set] for ICi in IC]
@@ -648,7 +647,7 @@ def create_dlibrary(
         weights = np.ones(len(IC1))
 
     weights /= weights.sum()
-    libname = libname+f'ip{increment}'
+    libname = libname + f'ip{increment}'
     save_dict_1 = prep_restype_savedict(libname + 'A', resname, IC1,
                                         weights, dihedrals[0], dihedral_atoms[0],
                                         spin_atoms=spin_atoms)
@@ -734,7 +733,7 @@ def pre_add_library(
             spin_atoms = list(spin_atoms.keys())
 
         else:
-            w = 1/len(spin_atoms)
+            w = 1 / len(spin_atoms)
             spin_weights = [w for _ in spin_atoms]
 
         spin_atoms = {'spin_atoms': spin_atoms, 'spin_weights': spin_weights}
@@ -743,15 +742,15 @@ def pre_add_library(
 
 
 def prep_restype_savedict(
-      libname: str,
-      resname: str,
-      internal_coords: List[ProteinIC],
-      weights: ArrayLike,
-      dihedrals: ArrayLike,
-      dihedral_atoms: ArrayLike,
-      sigmas: ArrayLike = None,
-      resi: int = 1,
-      spin_atoms: List[str] = None
+        libname: str,
+        resname: str,
+        internal_coords: List[ProteinIC],
+        weights: ArrayLike,
+        dihedrals: ArrayLike,
+        dihedral_atoms: ArrayLike,
+        sigmas: ArrayLike = None,
+        resi: int = 1,
+        spin_atoms: List[str] = None
 ) -> Dict:
     """Helper function to add new residue types to chilife
 
@@ -797,7 +796,8 @@ def prep_restype_savedict(
 
     if np.any(np.isnan(coords)):
         idxs = np.argwhere(np.isnan(coords, np.sum(axis=(1, 2))))
-        raise(ValueError(f'Coords of rotamer {" ".join((str(idx) for idx in idxs))} cannot be converted to internal coords'))
+        raise (ValueError(
+            f'Coords of rotamer {" ".join((str(idx) for idx in idxs))} cannot be converted to internal coords'))
 
     atom_types = np.array([atom.atype for atom in internal_coords[0].atoms])
     atom_names = np.array([atom.name for atom in internal_coords[0].atoms])
@@ -830,7 +830,7 @@ def prep_restype_savedict(
     return save_dict
 
 
-def add_library(filename: Union[str, Path], libname: str = None, default: bool=False, force: bool=False):
+def add_library(filename: Union[str, Path], libname: str = None, default: bool = False, force: bool = False):
     """
     Add the provided rotamer library to the chilife rotamer library directory so that it does not need to be
     in the working directory when utilizing.
@@ -853,9 +853,9 @@ def add_library(filename: Union[str, Path], libname: str = None, default: bool=F
         libname = re.sub("_d{0,1}rotlib.(npz|zip)", "", filename.name)
 
     library = chilife.read_library(Path(filename), None, None)
-    drotlib=False
+    drotlib = False
     if isinstance(library, tuple):
-        drotlib=True
+        drotlib = True
         library, _, _ = library
 
     resname = str(library['resname'])
@@ -890,13 +890,13 @@ def add_dihedral_def(name: str, dihedrals: ArrayLike, force: bool = False) -> No
 
     # Reload in case there were other changes
     if not add_to_toml(DATA_DIR / "dihedral_defs.toml", key=name, value=dihedrals, force=force):
-        raise ValueError(f'There is already a dihedral definition for {name}. Please choose a different name.' )
+        raise ValueError(f'There is already a dihedral definition for {name}. Please choose a different name.')
 
     # Add to active dihedral def dict
     chilife.dihedral_defs[name] = dihedrals
 
 
-def remove_library(name, prompt=True):
+def remove_library(name: str, prompt: bool = True):
     """
     Removes a library from the chilife rotamer library directory and from the chilife dihedral definitions
 
@@ -947,10 +947,18 @@ def remove_library(name, prompt=True):
 
 
 def add_to_toml(file: Union[str, Path], key: str, value: Union[str, List, dict], force: bool = False):
-    """
-    Helper function to add new key:value pairs to toml files like dihedral_defs.toml
+    """Helper function to add new key:value pairs to toml files like dihedral_defs.toml
 
-
+    Parameters
+    ----------
+    file : str, Path
+        Name or path to the toml file to be edited.
+    key : str
+        toml entry to be added.
+    value : str, List, dict
+        Item to add to the toml file under the key.
+    force : bool
+        If True, any existing data under the `key` entry will be overwritten.
     """
     with open(file, 'r') as f:
         local = rtoml.load(f)
@@ -967,7 +975,16 @@ def add_to_toml(file: Union[str, Path], key: str, value: Union[str, List, dict],
     return True
 
 
-def remove_from_toml(file, entry):
+def remove_from_toml(file: Union[str, Path], entry: str):
+    """
+    Remove an entry for a chilife toml file
+    Parameters
+    ----------
+    file : str, Path
+        Name or Path of the toml file to be edited.
+    entry : str
+        Entry or key of the toml file to be removed.
+    """
     with open(file, 'r') as f:
         local = rtoml.load(f)
 
@@ -980,7 +997,21 @@ def remove_from_toml(file, entry):
     return True
 
 
-def add_to_defaults(resname, rotlibname, default=False):
+def add_to_defaults(resname: str, rotlibname: str, default: bool = False):
+    """
+    Helper function to add a rotamer library to the defaults stack.
+
+    Parameters
+    ----------
+    resname : str
+        3 letter code name of the residue.
+    rotlibname : str
+        Name of the rotamer library.
+    default : bool
+        If True the rotamer library will be added to the top of the defaults stacking making it the new default
+        rotamer library for the residue type. If False it will be added to the bottom of the stack and will only be the
+        default if there are no other rotamer libraries for the residue type.
+    """
     file = RL_DIR / 'defaults.toml'
     with open(file, 'r') as f:
         local = rtoml.load(f)
@@ -1000,7 +1031,15 @@ def add_to_defaults(resname, rotlibname, default=False):
 
     safe_save(file, local, backup)
 
-def remove_from_defaults(rotlibname):
+
+def remove_from_defaults(rotlibname: str):
+    """
+    Helper function to remove a rotamer library from the defaults stack.
+    Parameters
+    ----------
+    rotlibname : str
+        Name of the rotamer library to be removed.
+    """
     file = RL_DIR / 'defaults.toml'
     with open(file, 'r') as f:
         local = rtoml.load(f)
@@ -1017,7 +1056,19 @@ def remove_from_defaults(rotlibname):
     safe_save(file, local, backup)
 
 
-def safe_save(file, data, backup):
+def safe_save(file: Union[str, Path], data: dict, backup: dict):
+    """
+    Helper function to save toml files. Will preserve original toml file if there is an error.
+
+    Parameters
+    ----------
+    file : str, Path
+        Name of the toml file to be saved.
+    data : dict
+        Data to save in the toml file.
+    backup : dict
+        Original data from the toml file to save if there is an error.
+    """
     try:
         with open(file, 'w') as f:
             rtoml.dump(data, f)

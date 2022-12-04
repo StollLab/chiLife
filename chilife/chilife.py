@@ -1076,3 +1076,40 @@ def safe_save(file: Union[str, Path], data: dict, backup: dict):
         with open(file, 'w') as f:
             rtoml.dump(backup, f)
         raise
+
+
+def list_available_rotlibs():
+    """
+    Lists residue types and rotamer libraries that are currently available. More information on any individual rotamer
+    library by using the rotlib_info function.
+    Returns
+    -------
+    """
+    print()
+    print("*" * 60)
+    print(f"*{'USER ROTLIBS':^58}*")
+    print("*" * 60)
+
+    print(f"{'resname' + ':':^20}{'available rotlibs (names)':^40}")
+    print("-"*60)
+
+    for key, values in chilife.rotlib_defaults.items():
+        print(f"{key + ':':^20}{', '.join(values):^40}")
+        print("-"*60)
+
+    print()
+    print("*" * 60)
+    print(f"*{'DUNBRACK ROTLIBS':^58}*")
+    print(f"*{'ARG, ASN, ASP, CSY, GLN, GLU, HIS, ILE, LEU, LYS, MET,':^58}*")
+    print(f"*{'PHE, PRO, SER, THR, TRP, TYR, VAL':^58}*")
+    print(f"*{'(not ALA, GLY}':^58}*")
+    print("*" * 60)
+
+def rotlib_info(rotlib: str):
+    """
+        Display detailed information about the rotamer library.
+    Parameters
+    ----------
+    rotlib : str
+        Name of the rotamer library to print the information of.
+    """

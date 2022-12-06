@@ -1722,10 +1722,23 @@ def get_min_topol(lines: List[List[str]]) -> Set[Tuple[int, int]]:
     return minimal_bond_set
 
 
+def parse_connect(connect):
+    c_bonds, h_bonds, i_bonds = set(), set(), set()
+    for line in connect:
+        line=line.ljust(61)
+        a0 = int(line[6:11])
+        c_bonds |= {tuple(sorted((a0 - 1, int(b) - 1))) for b in line[11:31].split()}
+        h_bonds |= {tuple(sorted((a0 - 1, int(b) - 1))) for b in (line[31:41].split() + line[46:56].split())}
+        i_bonds |= {tuple(sorted((a0 - 1, int(b) - 1))) for b in (line[41:46], line[56:61]) if not b.isspace()}
+
+    return c_bonds, h_bonds, i_bonds
+
+
 def sort_pdb(pdbfile: Union[str, List[str], List[List[str]]],
              uniform_topology: bool = True,
              index: bool = False,
-             bonds: ArrayLike = None) -> Union[List[str], List[List[str]], List[int]]:
+             bonds: ArrayLike = None,
+             **kwargs) -> Union[List[str], List[List[str]], List[int]]:
     """Read ATOM lines of a pdb and sort the atoms according to chain, residue index, backbone atoms and side chain atoms.
     Side chain atoms are sorted by distance to each other/backbone atoms with atoms closest to the backbone coming
     first and atoms furthest from the backbone coming last. This sorting is essential to making internal-coordinates

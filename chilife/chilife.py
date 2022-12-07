@@ -602,6 +602,12 @@ def create_dlibrary(
         ic1.shift_resnum(-(site - 1))
         ic2.shift_resnum(-(site + increment - 1))
 
+        if len(ic1.chains) > 1 or len(ic2.chains) > 1 :
+            raise ValueError('The PDB of the label supplied appears to have a chain break. Please check your PDB and '
+                             'make sure there are no chain breaks in the desired label and that there are no other '
+                             'chains in the pdb file. If the error persists, check to be sure all atoms are the correct '
+                             'element as chilife uses the elements to determine if atoms are bonded.')
+
     # Identify atoms that don't move with respect to each other but move with the dihedrals
     maxindex1 = (
             max([IC1[0].ICs[1][1][tuple(d[::-1])].index for d in dihedral_atoms[0]]) - 1

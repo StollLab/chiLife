@@ -406,3 +406,7 @@ def test_add_library_fail():
 #
 #     def test_load_multistate(self):
 #         protein = chilife.Protein.from_pdb('test_data/2d21.pdb')
+
+
+def test_list_rotlibs():
+    chilife.list_available_rotlibs()

@@ -581,11 +581,16 @@ def create_dlibrary(
         )
 
     struct, spin_atoms = pre_add_library(pdb, spin_atoms, uniform_topology=False)
+    resi1_selection = struct.select_atoms(f"resnum {site}")
+    resi2_selection = struct.select_atoms(f"resnum {site + increment}")
+    resi1_bonds = resi1_selection.intra_bonds.indices - resi1_selection.atoms[0].ix
+    resi2_bonds = resi2_selection.intra_bonds.indices - resi2_selection.atoms[0].ix
 
     IC1 = [
         chilife.get_internal_coords(
             struct.select_atoms(f"resnum {site}"),
             preferred_dihedrals=dihedral_atoms[0],
+            bonds=resi1_bonds,
         )
         for ts in struct.trajectory
     ]
@@ -594,6 +599,7 @@ def create_dlibrary(
         chilife.get_internal_coords(
             struct.select_atoms(f"resnum {site + increment}"),
             preferred_dihedrals=dihedral_atoms[1],
+            bonds=resi2_bonds
         )
         for ts in struct.trajectory
     ]
@@ -708,8 +714,8 @@ def pre_add_library(
         Dictionary of spin atoms and weights if specified.
     """
     # Sort the PDB for optimal dihedral definitions
-    pdb_lines = sort_pdb(pdb, uniform_topology=uniform_topology)
-    bonds = get_min_topol(pdb_lines)
+    pdb_lines, bonds = sort_pdb(pdb, uniform_topology=uniform_topology, return_bonds=True)
+    bonds = get_min_topol(pdb_lines, forced_bonds=bonds)
 
     # Write a temporary file with the sorted atoms
     if isinstance(pdb_lines[0], list):

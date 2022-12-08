@@ -581,11 +581,16 @@ def create_dlibrary(
         )
 
     struct, spin_atoms = pre_add_library(pdb, spin_atoms, uniform_topology=False)
+    resi1_selection = struct.select_atoms(f"resnum {site}")
+    resi2_selection = struct.select_atoms(f"resnum {site + increment}")
+    resi1_bonds = resi1_selection.intra_bonds.indices - resi1_selection.atoms[0].ix
+    resi2_bonds = resi2_selection.intra_bonds.indices - resi2_selection.atoms[0].ix
 
     IC1 = [
         chilife.get_internal_coords(
             struct.select_atoms(f"resnum {site}"),
             preferred_dihedrals=dihedral_atoms[0],
+            bonds=resi1_bonds,
         )
         for ts in struct.trajectory
     ]
@@ -594,6 +599,7 @@ def create_dlibrary(
         chilife.get_internal_coords(
             struct.select_atoms(f"resnum {site + increment}"),
             preferred_dihedrals=dihedral_atoms[1],
+            bonds=resi2_bonds
         )
         for ts in struct.trajectory
     ]
@@ -601,6 +607,12 @@ def create_dlibrary(
     for ic1, ic2 in zip(IC1, IC2):
         ic1.shift_resnum(-(site - 1))
         ic2.shift_resnum(-(site + increment - 1))
+
+        if len(ic1.chains) > 1 or len(ic2.chains) > 1 :
+            raise ValueError('The PDB of the label supplied appears to have a chain break. Please check your PDB and '
+                             'make sure there are no chain breaks in the desired label and that there are no other '
+                             'chains in the pdb file. If the error persists, check to be sure all atoms are the correct '
+                             'element as chilife uses the elements to determine if atoms are bonded.')
 
     # Identify atoms that don't move with respect to each other but move with the dihedrals
     maxindex1 = (
@@ -702,8 +714,8 @@ def pre_add_library(
         Dictionary of spin atoms and weights if specified.
     """
     # Sort the PDB for optimal dihedral definitions
-    pdb_lines = sort_pdb(pdb, uniform_topology=uniform_topology)
-    bonds = get_min_topol(pdb_lines)
+    pdb_lines, bonds = sort_pdb(pdb, uniform_topology=uniform_topology, return_bonds=True)
+    bonds = get_min_topol(pdb_lines, forced_bonds=bonds)
 
     # Write a temporary file with the sorted atoms
     if isinstance(pdb_lines[0], list):
@@ -1076,3 +1088,40 @@ def safe_save(file: Union[str, Path], data: dict, backup: dict):
         with open(file, 'w') as f:
             rtoml.dump(backup, f)
         raise
+
+
+def list_available_rotlibs():
+    """
+    Lists residue types and rotamer libraries that are currently available. More information on any individual rotamer
+    library by using the rotlib_info function.
+    Returns
+    -------
+    """
+    print()
+    print("*" * 60)
+    print(f"*{'USER ROTLIBS':^58}*")
+    print("*" * 60)
+
+    print(f"{'resname' + ':':^20}{'available rotlibs (names)':^40}")
+    print("-"*60)
+
+    for key, values in chilife.rotlib_defaults.items():
+        print(f"{key + ':':^20}{', '.join(values):^40}")
+        print("-"*60)
+
+    print()
+    print("*" * 60)
+    print(f"*{'DUNBRACK ROTLIBS':^58}*")
+    print(f"*{'ARG, ASN, ASP, CSY, GLN, GLU, HIS, ILE, LEU, LYS, MET,':^58}*")
+    print(f"*{'PHE, PRO, SER, THR, TRP, TYR, VAL':^58}*")
+    print(f"*{'(not ALA, GLY}':^58}*")
+    print("*" * 60)
+
+def rotlib_info(rotlib: str):
+    """
+        Display detailed information about the rotamer library.
+    Parameters
+    ----------
+    rotlib : str
+        Name of the rotamer library to print the information of.
+    """

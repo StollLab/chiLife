@@ -17,7 +17,6 @@ class dSpinLabel:
         self.site, self.site2 = sorted(sites)
         self.increment = self.site2 - self.site
         self.kwargs = kwargs
-        self.rotlib = rotlib if rotlib is not None else chilife.rotlib_defaults[self.label]
 
         self.protein = protein
         self.chain = chain if chain is not None else self.guess_chain()

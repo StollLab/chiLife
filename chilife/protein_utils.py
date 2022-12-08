@@ -1689,7 +1689,8 @@ def guess_bonds(coords: ArrayLike, atom_types: ArrayLike) -> np.ndarray:
     return bonds
 
 
-def get_min_topol(lines: List[List[str]]) -> Set[Tuple[int, int]]:
+def get_min_topol(lines: List[List[str]],
+                  forced_bonds : set = None) -> Set[Tuple[int, int]]:
     """ Git the minimum topology shared by all the states/models a PDB ensemble. This is to ensure a consistent
     internal coordinate system between all conformers of an ensemble even when there are minor differences in topology.
     e.g. when dHis-Cu-NTA has the capping ligand in different bond orientations.
@@ -1709,23 +1710,41 @@ def get_min_topol(lines: List[List[str]]) -> Set[Tuple[int, int]]:
     if isinstance(lines[0], str):
         lines = [lines]
 
+    # Get bonds for all structures
     for struct in lines:
-
         coords = np.array([(line[30:38], line[38:46], line[46:54]) for line in struct], dtype=float)
         atypes = np.array([line[76:78].strip() for line in struct])
         pairs = guess_bonds(coords, atypes)
         bonds = set(tuple(pair) for pair in pairs)
         bonds_list.append(bonds)
 
+    # Get the shared bonds between all structures.
     minimal_bond_set = set.intersection(*bonds_list)
 
+    # Include any forced bonds
+    if forced_bonds is not None:
+        minimal_bond_set |= forced_bonds
+
     return minimal_bond_set
+
+
+def parse_connect(connect):
+    c_bonds, h_bonds, i_bonds = set(), set(), set()
+    for line in connect:
+        line = line.ljust(61)
+        a0 = int(line[6:11])
+        c_bonds |= {tuple(sorted((a0 - 1, int(b) - 1))) for b in line[11:31].split()}
+        h_bonds |= {tuple(sorted((a0 - 1, int(b) - 1))) for b in (line[31:41].split() + line[46:56].split())}
+        i_bonds |= {tuple(sorted((a0 - 1, int(b) - 1))) for b in (line[41:46], line[56:61]) if not b.isspace()}
+
+    return c_bonds, h_bonds, i_bonds
 
 
 def sort_pdb(pdbfile: Union[str, List[str], List[List[str]]],
              uniform_topology: bool = True,
              index: bool = False,
-             bonds: ArrayLike = None) -> Union[List[str], List[List[str]], List[int]]:
+             bonds: Union[ArrayLike, Set] = set(),
+             **kwargs) -> Union[List[str], List[List[str]], List[int]]:
     """Read ATOM lines of a pdb and sort the atoms according to chain, residue index, backbone atoms and side chain atoms.
     Side chain atoms are sorted by distance to each other/backbone atoms with atoms closest to the backbone coming
     first and atoms furthest from the backbone coming last. This sorting is essential to making internal-coordinates
@@ -1755,44 +1774,66 @@ def sort_pdb(pdbfile: Union[str, List[str], List[List[str]]],
 
         start_idxs = []
         end_idxs = []
-
+        connect = []
+        lines = [line for line in lines if line.startswith(('MODEL', 'ENDMDL', 'CONECT', 'ATOM', 'HETATM'))]
         for i, line in enumerate(lines):
             if line.startswith('MODEL'):
-                start_idxs.append(i)
+                start_idxs.append(i+1)
             elif line.startswith("ENDMDL"):
                 end_idxs.append(i)
+            elif line.startswith('CONECT'):
+                connect.append(line)
 
+        # Use connect information for bonds if present
+        if connect != [] and bonds == set():
+            bonds, _, _ = parse_connect(connect)
+
+        # If it's a multi-state pdb...
         if start_idxs != []:
 
-            # Assume all models have the same topology
-            idxs = sort_pdb(lines[start_idxs[0]:end_idxs[0]], index=True)
+            if uniform_topology:
+                # Assume that all states have the same topology as the first
+                idxs = _sort_pdb_lines(lines[start_idxs[0]:end_idxs[0]], bonds=bonds, index=True, **kwargs)
+
+            else:
+                # Calculate the shared topology and force it
+                min_bonds_list = get_min_topol(lines[start_idxs[0]:end_idxs[0]], forced_bonds=bonds)
+                idxs = _sort_pdb_lines(lines[start_idxs[0]:end_idxs[0]], bonds=min_bonds_list, index=True, **kwargs)
+
+            if isinstance(idxs, tuple):
+                idxs, bonds = idxs
+
             lines[:] = [[lines[idx + start][:6] + f"{i + 1:5d}" + lines[idx + start][11:]
                         for i, idx in enumerate(idxs)]
-                       for start in start_idxs]
+                        for start in start_idxs]
 
-            if not uniform_topology:
-                min_bonds_list = get_min_topol(lines)
-                idxs = sort_pdb(lines[0], index=True, bonds=min_bonds_list)
-
-                lines[:] = [[struct[idx][:6] + f"{i + 1:5d}" + struct[idx][11:]
-                            for i, idx in enumerate(idxs)]
-                           for struct in lines]
-
-            return lines
+            if kwargs.get('return_bonds', False):
+                lines = lines, bonds
+        else:
+            lines = _sort_pdb_lines(lines, bonds=bonds, index=index, **kwargs)
 
     elif isinstance(pdbfile, list):
-        lines = pdbfile
+        lines = _sort_pdb_lines(pdbfile, bonds=bonds, index=index, **kwargs)
 
-    index_key = {line: i for i, line in enumerate(lines)}
+    return lines
+
+
+def _sort_pdb_lines(lines, bonds=None, index=False, **kwargs):
+
     lines = [line for line in lines if line.startswith(("ATOM", "HETATM"))]
+    index_key = {line[6:11]: i for i, line in enumerate(lines)}
 
     # Presort
     lines.sort(key=atom_sort_key)
-    parent_bonds = set(tuple(bond) for bond in bonds) if bonds is not None else set()
-    coords = np.array(
-        [[float(line[30:38]), float(line[38:46]), float(line[46:54])] for line in lines]
-    )
+    presort_idx_key = {line[6:11]: i for i, line in enumerate(lines)}
+    presort_bond_key = {index_key[line[6:11]]: i for i, line in enumerate(lines)}
+    if bonds:
+        input_bonds = {tuple(b) for b in bonds}
+        presort_bonds = set(tuple(sorted((presort_bond_key[b1], presort_bond_key[b2]))) for b1, b2 in bonds)
+    else:
+        presort_bonds = None
 
+    coords = np.array([[float(line[30:38]), float(line[38:46]), float(line[46:54])] for line in lines])
     atypes = np.array([line[76:78].strip() for line in lines])
 
     # get residue groups
@@ -1805,7 +1846,7 @@ def sort_pdb(pdbfile: Union[str, List[str], List[List[str]]],
             resdict[chain, resi] = start, curr
             start = curr
             chain, resi = pdb_line[21], int(pdb_line[22:26].strip())
-
+    all_bonds = []
     resdict[chain, resi] = start, curr + 1
     midsort_key = []
     for key in resdict:
@@ -1813,14 +1854,20 @@ def sort_pdb(pdbfile: Union[str, List[str], List[List[str]]],
         n_heavy = np.sum(atypes[start:stop] != 'H')
         sorted_args = list(range(np.minimum(4, n_heavy)))
         if len(sorted_args) != n_heavy:
+
             root_idx = 1 if len(sorted_args) == 4 else 0
 
-            bonds = guess_bonds(coords[start:stop], atypes[start:stop])
-
-            if len(parent_bonds) > 0:
-                bonds = [bond for bond in bonds if tuple(bond + start) in parent_bonds]
+            # Use bonds if provided otherwise guess
+            if presort_bonds:
+                bonds = [[bond[0] - start, bond[1] - start]
+                            for bond in presort_bonds
+                                if (start <= bond[0] < stop) and (start <= bond[1] < stop)]
+            else:
+                bonds = guess_bonds(coords[start:stop], atypes[start:stop])
 
             bonds = np.asarray(bonds)
+            all_bonds.append(bonds + start)
+
             # Get all nearest neighbors and sort by distance
             distances = np.linalg.norm(coords[start:stop][bonds[:, 0]] - coords[start:stop][bonds[:, 1]], axis=1)
             distances = np.around(distances, decimals=3)
@@ -1835,7 +1882,7 @@ def sort_pdb(pdbfile: Union[str, List[str], List[List[str]]],
             # Start stemming from CA atom
             CA_edges = [edge[1] for edge in nx.bfs_edges(graph, root_idx) if edge[1] not in sorted_args]
 
-            # check for disconnected parts of residue
+            # Check for disconnected parts of residue
             if not nx.is_connected(graph):
                 for g in nx.connected_components(graph):
                     if np.any([arg in g for arg in sorted_args]):
@@ -1843,7 +1890,7 @@ def sort_pdb(pdbfile: Union[str, List[str], List[List[str]]],
                     CA_nodes = [idx for idx in CA_edges if atypes[start + idx] != 'H']
                     g_nodes = [idx for idx in g if atypes[start + idx] != 'H']
                     near_root = cdist(coords[start:stop][CA_nodes], coords[start:stop][g_nodes]).argmin()
-                    # xidx = near_root // len(g_nodes)
+
                     yidx = near_root % len(g_nodes)
                     CA_edges += [g_nodes[yidx]] + [edge[1] for edge in nx.bfs_edges(graph, g_nodes[yidx]) if edge[1]]
 
@@ -1869,12 +1916,25 @@ def sort_pdb(pdbfile: Union[str, List[str], List[List[str]]],
     lines[:] = [lines[i] for i in midsort_key]
     lines.sort(key=atom_sort_key)
 
+    if 'input_bonds' not in locals() and all_bonds != []:
+        input_bonds = np.concatenate(all_bonds)
+        idxmap = {presort_idx_key[line[6:11]]: i for i, line in enumerate(lines)}
+    else:
+        idxmap = {index_key[line[6:11]]: i for i, line in enumerate(lines)}
+
     # Return line indices if requested
     if index:
-        return [index_key[line] for line in lines]
+        lines = [index_key[line[6:11]] for line in lines]
 
-    # Otherwise replace atom index for new sorted liens
-    lines = [line[:6] + f"{i + 1:5d}" + line[11:] for i, line in enumerate(lines)]
+    # Otherwise make new indices
+    else:
+        lines = [line[:6] + f"{i + 1:5d}" + line[11:] for i, line in enumerate(lines)]
+
+    if kwargs.get('return_bonds', False):
+
+
+        bonds = {tuple(sorted((idxmap[a], idxmap[b]))) for a, b in input_bonds}
+        return lines, bonds
 
     return lines
 

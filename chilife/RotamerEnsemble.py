@@ -389,8 +389,8 @@ class RotamerEnsemble:
                'format_version': 1.0}
 
         if 'spin_atoms' in kwargs:
-            spin_atoms = kwargs['spin_atoms']
-            if isinstance(spin_atoms, (list, tuple)):
+            spin_atoms = kwargs.pop('spin_atoms')
+            if isinstance(spin_atoms, (list, tuple, np.ndarray)):
                 spin_atoms = {sa: 1 / len(spin_atoms) for sa in spin_atoms}
             elif isinstance(spin_atoms, dict):
                 pass

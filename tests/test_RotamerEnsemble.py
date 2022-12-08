@@ -370,6 +370,5 @@ def test_sample_persists():
     np.random.seed(10)
     y = rot2.sample()
 
-
-    assert np.testing.assert_allclose(x[0], y[0])
+    np.testing.assert_allclose(x[0], y[0])
     assert x[1] == y[1]

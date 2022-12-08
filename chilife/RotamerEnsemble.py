@@ -707,9 +707,7 @@ class RotamerEnsemble:
             new_weight = pdf.prod()
 
         new_weight = self._weights[idx] * new_weight
-        dihedrals = self._rdihedrals[idx].copy()
-        dihedrals[off_rotamer] = new_dihedrals
-        int_coord = self._lib_IC[idx].copy().set_dihedral(dihedrals, 1, self.dihedral_atoms)
+        int_coord = self._lib_IC[idx].copy().set_dihedral(new_dihedrals, 1, self.dihedral_atoms[off_rotamer])
 
         coords = int_coord.coords[self.ic_mask]
 

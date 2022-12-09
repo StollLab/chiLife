@@ -115,14 +115,3 @@ def test_restraint_weight():
 
     np.testing.assert_allclose(SL3.weights, ans)
     assert SL2.weights != SL3.weights
-
-
-def test_create_dl():
-    xl.create_dlibrary(libname='CuIDA_28H32H',
-                       pdb='28H32HIDA_clustered3.pdb',
-                       increment=4, site=27, resname='HIC',
-                       dihedral_atoms=[[['N', 'CA', 'C10', 'C2'],
-                                        ['CA', 'C10', 'C2', 'C3']],
-                                       [['N', 'CA', 'C11', 'C5'],
-                                        ['CA', 'C11', 'C5', 'C6']]],
-                       spin_atoms='Cu1')

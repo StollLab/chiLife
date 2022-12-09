@@ -289,6 +289,7 @@ def repack(
     ).residues
 
     repack_res_kwargs = spin_labels[0].input_kwargs
+    repack_res_kwargs['eval_clash'] = False
     repack_residue_libraries = [
         RotamerEnsemble.from_mda(res, **repack_res_kwargs)
         for res in repack_residues
@@ -312,7 +313,7 @@ def repack(
     deltaEs = []
 
     sample_freq = np.array(
-        [len(res.weights) for res in repack_residue_libraries], dtype=np.float64
+        [len(res._weights) for res in repack_residue_libraries], dtype=np.float64
     )
     sample_freq /= sample_freq.sum()
 

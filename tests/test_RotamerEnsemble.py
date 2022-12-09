@@ -358,3 +358,17 @@ def test_to_rotlib():
     np.testing.assert_almost_equal(rotlib_test['coords'], rotlib_reference['coords'], decimal=5)
     np.testing.assert_almost_equal(rotlib_test['weights'], rotlib_reference['weights'], decimal=5)
     np.testing.assert_almost_equal(rotlib_test['dihedrals'], rotlib_reference['dihedrals'], decimal=5)
+
+
+def test_sample_persists():
+    rot1 = chilife.RotamerEnsemble('ARG', 28, ubq)
+    rot2 = chilife.RotamerEnsemble('ARG', 28, ubq, eval_clash=True)
+
+    np.random.seed(10)
+    x = rot1.sample()
+
+    np.random.seed(10)
+    y = rot2.sample()
+
+    np.testing.assert_allclose(x[0], y[0])
+    assert x[1] == y[1]

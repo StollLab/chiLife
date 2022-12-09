@@ -410,3 +410,18 @@ def test_add_library_fail():
 
 def test_list_rotlibs():
     chilife.list_available_rotlibs()
+
+
+def test_my():
+    weights = np.loadtxt('weights.txt')
+    chilife.create_library('R3A', 'R3A_Ensemble.pdb',
+                           dihedral_atoms=[['N', 'CA', 'CB', 'SG'],
+                                           ['CA', 'CB', 'SG', 'CD'],
+                                           ['CB', 'SG', 'CD', 'C3'],
+                                           ['SG', 'CD', 'C3', 'C4']],
+                          spin_atoms={'N1': 0.5, 'O1': 0.5},
+                          weights=weights)
+
+    T4L = chilife.fetch('2lzm')
+    T109R3 = chilife.SpinLabel('R3A', 109, T4L, rotlib='R3A_rotlib.npz')
+    chilife.save(T109R3, T4L)

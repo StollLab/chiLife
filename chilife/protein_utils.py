@@ -1210,8 +1210,6 @@ def get_internal_coords(
     segid = 0
 
     for seg in dihedral_segs:
-        if len(seg[4]) == 3:
-            seg[4] = list(reversed(seg[3][1:])) + seg[4][-1:]
 
         offset = seg[0][0]
         segid += 1

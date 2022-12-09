@@ -397,8 +397,8 @@ class RotamerEnsemble:
             else:
                 raise TypeError('the `spin_atoms` kwarg must be a dict, list or tuple')
 
-            lib['spin_atoms'] = np.array(spin_atoms.keys())
-            lib['spin_weights'] = np.array(spin_atoms.values())
+            lib['spin_atoms'] = np.array(list(spin_atoms.keys()))
+            lib['spin_weights'] = np.array(list(spin_atoms.values()))
 
         return cls(resname, site, traj, chain, lib, **kwargs)
 

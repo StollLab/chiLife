@@ -481,14 +481,26 @@ def join_arith(a, b, flat=False):
 
 
 rmin_charmm = {
-    "C": 2.0000,
-    "H": 1.27000,
-    "N": 1.8500,
-    "O": 1.7000,
-    "S": 2.0000,
+     "C": 2.0000,
+     "H": 1.27000,
+     "N": 1.8500,
+     "O": 1.7000,
+     "S": 2.0000,
     "SE": 2.0000,  # Default Selenium to Sulfur
     "Br": 1.9800,
-    "Cu": 1.8000,
+    "Cu": 0.7251,  # ion 2+
+     'B': 2.5500,
+     'F': 1.6300,
+    'Na': 1.3638,  # ion
+    'Mg': 1.1850,
+     'P': 2.1500,
+    'Cl': 1.9100,
+     'K': 1.7638,  # ion
+    'Ca': 1.3670,  # ion
+    'Fe': 0.6500,  # HEM
+    'Ni': 1.2760,
+    'Zn': 1.0900,  # ion
+    'Gd': 1.5050,  # ion 3+
     "join_protocol": join_arith,
 }  # Bromobenzene from Gutiérrez et al. 2016
 
@@ -498,9 +510,21 @@ eps_charmm = {
     "N": -0.200,
     "O": -0.120,
     "S": -0.450,
-    "SE": -0.450,  # Default Selenium to Sulfur
+    "SE": -0.450,
     "Br": -0.320,
-    "Cu": -0.170,
+    "Cu": -0.1505,
+     'B': -0.0380,
+     'F': -0.105,
+    'Na': -0.0469,
+    'Mg': -0.0150,
+     'P': -0.5850,
+    'Cl': -0.3430,
+     'K': -0.0870,
+    'Ca': -0.120,
+    'Fe': 0.000,
+    'Ni': -5.65,
+    'Zn': -0.250,
+    'Gd': -0.1723,
     "join_protocol": join_geom,
 }  # Bromobenzene from Gutiérrez et al. 2016
 

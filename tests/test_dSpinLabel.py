@@ -35,7 +35,7 @@ def test_distance_distribution():
     d = r[np.argmax(dd)]
     p = np.max(dd)
     assert abs(d - 26.529411764705884) < 1e-7
-    assert abs(p - 0.3404745271493756) < 1e-7
+    assert abs(p - 0.3404778733692674) < 1e-7
 
 
 def test_centroid():
@@ -111,7 +111,7 @@ def test_single_chain_error():
 
 def test_restraint_weight():
     SL3 = xl.dSpinLabel("DHC", [28, 32], gb1, restraint_weight=0.5)
-    ans = np.array([0.42903695, 0.40503261, 0.16593044])
+    ans = np.array([0.4291847, 0.40492998, 0.16588532])
 
     np.testing.assert_allclose(SL3.weights, ans)
     assert SL2.weights != SL3.weights

@@ -4,7 +4,7 @@
 lines.solid_capstyle: butt
 legend.fancybox: true
 
-axes.prop_cycle: cycler('color', ['8080FF', 'B34D66', '991A99', 'A6E6A6', 'FBC15E', '8EBA42', 'FFB5B8'])
+axes.prop_cycle: cycler('color', ['8080FF', 'B34D66', '991A99', '339933', 'a7522b', '8EBA42', 'FFB5B8'])
                    # 8080FF : slate
                    # B34D66 : raspberry
                    # 991A99 : deeppurple

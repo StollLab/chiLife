@@ -285,7 +285,7 @@ def repack(
 
     # Determine the residues near the spin label that will be repacked
     repack_residues = protein.select_atoms(
-        f"(around {repack_radius} {spin_label_str} ) " f"or {spin_label_str}"
+        f"(around {repack_radius} {spin_label_str} ) or {spin_label_str}"
     ).residues
 
     repack_res_kwargs = spin_labels[0].input_kwargs
@@ -294,6 +294,7 @@ def repack(
         RotamerEnsemble.from_mda(res, **repack_res_kwargs)
         for res in repack_residues
         if res.resname not in ["GLY", "ALA"]
+        and res.resname in chilife.SUPPORTED_RESIDUES
     ]
 
     # Create new labeled protein construct to fill in any missing atoms of repack residues
@@ -307,6 +308,7 @@ def repack(
         RotamerEnsemble.from_mda(res, **repack_res_kwargs)
         for res in repack_residues
         if res.resname not in ["GLY", "ALA"]
+        and res.resname in chilife.SUPPORTED_RESIDUES
     ]
 
     traj = np.empty((repetitions, *protein.positions.shape))

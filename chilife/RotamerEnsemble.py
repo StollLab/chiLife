@@ -355,7 +355,7 @@ class RotamerEnsemble:
         if energy is not None:
             energy = energy[burn_in:]  # - energy[burn_in]
             energy = np.array([energy[non_unique_idx == idx].mean() for idx in range(len(unique_idx))])
-            T = kwargs.setdefault("T", 1)
+            T = kwargs.setdefault("temp", 298)
             pi = np.exp(-energy / (chilife.GAS_CONST * T))
         else:
             pi = np.ones(len(traj.trajectory[burn_in:]))

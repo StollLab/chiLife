@@ -113,5 +113,5 @@ def test_restraint_weight():
     SL3 = xl.dSpinLabel("DHC", [28, 32], gb1, restraint_weight=0.5)
     ans = np.array([0.4291847, 0.40492998, 0.16588532])
 
-    np.testing.assert_allclose(SL3.weights, ans)
+    np.testing.assert_almost_equal(SL3.weights, ans, decimal=6)
     assert SL2.weights != SL3.weights

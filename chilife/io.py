@@ -16,7 +16,7 @@ from .SpinLabel import SpinLabel
 from .dSpinLabel import dSpinLabel
 from .Protein import Protein
 
-
+#                 ID    name   res  chain resnum      X     Y      Z    Oc       b              elem
 fmt_str = "ATOM  {:5d} {:^4s} {:3s} {:1s}{:4d}    {:8.3f}{:8.3f}{:8.3f}{:6.2f}{:6.2f}          {:>2s}  \n"
 
 def read_distance_distribution(file_name: str) -> Tuple[np.ndarray, np.ndarray]:

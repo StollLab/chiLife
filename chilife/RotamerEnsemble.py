@@ -886,7 +886,7 @@ class RotamerEnsemble:
             possible_rotlibs += list(Path.cwd().glob(f'*{rotlib}*.npz'))
             # Check if any exist
             for possible_file in possible_rotlibs:
-                if possible_file.exists():
+                if possible_file.exists() and possible_file.suffix == '.npz':
                     rotlib = possible_file
                     break
             #  If non exist

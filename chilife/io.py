@@ -473,8 +473,8 @@ def write_labels(pdb_file: TextIO, *args: SpinLabel, KDE: bool = True, sorted: b
                     label.chain,
                     int(label.site),
                     *spin_centers[i],
+                    vals[i],
                     1.00,
-                    vals[i] * 100,
                     "N",
                 )
             )

@@ -25,8 +25,11 @@ class BaseSystem:
     def select_atoms(self, selstr):
         mask = process_statement(selstr, self.logic_keywords, self.protein_keywords)
         if hasattr(self, 'mask'):
-            mask *= self.mask
+            t_mask = np.zeros(self.protein.n_atoms, dtype=bool)
+            t_mask[self.mask] = True
+            mask *= t_mask
 
+        mask = np.argwhere(mask).T[0]
         return AtomSelection(self.protein, mask)
 
     @property
@@ -67,7 +70,7 @@ class BaseSystem:
 
     @property
     def n_atoms(self):
-        return self.mask.sum()
+        return len(self.mask)
 
     @property
     def n_residues(self):
@@ -140,7 +143,7 @@ class Protein(BaseSystem):
         self._fname = name
 
         self.ix = np.arange(len(self.atomids))
-        self.mask = np.ones_like(self.atomids, dtype=bool)
+        self.mask = np.arange(len(self.atomids))
 
         resix_borders = np.nonzero(np.r_[1, np.diff(self.resnums)[:-1]])
         resix_borders = np.append(resix_borders, [self.n_atoms])
@@ -512,7 +515,7 @@ def parse_paren(string):
 class AtomSelection(BaseSystem):
 
     def __new__(cls, protein, mask):
-        if sum(mask) == 1:
+        if isinstance(mask, int):
             return Atom(protein, mask)
         else:
             return object.__new__(cls)
@@ -524,14 +527,13 @@ class AtomSelection(BaseSystem):
 
     def __getitem__(self, item):
 
-        if np.issubdtype(type(item), np.integer):
+        if np.issubdtype(type(item), np.bool):
+            item = np.argwhere(item).T[0]
+        elif np.issubdtype(type(item), np.integer):
             relidx = self.protein.ix[self.mask][item]
             return Atom(self.protein, relidx)
 
-        self_args = np.argwhere(self.mask)
-        new_args = self_args[item]
-        new_mask = np.zeros_like(self.mask, dtype=bool)
-        new_mask[new_args] = True
+        new_mask = item
 
         if isinstance(item, slice):
             return AtomSelection(self.protein, new_mask)
@@ -628,12 +630,8 @@ class SegmentSelection(BaseSystem):
 
 class Atom(BaseSystem):
     def __init__(self, protein, mask):
-        if np.issubdtype(type(mask), np.integer):
-            self.index = mask
-            self._mask = None
-        else:
-            self._mask = mask
-            self.index = np.argwhere(mask).flat[0]
+        self.index = mask
+        self.mask = mask
 
         self.protein = protein
         self.name = protein.names[self.index]
@@ -650,18 +648,12 @@ class Atom(BaseSystem):
         self.segid = protein.chains[self.index]
         self.position = protein.coords[self.index]
 
-    @property
-    def mask(self):
-        if self._mask is None:
-            self._mask = np.zeros_like(self.protein.mask, dtype=bool)
-        return self._mask
-
 
 class Residue(BaseSystem):
     def __init__(self, protein, mask):
 
         resix = np.unique(protein.resixs[mask])[0]
-        self.mask = np.isin(protein.resixs, resix)
+        self.mask = np.argwhere(np.isin(protein.resixs, resix)).T[0]
         self.protein = protein
 
         self.resname = protein.resnames[self.mask][0]
@@ -695,7 +687,7 @@ class Segment(BaseSystem):
 
     def __init__(self, protein, mask):
         segix = np.unique(protein.segixs[mask])[0]
-        self.mask = np.isin(protein.segixs, segix)
+        self.mask = np.argwhere(np.isin(protein.segixs, segix)).T[0]
         self.protein = protein
 
         self.segid = protein.segids[segix]

@@ -52,9 +52,11 @@ def test_select_or():
     m1 = prot.select_atoms('name CA or name CB')
     ans_mask = (prot.names == 'CA') + (prot.names == 'CB')
 
-    np.testing.assert_almost_equal(m1.mask, ans_mask)
+    np.testing.assert_allclose(m1.mask, np.argwhere(ans_mask).T[0])
     assert np.all(np.isin(m1.names, ['CA', 'CB']))
-    assert not np.any(np.isin(prot.names[~m1.mask], ['CA', 'CB']))
+    mm = np.ones(prot.n_atoms, dtype=bool)
+    mm[m1.mask] = False
+    assert not np.any(np.isin(prot.names[mm], ['CA', 'CB']))
 
 
 def test_select_and_or_and():
@@ -62,7 +64,7 @@ def test_select_and_or_and():
     m1 = prot.select_atoms('(resnum 32 and name CA) or (resnum 33 and name CB)')
     ans_mask = (prot.resnums == 32) * (prot.names == 'CA') + (prot.resnums == 33) * (prot.names == 'CB')
 
-    np.testing.assert_almost_equal(m1.mask, ans_mask)
+    np.testing.assert_almost_equal(m1.mask, np.argwhere(ans_mask).T[0])
     assert np.all(np.isin(m1.names, ['CA', 'CB']))
     assert np.all(np.isin(m1.resnums, [32, 33]))
 
@@ -71,7 +73,7 @@ def test_select_and_not():
     m1 = prot.select_atoms('resnum 32 and not name CA')
     ans_mask = (prot.resnums == 32) * (prot.names != 'CA')
 
-    np.testing.assert_almost_equal(m1.mask, ans_mask)
+    np.testing.assert_almost_equal(m1.mask, np.argwhere(ans_mask).T[0])
     assert not np.any(np.isin(m1.names, ['CA']))
     assert np.all(np.isin(m1.resnums, [32]))
 
@@ -80,7 +82,7 @@ def test_select_name_and_resname():
     m1 = prot.select_atoms("name CB and resname PRO")
     ans_mask = (prot.names == 'CB') * (prot.resnames == 'PRO')
 
-    np.testing.assert_almost_equal(m1.mask, ans_mask)
+    np.testing.assert_almost_equal(m1.mask, np.argwhere(ans_mask).T[0])
     assert np.all(np.isin(m1.names, ['CB']))
     assert np.all(np.isin(m1.resnames, ['PRO']))
 
@@ -93,7 +95,7 @@ def test_select_complex():
     resnum5 = (prot.resnums == 5)
     ans_mask = resnames * ca_or_c_pro + resnum5
 
-    np.testing.assert_almost_equal(m1.mask, ans_mask)
+    np.testing.assert_almost_equal(m1.mask, np.argwhere(ans_mask).T[0])
     assert not np.any(np.isin(prot.resnums[~m1.mask], 5))
 
 
@@ -101,8 +103,8 @@ def test_select_range():
     m1 = prot.select_atoms('resnum 5-15')
     m2 = prot.select_atoms('resnum 5:15')
     ans_mask = np.isin(prot.resnums, list(range(5, 16)))
-    np.testing.assert_almost_equal(m1.mask, ans_mask)
-    np.testing.assert_almost_equal(m2.mask, ans_mask)
+    np.testing.assert_almost_equal(m1.mask, np.argwhere(ans_mask).T[0])
+    np.testing.assert_almost_equal(m2.mask, np.argwhere(ans_mask).T[0])
 
 
 features = ("atomids", "names", "altlocs", "resnames", "chains", "resnums", "occupancies", "bs", "atypes", "charges")
@@ -123,7 +125,7 @@ def test_byres():
 def test_unary_not():
     asel = prot.select_atoms('not resid 5')
     ans = prot.resnums != 5
-    assert np.all(asel.mask == ans)
+    assert np.all(asel.mask == np.argwhere(ans).T[0])
 
 def test_around():
     asel = prot.select_atoms('around 5 resnum 5')
@@ -287,6 +289,14 @@ def test_xl_protein_mutate():
     os.remove('test_mutate.pdb')
     assert ans == test
 
+
+def test_rotamer_ensemble():
+    p1 = chilife.Protein.from_pdb('test_data/1omp.pdb')
+    p2 = mda.Universe('test_data/1omp.pdb')
+
+    SL1 = chilife.RotamerEnsemble('ILE', 2, p1)
+    SL2 = chilife.RotamerEnsemble('ILE', 2, p2)
+    print('pause')
 
 # def test_xl_protein_from_mda():
 #     assert False

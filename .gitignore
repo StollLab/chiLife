@@ -7,3 +7,4 @@ chiLife.egg-info/
 scripts/
 chilife/data/rotamer_libraries/user_rotlibs/convert_drotlibs.py
 chilife/data/rotamer_libraries/user_rotlibs/convert_rotlibs.py
+examples/**/*_rotlib.npz

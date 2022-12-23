@@ -1,4 +1,4 @@
-HEADER 28TRT_A
+HEADER A28TRT
 MODEL 0
 ATOM      0  N   TRT A  28      37.479  25.740  14.585  1.00  1.00           N  
 ATOM      1  CA  TRT A  28      38.794  25.761  13.880  1.00  1.00           C  
@@ -73,6 +73,6 @@ ATOM     69 CBV  TRT A  28      49.796  34.638   4.846  1.00  1.00           C
 ATOM     70 CBW  TRT A  28      56.001  22.232   7.568  1.00  1.00           C  
 TER
 ENDMDL
-HEADER 28TRT_A_density
-ATOM      0 NEN  TRT A  28      49.202  27.346   9.278  1.00100.00           N  
+HEADER A28TRT_density
+ATOM      0 NEN  TRT A  28      49.202  27.346   9.278  1.00  1.00           N  
 TER

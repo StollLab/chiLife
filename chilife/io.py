@@ -421,8 +421,10 @@ def write_labels(pdb_file: TextIO, *args: SpinLabel, KDE: bool = True, sorted: b
         # Save models in order of weight
 
         sorted_index = np.argsort(label.weights)[::-1] if sorted else np.arange(len(label.weights))
+        norm_weights = label.weights / label.weights.max()
+
         for mdl, (conformer, weight) in enumerate(
-            zip(label.coords[sorted_index], label.weights[sorted_index])
+            zip(label.coords[sorted_index], norm_weights[sorted_index])
         ):
             pdb_file.write("MODEL {}\n".format(mdl))
 
@@ -461,9 +463,10 @@ def write_labels(pdb_file: TextIO, *args: SpinLabel, KDE: bool = True, sorted: b
 
             # Map KDE density to pseudoatoms
             vals = gkde.pdf(spin_centers.T)
+
         else:
             vals = label.weights
-
+        norm_weights = vals / vals.max()
         [
             pdb_file.write(
                 fmt_str.format(
@@ -473,12 +476,12 @@ def write_labels(pdb_file: TextIO, *args: SpinLabel, KDE: bool = True, sorted: b
                     label.chain,
                     int(label.site),
                     *spin_centers[i],
-                    vals[i],
+                    norm_weights[i],
                     1.00,
                     "N",
                 )
             )
-            for i in range(len(vals))
+            for i in range(len(norm_weights))
         ]
 
         pdb_file.write("TER\n")

@@ -220,7 +220,7 @@ class RotamerEnsemble:
         self.name = self.rotlib
         if self.site is not None:
             self.name = str(self.site) + self.rotlib
-        if self.chain is not None:
+        if self.chain not in ('A', None):
             self.name += f"_{self.chain}"
 
         # Create arrays of LJ potential params
@@ -234,6 +234,7 @@ class RotamerEnsemble:
             self.protein_setup()
             resname = self.protein.atoms[self.clash_ignore_idx[0]].resname
             self.nataa = chilife.nataa_codes.get(resname, resname)
+            self.name = self.nataa + self.name
 
         # Store atom information as atom objects
         self.atoms = [

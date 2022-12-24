@@ -104,9 +104,13 @@ class BaseSystem:
     def universe(self):
         return self.protein
 
+    def copy(self):
+        p2 = self.protein.copy()
+        return AtomSelection(p2, self.mask.copy())
+
     def __iter__(self):
-        for idx in self.protein.ix[self.mask]:
-            yield Atom(self.protein, idx)
+        for idx in self.mask:
+            yield self.protein.atoms[idx]
 
 
 class Protein(BaseSystem):
@@ -154,6 +158,7 @@ class Protein(BaseSystem):
 
         self.resixs = np.concatenate(resixs)
         self.segixs = np.array([ord(x)-65 for x in self.chains])
+        self._Atoms = np.array([Atom(self, i) for i in range(self.n_atoms)])
 
         self._protein_keywords = {'id': self.atomids,
                                   'name': self.names,
@@ -284,6 +289,23 @@ class Protein(BaseSystem):
 
         return cls(atomids, anames, altlocs, resnames, resnums, chains,
                    trajectory, occupancies, bs, segids, atypes, charges)
+
+
+    def copy(self):
+        return Protein(
+        atomids = self.atomids,
+        names = self.names,
+        altlocs = self.altlocs,
+        resnames = self.resnames,
+        resnums = self.resnums,
+        chains = self.chains,
+        trajectory = self.trajectory.coords,
+        occupancies = self.occupancies,
+        bs = self.bs,
+        segs = self.segs,
+        atypes = self.atypes,
+        charges = self.charges,
+        name = self.names)
 
 
 class Trajectory:
@@ -600,7 +622,7 @@ class SegmentSelection(BaseSystem):
 
     def __init__(self, protein, mask):
         seg_ixs = np.unique(protein.segixs[mask])
-        self.mask = np.isin(protein.segixs, seg_ixs)
+        self.mask = np.argwhere(np.isin(protein.segixs, seg_ixs)).T[0]
         self.protein = protein
 
         first_ix = np.nonzero(np.r_[1, np.diff(protein.segixs)[:-1]])

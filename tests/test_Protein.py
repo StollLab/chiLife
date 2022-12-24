@@ -333,3 +333,8 @@ def test_residue_sel_getitem():
     assert np.all(res10.atoms.ix == np.arange(147, 166))
     assert np.all(res.residues[3:5].resnums == [14, 15])
 
+
+def test_copy():
+    prot2 = prot.copy()
+    np.testing.assert_equal(prot2.coords, prot.coords)
+    assert prot2.coords is not prot

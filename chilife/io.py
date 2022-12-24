@@ -486,5 +486,16 @@ def write_labels(pdb_file: TextIO, *args: SpinLabel, KDE: bool = True, sorted: b
 
         pdb_file.write("TER\n")
 
-rotlib_formats = {1.0 : ('rotlib', 'resname', 'coords', 'internal_coords', 'weights', 'atom_types', 'atom_names',
-                         'dihedrals', 'dihedral_atoms', 'type', 'format_version')}
+rotlib_formats = {1.0 : (
+    'rotlib',                 #
+     'resname',
+     'coords',
+     'internal_coords',
+     'weights',
+     'atom_types',
+     'atom_names',
+     'dihedrals',
+     'dihedral_atoms',
+     'type',
+     'format_version'
+     )}

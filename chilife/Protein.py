@@ -12,6 +12,7 @@ from scipy.spatial import cKDTree
 #   Performance enhancement: Preconstruct Atom objects
 #   Behavior: AtomSelections should have orders to be enforced when indexing.
 #   Performance enhancement: Find a faster way to retrieve coordinate data from trajectory @property seems to have
+#   Feature: Add from_mda class method.
 
 class BaseSystem:
 

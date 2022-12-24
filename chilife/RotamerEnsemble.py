@@ -589,10 +589,12 @@ class RotamerEnsemble:
         for atom in ["H", "O"]:
             mask = self.atom_names == atom
             if any(mask) and self.protein is not None:
+
                 pos = self.protein.select_atoms(
                     f"segid {self.chain} and resnum {self.site} "
                     f"and name {atom} and not altloc B"
                 ).positions
+
                 if pos.shape == (1, 3):
                     self._coords[:, mask] = np.squeeze(pos)
                 elif pos.shape == (3,):

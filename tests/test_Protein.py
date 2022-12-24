@@ -213,7 +213,7 @@ def test_save_Protein():
 def test_bool_index_atomsel():
     bindex = prot.resnames == 'LYS'
     x = prot.atoms[bindex]
-    assert len(x) == 768
+    assert len(x) == 769
     assert np.all(x.resnames == 'LYS')
 
 

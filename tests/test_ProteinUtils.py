@@ -125,7 +125,9 @@ def test_sort_manymodels():
 
         ans = hashlib.md5("".join(heavy_ans).encode("utf-8")).hexdigest()
 
-        assert test == ans
+    os.remove('test_data/msort_tmp.pdb')
+
+    assert test == ans
 
 def test_makeics():
     traj = mda.Universe("test_data/msort_ans.pdb")

@@ -1819,6 +1819,7 @@ def sort_pdb(pdbfile: Union[str, List[str], List[List[str]]],
 def _sort_pdb_lines(lines, bonds=None, index=False, **kwargs):
 
     lines = [line for line in lines if line.startswith(("ATOM", "HETATM"))]
+    n_atoms = len(lines)
     index_key = {line[6:11]: i for i, line in enumerate(lines)}
 
     # Presort
@@ -1871,7 +1872,6 @@ def _sort_pdb_lines(lines, bonds=None, index=False, **kwargs):
             distances = np.around(distances, decimals=3)
             idx_sort = np.lexsort((bonds[:, 0], bonds[:, 1], distances))
             pairs = bonds[idx_sort]
-
             pairs = [pair for pair in pairs if np.any(~np.isin(pair, sorted_args))]
 
             graph = nx.Graph()
@@ -1900,14 +1900,13 @@ def _sort_pdb_lines(lines, bonds=None, index=False, **kwargs):
         else:
             CA_edges = []
 
-        n_base = len(sorted_args)
         sorted_args = sorted_args + CA_edges
 
-        # get any leftover hydrogen atoms (eg HN)
+        # get any leftover atoms (eg HN)
         if len(sorted_args) != stop-start:
-            for i, idx in enumerate(range(n_heavy, stop-start)):
+            for idx in range(stop - start):
                 if idx not in sorted_args:
-                    sorted_args.insert(i+n_base, idx)
+                    sorted_args.append(idx)
 
         midsort_key += [x + start for x in sorted_args]
 
@@ -1929,8 +1928,6 @@ def _sort_pdb_lines(lines, bonds=None, index=False, **kwargs):
         lines = [line[:6] + f"{i + 1:5d}" + line[11:] for i, line in enumerate(lines)]
 
     if kwargs.get('return_bonds', False):
-
-
         bonds = {tuple(sorted((idxmap[a], idxmap[b]))) for a, b in input_bonds}
         return lines, bonds
 

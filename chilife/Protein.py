@@ -9,7 +9,6 @@ from numpy.typing import ArrayLike
 from scipy.spatial import cKDTree
 
 # TODO:
-#   Performance enhancement: Use index instead of mask for groups
 #   Performance enhancement: Preconstruct Atom objects
 #   Behavior: AtomSelections should have orders to be enforced when indexing.
 #   Performance enhancement: Find a faster way to retrieve coordinate data from trajectory @property seems to have
@@ -527,32 +526,31 @@ class AtomSelection(BaseSystem):
 
     def __getitem__(self, item):
 
-        if np.issubdtype(type(item), np.bool):
-            item = np.argwhere(item).T[0]
-        elif np.issubdtype(type(item), np.integer):
+        if np.issubdtype(type(item), np.integer):
             relidx = self.protein.ix[self.mask][item]
             return Atom(self.protein, relidx)
 
-        new_mask = item
-
         if isinstance(item, slice):
-            return AtomSelection(self.protein, new_mask)
+            return AtomSelection(self.protein, self.mask[item])
 
         elif isinstance(item, (np.ndarray, list, tuple)):
             item = np.asarray(item)
             if len(item) == 1 or item.sum() == 1:
-                return Atom(self.protein, new_mask)
+                return Atom(self.protein, self.mask[item])
+            elif item.dtype == bool:
+                item = np.argwhere(item).T[0]
+                return AtomSelection(self.protein, item)
             else:
-                return AtomSelection(self.protein, new_mask)
+                return AtomSelection(self.protein, self.mask[item])
 
         elif hasattr(item, '__iter__'):
             if all([np.issubdtype(type(x), int) for x in item]):
-                return AtomSelection(self.protein, new_mask)
+                return AtomSelection(self.protein, self.mask[item])
 
         raise TypeError('Only integer, slice type, and boolean mask arguments are supported at this time')
 
     def __len__(self):
-        return self.mask.sum()
+        return len(self.mask)
 
 
 class ResidueSelection(BaseSystem):
@@ -576,7 +574,8 @@ class ResidueSelection(BaseSystem):
     def __getitem__(self, item):
         resixs = np.unique(self.protein.resixs[self.mask])
         new_resixs = resixs[item]
-        new_mask = np.isin(self.protein.resixs, new_resixs)
+        new_mask = np.argwhere(np.isin(self.protein.resixs, new_resixs))
+
         if np.issubdtype(type(item), int):
             return Residue(self.protein, new_mask)
         elif isinstance(item, slice):
@@ -612,7 +611,7 @@ class SegmentSelection(BaseSystem):
     def __getitem__(self, item):
         segixs = np.unique(self.protein.segixs[self.mask])
         new_segixs = segixs[item]
-        new_mask = np.isin(self.protein.segixs, new_segixs)
+        new_mask = np.argwhere(np.isin(self.protein.segixs, new_segixs))
 
         if np.issubdtype(type(item), int):
             return Segment(self.protein, new_mask)
@@ -664,7 +663,7 @@ class Residue(BaseSystem):
         self.chain = protein.chains[self.mask][0]
 
     def __len__(self):
-        return self.mask.sum()
+        return len(self.mask)
 
     def phi_selection(self):
         prev = self.atoms.resnums - 1

@@ -289,23 +289,6 @@ def test_xl_protein_mutate():
     os.remove('test_mutate.pdb')
     assert ans == test
 
-
-def test_rotamer_ensemble():
-    p1 = chilife.Protein.from_pdb('test_data/1omp.pdb')
-    p2 = mda.Universe('test_data/1omp.pdb')
-
-    SL1 = chilife.RotamerEnsemble('ILE', 2, p1)
-    SL2 = chilife.RotamerEnsemble('ILE', 2, p2)
-    print('pause')
-
-# def test_xl_protein_from_mda():
-#     assert False
-
-
-# def test_xl_protein_from_pose():
-#     assert False
-
-
 def test_re_form_xl_traj():
     traj = Protein.from_pdb('test_data/xlsavetraj.pdb')
     SL = chilife.RotamerEnsemble.from_trajectory(traj, 236, burn_in=0)
@@ -318,6 +301,25 @@ def test_re_form_xl_traj():
     assert len(SL) == 5
     np.testing.assert_almost_equal(SL.dihedrals, ans_dihedrals)
 
+def test_backbone_selection():
+    phi = prot.residues[40].phi_selection()
+    psi = prot.residues[40].psi_selection()
+    print('pause')
+
 # def test_backbone_to_site():
-#
+#     assert False
+
+# def test_xl_protein_from_mda():
+#     assert False
+
+# def test_xl_protein_from_pose():
+#     assert False
+
+# def test_atom_sel_getitem():
+#     assert False
+
+# def test_residue_sel_getitem():
+#     assert False
+
+# def test_segment_sel_getitem():
 #     assert False

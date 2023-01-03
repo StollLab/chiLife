@@ -668,7 +668,12 @@ class Atom(BaseSystem):
         self.resnum = self.resi
         self.chain = protein.segids[self.index]
         self.segid = protein.chains[self.index]
-        self.position = protein.coords[self.index]
+
+    @property
+    def position(self):
+        return self.protein.coords[self.index]
+
+
 
 
 class Residue(BaseSystem):

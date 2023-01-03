@@ -128,8 +128,6 @@ def get_lj_energy(r, rmin, eps, forgive=1, cap=10, rmax=10):
 
     """
     lj_energy = np.zeros_like(r)
-
-    eps = eps.copy()
     rmin_lower = forgive * rmin
 
     # Piecewise function for flat lj potential near rmin
@@ -177,8 +175,6 @@ def get_lj_scwrl(r, rmin, eps, forgive=1):
         Vector of atom pair energies calculated using the modified lj potential function.
     """
     lj_energy = np.empty_like(r)
-
-    eps = eps.copy()
     rmin_lower = rmin * forgive
 
     # Piecewise function for flat lj potential near rmin
@@ -228,10 +224,6 @@ def get_lj_rep(r, rmin, eps, forgive=0.9, cap=10):
         Vector of atom pair energies calculated using the modified lj potential function.
     """
     lj_energy = np.empty_like(r)
-
-    # Unit convert
-    eps = eps.copy()
-
     rmin_lower = forgive * rmin
 
     # Piecewise function for flat lj potential near rmin
@@ -273,10 +265,6 @@ def get_lj_attr(r, rmin, eps, forgive=0.9, floor=-2):
           Vector of atom pair energies calculated using the modified lj potential function.
       """
     lj_energy = np.empty_like(r)
-
-    # Unit convert
-    eps = eps.copy()
-
     rmin_lower = forgive * rmin
 
     # Piecewise function for flat lj potential near rmin

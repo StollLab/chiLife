@@ -2,7 +2,7 @@ from typing import Tuple
 import math as m
 import numpy as np
 from memoization import cached
-from numba import njit
+from numba import njit, prange
 
 
 # TODO:
@@ -298,6 +298,13 @@ def _ic_to_cart(IC_idx_Array: np.ndarray, ICArray: np.ndarray) -> np.ndarray:
 
     return coords
 
+@njit(parallel=True, cache=True)
+def batch_ic2cart(IC_idx_Array: np.ndarray, ICArray: np.ndarray):
+    coords = np.zeros_like(ICArray)
+    for i in prange(len(ICArray)):
+        coords[i] = _ic_to_cart(IC_idx_Array[i], ICArray[i])
+
+    return coords
 
 @njit(cache=True)
 def np_all_axis1(x: np.ndarray) -> np.ndarray:

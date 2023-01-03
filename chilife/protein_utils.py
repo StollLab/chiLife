@@ -439,15 +439,14 @@ class ProteinIC:
         self.zmat_idxs = zmat_idxs
         self.atom_dict = atom_dict
         self.ICs = ICs
-        self.atoms = np.array([
-            ic
-            for chain in self.ICs.values()
-            for resi in chain.values()
-            for ic in resi.values()
-        ])
+        self.atoms = np.asarray(kwargs['atoms']) if 'atoms' in kwargs else np.array([ic for chain in self.ICs.values()
+                                                                                     for resi in chain.values()
+                                                                                  for ic in resi.values()])
 
-        self.atom_types = np.array([atom.atype for atom in self.atoms])
-        self.atom_names = np.array([atom.name for atom in self.atoms])
+        self.atom_types = np.asarray(kwargs['atom_types']) if 'atom_types' in kwargs else \
+            np.array([atom.atype for atom in self.atoms])
+        self.atom_names = np.asarray(kwargs['atom_names']) if 'atom_names' in kwargs else \
+            np.array([atom.name for atom in self.atoms])
 
         self.resis = np.array([key for i in self.ICs for key in self.ICs[i]])
         self.resnames = {
@@ -463,7 +462,7 @@ class ProteinIC:
 
         self.perturbed = False
         self._coords = kwargs['coords'] if 'coords' in kwargs else self.to_cartesian()
-        self.dihedral_defs = self.collect_dih_list()
+        self._dihedral_defs = None
 
     @classmethod
     def from_ICatoms(cls, ICs, **kwargs):
@@ -535,6 +534,9 @@ class ProteinIC:
         zmats = {key: value.copy() for key, value in self.zmats.items()}
         zmat_idxs = {key: value.copy() for key, value in self.zmat_idxs.items()}
         kwargs = {"chain_operators": self.chain_operators,
+                  'atoms': self.atoms.copy(),
+                  'atom_types': self.atom_types,
+                  'atom_names': self.atom_names,
                   "bonded_pairs": self.bonded_pairs,
                   "_nonbonded_pairs": self._nonbonded_pairs,
                   'coords': self.coords.copy()}
@@ -901,6 +903,13 @@ ond        p : ArrayLike
             dihs += [(resi, d) for d in res_dihs]
 
         return dihs
+
+    @property
+    def dihedral_defs(self):
+        if self._dihedral_defs is None:
+            self._dihedral_defs = self.collect_dih_list()
+        return self._dihedral_defs
+
 
     def shift_resnum(self, delta: int):
         """Shift all residue numbers of the proteinIC object by some integer, ``delta`` .

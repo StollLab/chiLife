@@ -694,7 +694,7 @@ class RotamerEnsemble:
         new_weight = 0
         # Use accessible volume sampling if only provided a single rotamer
         if len(self._weights) == 1 or np.all(np.isinf(self.sigmas)):
-            new_dihedrals = np.random.random(len(idx), len(off_rotamer)) * 2 * np.pi
+            new_dihedrals = np.random.random((len(idx), len(off_rotamer))) * 2 * np.pi
             new_weights = np.ones(len(idx))
 
         #  sample from von mises near rotamer unless more information is provided

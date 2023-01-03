@@ -9,10 +9,10 @@ from numpy.typing import ArrayLike
 from scipy.spatial import cKDTree
 
 # TODO:
-#   Performance enhancement: Use index instead of mask for groups
 #   Performance enhancement: Preconstruct Atom objects
 #   Behavior: AtomSelections should have orders to be enforced when indexing.
 #   Performance enhancement: Find a faster way to retrieve coordinate data from trajectory @property seems to have
+#   Feature: Add from_mda class method.
 
 class BaseSystem:
 
@@ -25,8 +25,11 @@ class BaseSystem:
     def select_atoms(self, selstr):
         mask = process_statement(selstr, self.logic_keywords, self.protein_keywords)
         if hasattr(self, 'mask'):
-            mask *= self.mask
+            t_mask = np.zeros(self.protein.n_atoms, dtype=bool)
+            t_mask[self.mask] = True
+            mask *= t_mask
 
+        mask = np.argwhere(mask).T[0]
         return AtomSelection(self.protein, mask)
 
     @property
@@ -67,7 +70,7 @@ class BaseSystem:
 
     @property
     def n_atoms(self):
-        return self.mask.sum()
+        return len(self.mask)
 
     @property
     def n_residues(self):
@@ -101,9 +104,13 @@ class BaseSystem:
     def universe(self):
         return self.protein
 
+    def copy(self):
+        p2 = self.protein.copy()
+        return AtomSelection(p2, self.mask.copy())
+
     def __iter__(self):
-        for idx in self.protein.ix[self.mask]:
-            yield Atom(self.protein, idx)
+        for idx in self.mask:
+            yield self.protein.atoms[idx]
 
 
 class Protein(BaseSystem):
@@ -140,7 +147,7 @@ class Protein(BaseSystem):
         self._fname = name
 
         self.ix = np.arange(len(self.atomids))
-        self.mask = np.ones_like(self.atomids, dtype=bool)
+        self.mask = np.arange(len(self.atomids))
 
         resix_borders = np.nonzero(np.r_[1, np.diff(self.resnums)[:-1]])
         resix_borders = np.append(resix_borders, [self.n_atoms])
@@ -151,6 +158,7 @@ class Protein(BaseSystem):
 
         self.resixs = np.concatenate(resixs)
         self.segixs = np.array([ord(x)-65 for x in self.chains])
+        self._Atoms = np.array([Atom(self, i) for i in range(self.n_atoms)])
 
         self._protein_keywords = {'id': self.atomids,
                                   'name': self.names,
@@ -281,6 +289,23 @@ class Protein(BaseSystem):
 
         return cls(atomids, anames, altlocs, resnames, resnums, chains,
                    trajectory, occupancies, bs, segids, atypes, charges)
+
+
+    def copy(self):
+        return Protein(
+        atomids = self.atomids,
+        names = self.names,
+        altlocs = self.altlocs,
+        resnames = self.resnames,
+        resnums = self.resnums,
+        chains = self.chains,
+        trajectory = self.trajectory.coords,
+        occupancies = self.occupancies,
+        bs = self.bs,
+        segs = self.segs,
+        atypes = self.atypes,
+        charges = self.charges,
+        name = self.names)
 
 
 class Trajectory:
@@ -512,7 +537,7 @@ def parse_paren(string):
 class AtomSelection(BaseSystem):
 
     def __new__(cls, protein, mask):
-        if sum(mask) == 1:
+        if isinstance(mask, int):
             return Atom(protein, mask)
         else:
             return object.__new__(cls)
@@ -528,29 +553,27 @@ class AtomSelection(BaseSystem):
             relidx = self.protein.ix[self.mask][item]
             return Atom(self.protein, relidx)
 
-        self_args = np.argwhere(self.mask)
-        new_args = self_args[item]
-        new_mask = np.zeros_like(self.mask, dtype=bool)
-        new_mask[new_args] = True
-
         if isinstance(item, slice):
-            return AtomSelection(self.protein, new_mask)
+            return AtomSelection(self.protein, self.mask[item])
 
         elif isinstance(item, (np.ndarray, list, tuple)):
             item = np.asarray(item)
             if len(item) == 1 or item.sum() == 1:
-                return Atom(self.protein, new_mask)
+                return Atom(self.protein, self.mask[item])
+            elif item.dtype == bool:
+                item = np.argwhere(item).T[0]
+                return AtomSelection(self.protein, item)
             else:
-                return AtomSelection(self.protein, new_mask)
+                return AtomSelection(self.protein, self.mask[item])
 
         elif hasattr(item, '__iter__'):
             if all([np.issubdtype(type(x), int) for x in item]):
-                return AtomSelection(self.protein, new_mask)
+                return AtomSelection(self.protein, self.mask[item])
 
         raise TypeError('Only integer, slice type, and boolean mask arguments are supported at this time')
 
     def __len__(self):
-        return self.mask.sum()
+        return len(self.mask)
 
 
 class ResidueSelection(BaseSystem):
@@ -574,7 +597,8 @@ class ResidueSelection(BaseSystem):
     def __getitem__(self, item):
         resixs = np.unique(self.protein.resixs[self.mask])
         new_resixs = resixs[item]
-        new_mask = np.isin(self.protein.resixs, new_resixs)
+        new_mask = np.argwhere(np.isin(self.protein.resixs, new_resixs))
+
         if np.issubdtype(type(item), int):
             return Residue(self.protein, new_mask)
         elif isinstance(item, slice):
@@ -598,7 +622,7 @@ class SegmentSelection(BaseSystem):
 
     def __init__(self, protein, mask):
         seg_ixs = np.unique(protein.segixs[mask])
-        self.mask = np.isin(protein.segixs, seg_ixs)
+        self.mask = np.argwhere(np.isin(protein.segixs, seg_ixs)).T[0]
         self.protein = protein
 
         first_ix = np.nonzero(np.r_[1, np.diff(protein.segixs)[:-1]])
@@ -610,7 +634,7 @@ class SegmentSelection(BaseSystem):
     def __getitem__(self, item):
         segixs = np.unique(self.protein.segixs[self.mask])
         new_segixs = segixs[item]
-        new_mask = np.isin(self.protein.segixs, new_segixs)
+        new_mask = np.argwhere(np.isin(self.protein.segixs, new_segixs))
 
         if np.issubdtype(type(item), int):
             return Segment(self.protein, new_mask)
@@ -628,12 +652,8 @@ class SegmentSelection(BaseSystem):
 
 class Atom(BaseSystem):
     def __init__(self, protein, mask):
-        if np.issubdtype(type(mask), np.integer):
-            self.index = mask
-            self._mask = None
-        else:
-            self._mask = mask
-            self.index = np.argwhere(mask).flat[0]
+        self.index = mask
+        self.mask = mask
 
         self.protein = protein
         self.name = protein.names[self.index]
@@ -648,20 +668,19 @@ class Atom(BaseSystem):
         self.resnum = self.resi
         self.chain = protein.segids[self.index]
         self.segid = protein.chains[self.index]
-        self.position = protein.coords[self.index]
 
     @property
-    def mask(self):
-        if self._mask is None:
-            self._mask = np.zeros_like(self.protein.mask, dtype=bool)
-        return self._mask
+    def position(self):
+        return self.protein.coords[self.index]
+
+
 
 
 class Residue(BaseSystem):
     def __init__(self, protein, mask):
 
         resix = np.unique(protein.resixs[mask])[0]
-        self.mask = np.isin(protein.resixs, resix)
+        self.mask = np.argwhere(np.isin(protein.resixs, resix)).T[0]
         self.protein = protein
 
         self.resname = protein.resnames[self.mask][0]
@@ -672,7 +691,7 @@ class Residue(BaseSystem):
         self.chain = protein.chains[self.mask][0]
 
     def __len__(self):
-        return self.mask.sum()
+        return len(self.mask)
 
     def phi_selection(self):
         prev = self.atoms.resnums - 1
@@ -695,7 +714,7 @@ class Segment(BaseSystem):
 
     def __init__(self, protein, mask):
         segix = np.unique(protein.segixs[mask])[0]
-        self.mask = np.isin(protein.segixs, segix)
+        self.mask = np.argwhere(np.isin(protein.segixs, segix)).T[0]
         self.protein = protein
 
         self.segid = protein.segids[segix]

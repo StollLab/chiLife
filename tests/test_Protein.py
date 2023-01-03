@@ -8,13 +8,13 @@ import MDAnalysis as mda
 prot = Protein.from_pdb('test_data/1omp_H.pdb')
 mda_prot = mda.Universe('test_data/1omp_H.pdb')
 
-def test_from_pdb():
 
-    ans = np.array([[ -1.924, -20.646, -23.898],
-                    [ -1.825, -19.383, -24.623],
-                    [ -1.514, -19.5  , -26.1  ],
-                    [ -2.237, -20.211, -26.799],
-                    [ -0.696, -18.586, -23.89 ]])
+def test_from_pdb():
+    ans = np.array([[-1.924, -20.646, -23.898],
+                    [-1.825, -19.383, -24.623],
+                    [-1.514, -19.5, -26.1],
+                    [-2.237, -20.211, -26.799],
+                    [-0.696, -18.586, -23.89]])
 
     np.testing.assert_almost_equal(prot.coords[21:26], ans)
 
@@ -52,17 +52,18 @@ def test_select_or():
     m1 = prot.select_atoms('name CA or name CB')
     ans_mask = (prot.names == 'CA') + (prot.names == 'CB')
 
-    np.testing.assert_almost_equal(m1.mask, ans_mask)
+    np.testing.assert_allclose(m1.mask, np.argwhere(ans_mask).T[0])
     assert np.all(np.isin(m1.names, ['CA', 'CB']))
-    assert not np.any(np.isin(prot.names[~m1.mask], ['CA', 'CB']))
+    mm = np.ones(prot.n_atoms, dtype=bool)
+    mm[m1.mask] = False
+    assert not np.any(np.isin(prot.names[mm], ['CA', 'CB']))
 
 
 def test_select_and_or_and():
-
     m1 = prot.select_atoms('(resnum 32 and name CA) or (resnum 33 and name CB)')
     ans_mask = (prot.resnums == 32) * (prot.names == 'CA') + (prot.resnums == 33) * (prot.names == 'CB')
 
-    np.testing.assert_almost_equal(m1.mask, ans_mask)
+    np.testing.assert_almost_equal(m1.mask, np.argwhere(ans_mask).T[0])
     assert np.all(np.isin(m1.names, ['CA', 'CB']))
     assert np.all(np.isin(m1.resnums, [32, 33]))
 
@@ -71,7 +72,7 @@ def test_select_and_not():
     m1 = prot.select_atoms('resnum 32 and not name CA')
     ans_mask = (prot.resnums == 32) * (prot.names != 'CA')
 
-    np.testing.assert_almost_equal(m1.mask, ans_mask)
+    np.testing.assert_almost_equal(m1.mask, np.argwhere(ans_mask).T[0])
     assert not np.any(np.isin(m1.names, ['CA']))
     assert np.all(np.isin(m1.resnums, [32]))
 
@@ -80,7 +81,7 @@ def test_select_name_and_resname():
     m1 = prot.select_atoms("name CB and resname PRO")
     ans_mask = (prot.names == 'CB') * (prot.resnames == 'PRO')
 
-    np.testing.assert_almost_equal(m1.mask, ans_mask)
+    np.testing.assert_almost_equal(m1.mask, np.argwhere(ans_mask).T[0])
     assert np.all(np.isin(m1.names, ['CB']))
     assert np.all(np.isin(m1.resnames, ['PRO']))
 
@@ -89,11 +90,11 @@ def test_select_complex():
     m1 = prot.select_atoms('resname LYS ARG PRO and (name CA or (type C and resname PRO)) or resnum 5')
 
     resnames = np.isin(prot.resnames, ['LYS', 'ARG', 'PRO'])
-    ca_or_c_pro = ((prot.names == 'CA') + ((prot.atypes == 'C') * (prot.resnames == 'PRO' )))
+    ca_or_c_pro = ((prot.names == 'CA') + ((prot.atypes == 'C') * (prot.resnames == 'PRO')))
     resnum5 = (prot.resnums == 5)
     ans_mask = resnames * ca_or_c_pro + resnum5
 
-    np.testing.assert_almost_equal(m1.mask, ans_mask)
+    np.testing.assert_almost_equal(m1.mask, np.argwhere(ans_mask).T[0])
     assert not np.any(np.isin(prot.resnums[~m1.mask], 5))
 
 
@@ -101,11 +102,13 @@ def test_select_range():
     m1 = prot.select_atoms('resnum 5-15')
     m2 = prot.select_atoms('resnum 5:15')
     ans_mask = np.isin(prot.resnums, list(range(5, 16)))
-    np.testing.assert_almost_equal(m1.mask, ans_mask)
-    np.testing.assert_almost_equal(m2.mask, ans_mask)
+    np.testing.assert_almost_equal(m1.mask, np.argwhere(ans_mask).T[0])
+    np.testing.assert_almost_equal(m2.mask, np.argwhere(ans_mask).T[0])
 
 
 features = ("atomids", "names", "altlocs", "resnames", "chains", "resnums", "occupancies", "bs", "atypes", "charges")
+
+
 @pytest.mark.parametrize('feature', features)
 def test_AtomSelection_features(feature):
     m1 = prot.select_atoms('resname LYS ARG PRO and (name CA or (type C and resname PRO)) or resnum 5')
@@ -123,7 +126,8 @@ def test_byres():
 def test_unary_not():
     asel = prot.select_atoms('not resid 5')
     ans = prot.resnums != 5
-    assert np.all(asel.mask == ans)
+    assert np.all(asel.mask == np.argwhere(ans).T[0])
+
 
 def test_around():
     asel = prot.select_atoms('around 5 resnum 5')
@@ -132,11 +136,13 @@ def test_around():
     assert np.all(np.sort(asel.atoms.names) == np.sort(mdasel.atoms.names))
     assert np.all(asel.atoms.residues.resnums == mdasel.atoms.residues.resnums)
 
+
 def test_subsel():
     asel = prot.select_atoms('around 5 resnum 5')
     bsel = prot.select_atoms('resname LEU around 5 resnum 5')
     a2sel = asel.select_atoms('resname LEU')
     np.testing.assert_almost_equal(bsel.coords, a2sel.coords)
+
 
 def test_SL_Protein():
     omp = chilife.Protein.from_pdb('test_data/1omp.pdb')
@@ -150,16 +156,16 @@ def test_SL_Protein():
 
 def test_trajectory():
     p = chilife.Protein.from_pdb('test_data/2klf.pdb')
-    ans = np.array([[41.068,  2.309,  0.296],
-                    [39.431,  5.673,  2.669],
-                    [39.041,  6.607,  2.738],
-                    [39.385,  5.41 ,  3.503],
-                    [35.887,  7.796,  3.6  ],
-                    [34.155,  6.464,  8.545],
-                    [39.874,  3.395,  2.951],
-                    [35.945,  5.486,  1.808],
-                    [39.028,  4.272,  1.541],
-                    [40.395,  3.852,  9.391]])
+    ans = np.array([[41.068, 2.309, 0.296],
+                    [39.431, 5.673, 2.669],
+                    [39.041, 6.607, 2.738],
+                    [39.385, 5.41, 3.503],
+                    [35.887, 7.796, 3.6],
+                    [34.155, 6.464, 8.545],
+                    [39.874, 3.395, 2.951],
+                    [35.945, 5.486, 1.808],
+                    [39.028, 4.272, 1.541],
+                    [40.395, 3.852, 9.391]])
     test = []
     for _ in p.trajectory:
         test.append(p.coords[0])
@@ -171,13 +177,13 @@ def test_trajectory():
 def test_trajectory_set():
     p = chilife.Protein.from_pdb('test_data/2klf.pdb')
     p.trajectory[5]
-    np.testing.assert_allclose([34.155,  6.464,  8.545], p.coords[0])
+    np.testing.assert_allclose([34.155, 6.464, 8.545], p.coords[0])
 
 
 def test_selection_traj():
     p = chilife.Protein.from_pdb('test_data/2klf.pdb')
     s = p.select_atoms('resi 10 and name CB')
-    np.testing.assert_allclose(s.coords,[[16.569, -1.406, 11.158]])
+    np.testing.assert_allclose(s.coords, [[16.569, -1.406, 11.158]])
     p.trajectory[5]
     np.testing.assert_allclose(s.coords, [[16.195, -1.233, 11.306]])
 
@@ -233,7 +239,6 @@ def test_save_trajectory():
 
 
 def test_trajectory_iter():
-
     traj = chilife.Protein.from_pdb('test_data/test_traj_iter.pdb')
     assert not np.all(traj.trajectory.coords[0] == traj.trajectory.coords[1])
 
@@ -250,9 +255,9 @@ def test_xl_protein_repack():
     np.random.seed(3000)
     traj, dE = chilife.repack(p, SL, repetitions=10, temp=300)
 
-    ans = np.array([ 7.46167e-01, -1.00000e+01,  2.87257e+00, -7.42048e-01,
-                    -7.98450e+00,  5.96161e-07, -7.70945e+00,  2.42886e-01,
-                    -9.36519e-01,  5.96161e-07])
+    ans = np.array([7.46167e-01, -1.00000e+01, 2.87257e+00, -7.42048e-01,
+                    -7.98450e+00, 5.96161e-07, -7.70945e+00, 2.42886e-01,
+                    -9.36519e-01, 5.96161e-07])
 
     np.testing.assert_almost_equal(dE, ans, decimal=5)
 
@@ -288,26 +293,48 @@ def test_xl_protein_mutate():
     assert ans == test
 
 
-# def test_xl_protein_from_mda():
-#     assert False
+def test_re_form_xl_traj():
+    traj = Protein.from_pdb('test_data/xlsavetraj.pdb')
+    SL = chilife.RotamerEnsemble.from_trajectory(traj, 236, burn_in=0)
+    ans_dihedrals = np.array([[-175.57682647, -23.12323366],
+                              [-175.57682647, 5.02763709],
+                              [-175.57682647, 63.16005353],
+                              [-175.57682647, 63.65448686],
+                              [-175.57682647, 89.75074833]])
+
+    assert len(SL) == 5
+    np.testing.assert_almost_equal(SL.dihedrals, ans_dihedrals)
+
+
+def test_backbone_selection():
+    PhiSel = prot.residues[40].phi_selection()
+    PsiSel = prot.residues[40].psi_selection()
+    phi = np.rad2deg(chilife.get_dihedral(PhiSel.positions))
+    psi = np.rad2deg(chilife.get_dihedral(PsiSel.positions))
+
+    assert phi == -67.45821389595835
+    assert psi == 135.37370203341246
 
 
 # def test_xl_protein_from_pose():
 #     assert False
 
+def test_atom_sel_getitem():
+    res = prot.residues[10].atoms[0:4]
+    assert np.all(res.resnums == 11)
+    np.testing.assert_equal(res.names, ['N', 'CA', 'C', 'O'])
 
-def test_re_form_xl_traj():
-    traj = Protein.from_pdb('test_data/xlsavetraj.pdb')
-    SL = chilife.RotamerEnsemble.from_trajectory(traj, 236, burn_in=0)
-    ans_dihedrals = np.array([[-175.57682647,  -23.12323366],
-                              [-175.57682647,    5.02763709],
-                              [-175.57682647,   63.16005353],
-                              [-175.57682647,   63.65448686],
-                              [-175.57682647,   89.75074833]])
 
-    assert len(SL) == 5
-    np.testing.assert_almost_equal(SL.dihedrals, ans_dihedrals)
+def test_residue_sel_getitem():
+    res = prot.residues[10:20]
+    res10 = res.residues[0]
 
-# def test_backbone_to_site():
-#
-#     assert False
+    assert res10.resid == 11
+    assert np.all(res10.atoms.ix == np.arange(147, 166))
+    assert np.all(res.residues[3:5].resnums == [14, 15])
+
+
+def test_copy():
+    prot2 = prot.copy()
+    np.testing.assert_equal(prot2.coords, prot.coords)
+    assert prot2.coords is not prot

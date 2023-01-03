@@ -8,6 +8,7 @@ from scipy.stats import skewnorm
 import scipy.optimize as opt
 import MDAnalysis as mda
 import chilife
+from .numba_utils import batch_ic2cart
 
 
 class RotamerEnsemble:
@@ -664,9 +665,7 @@ class RotamerEnsemble:
         if len(self.dihedral_atoms) == 0:
             return self._coords, self.weights, self.internal_coords
         elif hasattr(self, "internal_coords"):
-            returnables = zip(
-                *[self._off_rotamer_sample(iidx, off_rotamer, **kwargs) for iidx in idx]
-            )
+            returnables = self._off_rotamer_sample(idx, off_rotamer, **kwargs)
             return [np.squeeze(x) for x in returnables]
 
         else:
@@ -695,29 +694,43 @@ class RotamerEnsemble:
         new_weight = 0
         # Use accessible volume sampling if only provided a single rotamer
         if len(self._weights) == 1 or np.all(np.isinf(self.sigmas)):
-            new_dihedrals = np.random.random(len(off_rotamer)) * 2 * np.pi
-            new_weight = 1.0
+            new_dihedrals = np.random.random(len(idx), len(off_rotamer)) * 2 * np.pi
+            new_weights = np.ones(len(idx))
 
         #  sample from von mises near rotamer unless more information is provided
         elif self.skews is None:
-            new_dihedrals = np.random.vonmises(self._rdihedrals[idx, off_rotamer], self._rkappas[idx, off_rotamer])
-            new_weight = 1.0
+            new_dihedrals = np.random.vonmises(self._rdihedrals[idx][:, off_rotamer],
+                                               self._rkappas[idx][:, off_rotamer])
+            new_weights = np.ones(len(idx))
         # Sample from skewednorm if skews are provided
+        # else:
+        #     deltas = skewnorm.rvs(a=self.skews[idx], loc=self.locs[idx], scale=self.sigmas[idx])
+        #     pdf = skewnorm.pdf(deltas, a=self.skews[idx], loc=self.locs[idx], scale=self.sigmas[idx])
+        #     new_dihedrals = np.deg2rad(self.dihedrals[idx] + deltas)
+        #     new_weight = pdf.prod()
+
         else:
-            deltas = skewnorm.rvs(a=self.skews[idx], loc=self.locs[idx], scale=self.sigmas[idx])
-            pdf = skewnorm.pdf(deltas, a=self.skews[idx], loc=self.locs[idx], scale=self.sigmas[idx])
-            new_dihedrals = np.deg2rad(self.dihedrals[idx] + deltas)
-            new_weight = pdf.prod()
+            new_weights = np.ones(len(idx))
 
-        new_weight = self._weights[idx] * new_weight
-        int_coord = self._lib_IC[idx].copy().set_dihedral(new_dihedrals, 1, self.dihedral_atoms[off_rotamer])
 
-        coords = int_coord.coords[self.ic_mask]
+        new_weights = self._weights[idx] * new_weights
+
+        ICs = [self._lib_IC[iidx].copy() for iidx in idx]
+        ICs = [IC.set_dihedral(new_dihedrals[i], 1, self.dihedral_atoms[off_rotamer]) for i, IC in enumerate(ICs)]
+
+        Zmat_idxs = np.array([IC.zmat_idxs[1] for IC in ICs])
+        Zmats = np.array([IC.zmats[1] for IC in ICs])
+        coords = batch_ic2cart(Zmat_idxs, Zmats)
+        mx, ori = ICs[0].chain_operators[1]["mx"], ICs[0].chain_operators[1]["ori"]
+        coords = np.einsum("ijk,kl->ijl", coords, mx) + ori
+        for i, IC in enumerate(ICs):
+            IC._coords = coords[i]
+        coords = coords[:, self.ic_mask]
 
         if kwargs.setdefault("return_dihedrals", False):
-            return coords, new_weight, int_coord
+            return coords, new_weights, ICs
         else:
-            return coords, new_weight
+            return coords, new_weights
 
     def update_weight(self, weight):
         """

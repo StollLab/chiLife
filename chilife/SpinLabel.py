@@ -1,4 +1,3 @@
-import re
 from copy import deepcopy
 from functools import partial
 import numpy as np

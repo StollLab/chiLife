@@ -15,7 +15,8 @@ import MDAnalysis as mda
 import MDAnalysis.transformations
 
 import chilife
-from .protein_utils import dihedral_defs, local_mx, sort_pdb, mutate, save_pdb, ProteinIC, get_min_topol
+from .protein_utils import dihedral_defs, local_mx, sort_pdb, mutate, get_min_topol
+from .ProteinIC import ProteinIC
 from .scoring import get_lj_rep, GAS_CONST
 from .numba_utils import get_delta_r, normdist
 from .SpinLabel import SpinLabel

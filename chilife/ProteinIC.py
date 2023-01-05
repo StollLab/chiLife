@@ -338,7 +338,7 @@ class ProteinIC:
                 delta = self.zmats[chain][aidx, 2] - dihedral
                 self.zmats[chain][aidx, 2] = dihedral
 
-                idxs, = []
+                idxs = []
                 for key, idx in self.atom_dict['dihedrals'][chain][resi, stem].items():
                     if idx != aidx:
                         idxs.append(idx)
@@ -900,6 +900,7 @@ def get_internal_coords(
     bonds = bonds if bonds is not None else guess_bonds(mol.atoms.positions, mol.atoms.types)
 
     G = nx.DiGraph()
+    G.add_nodes_from(range(len(mol.atoms)))
     G.add_edges_from(bonds)
 
     dihedrals = [get_n_pred(G, node, np.minimum(node, 3)) for node in range(len(mol.atoms))]

@@ -633,7 +633,7 @@ def atom_sort_key(pdb_line: str) -> Tuple[str, int, int]:
         )
 
     else:
-        name_order = atom_order.get(atom_name, 4) if atom_type != "H" else 5
+        name_order = atom_order.get(atom_name, 4) if atom_type != "H" else atom_order.get(atom_name, 7)
 
     return chainid, resid, name_order
 
@@ -804,7 +804,7 @@ def sort_pdb(pdbfile: Union[str, List[str], List[List[str]]],
         Sorted list of strings corresponding to the ATOM entries of a PDB file.
     """
 
-    if isinstance(pdbfile, str):
+    if isinstance(pdbfile, (str, Path)):
         with open(pdbfile, "r") as f:
             lines = f.readlines()
 
@@ -1036,12 +1036,12 @@ with open(DATA_DIR / 'BondDefs.pkl', 'rb') as f:
     def bond_hmax(a): return bond_hmax_dict.get(tuple(i for i in a), 0)
     bond_hmax = np.vectorize(bond_hmax, signature="(n)->()")
 
-atom_order = {"N": 0, "CA": 1, "C": 2, "O": 3}
-
+atom_order = {"N": 0, "CA": 1, "C": 2, "O": 3, 'H': 5}
 
 nataa_codes = {'ALA': 'A', 'CYS': 'C', 'ASP': 'D', 'GLU': 'E', 'PHE': 'F', 'GLY': 'G', 'HIS': 'H', 'ILE': 'I',
                'LYS': 'K', 'LEU': 'L', 'MET': 'M', 'ASN': 'N', 'PRO': 'P', 'GLN': 'Q', 'ARG': 'R', 'SER': 'S',
                'THR': 'T', 'VAL': 'V', 'TRP': 'W', 'TYR': 'Y'}
+
 inataa = {val: key for key, val in nataa_codes.items()}
 
 nataa_codes.update(inataa)

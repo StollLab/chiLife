@@ -9,7 +9,7 @@ import scipy.optimize as opt
 import MDAnalysis as mda
 import chilife
 from .numba_utils import batch_ic2cart
-
+from .alignment_methods import alignment_methods
 
 class RotamerEnsemble:
     """Create new RotamerEnsemble object.
@@ -156,7 +156,7 @@ class RotamerEnsemble:
 
         # Convert string arguments for alignment_method to respective function
         if isinstance(self.alignment_method, str):
-            self.alignment_method = chilife.alignment_methods[self.alignment_method]
+            self.alignment_method = alignment_methods[self.alignment_method]
 
         lib = self.get_lib(rotlib)
         self.__dict__.update(lib)
@@ -575,13 +575,13 @@ class RotamerEnsemble:
                 bond = np.linalg.norm(p[-1] - p[-2])
                 idx = np.squeeze(np.argwhere(mask))
 
-                if atom == 'O':
+                if atom == 'O' and (1, ('CA', 'C', 'O')) in self.internal_coords[0].atom_dict['dihedrals'][1]:
                     additional_idxs = list(self.internal_coords[0].atom_dict['dihedrals'][1][(1, ('CA', 'C', 'O'))].values())
 
                 for IC in self.internal_coords:
                     delta = IC.zmats[1][idx][2] - dihe
                     IC.zmats[1][idx] = bond, ang, dihe
-                    if atom == "O":
+                    if atom == "O" and 'additional_idxs' in locals():
                         IC.zmats[1][additional_idxs, 2] -= delta
 
     def backbone_to_site(self):

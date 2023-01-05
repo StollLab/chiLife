@@ -67,6 +67,14 @@ def test_icset_dihedral():
     np.testing.assert_almost_equal(ans.atoms.positions, ICs.coords, decimal=3)
 
 
+def test_icset_dihedral2():
+    lys = mda.Universe('../chilife/data/rotamer_libraries/residue_pdbs/lys.pdb')
+
+    ICs = chilife.get_internal_coords(lys)
+    ICs.set_dihedral(np.pi/2, 1,["N", "CA", "CB", "CG"])
+
+    print('DSF')
+
 def test_sort_pdb():
     pdbfile = "test_data/trt.pdb"
     x = chilife.sort_pdb(pdbfile)
@@ -105,6 +113,11 @@ def test_sort_pdb3():
     U = mda.Universe("test_data/SL_GGAGG_tmp.pdb", in_memory=True)
     os.remove("test_data/SL_GGAGG_tmp.pdb")
     ICs = chilife.get_internal_coords(U, preferred_dihedrals=[["C", "N", "CA", "C"]])
+
+
+def test_sort_H():
+    x = chilife.sort_pdb('../chilife/data/rotamer_libraries/residue_pdbs/lys.pdb')
+    print(x)
 
 
 def test_sort_manymodels():
@@ -148,9 +161,7 @@ def test_mutate():
     labeled_protein = chilife.mutate(protein, SL)
     ub1_A28R1 = mda.Universe("test_data/1ubq_A28R1.pdb", in_memory=True)
 
-    np.testing.assert_almost_equal(
-        ub1_A28R1.atoms.positions, labeled_protein.atoms.positions, decimal=3
-    )
+    np.testing.assert_almost_equal(ub1_A28R1.atoms.positions, labeled_protein.atoms.positions, decimal=3)
 
 
 def test_mutate2():
@@ -170,9 +181,7 @@ def test_mutate2():
 
     labeled_protein = chilife.mutate(protein, SL1, SL2)
     ub1_A28R1_K48R1 = mda.Universe("test_data/ub1_A28R1_K48R1.pdb")
-    np.testing.assert_almost_equal(
-        ub1_A28R1_K48R1.atoms.positions, labeled_protein.atoms.positions, decimal=3
-    )
+    np.testing.assert_almost_equal(ub1_A28R1_K48R1.atoms.positions, labeled_protein.atoms.positions, decimal=3)
 
 
 def test_mutate3():

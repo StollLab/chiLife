@@ -6,10 +6,10 @@ from typing import List, Union, Dict, Tuple
 import MDAnalysis
 import networkx as nx
 import numpy as np
-from numpy._typing import ArrayLike
+from numpy.typing import ArrayLike
 
-from chilife import dihedral_defs, save_pdb, local_mx, global_mx, get_dihedral, get_angle, guess_bonds
-from chilife.numba_utils import _ic_to_cart
+from .protein_utils import dihedral_defs, save_pdb, local_mx, global_mx, get_dihedral, get_angle, guess_bonds
+from .numba_utils import _ic_to_cart
 
 # TODO: Align Atom and ICAtom names with MDA
 # TODO: Implement Internal Coord Residue object
@@ -337,13 +337,29 @@ class ProteinIC:
                 aidx = self.atom_dict['dihedrals'][chain][resi, stem][atoms[-1]]
                 delta = self.zmats[chain][aidx, 2] - dihedral
                 self.zmats[chain][aidx, 2] = dihedral
-                idxs = [idx for idx in self.atom_dict['dihedrals'][chain][resi, stem].values() if idx != aidx]
+
+                idxs, = []
+                for key, idx in self.atom_dict['dihedrals'][chain][resi, stem].items():
+                    if idx != aidx:
+                        idxs.append(idx)
+
+                    restem = (stem[1], stem[0], key)
+                    if (resi, restem) in self.atom_dict['dihedrals'][chain]:
+                        idxs += [idx for idx in self.atom_dict['dihedrals'][chain][resi, restem].values()]
 
             elif (resi, stemr) in self.atom_dict['dihedrals'][chain]:
                 aidx = self.atom_dict['dihedrals'][chain][resi, stemr][atoms[0]]
                 delta = self.zmats[chain][aidx, 2] - dihedral
                 self.zmats[chain][aidx, 2] = dihedral
-                idxs = [idx for idx in self.atom_dict['dihedrals'][chain][resi, stemr].values() if idx != aidx]
+
+                idxs = []
+                for key, idx in self.atom_dict['dihedrals'][chain][resi, stemr].items():
+                    if idx != aidx:
+                        idxs.append(idx)
+
+                    restem = (stemr[1], stemr[0], key)
+                    if (resi, restem) in self.atom_dict['dihedrals'][chain]:
+                        idxs += [idx for idx in self.atom_dict['dihedrals'][chain][resi, restem].values()]
 
             else:
                 raise ValueError(
@@ -351,6 +367,7 @@ class ProteinIC:
                     + "\n".join([str(ic) for ic in self.ICs[chain][resi]])
                 )
 
+            # Check for any atom defined by a similar dihedral in reverse
             if idxs:
                 self.zmats[chain][idxs, 2] -= delta
 

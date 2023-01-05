@@ -2,7 +2,7 @@
 dist/
 build/
 __pycache__/
-chiLife.egg-info/
+chilife.egg-info/
 .ipynb_checkpoints
 scripts/
 chilife/data/rotamer_libraries/user_rotlibs/convert_drotlibs.py

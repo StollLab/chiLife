@@ -230,7 +230,7 @@ class RotamerEnsemble:
             self.eps = chilife.get_lj_eps(self.atom_types[self.side_chain_idx])
 
         if hasattr(self.protein, "atoms") and isinstance(
-            self.protein.atoms, (mda.AtomGroup, chilife.BaseSystem)
+            self.protein.atoms, (mda.AtomGroup, chilife.MolecularSystem)
         ):
             self.protein_setup()
             resname = self.protein.atoms[self.clash_ignore_idx[0]].resname

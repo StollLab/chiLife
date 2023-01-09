@@ -501,7 +501,7 @@ def mutate(
 
     if isinstance(protein, (mda.Universe, mda.AtomGroup)):
         U = make_mda_uni(atom_names, atom_types, res_names, residx, resids, segidx, segids)
-    elif isinstance(protein, chilife.BaseSystem):
+    elif isinstance(protein, chilife.MolecularSystem):
         U = chilife.Protein.from_arrays(atom_names, atom_types, res_names, residx, resids, segidx, segids)
 
     # Apply old coordinates to non-spinlabel atoms

@@ -14,7 +14,7 @@ from scipy.spatial import cKDTree
 #   Performance enhancement: Find a faster way to retrieve coordinate data from trajectory @property seems to have
 #   Feature: Add from_mda class method.
 
-class BaseSystem:
+class MolecularSystem:
 
     def __getattr__(self, item):
         if item == 'trajectory':
@@ -113,7 +113,7 @@ class BaseSystem:
             yield self.protein.atoms[idx]
 
 
-class Protein(BaseSystem):
+class Protein(MolecularSystem):
     def __init__(
         self,
         atomids: np.ndarray,
@@ -534,7 +534,7 @@ def parse_paren(string):
     return results
 
 
-class AtomSelection(BaseSystem):
+class AtomSelection(MolecularSystem):
 
     def __new__(cls, protein, mask):
         if isinstance(mask, int):
@@ -576,7 +576,7 @@ class AtomSelection(BaseSystem):
         return len(self.mask)
 
 
-class ResidueSelection(BaseSystem):
+class ResidueSelection(MolecularSystem):
 
     def __init__(self, protein, mask):
 
@@ -618,7 +618,7 @@ class ResidueSelection(BaseSystem):
             yield Residue(self.protein, mask)
 
 
-class SegmentSelection(BaseSystem):
+class SegmentSelection(MolecularSystem):
 
     def __init__(self, protein, mask):
         seg_ixs = np.unique(protein.segixs[mask])
@@ -650,7 +650,7 @@ class SegmentSelection(BaseSystem):
         return len(self.first_ix)
 
 
-class Atom(BaseSystem):
+class Atom(MolecularSystem):
     def __init__(self, protein, mask):
         self.index = mask
         self.mask = mask
@@ -676,7 +676,7 @@ class Atom(BaseSystem):
 
 
 
-class Residue(BaseSystem):
+class Residue(MolecularSystem):
     def __init__(self, protein, mask):
 
         resix = np.unique(protein.resixs[mask])[0]
@@ -710,7 +710,7 @@ class Residue(BaseSystem):
         return sel if len(sel) == 4 else None
 
 
-class Segment(BaseSystem):
+class Segment(MolecularSystem):
 
     def __init__(self, protein, mask):
         segix = np.unique(protein.segixs[mask])[0]

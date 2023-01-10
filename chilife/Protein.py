@@ -8,6 +8,7 @@ import numpy as np
 from numpy.typing import ArrayLike
 from scipy.spatial import cKDTree
 
+
 # TODO:
 #   Performance enhancement: Preconstruct Atom objects
 #   Behavior: AtomSelections should have orders to be enforced when indexing.
@@ -115,20 +116,20 @@ class MolecularSystem:
 
 class Protein(MolecularSystem):
     def __init__(
-        self,
-        atomids: np.ndarray,
-        names: np.ndarray,
-        altlocs: np.ndarray,
-        resnames: np.ndarray,
-        resnums: np.ndarray,
-        chains: np.ndarray,
-        trajectory: np.ndarray,
-        occupancies: np.ndarray,
-        bs: np.ndarray,
-        segs: np.ndarray,
-        atypes: np.ndarray,
-        charges: np.ndarray,
-        name: str = 'Noname_Protein'
+            self,
+            atomids: np.ndarray,
+            names: np.ndarray,
+            altlocs: np.ndarray,
+            resnames: np.ndarray,
+            resnums: np.ndarray,
+            chains: np.ndarray,
+            trajectory: np.ndarray,
+            occupancies: np.ndarray,
+            bs: np.ndarray,
+            segs: np.ndarray,
+            atypes: np.ndarray,
+            charges: np.ndarray,
+            name: str = 'Noname_Protein'
     ):
         self.protein = self
         self.atomids = atomids.copy()
@@ -157,7 +158,7 @@ class Protein(MolecularSystem):
             resixs.append(np.ones(dif, dtype=int) * i)
 
         self.resixs = np.concatenate(resixs)
-        self.segixs = np.array([ord(x)-65 for x in self.chains])
+        self.segixs = np.array([ord(x) - 65 for x in self.chains])
         self._Atoms = np.array([Atom(self, i) for i in range(self.n_atoms)])
 
         self._protein_keywords = {'id': self.atomids,
@@ -201,8 +202,6 @@ class Protein(MolecularSystem):
                                 'within': update_wrapper(partial(within, protein=self.protein), within),
                                 'around': update_wrapper(partial(within, protein=self.protein), within)}
 
-
-
     @classmethod
     def from_pdb(cls, file_name):
         """reads a pdb file and returns a Protein object"""
@@ -212,7 +211,7 @@ class Protein(MolecularSystem):
 
         lines = sort_pdb(file_name)
 
-        if isinstance(lines[0],  str):
+        if isinstance(lines[0], str):
             lines = [lines]
 
         PDB_data = [(line[:6].strip(), int(line[6:11]), line[12:16].strip(), line[16:17].strip(),
@@ -237,7 +236,6 @@ class Protein(MolecularSystem):
         pdb_dict['name'] = file_name
         return cls(**pdb_dict)
 
-
     @classmethod
     def from_arrays(cls,
                     anames: ArrayLike,
@@ -248,7 +246,7 @@ class Protein(MolecularSystem):
                     segindices: ArrayLike,
                     segids: ArrayLike = None,
                     trajectory: ArrayLike = None,
-    ) -> Protein:
+                    ) -> Protein:
         anames = np.asarray(anames)
         atypes = np.asarray(atypes)
         resindices = np.asarray(resindices)
@@ -290,22 +288,21 @@ class Protein(MolecularSystem):
         return cls(atomids, anames, altlocs, resnames, resnums, chains,
                    trajectory, occupancies, bs, segids, atypes, charges)
 
-
     def copy(self):
         return Protein(
-        atomids = self.atomids,
-        names = self.names,
-        altlocs = self.altlocs,
-        resnames = self.resnames,
-        resnums = self.resnums,
-        chains = self.chains,
-        trajectory = self.trajectory.coords,
-        occupancies = self.occupancies,
-        bs = self.bs,
-        segs = self.segs,
-        atypes = self.atypes,
-        charges = self.charges,
-        name = self.names)
+            atomids=self.atomids,
+            names=self.names,
+            altlocs=self.altlocs,
+            resnames=self.resnames,
+            resnums=self.resnums,
+            chains=self.chains,
+            trajectory=self.trajectory.coords,
+            occupancies=self.occupancies,
+            bs=self.bs,
+            segs=self.segs,
+            atypes=self.atypes,
+            charges=self.charges,
+            name=self.names)
 
 
 class Trajectory:
@@ -339,6 +336,7 @@ class Trajectory:
     def frame(self, value):
         self._frame = value
 
+
 class TrajectoryIterator:
 
     def __init__(self, trajectory, arg=None):
@@ -353,7 +351,7 @@ class TrajectoryIterator:
             elif np.dtype == bool:
                 self.indices = np.argwhere(arg)
             else:
-                raise TypeError(f'{arg.dtype} is not a valid indexor for a trajectory' )
+                raise TypeError(f'{arg.dtype} is not a valid indexor for a trajectory')
         else:
             raise TypeError(f'{arg} is not a valid indexor for a trajectory')
 
@@ -382,7 +380,10 @@ def process_statement(statement, logickws, subjectkws):
             if len(stat_split) == 1:
                 if logickws[stat_split[0]] in unary_operators:
                     _io = logickws[stat_split[0]]
-                    def toperation(a, b, operation, _io): return operation(a, _io(b))
+
+                    def toperation(a, b, operation, _io):
+                        return operation(a, _io(b))
+
                     operation = functools.partial(toperation, operation=operation, _io=_io)
                 else:
                     operation = logickws[stat_split[0]]
@@ -395,14 +396,20 @@ def process_statement(statement, logickws, subjectkws):
 
             elif logickws[stat_split[0]] in unary_operators:
                 _io = logickws[stat_split[0]]
-                def toperation(a, b, operation, _io): return operation(a, _io(b))
+
+                def toperation(a, b, operation, _io):
+                    return operation(a, _io(b))
+
                 operation = functools.partial(toperation, operation=operation, _io=_io)
 
             elif logickws[stat_split[0]] in advanced_operators:
                 _io = logickws[stat_split[0]]
                 args = [stat_split.pop(i) for i in range(1, 1 + _io.nargs)]
                 _io = functools.partial(_io, *args)
-                def toperation(a, b, operation, _io): return operation(a, _io(b))
+
+                def toperation(a, b, operation, _io):
+                    return operation(a, _io(b))
+
                 operation = functools.partial(toperation, operation=operation, _io=_io)
 
             elif operation != None:
@@ -436,13 +443,16 @@ def process_statement(statement, logickws, subjectkws):
                 elif stat_split[0] in logickws:
                     if logickws[stat_split[0]] in unary_operators:
                         _io = logickws[stat_split[0]]
-                        def toperation(a, b, operation, _io): return operation(a, _io(b))
+
+                        def toperation(a, b, operation, _io):
+                            return operation(a, _io(b))
+
                         internal_operation = functools.partial(toperation, operation=internal_operation, _io=_io)
                         stat_split = stat_split[1:]
                         continue
                     else:
                         raise ValueError('Cannot have two logical operators in succession unless the second one is '
-                                        '`not`')
+                                         '`not`')
                 else:
                     raise ValueError(f'{stat_split[0]} is not a valid keyword')
 
@@ -450,7 +460,7 @@ def process_statement(statement, logickws, subjectkws):
 
                     if logickws.get(val, None) in advanced_operators:
                         _io = logickws[val]
-                        args = [stat_split.pop(j) for j in range(i+1, i+1 + _io.nargs)]
+                        args = [stat_split.pop(j) for j in range(i + 1, i + 1 + _io.nargs)]
                         _io = functools.partial(_io, *args)
 
                         def toperation(a, b, operation, _io):
@@ -465,17 +475,17 @@ def process_statement(statement, logickws, subjectkws):
 
                     elif val in logickws:
                         next_internal_operation = logickws[val]
-                        stat_split = stat_split[i+1:]
+                        stat_split = stat_split[i + 1:]
                         if stat_split == []:
                             next_operation = next_internal_operation
                             next_internal_operation = None
                         break
                     elif '-' in val:
                         start, stop = [int(x) for x in val.split('-')]
-                        values += list(range(start, stop+1))
+                        values += list(range(start, stop + 1))
                     elif ':' in val:
                         start, stop = [int(x) for x in val.split(':')]
-                        values += list(range(start, stop+1))
+                        values += list(range(start, stop + 1))
                     else:
                         values.append(val)
                 else:
@@ -484,7 +494,6 @@ def process_statement(statement, logickws, subjectkws):
                 values = np.array(values, dtype=subject.dtype)
                 tmp = np.isin(subject, values)
                 sub_out = internal_operation(sub_out, tmp)
-
 
                 internal_operation = next_internal_operation
                 next_internal_operation = None
@@ -541,7 +550,6 @@ class AtomSelection(MolecularSystem):
             return Atom(protein, mask)
         else:
             return object.__new__(cls)
-
 
     def __init__(self, protein, mask):
         self.protein = protein
@@ -674,11 +682,8 @@ class Atom(MolecularSystem):
         return self.protein.coords[self.index]
 
 
-
-
 class Residue(MolecularSystem):
     def __init__(self, protein, mask):
-
         resix = np.unique(protein.resixs[mask])[0]
         self.mask = np.argwhere(np.isin(protein.resixs, resix)).T[0]
         self.protein = protein

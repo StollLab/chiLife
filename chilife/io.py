@@ -272,11 +272,17 @@ def save(
     -------
     None
     """
+
+    if isinstance(file_name, tuple(molecule_class.keys())):
+        molecules = list(molecules)
+        molecules.insert(0, file_name)
+        file_name = None
+
     # Check for filename at the beginning of args
     tmolecules = defaultdict(list)
     for mol in molecules:
         mcls = [val for key, val in molecule_class.items() if isinstance(mol, key)]
-        if mcls is []:
+        if mcls == []:
             raise TypeError(f'{type(mol)} is not a supported type for this function. '
                             'chiLife can only save objects of the following types:\n'
                             + ''.join(f'{key.__name__}\n' for key in molecule_class) +
@@ -285,10 +291,6 @@ def save(
         tmolecules[mcls[0]].append(mol)
     molecules = tmolecules
 
-    fname_type = type(file_name)
-    if  fname_type in molecule_class:
-        molecules[molecule_class[fname_type]].insert(0, file_name)
-        file_name = None
 
     # Ensure only one protein path was provided (for now)
     protein_path = [] if protein_path is None else [protein_path]

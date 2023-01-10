@@ -275,14 +275,14 @@ def save(
     # Check for filename at the beginning of args
     tmolecules = defaultdict(list)
     for mol in molecules:
-        mcls = molecule_class.get(type(mol), None)
-        if mcls is None:
+        mcls = [val for key, val in molecule_class.items() if isinstance(mol, key)]
+        if mcls is []:
             raise TypeError(f'{type(mol)} is not a supported type for this function. '
                             'chiLife can only save objects of the following types:\n'
-                            + sum([f'{key.__name__}\n' for key in molecule_class]) +
+                            + ''.join(f'{key.__name__}\n' for key in molecule_class) +
                             'Please check that your input is compatible')
 
-        tmolecules[mcls].append(mol)
+        tmolecules[mcls[0]].append(mol)
     molecules = tmolecules
 
     fname_type = type(file_name)

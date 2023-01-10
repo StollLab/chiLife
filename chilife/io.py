@@ -114,10 +114,10 @@ def read_drotlib(rotlib: Path) -> Tuple[dict]:
                         csts = dict(fc)
             elif f[-12] == 'A':
                 with archive.open(f) as of:
-                    libA = read_rotlib(of)
+                    libA = read_rotlib.__wrapped__(of)
             elif f[-12] == 'B':
                 with archive.open(f) as of:
-                    libB = read_rotlib(of)
+                    libB = read_rotlib.__wrapped__(of)
 
     return libA, libB, csts
 

@@ -328,11 +328,13 @@ def save_pdb(name: Union[str, Path], atoms: ArrayLike, coords: ArrayLike, mode: 
     name = name.with_suffix(".pdb")
 
     with open(name, mode, newline="\n") as f:
+        f.write('MODEL\n')
         for atom, coord in zip(atoms, coords):
             f.write(
                 f"ATOM  {atom.index + 1:5d} {atom.name:^4s} {atom.resn:3s} {'A':1s}{atom.resi:4d}    "
                 f"{coord[0]:8.3f}{coord[1]:8.3f}{coord[2]:8.3f}{1.0:6.2f}{1.0:6.2f}          {atom.atype:>2s}  \n"
             )
+        f.write('ENDMDL\n')
 
 
 def get_missing_residues(

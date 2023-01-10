@@ -1,4 +1,5 @@
 from typing import Tuple, Dict, Union, BinaryIO, TextIO
+from hashlib import sha256
 from pathlib import Path
 import pickle
 import shutil
@@ -18,6 +19,7 @@ from .Protein import Protein
 
 #                 ID    name   res  chain resnum      X     Y      Z      q      b              elem
 fmt_str = "ATOM  {:5d} {:^4s} {:3s} {:1s}{:4d}    {:8.3f}{:8.3f}{:8.3f}{:6.2f}{:6.2f}          {:>2s}  \n"
+
 
 def read_distance_distribution(file_name: str) -> Tuple[np.ndarray, np.ndarray]:
     """Reads a DEER distance distribution file in the DeerAnalysis or similar format.
@@ -45,8 +47,21 @@ def read_distance_distribution(file_name: str) -> Tuple[np.ndarray, np.ndarray]:
     p = data[:, 1]
     return r, p
 
+
+def hash_file(file: Union[Path, BinaryIO]):
+    hash = sha256()
+    with open(file, 'rb') as f:
+        while True:
+            block = f.read(hash.block_size)
+            if not block:
+                break
+            hash.update(block)
+
+    return hash.hexdigest()
+
+
 #
-@cached
+@cached(custom_key_maker=hash_file)
 def read_rotlib(rotlib: Union[Path, BinaryIO] = None) -> Dict:
     """Reads RotamerEnsemble for stored spin labels.
 
@@ -70,12 +85,13 @@ def read_rotlib(rotlib: Union[Path, BinaryIO] = None) -> Dict:
 
     lib["_rdihedrals"] = np.deg2rad(lib["dihedrals"])
     lib["_rsigmas"] = np.deg2rad(lib["sigmas"])
-    lib['rotlib'] = str(lib['rotlib'] )
+    lib['rotlib'] = str(lib['rotlib'])
     lib['type'] = str(lib['type'])
     lib['format_version'] = float(lib['format_version'])
     return lib
 
-@cached
+
+@cached(custom_key_maker=hash_file)
 def read_drotlib(rotlib: Path) -> Tuple[dict]:
     """Reads RotamerEnsemble for stored spin labels.
 
@@ -149,8 +165,8 @@ def read_bbdep(res: str, Phi: int, Psi: int) -> Dict:
             data = np.genfromtxt(s, usecols=range(maxchi + 4, maxchi + 5 + 2 * maxchi))
 
         lib["weights"] = data[:, 0]
-        lib["dihedrals"] = data[:, 1 : nchi + 1]
-        lib["sigmas"] = data[:, maxchi + 1 : maxchi + nchi + 1]
+        lib["dihedrals"] = data[:, 1: nchi + 1]
+        lib["sigmas"] = data[:, maxchi + 1: maxchi + nchi + 1]
         dihedral_atoms = chilife.dihedral_defs[res][:nchi]
 
         # Calculate cartesian coordinates for each rotamer
@@ -229,11 +245,11 @@ def read_library(rotlib: str, Phi: float = None, Psi: float = None) -> Dict:
 
 
 def save(
-    file_name: str,
-    *molecules: Union[RotamerEnsemble, Protein, mda.Universe, mda.AtomGroup, str],
-    protein_path: Union[str, Path] = None,
-    mode: str =  'w',
-    **kwargs,
+        file_name: str,
+        *molecules: Union[RotamerEnsemble, Protein, mda.Universe, mda.AtomGroup, str],
+        protein_path: Union[str, Path] = None,
+        mode: str = 'w',
+        **kwargs,
 ) -> None:
     """Save a pdb file of the provided labels and proteins
 
@@ -275,7 +291,7 @@ def save(
             protein_path.append(mol)
         else:
             raise TypeError('chiLife can only save RotamerEnsembles and Proteins. Plese check that your input is '
-                             'compatible')
+                            'compatible')
 
     # Ensure only one protein path was provided (for now)
     if len(protein_path) > 1:
@@ -412,8 +428,6 @@ def write_labels(pdb_file: TextIO, *args: SpinLabel, KDE: bool = True, sorted: b
                 f"Cannot save {arg}. *args must be RotamerEnsemble SpinLabel or dSpinLabal objects"
             )
 
-
-
     # Write spin label models
     for k, label in enumerate(ensembles):
         pdb_file.write(f"HEADER {label.name}\n")
@@ -424,7 +438,7 @@ def write_labels(pdb_file: TextIO, *args: SpinLabel, KDE: bool = True, sorted: b
         norm_weights = label.weights / label.weights.max()
 
         for mdl, (conformer, weight) in enumerate(
-            zip(label.coords[sorted_index], norm_weights[sorted_index])
+                zip(label.coords[sorted_index], norm_weights[sorted_index])
         ):
             pdb_file.write("MODEL {}\n".format(mdl))
 
@@ -486,16 +500,17 @@ def write_labels(pdb_file: TextIO, *args: SpinLabel, KDE: bool = True, sorted: b
 
         pdb_file.write("TER\n")
 
-rotlib_formats = {1.0 : (
-    'rotlib',                 #
-     'resname',
-     'coords',
-     'internal_coords',
-     'weights',
-     'atom_types',
-     'atom_names',
-     'dihedrals',
-     'dihedral_atoms',
-     'type',
-     'format_version'
-     )}
+
+rotlib_formats = {1.0: (
+    'rotlib',  #
+    'resname',
+    'coords',
+    'internal_coords',
+    'weights',
+    'atom_types',
+    'atom_names',
+    'dihedrals',
+    'dihedral_atoms',
+    'type',
+    'format_version'
+)}

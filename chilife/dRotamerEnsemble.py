@@ -106,6 +106,9 @@ class dRotamerEnsemble:
                             cwd / (rotlib + '.zip'),
                             cwd / (rotlib + '_drotlib.zip')]
 
+        for pth in chilife.USER_RL_DIR:
+            possible_rotlibs += list(pth.glob(f'*{rotlib}*_drotlib.zip'))
+
         # Check if any exist
         for possible_file in possible_rotlibs:
             if possible_file.exists():

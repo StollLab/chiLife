@@ -30,6 +30,9 @@ SUPPORTED_BB_LABELS = ("R1C",)
 DATA_DIR = Path(__file__).parent.absolute() / "data/"
 RL_DIR = Path(__file__).parent.absolute() / "data/rotamer_libraries/"
 
+with open(RL_DIR / 'additional_rotlib_dirs.txt', 'r') as f:
+    USER_RL_DIR = [Path(x.strip()) for x in f.readlines()]
+
 with open(RL_DIR / "defaults.toml", "r") as f:
     rotlib_defaults = rtoml.load(f)
 
@@ -1120,6 +1123,31 @@ def list_available_rotlibs():
     print(f"*{'PHE, PRO, SER, THR, TRP, TYR, VAL':^58}*")
     print(f"*{'(not ALA, GLY}':^58}*")
     print("*" * 60)
+
+
+def add_rotlib_dir(directory: Union[Path, str]) -> None:
+    """Add a directory to search for rotlibs when none are found in te working directory. This directory will be
+    searched before the chiLife default rotlib directory."""
+    directory = Path(directory)
+    with open(RL_DIR / 'additional_rotlib_dirs.txt', 'a+') as f:
+        f.write(str(directory))
+        f.write('\n')
+
+    USER_RL_DIR.append(Path(directory))
+
+
+def remove_rotlib_dir(directory: Union[Path, str]) -> None:
+    directory = Path(directory)
+    if directory in USER_RL_DIR:
+        USER_RL_DIR.remove(directory)
+
+    with open(RL_DIR / 'additional_rotlib_dirs.txt', 'r') as f:
+        TMP = [Path(line.strip()) for line in f.readlines() if Path(line.strip()) != directory]
+
+    with open(RL_DIR / 'additional_rotlib_dirs.txt', 'w') as f:
+        for p in TMP:
+            f.write(str(p))
+            f.write('\n')
 
 def rotlib_info(rotlib: str):
     """

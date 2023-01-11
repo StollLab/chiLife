@@ -399,13 +399,12 @@ def test_add_library_fail():
                                weights=weights, permanent=True)
     os.remove('R1M_rotlib.npz')
 
-# class TestProtein:
-#
-#     def test_load(self):
-#         protein = chilife.Protein.from_pdb('test_data/3tu3.pdb')
-#
-#     def test_load_multistate(self):
-#         protein = chilife.Protein.from_pdb('test_data/2d21.pdb')
+def test_add_rotlib_dir():
+    chilife.add_rotlib_dir('test_data/usr_rtlb')
+    SL = chilife.SpinLabel('XYZ', 211, protein)
+    chilife.remove_rotlib_dir('test_data/usr_rtlb')
+    with pytest.raises(NameError):
+        SL = chilife.SpinLabel('XYZ', 211, protein)
 
 
 def test_list_rotlibs():

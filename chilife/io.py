@@ -319,11 +319,12 @@ def save(
         # Add spin label information to file name
         if 0 < len(molecules['rotens']) < 3:
             for rotens in molecules['rotens']:
-                file_name += f"_{rotens.site}{rotens.res}"
+                file_name += f"_{rotens.name}"
         else:
             file_name += "_many_labels"
 
         file_name += ".pdb"
+        file_name = file_name.strip()
 
     if protein_path is not None:
         print(protein_path, file_name)
@@ -441,28 +442,19 @@ def write_labels(pdb_file: TextIO, *args: SpinLabel, KDE: bool = True, sorted: b
     None
     """
 
-    # Check for dSpinLables
-    ensembles = []
-    for arg in args:
-        if isinstance(arg, chilife.RotamerEnsemble):
-            ensembles.append(arg)
-        elif isinstance(arg, chilife.dSpinLabel):
-            ensembles.append(arg.SL1)
-            ensembles.append(arg.SL2)
-        else:
-            raise TypeError(
-                f"Cannot save {arg}. *args must be RotamerEnsemble SpinLabel or dSpinLabal objects"
-            )
-
     # Write spin label models
-    for k, label in enumerate(ensembles):
+    for k, label in enumerate(args):
         pdb_file.write(f"HEADER {label.name}\n")
 
         # Save models in order of weight
 
         sorted_index = np.argsort(label.weights)[::-1] if sorted else np.arange(len(label.weights))
         norm_weights = label.weights / label.weights.max()
-
+        if isinstance(label, dRotamerEnsemble):
+            sites = np.concatenate([np.ones(len(label.RL1.atoms), dtype=int) * int(label.site),
+                                    np.ones(len(label.RL2.atoms), dtype=int) * int(label.site2)])
+        else:
+            sites = np.ones(len(label.atoms), dtype=int) * int(label.site)
         for mdl, (conformer, weight) in enumerate(
                 zip(label.coords[sorted_index], norm_weights[sorted_index])
         ):
@@ -475,7 +467,7 @@ def write_labels(pdb_file: TextIO, *args: SpinLabel, KDE: bool = True, sorted: b
                         label.atom_names[i],
                         label.res[:3],
                         label.chain,
-                        int(label.site),
+                        sites[i],
                         *conformer[i],
                         weight,
                         1.00,
@@ -488,7 +480,7 @@ def write_labels(pdb_file: TextIO, *args: SpinLabel, KDE: bool = True, sorted: b
             pdb_file.write("ENDMDL\n")
 
     # Write electron density at electron coordinates
-    for k, label in enumerate(ensembles):
+    for k, label in enumerate(args):
         if not hasattr(label, "spin_centers"):
             continue
         if not np.any(label.spin_centers):

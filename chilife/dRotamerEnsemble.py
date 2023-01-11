@@ -22,16 +22,6 @@ class dRotamerEnsemble:
         self.chain = chain if chain is not None else self.guess_chain()
         self.protein_tree = self.kwargs.setdefault("protein_tree", None)
 
-        self.name = self.res
-        if self.site is not None:
-            self.name = f"{self.site}_{self.site2}_{self.res}"
-        if self.chain is not None:
-            self.name += f"_{self.chain}"
-
-        self.selstr = (
-            f"resid {self.site} {self.site2} and segid {self.chain} and not altloc B"
-        )
-
         self.forgive = kwargs.setdefault("forgive", 1.0)
         self.clash_radius = kwargs.setdefault("clash_radius", 14.0)
         self._clash_ori_inp = kwargs.setdefault("clash_ori", "cen")
@@ -44,6 +34,16 @@ class dRotamerEnsemble:
         self.temp = kwargs.setdefault("temp", 298)
         self.get_lib(rotlib)
         self.create_ensembles()
+
+        self.name = self.res
+        if self.site is not None:
+            self.name = f"{self.RL1.nataa}{self.site}{self.RL1.nataa}{self.site2}{self.res}"
+        if self.chain is not None:
+            self.name += f"_{self.chain}"
+
+        self.selstr = (
+            f"resid {self.site} {self.site2} and segid {self.chain} and not altloc B"
+        )
 
         self.protein_setup()
         self.sub_labels = (self.RL1, self.RL2)
@@ -219,6 +219,14 @@ class dRotamerEnsemble:
 
         self.RL1._coords = value[:, : self.RL1._coords.shape[1]]
         self.RL2._coords = value[:, -self.RL2._coords.shape[1]:]
+
+    @property
+    def atom_names(self):
+        return np.concatenate((self.RL1.atom_names, self.RL2.atom_names))
+
+    @property
+    def atom_types(self):
+        return np.concatenate((self.RL1.atom_types, self.RL2.atom_types))
 
     @property
     def centroid(self):

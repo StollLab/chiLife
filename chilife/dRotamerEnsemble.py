@@ -1,5 +1,7 @@
-import pickle
+from typing import Union
+from itertools import combinations
 import logging
+import warnings
 from pathlib import Path
 
 import numpy as np
@@ -76,7 +78,7 @@ class dRotamerEnsemble:
     def guess_chain(self):
         if self.protein is None:
             chain = "A"
-        elif len(nr_segids := set(self.protein.segments.segids)) == 1:
+        elif len(set(self.protein.segments.segids)) == 1:
             chain = self.protein.segments.segids[0]
         elif np.isin(self.protein.residues.resnums, self.site).sum() == 0:
             raise ValueError(
@@ -95,35 +97,57 @@ class dRotamerEnsemble:
             # get site backbone information from protein structure
             sel_txt = f"resnum {self.site} and segid {self.chain}"
 
-        cwd = Path.cwd()
+
         rotlib = self.res if rotlib is None else rotlib
         if 'ip' not in rotlib:
             rotlib += f'ip{self.increment}'
 
-        # Assemble a list of possible rotlib paths
-        possible_rotlibs = [Path(rotlib),
-                            cwd / rotlib,
-                            cwd / (rotlib + '.zip'),
-                            cwd / (rotlib + '_drotlib.zip')]
-
-        for pth in chilife.USER_RL_DIR:
-            possible_rotlibs += list(pth.glob(f'*{rotlib}*_drotlib.zip'))
-
         # Check if any exist
-        for possible_file in possible_rotlibs:
-            if possible_file.exists():
-                rotlib = possible_file
-                break
-        #  If non exist
-        else:
-            # Check for the lib in chilife/permanent libraries
-            if rotlib in chilife.USER_dLIBRARIES:
-                rotlib = chilife.RL_DIR / 'user_rotlibs' / (rotlib + '_drotlib.zip')
-            # Or check if its a non-user library, e.g. a natural amino acid library. If not throw and error.
-            else:
+        rotlib_path = get_possible_rotlibs(rotlib)
+
+        if rotlib_path is None:
+            # Check if libraries exist but for different i+n
+            rotlib_path = get_possible_rotlibs(rotlib.replace(f'ip{self.increment}', ''), all=True)
+
+            if rotlib_path is None:
                 raise NameError(f'There is no rotamer library called {rotlib} in this directory or in chilife')
 
-        libA, libB, csts = chilife.read_library(rotlib)
+            else:
+                warnings.warn(f'No rotamer library found for the given increment (ip{self.increment}) but rotlibs '
+                              f'were found for other increments. chiLife will combine these rotlib to model '
+                              f'this site pair and but they may not be accurate! Because there is no information '
+                              f'about the relative weighting of different rotamer libraries all weights will be '
+                              f'set to 1/len(rotlib)')
+
+        if isinstance(rotlib_path, Path):
+            libA, libB, csts = chilife.read_library(rotlib_path)
+        elif isinstance(rotlib_path, list):
+            concatable = ('coords', 'dihedrals', 'internal_coords')
+
+            cctA, cctB, ccsts = {}, {}, {}
+            libA, libB, csts = chilife.read_library(rotlib_path[0])
+            for p in rotlib_path:
+                tlibA, tlibB, tcsts = chilife.read_library(p)
+
+                # Libraries must have the same atom order
+                if np.any(tlibA['atom_names'] != libA['atom_names']) or \
+                    np.any(tlibB['atom_names'] != libB['atom_names']):
+
+                    raise ValueError(f'Rotlibs {rotlib_path[0].stem} and {p.stem} are not compatable. You may'
+                                     f'need to rename one of them.')
+                for field in concatable:
+                    cctA.setdefault(field, []).append(tlibA[field])
+                    cctB.setdefault(field, []).append(tlibB[field])
+
+                ccsts.setdefault('cst_pairs', []).append(tcsts['cst_pairs'])
+                ccsts.setdefault('cst_distances', []).append(tcsts['cst_distances'])
+
+            for field in concatable:
+                libA[field] = np.concatenate(cctA[field])
+                libB[field] = np.concatenate(cctB[field])
+
+            libA['weights'] = libB['weights'] = np.ones(len(libA['coords'])) / len(libA['coords'])
+            csts = {key: np.concatenate(val) for key, val in ccsts.items()}
 
         self.cst_idxs, self.csts = tuple(csts.values())
         self.libA, self.libB = libA, libB
@@ -275,6 +299,60 @@ class dRotamerEnsemble:
     def eps(self):
         return np.concatenate([self.RL1.eps, self.RL2.eps])
 
+    @property
+    def bonds(self):
+        """ """
+        if not hasattr(self, "_bonds"):
+            self._bonds = chilife.guess_bonds(self.coords[0], self.atom_types)
+        return self._bonds
+
+    @bonds.setter
+    def bonds(self, inp):
+        """
+
+        Parameters
+        ----------
+        inp :
+
+
+        Returns
+        -------
+
+        """
+        self._bonds = set(tuple(i) for i in inp)
+        idxs = np.arange(len(self.atom_names))
+        all_pairs = set(combinations(idxs, 2))
+        self._non_bonded = all_pairs - self._bonds
+
+    @property
+    def non_bonded(self):
+        """ """
+        if not hasattr(self, "_non_bonded"):
+            idxs = np.arange(len(self.atom_names))
+            all_pairs = set(combinations(idxs, 2))
+            self._non_bonded = all_pairs - set(tuple(bond) for bond in self.bonds)
+
+        return sorted(list(self._non_bonded))
+
+    @non_bonded.setter
+    def non_bonded(self, inp):
+        """
+
+        Parameters
+        ----------
+        inp :
+
+
+        Returns
+        -------
+
+        """
+        self._non_bonded = set(tuple(i) for i in inp)
+        idxs = np.arange(len(self.atom_names))
+        all_pairs = set(combinations(idxs, 2))
+        self._bonds = all_pairs - self._non_bonded
+
+
     def trim_rotamers(self):
         self.RL1.trim_rotamers()
         self.RL2.trim_rotamers()
@@ -291,3 +369,38 @@ class dRotamerEnsemble:
 
         # Remove low-weight rotamers from ensemble
         self.trim_rotamers()
+
+
+def get_possible_rotlibs(rotlib: str, all: bool = False) -> Union[Path, None]:
+    """
+
+    """
+
+    cwd = Path.cwd()
+
+    # Assemble a list of possible rotlib paths starting in the current directory
+    possible_rotlibs = [Path(rotlib),
+                        cwd / rotlib,
+                        cwd / (rotlib + '.zip'),
+                        cwd / (rotlib + '_drotlib.zip')]
+
+    # Then in the user defined rotamer library directory
+    for pth in chilife.USER_RL_DIR:
+        possible_rotlibs += list(pth.glob(f'*{rotlib}*_drotlib.zip'))
+
+    # Then in the chilife directory
+    possible_rotlibs += list((chilife.RL_DIR / 'user_rotlibs').glob(f'*{rotlib}*'))
+
+    if all:
+        rotlib = []
+    for possible_file in possible_rotlibs:
+        if possible_file.exists() and all:
+                rotlib.append(possible_file)
+        elif possible_file.exists():
+            rotlib = possible_file
+            break
+    else:
+        if not isinstance(rotlib, list) or rotlib == []:
+            rotlib = None
+
+    return rotlib

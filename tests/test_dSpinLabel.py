@@ -115,3 +115,9 @@ def test_restraint_weight():
 
     np.testing.assert_almost_equal(SL3.weights, ans, decimal=6)
     assert SL2.weights != SL3.weights
+
+
+def test_alternate_increment():
+    with pytest.warns():
+        with pytest.raises(ValueError):
+            SL2 = xl.dSpinLabel("DHC", (28, 28 + 3), gb1)

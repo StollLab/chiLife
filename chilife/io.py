@@ -539,3 +539,7 @@ rotlib_formats = {1.0: (
     'type',
     'format_version'
 )}
+
+rotlib_formats[1.1] = *rotlib_formats[1.0], 'description', 'comment', 'reference'
+
+

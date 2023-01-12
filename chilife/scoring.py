@@ -41,7 +41,7 @@ def clash_only(func):
             Array of energy values (kcal/mol) for each rotamer in an ensemble or for the whole system.
 
         """
-
+        internal = kwargs.pop("internal", False)
         rmax = kwargs.get("rmax", 10)
         forgive = kwargs.get("forgive", 1)
         _protein = kwargs.pop('protein', None)
@@ -53,9 +53,10 @@ def clash_only(func):
             r, rmin, eps, shape = prep_external_clash(system)
             E = func(r, rmin, eps, **kwargs).reshape(shape)
 
-            if kwargs.get("internal", False):
+            if internal:
                 r, rmin, eps, shape = prep_internal_clash(system)
-                E += func(r, rmin, eps, **kwargs).reshape(system._coords.shape[:2])
+                Einternal = func(r, rmin, eps, **kwargs)
+                E = np.concatenate((E, Einternal), axis=1)
 
             E = E.sum(axis=1)
 
@@ -345,8 +346,8 @@ def prep_internal_clash(ensemble):
     rmin_ij = join_rmin(a_radii * ensemble.forgive, b_radii * ensemble.forgive, flat=True)
     eps_ij = join_eps(a_eps, b_eps, flat=True)
 
-    dist = np.linalg.norm(ensemble._coords[:, a] - ensemble._coords[:, b], axis=2)
-    shape = (len(ensemble._coords), len(a_radii))
+    dist = np.linalg.norm(ensemble.coords[:, a] - ensemble.coords[:, b], axis=2)
+    shape = (len(ensemble.coords), len(a_radii))
 
     return dist, rmin_ij, eps_ij, shape
 

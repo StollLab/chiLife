@@ -900,6 +900,10 @@ class RotamerEnsemble:
                                 cwd / (rotlib + '.npz'),
                                 cwd / (rotlib + '_rotlib.npz')]
             possible_rotlibs += list(Path.cwd().glob(f'*{rotlib}*.npz'))
+
+            for pth in chilife.USER_RL_DIR:
+                possible_rotlibs += list(pth.glob(f'*{rotlib}*.npz'))
+
             # Check if any exist
             for possible_file in possible_rotlibs:
                 if possible_file.exists() and possible_file.suffix == '.npz':

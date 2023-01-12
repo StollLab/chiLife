@@ -2938,7 +2938,7 @@ ATOM      5 OG1  THR A 238     -20.225  11.236   6.693  0.01  1.00           O
 ATOM      6 CG2  THR A 238     -18.685  11.656   4.974  0.01  1.00           C  
 TER
 ENDMDL
-HEADER A318DHCip4A
+HEADER A318A322DHC_A
 MODEL 0
 ATOM      0  N   DHC A 318      -2.132  13.757  -4.418  1.00  1.00           N  
 ATOM      1  CA  DHC A 318      -0.822  14.317  -4.126  1.00  1.00           C  
@@ -2964,26 +2964,22 @@ ATOM     20  O4  DHC A 318       7.884  19.410  -2.751  1.00  1.00           O
 ATOM     21 C14  DHC A 318       5.449  14.762  -5.544  1.00  1.00           C  
 ATOM     22  O5  DHC A 318       5.545  14.040  -6.550  1.00  1.00           O  
 ATOM     23  O6  DHC A 318       4.386  15.064  -4.963  1.00  1.00           O  
-TER
-ENDMDL
-HEADER E322DHCip4B
-MODEL 0
-ATOM      0  N   DHC A 322       2.865  11.569  -1.496  1.00  1.00           N  
-ATOM      1  CA  DHC A 322       3.793  12.159  -0.570  1.00  1.00           C  
-ATOM      2  C   DHC A 322       4.079  11.237   0.629  1.00  1.00           C  
-ATOM      3  O   DHC A 322       5.240  11.139   1.072  1.00  1.00           O  
-ATOM      4  CB  DHC A 322       3.250  13.510  -0.066  1.00  1.00           C  
-ATOM      5  CG  DHC A 322       3.990  14.627  -0.707  1.00  1.00           C  
-ATOM      6 CD2  DHC A 322       3.970  15.107  -1.989  1.00  1.00           C  
-ATOM      7 ND1  DHC A 322       4.963  15.343  -0.063  1.00  1.00           N  
-ATOM      8 NE2  DHC A 322       4.914  16.078  -2.113  1.00  1.00           N  
-ATOM      9 CE1  DHC A 322       5.494  16.206  -0.941  1.00  1.00           C  
+ATOM     24  N   DHC A 322       2.865  11.569  -1.496  1.00  1.00           N  
+ATOM     25  CA  DHC A 322       3.793  12.159  -0.570  1.00  1.00           C  
+ATOM     26  C   DHC A 322       4.079  11.237   0.629  1.00  1.00           C  
+ATOM     27  O   DHC A 322       5.240  11.139   1.072  1.00  1.00           O  
+ATOM     28  CB  DHC A 322       3.250  13.510  -0.066  1.00  1.00           C  
+ATOM     29  CG  DHC A 322       3.990  14.627  -0.707  1.00  1.00           C  
+ATOM     30 CD2  DHC A 322       3.970  15.107  -1.989  1.00  1.00           C  
+ATOM     31 ND1  DHC A 322       4.963  15.343  -0.063  1.00  1.00           N  
+ATOM     32 NE2  DHC A 322       4.914  16.078  -2.113  1.00  1.00           N  
+ATOM     33 CE1  DHC A 322       5.494  16.206  -0.941  1.00  1.00           C  
 TER
 ENDMDL
 HEADER L20R1C_density
 ATOM      0 NEN  R1C A  20      -4.431  -1.584 -13.081  1.00  1.00           N  
 ATOM      1 NEN  R1C A  20      -4.471  -0.575 -14.172  0.73  1.00           N  
 TER
-HEADER A318DHCip4A_density
+HEADER A318A322DHC_A_density
 ATOM      0 NEN  DHC A 318       4.515  16.990  -3.669  1.00  1.00           N  
 TER

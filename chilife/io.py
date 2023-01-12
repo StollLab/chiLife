@@ -1,4 +1,6 @@
 from typing import Tuple, Dict, Union, BinaryIO, TextIO
+from collections import defaultdict
+from hashlib import sha256
 from pathlib import Path
 import pickle
 import shutil
@@ -13,11 +15,13 @@ import MDAnalysis as mda
 import chilife
 from .RotamerEnsemble import RotamerEnsemble
 from .SpinLabel import SpinLabel
-from .dSpinLabel import dSpinLabel
-from .Protein import Protein
+from .dRotamerEnsemble import dRotamerEnsemble
+from .Protein import MolecularSystem
+from .ProteinIC import ProteinIC
 
 #                 ID    name   res  chain resnum      X     Y      Z      q      b              elem
 fmt_str = "ATOM  {:5d} {:^4s} {:3s} {:1s}{:4d}    {:8.3f}{:8.3f}{:8.3f}{:6.2f}{:6.2f}          {:>2s}  \n"
+
 
 def read_distance_distribution(file_name: str) -> Tuple[np.ndarray, np.ndarray]:
     """Reads a DEER distance distribution file in the DeerAnalysis or similar format.
@@ -45,8 +49,21 @@ def read_distance_distribution(file_name: str) -> Tuple[np.ndarray, np.ndarray]:
     p = data[:, 1]
     return r, p
 
+
+def hash_file(file: Union[Path, BinaryIO]):
+    hash = sha256()
+    with open(file, 'rb') as f:
+        while True:
+            block = f.read(hash.block_size)
+            if not block:
+                break
+            hash.update(block)
+
+    return hash.hexdigest()
+
+
 #
-@cached
+@cached(custom_key_maker=hash_file)
 def read_rotlib(rotlib: Union[Path, BinaryIO] = None) -> Dict:
     """Reads RotamerEnsemble for stored spin labels.
 
@@ -70,12 +87,13 @@ def read_rotlib(rotlib: Union[Path, BinaryIO] = None) -> Dict:
 
     lib["_rdihedrals"] = np.deg2rad(lib["dihedrals"])
     lib["_rsigmas"] = np.deg2rad(lib["sigmas"])
-    lib['rotlib'] = str(lib['rotlib'] )
+    lib['rotlib'] = str(lib['rotlib'])
     lib['type'] = str(lib['type'])
     lib['format_version'] = float(lib['format_version'])
     return lib
 
-@cached
+
+@cached(custom_key_maker=hash_file)
 def read_drotlib(rotlib: Path) -> Tuple[dict]:
     """Reads RotamerEnsemble for stored spin labels.
 
@@ -98,10 +116,10 @@ def read_drotlib(rotlib: Path) -> Tuple[dict]:
                         csts = dict(fc)
             elif f[-12] == 'A':
                 with archive.open(f) as of:
-                    libA = read_rotlib(of)
+                    libA = read_rotlib.__wrapped__(of)
             elif f[-12] == 'B':
                 with archive.open(f) as of:
-                    libB = read_rotlib(of)
+                    libB = read_rotlib.__wrapped__(of)
 
     return libA, libB, csts
 
@@ -149,8 +167,8 @@ def read_bbdep(res: str, Phi: int, Psi: int) -> Dict:
             data = np.genfromtxt(s, usecols=range(maxchi + 4, maxchi + 5 + 2 * maxchi))
 
         lib["weights"] = data[:, 0]
-        lib["dihedrals"] = data[:, 1 : nchi + 1]
-        lib["sigmas"] = data[:, maxchi + 1 : maxchi + nchi + 1]
+        lib["dihedrals"] = data[:, 1: nchi + 1]
+        lib["sigmas"] = data[:, maxchi + 1: maxchi + nchi + 1]
         dihedral_atoms = chilife.dihedral_defs[res][:nchi]
 
         # Calculate cartesian coordinates for each rotamer
@@ -229,11 +247,11 @@ def read_library(rotlib: str, Phi: float = None, Psi: float = None) -> Dict:
 
 
 def save(
-    file_name: str,
-    *molecules: Union[RotamerEnsemble, Protein, mda.Universe, mda.AtomGroup, str],
-    protein_path: Union[str, Path] = None,
-    mode: str =  'w',
-    **kwargs,
+        file_name: str,
+        *molecules: Union[RotamerEnsemble, MolecularSystem, mda.Universe, mda.AtomGroup, str],
+        protein_path: Union[str, Path] = None,
+        mode: str = 'w',
+        **kwargs,
 ) -> None:
     """Save a pdb file of the provided labels and proteins
 
@@ -254,30 +272,28 @@ def save(
     -------
     None
     """
-    # Check for filename at the beginning of args
-    molecules = list(molecules)
-    if isinstance(file_name, (RotamerEnsemble, SpinLabel, dSpinLabel,
-                              mda.Universe, mda.AtomGroup,
-                              chilife.Protein, chilife.AtomSelection)):
+
+    if isinstance(file_name, tuple(molecule_class.keys())):
+        molecules = list(molecules)
         molecules.insert(0, file_name)
         file_name = None
 
-    # Separate out proteins and spin labels
-    proteins, labels = [], []
-    protein_path = [] if protein_path is None else [protein_path]
+    # Check for filename at the beginning of args
+    tmolecules = defaultdict(list)
     for mol in molecules:
-        if isinstance(mol, (RotamerEnsemble, SpinLabel, dSpinLabel)):
-            labels.append(mol)
-        elif isinstance(mol, (mda.Universe, mda.AtomGroup, chilife.Protein, chilife.AtomSelection)):
-            proteins.append(mol)
-        elif isinstance(mol, (str, Path)):
+        mcls = [val for key, val in molecule_class.items() if isinstance(mol, key)]
+        if mcls == []:
+            raise TypeError(f'{type(mol)} is not a supported type for this function. '
+                            'chiLife can only save objects of the following types:\n'
+                            + ''.join(f'{key.__name__}\n' for key in molecule_class) +
+                            'Please check that your input is compatible')
 
-            protein_path.append(mol)
-        else:
-            raise TypeError('chiLife can only save RotamerEnsembles and Proteins. Plese check that your input is '
-                             'compatible')
+        tmolecules[mcls[0]].append(mol)
+    molecules = tmolecules
+
 
     # Ensure only one protein path was provided (for now)
+    protein_path = [] if protein_path is None else [protein_path]
     if len(protein_path) > 1:
         raise ValueError('More than one protein path was provided. C')
     elif len(protein_path) == 1:
@@ -292,7 +308,7 @@ def save(
             file_name = f.name[:-4]
         else:
             file_name = ""
-            for protein in proteins:
+            for protein in molecules['molcart']:
                 if getattr(protein, "filename", None):
                     file_name += ' ' + Path(protein.filename).name
                     file_name = file_name[:-4]
@@ -301,13 +317,14 @@ def save(
             file_name = "No_Name_Protein"
 
         # Add spin label information to file name
-        if 0 < len(labels) < 3:
-            for label in labels:
-                file_name += f"_{label.site}{label.res}"
+        if 0 < len(molecules['rotens']) < 3:
+            for rotens in molecules['rotens']:
+                file_name += f"_{rotens.name}"
         else:
             file_name += "_many_labels"
 
         file_name += ".pdb"
+        file_name = file_name.strip()
 
     if protein_path is not None:
         print(protein_path, file_name)
@@ -316,11 +333,15 @@ def save(
     else:
         pdb_file = open(file_name, mode)
 
-    for protein in proteins:
+    for protein in molecules['molcart']:
         write_protein(pdb_file, protein)
 
-    if len(labels) > 0:
-        write_labels(pdb_file, *labels, **kwargs)
+    for ic in molecules['molic']:
+        write_ic(pdb_file, ic)
+
+    if len(molecules['rotens']) > 0:
+        write_labels(pdb_file, *molecules['rotens'], **kwargs)
+
 
 
 def write_protein(pdb_file: TextIO, protein: Union[mda.Universe, mda.AtomGroup]) -> None:
@@ -379,6 +400,28 @@ def write_protein(pdb_file: TextIO, protein: Union[mda.Universe, mda.AtomGroup])
         pdb_file.write("ENDMDL\n")
 
 
+def write_ic(pdbfile: TextIO, ic: chilife.ProteinIC) -> None:
+    """
+    Write a chilife.ProteinIC internal coordinates object to a pdb file.
+      Parameters
+    ----------
+    file : TextIO
+        open file or io object.
+    ic: chilife.ProteinIC
+        chiLife internal coordinates object.
+
+    Returns
+    -------
+    None
+    """
+    pdbfile.write('MODEL\n')
+    for atom, coord in zip(ic.atoms, ic.coords):
+        pdbfile.write(fmt_str.format(atom.index + 1, atom.name, atom.resn, 'A', atom.resi,
+                                     coord[0], coord[1], coord[2],
+                                     1.0, 1.0, atom.atype))
+    pdbfile.write('ENDMDL\n')
+
+
 def write_labels(pdb_file: TextIO, *args: SpinLabel, KDE: bool = True, sorted: bool = True) -> None:
     """Lower level helper function for saving SpinLabels and RotamerEnsembles. Loops over SpinLabel objects and appends
     atoms and electron coordinates to the provided file.
@@ -399,32 +442,21 @@ def write_labels(pdb_file: TextIO, *args: SpinLabel, KDE: bool = True, sorted: b
     None
     """
 
-    # Check for dSpinLables
-    ensembles = []
-    for arg in args:
-        if isinstance(arg, chilife.RotamerEnsemble):
-            ensembles.append(arg)
-        elif isinstance(arg, chilife.dSpinLabel):
-            ensembles.append(arg.SL1)
-            ensembles.append(arg.SL2)
-        else:
-            raise TypeError(
-                f"Cannot save {arg}. *args must be RotamerEnsemble SpinLabel or dSpinLabal objects"
-            )
-
-
-
     # Write spin label models
-    for k, label in enumerate(ensembles):
+    for k, label in enumerate(args):
         pdb_file.write(f"HEADER {label.name}\n")
 
         # Save models in order of weight
 
         sorted_index = np.argsort(label.weights)[::-1] if sorted else np.arange(len(label.weights))
         norm_weights = label.weights / label.weights.max()
-
+        if isinstance(label, dRotamerEnsemble):
+            sites = np.concatenate([np.ones(len(label.RL1.atoms), dtype=int) * int(label.site),
+                                    np.ones(len(label.RL2.atoms), dtype=int) * int(label.site2)])
+        else:
+            sites = np.ones(len(label.atoms), dtype=int) * int(label.site)
         for mdl, (conformer, weight) in enumerate(
-            zip(label.coords[sorted_index], norm_weights[sorted_index])
+                zip(label.coords[sorted_index], norm_weights[sorted_index])
         ):
             pdb_file.write("MODEL {}\n".format(mdl))
 
@@ -435,7 +467,7 @@ def write_labels(pdb_file: TextIO, *args: SpinLabel, KDE: bool = True, sorted: b
                         label.atom_names[i],
                         label.res[:3],
                         label.chain,
-                        int(label.site),
+                        sites[i],
                         *conformer[i],
                         weight,
                         1.00,
@@ -448,7 +480,7 @@ def write_labels(pdb_file: TextIO, *args: SpinLabel, KDE: bool = True, sorted: b
             pdb_file.write("ENDMDL\n")
 
     # Write electron density at electron coordinates
-    for k, label in enumerate(ensembles):
+    for k, label in enumerate(args):
         if not hasattr(label, "spin_centers"):
             continue
         if not np.any(label.spin_centers):
@@ -486,16 +518,28 @@ def write_labels(pdb_file: TextIO, *args: SpinLabel, KDE: bool = True, sorted: b
 
         pdb_file.write("TER\n")
 
-rotlib_formats = {1.0 : (
-    'rotlib',                 #
-     'resname',
-     'coords',
-     'internal_coords',
-     'weights',
-     'atom_types',
-     'atom_names',
-     'dihedrals',
-     'dihedral_atoms',
-     'type',
-     'format_version'
-     )}
+molecule_class = {RotamerEnsemble: 'rotens',
+                  dRotamerEnsemble: 'rotens',
+                  mda.Universe: 'molcart',
+                  mda.AtomGroup: 'molcart',
+                  MolecularSystem: 'molcart',
+                  ProteinIC: 'molic'}
+
+
+rotlib_formats = {1.0: (
+    'rotlib',  #
+    'resname',
+    'coords',
+    'internal_coords',
+    'weights',
+    'atom_types',
+    'atom_names',
+    'dihedrals',
+    'dihedral_atoms',
+    'type',
+    'format_version'
+)}
+
+rotlib_formats[1.1] = *rotlib_formats[1.0], 'description', 'comment', 'reference'
+
+

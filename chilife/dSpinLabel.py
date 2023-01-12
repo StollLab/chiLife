@@ -96,16 +96,3 @@ class dSpinLabel(dRotamerEnsemble):
     def trim_rotamers(self):
         self.SL1.trim_rotamers()
         self.SL2.trim_rotamers()
-
-    def evaluate(self):
-        """Place rotamer ensemble on protein site and recalculate rotamer weights."""
-
-        # Calculate external energies
-        energies = self.energy_func(self)
-
-        # Calculate total weights (combining internal and external)
-        self.weights, self.partition = chilife.reweight_rotamers(energies, self.temp, self.weights)
-        logging.info(f"Relative partition function: {self.partition:.3}")
-
-        # Remove low-weight rotamers from ensemble
-        self.trim_rotamers()

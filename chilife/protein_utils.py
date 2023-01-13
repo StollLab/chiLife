@@ -758,7 +758,6 @@ def get_min_topol(lines: List[List[str]],
 
     # Get the shared bonds between all structures.
     minimal_bond_set = set.intersection(*bonds_list)
-
     # Include any forced bonds
     if forced_bonds is not None:
         minimal_bond_set |= forced_bonds
@@ -866,14 +865,18 @@ def _sort_pdb_lines(lines, bonds=None, index=False, **kwargs):
     lines.sort(key=atom_sort_key)
     presort_idx_key = {line[6:11]: i for i, line in enumerate(lines)}
     presort_bond_key = {index_key[line[6:11]]: i for i, line in enumerate(lines)}
+
+    coords = np.array([[float(line[30:38]), float(line[38:46]), float(line[46:54])] for line in lines])
+    atypes = np.array([line[76:78].strip() for line in lines])
+    anames = np.array([line[12:17].strip() for line in lines])
+
     if bonds:
         input_bonds = {tuple(b) for b in bonds}
         presort_bonds = set(tuple(sorted((presort_bond_key[b1], presort_bond_key[b2]))) for b1, b2 in bonds)
     else:
-        presort_bonds = None
+        bonds = guess_bonds(coords, atypes)
+        presort_bonds = set(tuple(sorted((b1, b2))) for b1, b2 in bonds)
 
-    coords = np.array([[float(line[30:38]), float(line[38:46]), float(line[46:54])] for line in lines])
-    atypes = np.array([line[76:78].strip() for line in lines])
 
     # get residue groups
     chain, resi = lines[0][21], int(lines[0][22:26].strip())
@@ -885,30 +888,47 @@ def _sort_pdb_lines(lines, bonds=None, index=False, **kwargs):
             resdict[chain, resi] = start, curr
             start = curr
             chain, resi = pdb_line[21], int(pdb_line[22:26].strip())
-    all_bonds = []
+
     resdict[chain, resi] = start, curr + 1
     midsort_key = []
     for key in resdict:
         start, stop = resdict[key]
         n_heavy = np.sum(atypes[start:stop] != 'H')
-        sorted_args = list(range(np.minimum(4, n_heavy)))
+
+        #  Force N, CA, C,
+        if np.array_equal(anames[start: start+4], ['N', 'CA', 'C', 'O']):
+            sorted_args = [0, 1, 2, 3]
+        # if not a canonical and the first amino acid use the first heavy atom
+        elif start == 0:
+            sorted_args = [0]
+        else:
+            # If not a connected via peptide backbone
+            for a, b in presort_bonds:
+                # Find the atom bonded to a previous residue
+                if a < start and start <= b < stop and atypes[b] != 'H':
+                    sorted_args = [b - start]
+                    break
+                # Otherwise get the closest to any previous atom
+            else:
+                dist_mat = cdist(coords[:start], coords[start:stop])
+                sorted_args = [np.squeeze(np.argwhere(dist_mat == dist_mat.min()))[1]]
+
         if len(sorted_args) != n_heavy:
 
-            root_idx = 1 if len(sorted_args) == 4 else 0
+            root_idx = 1 if len(sorted_args) == 4 else sorted_args[0]
 
-            # Use bonds if provided otherwise guess
-            if presort_bonds:
-                bonds = [[bond[0] - start, bond[1] - start]
-                            for bond in presort_bonds
-                                if (start <= bond[0] < stop) and (start <= bond[1] < stop)]
-            else:
-                bonds = guess_bonds(coords[start:stop], atypes[start:stop])
+            bonds = np.array([bond for bond in presort_bonds
+                              if (start <= bond[0] < stop) and (start <= bond[1] < stop)])
+            bonds -= start
+
 
             bonds = np.asarray(bonds)
-            all_bonds.append(bonds + start)
 
             # Get all nearest neighbors and sort by distance
-            distances = np.linalg.norm(coords[start:stop][bonds[:, 0]] - coords[start:stop][bonds[:, 1]], axis=1)
+            try:
+                distances = np.linalg.norm(coords[start:stop][bonds[:, 0]] - coords[start:stop][bonds[:, 1]], axis=1)
+            except:
+                breakpoint()
             distances = np.around(distances, decimals=3)
             idx_sort = np.lexsort((bonds[:, 0], bonds[:, 1], distances))
             pairs = bonds[idx_sort]
@@ -930,13 +950,12 @@ def _sort_pdb_lines(lines, bonds=None, index=False, **kwargs):
                     near_root = cdist(coords[start:stop][CA_nodes], coords[start:stop][g_nodes]).argmin()
 
                     yidx = near_root % len(g_nodes)
-                    CA_edges += [g_nodes[yidx]] + [edge[1] for edge in nx.bfs_edges(graph, g_nodes[yidx]) if edge[1]]
-
-
+                    CA_edges += [g_nodes[yidx]] + [edge[1]
+                                                   for edge in nx.bfs_edges(graph, g_nodes[yidx])
+                                                   if edge[1] not in sorted_args]
         elif stop - start > n_heavy:
             # Assumes  non-heavy atoms come after the heavy atoms, which should be true because of the pre-sort
             CA_edges = list(range(n_heavy, n_heavy + (stop - start - len(sorted_args))))
-
         else:
             CA_edges = []
 
@@ -953,8 +972,8 @@ def _sort_pdb_lines(lines, bonds=None, index=False, **kwargs):
     lines[:] = [lines[i] for i in midsort_key]
     lines.sort(key=atom_sort_key)
 
-    if 'input_bonds' not in locals() and all_bonds != []:
-        input_bonds = np.concatenate(all_bonds)
+    if 'input_bonds' not in locals():
+        input_bonds = bonds
         idxmap = {presort_idx_key[line[6:11]]: i for i, line in enumerate(lines)}
     else:
         idxmap = {index_key[line[6:11]]: i for i, line in enumerate(lines)}

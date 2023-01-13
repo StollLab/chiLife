@@ -436,10 +436,8 @@ class ProteinIC:
             if ~np.allclose(
                 self.chain_operators[segid]["mx"], np.identity(3)
             ) and ~np.allclose(self.chain_operators[segid]["ori"], np.array([0, 0, 0])):
-                cart_coords = (
-                    cart_coords @ self.chain_operators[segid]["mx"]
-                    + self.chain_operators[segid]["ori"]
-                )
+                cart_coords = cart_coords @ self.chain_operators[segid]["mx"] + self.chain_operators[segid]["ori"]
+
             has_nan = False
             if np.any(np.isnan(cart_coords)):
                 has_nan = True
@@ -662,7 +660,7 @@ class ICAtom:
 def get_ICAtom(
     mol: MDAnalysis.core.groups.Atom,
     dihedral: List[int],
-    offset: int = 0
+    ixmap: Dict = None
 ) -> ICAtom:
     """Construct internal coordinates for an atom given that atom is linked to an MDAnalysis Universe.
 
@@ -681,46 +679,46 @@ def get_ICAtom(
         Atom with internal coordinates.
 
     """
-    atom = mol.atoms[dihedral[-1]]
+    atom = mol.universe.atoms[dihedral[-1]]
     if len(dihedral) == 1:
-        return ICAtom(atom.name, atom.type, dihedral[-1] - offset, atom.resname, atom.resid, (atom.name,))
+        return ICAtom(atom.name, atom.type,  ixmap[dihedral[-1]], atom.resname, atom.resid, (atom.name,))
 
     elif len(dihedral) == 2:
-        atom2 = mol.atoms[dihedral[-2]]
+        atom2 = mol.universe.atoms[dihedral[-2]]
         atom_names = (atom.name, atom2.name)
         return ICAtom(
             atom.name,
             atom.type,
-            dihedral[-1] - offset,
+            ixmap[dihedral[-1]],
             atom.resname,
             atom.resid,
             atom_names,
-            dihedral[-2] - offset,
+            ixmap[dihedral[-2]],
             np.linalg.norm(atom.position - atom2.position),
         )
 
     elif len(dihedral) == 3:
-        atom2 = mol.atoms[dihedral[-2]]
-        atom3 = mol.atoms[dihedral[-3]]
+        atom2 = mol.universe.atoms[dihedral[-2]]
+        atom3 = mol.universe.atoms[dihedral[-3]]
         atom_names = (atom.name, atom2.name, atom3.name)
 
         return ICAtom(
             atom.name,
             atom.type,
-            dihedral[-1] - offset,
+            ixmap[dihedral[-1]],
             atom.resname,
             atom.resid,
             atom_names,
-            dihedral[-2] - offset,
+            ixmap[dihedral[-2]],
             np.linalg.norm(atom.position - atom2.position),
-            dihedral[-3] - offset,
-            get_angle(mol.atoms[dihedral[-3:]].positions),
+            ixmap[dihedral[-3]],
+            get_angle(mol.universe.atoms[dihedral[-3:]].positions),
         )
 
     else:
-        atom4 = mol.atoms[dihedral[0]]
-        atom3 = mol.atoms[dihedral[1]]
-        atom2 = mol.atoms[dihedral[2]]
+        atom4 = mol.universe.atoms[dihedral[0]]
+        atom3 = mol.universe.atoms[dihedral[1]]
+        atom2 = mol.universe.atoms[dihedral[2]]
         atom_names = (atom.name, atom2.name, atom3.name, atom4.name)
 
         if atom_names == ("N", "C", "CA", "N"):
@@ -728,7 +726,7 @@ def get_ICAtom(
         else:
             dihedral_resi = atom.resnum
 
-        p1, p2, p3, p4 = mol.atoms[dihedral].positions
+        p1, p2, p3, p4 = mol.universe.atoms[dihedral].positions
 
         bl = np.linalg.norm(p3 - p4)
         al = get_angle([p2, p3, p4])
@@ -737,15 +735,15 @@ def get_ICAtom(
         return ICAtom(
             atom.name,
             atom.type,
-            dihedral[-1] - offset,
+            ixmap[dihedral[-1]],
             atom.resname,
             atom.resnum,
             atom_names,
-            dihedral[-2] - offset,
+            ixmap[dihedral[-2]],
             bl,
-            dihedral[-3] - offset,
+            ixmap[dihedral[-3]] ,
             al,
-            dihedral[-4] - offset,
+            ixmap[dihedral[-4]],
             dl,
             dihedral_resi=dihedral_resi,
         )
@@ -897,13 +895,13 @@ def get_internal_coords(
 
     """
     mol = mol.select_atoms("not (byres name OH2 or resname HOH)")
-    bonds = bonds if bonds is not None else guess_bonds(mol.atoms.positions, mol.atoms.types)
+    bonds = bonds if bonds is not None else guess_bonds(mol.atoms.positions, mol.atoms.types) + mol.atoms[0].ix
 
     G = nx.DiGraph()
-    G.add_nodes_from(range(len(mol.atoms)))
+    atom_idxs = mol.atoms.ix.tolist()
+    G.add_nodes_from(atom_idxs)
     G.add_edges_from(bonds)
-
-    dihedrals = [get_n_pred(G, node, np.minimum(node, 3)) for node in range(len(mol.atoms))]
+    dihedrals = [get_n_pred(G, node, np.minimum(node, 3)) for node in atom_idxs]
 
     if preferred_dihedrals is not None:
         present = False
@@ -911,15 +909,14 @@ def get_internal_coords(
 
             # Get the index of the atom being defined by the prefered dihedral
             idx_of_interest = np.argwhere(mol.atoms.names == dihe[-1]).flatten()
-
             for idx in idx_of_interest:
-                if np.all(mol.atoms[dihedrals[idx]].names == dihe):
+                if np.all(mol.universe.atoms[dihedrals[idx]].names == dihe):
                     present = True
                     break
 
                 dihedral = [idx]
                 for p in get_all_n_pred(G, idx, 3):
-                    if np.all(mol.atoms[p[::-1]].names == dihe):
+                    if np.all(mol.universe.atoms[p[::-1]].names == dihe):
                         dihedral = p[::-1]
                         break
 
@@ -937,16 +934,16 @@ def get_internal_coords(
     all_ICAtoms = {}
     chain_operators = {}
     segid = 0
-
     for seg in dihedral_segs:
 
+        ixmap = {ix[-1]: i for i, ix in enumerate(seg)}
         offset = seg[0][0]
         segid += 1
-        mx, ori = ic_mx(*mol.atoms[seg[2]].positions)
+        mx, ori = ic_mx(*mol.universe.atoms[seg[2]].positions)
 
         chain_operators[segid] = {"ori": ori, "mx": mx}
         #
-        ICatoms = [get_ICAtom(mol, dihedral, offset=offset) for dihedral in seg]
+        ICatoms = [get_ICAtom(mol, dihedral, ixmap=ixmap) for dihedral in seg]
         all_ICAtoms[segid] = get_ICResidues(ICatoms)
 
     # Get bonded pairs within selection

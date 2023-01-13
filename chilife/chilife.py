@@ -590,8 +590,8 @@ def create_dlibrary(
     struct, spin_atoms = pre_add_library(pdb, spin_atoms, uniform_topology=False)
     resi1_selection = struct.select_atoms(f"resnum {site}")
     resi2_selection = struct.select_atoms(f"resnum {site + increment}")
-    resi1_bonds = resi1_selection.intra_bonds.indices - resi1_selection.atoms[0].ix
-    resi2_bonds = resi2_selection.intra_bonds.indices - resi2_selection.atoms[0].ix
+    resi1_bonds = resi1_selection.intra_bonds.indices
+    resi2_bonds = resi2_selection.intra_bonds.indices
 
     IC1 = [
         chilife.get_internal_coords(
@@ -813,13 +813,23 @@ def prep_restype_savedict(
         if coords.ndim == 2:
             coords = np.expand_dims(coords, axis=0)
 
-    if np.any(np.isnan(coords)):
-        idxs = np.argwhere(np.isnan(coords, np.sum(axis=(1, 2))))
-        raise (ValueError(
-            f'Coords of rotamer {" ".join((str(idx) for idx in idxs))} cannot be converted to internal coords'))
-
     atom_types = np.array([atom.atype for atom in internal_coords[0].atoms])
     atom_names = np.array([atom.name for atom in internal_coords[0].atoms])
+
+    if np.any(np.isnan(coords)):
+        idxs = np.argwhere(np.isnan(np.sum(coords, axis=(1, 2)))).T[0]
+        adxs = np.argwhere(np.isnan(np.sum(coords, axis=(0, 2)))).T[0]
+        adxs = atom_names[adxs]
+
+        print(internal_coords[0].atom_dict['dihedrals'][1][(5, ('O3', 'Cu1', 'NE2'))])
+        print(internal_coords[0].zmats[1].shape)
+        print(internal_coords[0].get_dihedral(5, ['NE2', 'Cu1', 'O3', 'C11']))
+        print(internal_coords[4].coords)
+
+
+        raise (ValueError(
+            f'Coords of rotamer {" ".join((str(idx) for idx in idxs))} at atoms {" ".join((str(idx) for idx in adxs))} '
+            f'cannot be converted to internal coords'))
 
     save_dict = {'rotlib': libname,
                  'resname': resname,

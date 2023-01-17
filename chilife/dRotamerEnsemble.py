@@ -121,6 +121,7 @@ class dRotamerEnsemble:
 
         if isinstance(rotlib_path, Path):
             libA, libB, csts = chilife.read_library(rotlib_path)
+
         elif isinstance(rotlib_path, list):
             concatable = ('coords', 'dihedrals', 'internal_coords')
 
@@ -139,17 +140,13 @@ class dRotamerEnsemble:
                     cctA.setdefault(field, []).append(tlibA[field])
                     cctB.setdefault(field, []).append(tlibB[field])
 
-                ccsts.setdefault('cst_pairs', []).append(tcsts['cst_pairs'])
-                ccsts.setdefault('cst_distances', []).append(tcsts['cst_distances'])
-
             for field in concatable:
                 libA[field] = np.concatenate(cctA[field])
                 libB[field] = np.concatenate(cctB[field])
 
             libA['weights'] = libB['weights'] = np.ones(len(libA['coords'])) / len(libA['coords'])
-            csts = {key: np.concatenate(val) for key, val in ccsts.items()}
 
-        self.cst_idxs, self.csts = tuple(csts.values())
+        self.csts = csts
         self.libA, self.libB = libA, libB
         self.kwargs["eval_clash"] = False
 
@@ -169,6 +166,10 @@ class dRotamerEnsemble:
                                            self.chain,
                                            self.libB,
                                            **self.kwargs)
+
+        self.RL1.cst_idx = np.argwhere(self.RL1.atom_names == self.csts)
+        self.RL2.cst_idx = np.argwhere(self.RL2.atom_names == self.csts)
+
     def save_pdb(self, name=None):
         if name is None:
             name = self.name + ".pdb"
@@ -178,7 +179,7 @@ class dRotamerEnsemble:
         chilife.save(name, self.RL1, self.RL2)
 
     def _minimize(self):
-        def objective(dihedrals, ic1, ic2, opt):
+        def objective(dihedrals, ic1, ic2):
             coords1 = ic1.set_dihedral(
                 dihedrals[: len(self.RL1.dihedral_atoms)], 1, self.RL1.dihedral_atoms
             ).to_cartesian()
@@ -186,10 +187,7 @@ class dRotamerEnsemble:
                 dihedrals[-len(self.RL2.dihedral_atoms):], 1, self.RL2.dihedral_atoms
             ).to_cartesian()
 
-            distances = np.linalg.norm(
-                coords1[self.cst_idxs[:, 0]] - coords2[self.cst_idxs[:, 1]], axis=1
-            )
-            diff = distances - opt
+            diff = np.linalg.norm(coords1[self.RL1.cst_idx] - coords2[self.RL2.cst_idx], axis=1)
             return diff @ diff
 
         scores = np.empty_like(self.weights)
@@ -205,9 +203,8 @@ class dRotamerEnsemble:
             lb = [-np.pi] * len(d0)  # d0 - np.deg2rad(40)  #
             ub = [np.pi] * len(d0)  # d0 + np.deg2rad(40) #
             bounds = np.c_[lb, ub]
-            xopt = opt.minimize(
-                objective, x0=d0, args=(ic1, ic2, self.csts[i]), bounds=bounds
-            )
+            xopt = opt.minimize(objective, x0=d0, args=(ic1, ic2), bounds=bounds)
+
             self.RL1._coords[i] = ic1.coords[self.RL1.H_mask]
             self.RL2._coords[i] = ic2.coords[self.RL2.H_mask]
             scores[i] = xopt.fun

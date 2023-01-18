@@ -25,6 +25,11 @@ class dSpinLabel(dRotamerEnsemble):
 
         self.RL1, self.RL2 = self.SL1, self.SL2
 
+        self.RL1.cst_idx = np.argwhere(np.isin(self.RL1.atom_names, self.csts)).flatten()
+        self.RL2.cst_idx = np.argwhere(np.isin(self.RL2.atom_names, self.csts)).flatten()
+        self.rl1mask = ~np.isin(self.RL2.atom_names, self.csts)
+        self.rl2mask = ~np.isin(self.RL2.atom_names, self.csts)
+
 
     @property
     def spin_coords(self):
@@ -45,54 +50,3 @@ class dSpinLabel(dRotamerEnsemble):
     @property
     def spin_centroid(self):
         return np.average(self.spin_coords, weights=self.weights, axis=0)
-
-    @property
-    def centroid(self):
-        return self.coords.mean(axis=(0, 1))
-
-    @property
-    def clash_ori(self):
-
-        if isinstance(self._clash_ori_inp, (np.ndarray, list)):
-            if len(self._clash_ori_inp) == 3:
-                return self._clash_ori_inp
-
-        elif isinstance(self._clash_ori_inp, str):
-            if self._clash_ori_inp in ["cen", "centroid"]:
-                return self.centroid
-
-            elif (ori_name := self._clash_ori_inp.upper()) in self.atom_names:
-                return np.squeeze(self.coords[0][ori_name == self.atom_names])
-
-        else:
-            raise ValueError(
-                f"Unrecognized clash_ori option {self._clash_ori_inp}. Please specify a 3D vector, an "
-                f"atom name or `centroid`"
-            )
-
-        return self._clash_ori
-
-    @clash_ori.setter
-    def clash_ori(self, inp):
-        self._clash_ori_inp = inp
-
-    @property
-    def side_chain_idx(self):
-        return np.concatenate(
-            [
-                self.SL1.side_chain_idx,
-                self.SL2.side_chain_idx + len(self.SL1.atom_names),
-            ]
-        )
-
-    @property
-    def rmin2(self):
-        return np.concatenate([self.SL1.rmin2, self.SL2.rmin2])
-
-    @property
-    def eps(self):
-        return np.concatenate([self.SL1.eps, self.SL2.eps])
-
-    def trim_rotamers(self):
-        self.SL1.trim_rotamers()
-        self.SL2.trim_rotamers()

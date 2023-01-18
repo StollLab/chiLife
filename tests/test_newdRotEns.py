@@ -1,12 +1,10 @@
 
 import chilife as xl
 
+gb1 = xl.fetch('2qmt')
+
+
 def test_something():
-    label = 'DHC'
-    incs = (2, 4)
-
-    label_type = 'Copper (II)'
-
     resi = 2
     label = 'DHC'
     inc = 2
@@ -17,3 +15,8 @@ def test_something():
 
     xl.create_dlibrary(label, pdbname, sites=(resi, resi + inc, resi + inc + 2), dihedral_atoms=dihedral_atoms,
                        spin_atoms=spin_atoms)
+
+
+    SL = xl.dSpinLabel(label, [6, 8], gb1)
+
+    xl.save(SL, gb1)

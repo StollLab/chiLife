@@ -599,7 +599,7 @@ def create_dlibrary(
     resi2_selection = struct.select_atoms(f"resnum {site2} {cap}")
     ovlp_selection = struct.select_atoms(f"resnum {cap}")
     csts = ovlp_selection.names
-
+    csts = csts.astype('U4')
     resi1_bonds = resi1_selection.intra_bonds.indices
     resi2_bonds = resi2_selection.intra_bonds.indices
 
@@ -649,17 +649,17 @@ def create_dlibrary(
     cwd = Path().cwd()
     np.savez(cwd / f'{libname}A_rotlib.npz', **save_dict_1, allow_pickle=True)
     np.savez(cwd / f'{libname}B_rotlib.npz', **save_dict_2, allow_pickle=True)
-    np.savez(cwd / f'{libname}_csts.npz', csts)
+    np.save(cwd / f'{libname}_csts.npy', csts)
 
     with zipfile.ZipFile(f'{libname}_drotlib.zip', mode='w') as archive:
         archive.write(f'{libname}A_rotlib.npz')
         archive.write(f'{libname}B_rotlib.npz')
-        archive.write(f'{libname}_csts.npz')
+        archive.write(f'{libname}_csts.npy')
 
     # Cleanup intermediate files
     os.remove(f'{libname}A_rotlib.npz')
     os.remove(f'{libname}B_rotlib.npz')
-    os.remove(f'{libname}_csts.npz')
+    os.remove(f'{libname}_csts.npy')
 
     if permanent:
         add_library(f'{libname}_drotlib.zip', libname=libname, default=default, force=force)

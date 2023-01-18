@@ -12,6 +12,7 @@ import chilife
 
 
 class dRotamerEnsemble:
+    backbone_atoms = ["H", "N", "CA", "HA", "C", "O"]
 
     def __init__(self, res, sites, protein=None, chain=None, rotlib=None, **kwargs):
         """ """
@@ -167,8 +168,11 @@ class dRotamerEnsemble:
                                            self.libB,
                                            **self.kwargs)
 
-        self.RL1.cst_idx = np.argwhere(self.RL1.atom_names == self.csts)
-        self.RL2.cst_idx = np.argwhere(self.RL2.atom_names == self.csts)
+        self.RL1.cst_idx = np.argwhere(np.isin(self.RL1.atom_names, self.csts)).flatten()
+        self.RL2.cst_idx = np.argwhere(np.isin(self.RL2.atom_names, self.csts)).flatten()
+
+        self.rl1mask = ~np.isin(self.RL2.atom_names, self.csts)
+        self.rl2mask = ~np.isin(self.RL2.atom_names, self.csts)
 
     def save_pdb(self, name=None):
         if name is None:
@@ -212,7 +216,7 @@ class dRotamerEnsemble:
         self.RL1.backbone_to_site()
         self.RL2.backbone_to_site()
 
-        scores /= len(self.cst_idxs)
+        scores /= len(self.csts)
         scores -= scores.min()
 
         self.weights *= np.exp(-scores * self.restraint_weight / (chilife.GAS_CONST * self.temp) / np.exp(-scores).sum())
@@ -229,7 +233,8 @@ class dRotamerEnsemble:
 
     @property
     def coords(self):
-        return np.concatenate([self.RL1._coords, self.RL2._coords], axis=1)
+        ovlp = (self.RL1.coords[:, self.RL1.cst_idx] + self.RL2.coords[:, self.RL2.cst_idx]) / 2
+        return np.concatenate([self.RL1._coords[:, self.rl1mask], self.RL2._coords[:, self.rl2mask], ovlp], axis=1)
 
     @coords.setter
     def coords(self, value):
@@ -243,11 +248,15 @@ class dRotamerEnsemble:
 
     @property
     def atom_names(self):
-        return np.concatenate((self.RL1.atom_names, self.RL2.atom_names))
+        return np.concatenate((self.RL1.atom_names[self.rl1mask],
+                               self.RL2.atom_names[self.rl2mask],
+                               self.RL1.atom_names[self.RL1.cst_idx]))
 
     @property
     def atom_types(self):
-        return np.concatenate((self.RL1.atom_types, self.RL2.atom_types))
+        return np.concatenate((self.RL1.atom_types[self.rl1mask],
+                               self.RL2.atom_types[self.rl2mask],
+                               self.RL1.atom_types[self.RL1.cst_idx]))
 
     @property
     def centroid(self):
@@ -281,12 +290,10 @@ class dRotamerEnsemble:
 
     @property
     def side_chain_idx(self):
-        return np.concatenate(
-            [
-                self.RL1.side_chain_idx,
-                self.RL2.side_chain_idx + len(self.RL1.atom_names),
-            ]
-        )
+        side_chain_idx = np.argwhere(
+            np.isin(self.atom_names, dRotamerEnsemble.backbone_atoms, invert=True)
+        ).flatten()
+        return side_chain_idx
 
     @property
     def rmin2(self):

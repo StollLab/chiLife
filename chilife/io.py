@@ -93,7 +93,7 @@ def read_rotlib(rotlib: Union[Path, BinaryIO] = None) -> Dict:
     return lib
 
 
-@cached(custom_key_maker=hash_file)
+# @cached(custom_key_maker=hash_file)
 def read_drotlib(rotlib: Path) -> Tuple[dict]:
     """Reads RotamerEnsemble for stored spin labels.
 
@@ -112,8 +112,7 @@ def read_drotlib(rotlib: Path) -> Tuple[dict]:
         for f in archive.namelist():
             if 'csts' in f:
                 with archive.open(f) as of:
-                    with np.load(of) as fc:
-                        csts = dict(fc)
+                    csts = np.load(of)
             elif f[-12] == 'A':
                 with archive.open(f) as of:
                     libA = read_rotlib.__wrapped__(of)

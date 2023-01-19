@@ -186,10 +186,10 @@ class dRotamerEnsemble:
         def objective(dihedrals, ic1, ic2):
             coords1 = ic1.set_dihedral(
                 dihedrals[: len(self.RL1.dihedral_atoms)], 1, self.RL1.dihedral_atoms
-            ).to_cartesian()
+            ).to_cartesian()[self.RL2.H_mask]
             coords2 = ic2.set_dihedral(
                 dihedrals[-len(self.RL2.dihedral_atoms):], 1, self.RL2.dihedral_atoms
-            ).to_cartesian()
+            ).to_cartesian()[self.RL2.H_mask]
 
             diff = np.linalg.norm(coords1[self.RL1.cst_idx] - coords2[self.RL2.cst_idx], axis=1)
             return diff @ diff

@@ -32,12 +32,18 @@ class dSpinLabel(dRotamerEnsemble):
 
 
     @property
-    def spin_coords(self):
-        s_coords = [SL.spin_coords.reshape(len(SL.weights), -1, 3)
-                    for SL in self.sub_labels
-                    if np.any(SL.spin_coords)]
+    def spin_atoms(self):
+        return np.unique(np.concatenate((self.SL1.spin_atoms, self.SL2.spin_atoms)))
 
-        return np.concatenate(s_coords, axis=1)
+
+    @property
+    def spin_idx(self):
+        return np.argwhere(self.atom_names == self.spin_atoms).flatten()
+
+    @property
+    def spin_coords(self):
+
+        return self.coords[:, self.spin_idx]
 
     @property
     def spin_centers(self):
@@ -45,7 +51,7 @@ class dSpinLabel(dRotamerEnsemble):
 
     @property
     def spin_weights(self):
-        return np.concatenate([SL.spin_weights for SL in self.sub_labels])
+        return self.SL1.spin_weights
 
     @property
     def spin_centroid(self):

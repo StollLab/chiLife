@@ -907,26 +907,30 @@ def get_internal_coords(
         present = False
         for dihe in preferred_dihedrals:
 
-            # Get the index of the atom being defined by the prefered dihedral
+            # Get the index of the atom being defined by the preferred dihedral
             idx_of_interest = np.argwhere(mol.atoms.names == dihe[-1]).flatten()
             for idx in idx_of_interest:
+                # Check if it is already in use
                 if np.all(mol.universe.atoms[dihedrals[idx]].names == dihe):
                     present = True
-                    break
+                    continue
 
-                dihedral = [idx]
+                # Check for alternative dihedral definitions that satisfy the preferred dihedral
                 for p in get_all_n_pred(G, idx, 3):
                     if np.all(mol.universe.atoms[p[::-1]].names == dihe):
                         dihedral = p[::-1]
                         break
+                else:
+                    dihedral = [idx]
 
+                # If an alternative is found, replace it in the dihedral list.
                 if len(dihedral) == 4:
                     present = True
                     dihedrals[dihedral[-1]] = dihedral
+
         if not present and preferred_dihedrals != []:
             raise ValueError(f'There is no dihedral `{dihe}` in the provided protien. Perhaps there is typo or the '
                              f'atoms are not sorted correctly')
-
 
     idxstop = [i for i, sub in enumerate(dihedrals) if len(sub) == 1]
     dihedral_segs = [dihedrals[s:e] for s, e in zip(idxstop, (idxstop + [None])[1:])]
@@ -937,7 +941,6 @@ def get_internal_coords(
     for seg in dihedral_segs:
 
         ixmap = {ix[-1]: i for i, ix in enumerate(seg)}
-        offset = seg[0][0]
         segid += 1
         mx, ori = ic_mx(*mol.universe.atoms[seg[2]].positions)
 

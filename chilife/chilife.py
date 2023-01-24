@@ -569,7 +569,7 @@ def create_dlibrary(
     None
     """
 
-    site1, site2 = sites[0]
+    site1, site2 = sites
     increment = site2 - site1
     resname = libname[:3] if resname is None else resname
 
@@ -595,14 +595,23 @@ def create_dlibrary(
     res2 = struct.select_atoms(f'resnum {site2}')
 
     # Identify atoms after the last dihedral to be superimposed when modeling
-    dh_atoms = [dihedral[-1] for dihedral in dihedrals[0]]
-    terminal_atom_idx = max(struct.select_atoms(f'resnum {site1} and name {" ".join(dh_atoms)}').ix)
-    mask1 = res1.ix > terminal_atom_idx
+    masks = []
+    for i, res in enumerate((res1, res2)):
+        site = res.resnums[0]
+        dh_atoms = [dihedral[-2] for dihedral in dihedral_atoms[i]]
+        terminal_atom_idx = max(struct.select_atoms(f'resnum {site} and name {" ".join(dh_atoms)}').ix)
+        mask = (res.ix >= terminal_atom_idx)
 
-    dh_atoms = [dihedral[-1] for dihedral in dihedrals[1]]
-    terminal_atom_idx = max(struct.select_atoms(f'resnum {site2} and name {" ".join(dh_atoms)}').ix)
-    mask2 = res2.ix > terminal_atom_idx
+        # Remove hydrogen atoms that are not bound to a cap heavy atom
+        for id in np.argwhere(mask).flatten():
+            if res[id].type == 'H':
+                # Hydrogen should only have one bond
+                if res[id].bonds.indices[0,0] < terminal_atom_idx:
+                    mask[id] = False
 
+        masks.append(mask)
+
+    mask1, mask2 = masks
     if np.any(np.isin(res1[mask1].names, res2[mask2].names)):
         raise ValueError('There are at least two atoms with the same name in the "cap" of the bifunctional label. '
                          'The "cap" consists of any atom after the last dihedral definition. These atoms are used to '
@@ -630,7 +639,7 @@ def create_dlibrary(
     ovlp_selection.residues.resids = site2
     res2 += ovlp_selection
     res2_bonds = res2.intra_bonds.indices
-
+    print(res2_bonds)
     IC2 = [chilife.get_internal_coords(res2,
                                        preferred_dihedrals=dihedral_atoms[1],
                                        bonds=res2_bonds)

@@ -569,13 +569,10 @@ def create_dlibrary(
     None
     """
 
-    site1 = sites[0]
-    site2 = sites[1]
-    cap = sites[2]
-
+    site1, site2 = sites[0]
     increment = site2 - site1
-
     resname = libname[:3] if resname is None else resname
+
     if len(dihedral_atoms) != 2:
         dihedral_error = True
     elif not isinstance(dihedral_atoms[0], List):
@@ -594,24 +591,49 @@ def create_dlibrary(
         )
 
     struct, spin_atoms = pre_add_library(pdb, spin_atoms, uniform_topology=False)
+    res1 = struct.select_atoms(f'resnum {site1}')
+    res2 = struct.select_atoms(f'resnum {site2}')
 
-    resi1_selection = struct.select_atoms(f"resnum {site1} {cap}")
-    resi2_selection = struct.select_atoms(f"resnum {site2} {cap}")
-    ovlp_selection = struct.select_atoms(f"resnum {cap}")
+    # Identify atoms after the last dihedral to be superimposed when modeling
+    dh_atoms = [dihedral[-1] for dihedral in dihedrals[0]]
+    terminal_atom_idx = max(struct.select_atoms(f'resnum {site1} and name {" ".join(dh_atoms)}').ix)
+    mask1 = res1.ix > terminal_atom_idx
+
+    dh_atoms = [dihedral[-1] for dihedral in dihedrals[1]]
+    terminal_atom_idx = max(struct.select_atoms(f'resnum {site2} and name {" ".join(dh_atoms)}').ix)
+    mask2 = res2.ix > terminal_atom_idx
+
+    if np.any(np.isin(res1[mask1].names, res2[mask2].names)):
+        raise ValueError('There are at least two atoms with the same name in the "cap" of the bifunctional label. '
+                         'The "cap" consists of any atom after the last dihedral definition. These atoms are used to '
+                         'guide ring closure of the bifunctional label and their names must be unique. Please rename'
+                         'the atoms of the cap so that there are no atoms with the exact same name.\n'
+                         'NOTE: This usually only happens when the cap consists of atoms defined on both residues of '
+                         'the bifunctional label')
+
+    ovlp_selection = res1[mask1] + res2[mask2]
     csts = ovlp_selection.names
     csts = csts.astype('U4')
-    resi1_bonds = resi1_selection.intra_bonds.indices
-    resi2_bonds = resi2_selection.intra_bonds.indices
 
+    ovlp_selection.residues.resnums = site1
+    ovlp_selection.residues.resids = site1
+    res1 += ovlp_selection
+    res1_bonds = res1.intra_bonds.indices
 
-    IC1 = [chilife.get_internal_coords(resi1_selection,
+    IC1 = [chilife.get_internal_coords(res1,
                                        preferred_dihedrals=dihedral_atoms[0],
-                                       bonds=resi1_bonds,)
+                                       bonds=res1_bonds)
            for ts in struct.trajectory]
 
-    IC2 = [chilife.get_internal_coords(resi2_selection,
+
+    ovlp_selection.residues.resnums = site2
+    ovlp_selection.residues.resids = site2
+    res2 += ovlp_selection
+    res2_bonds = res2.intra_bonds.indices
+
+    IC2 = [chilife.get_internal_coords(res2,
                                        preferred_dihedrals=dihedral_atoms[1],
-                                       bonds=resi2_bonds)
+                                       bonds=res2_bonds)
            for ts in struct.trajectory]
 
     for ic1, ic2 in zip(IC1, IC2):

@@ -25,11 +25,6 @@ class dSpinLabel(dRotamerEnsemble):
 
         self.RL1, self.RL2 = self.SL1, self.SL2
 
-        self.RL1.cst_idx = np.argwhere(np.isin(self.RL1.atom_names, self.csts)).flatten()
-        self.RL2.cst_idx = np.argwhere(np.isin(self.RL2.atom_names, self.csts)).flatten()
-        self.rl1mask = ~np.isin(self.RL2.atom_names, self.csts)
-        self.rl2mask = ~np.isin(self.RL2.atom_names, self.csts)
-
 
     @property
     def spin_atoms(self):
@@ -38,7 +33,7 @@ class dSpinLabel(dRotamerEnsemble):
 
     @property
     def spin_idx(self):
-        return np.argwhere(self.atom_names == self.spin_atoms).flatten()
+        return np.argwhere(np.isin(self.atom_names, self.spin_atoms)).flatten()
 
     @property
     def spin_coords(self):

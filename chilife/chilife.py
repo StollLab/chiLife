@@ -6,6 +6,8 @@ from pathlib import Path
 from itertools import combinations, product
 from typing import Callable, Tuple, Union, List, Dict
 from unittest import mock
+
+import networkx as nx
 from tqdm import tqdm
 
 import numpy as np
@@ -594,33 +596,24 @@ def create_dlibrary(
     res1 = struct.select_atoms(f'resnum {site1}')
     res2 = struct.select_atoms(f'resnum {site2}')
 
-    # Identify atoms after the last dihedral to be superimposed when modeling
-    masks = []
+    # Identify the cap based off of the user defined mobile dihedrals
+    nodes = []
     for i, res in enumerate((res1, res2)):
         site = res.resnums[0]
-        dh_atoms = [dihedral[-2] for dihedral in dihedral_atoms[i]]
+        dh_atoms = [dihedral[1] for dihedral in dihedral_atoms[i]]
         terminal_atom_idx = max(struct.select_atoms(f'resnum {site} and name {" ".join(dh_atoms)}').ix)
-        mask = (res.ix >= terminal_atom_idx)
+        nodes.append(terminal_atom_idx)
 
-        # Remove hydrogen atoms that are not bound to a cap heavy atom
-        for id in np.argwhere(mask).flatten():
-            if res[id].type == 'H':
-                # Hydrogen should only have one bond
-                if res[id].bonds.indices[0,0] < terminal_atom_idx:
-                    mask[id] = False
+    G = nx.DiGraph(struct.bonds.indices.tolist())
+    linker = list({node for path in nx.all_simple_paths(G, *nodes) for node in path if node not in nodes})
+    G.remove_nodes_from(nodes)
 
-        masks.append(mask)
+    cap_idxs = set()
+    for node in linker:
+        cap_idxs |= {a for a in nx.dfs_postorder_nodes(G, node)}
 
-    mask1, mask2 = masks
-    if np.any(np.isin(res1[mask1].names, res2[mask2].names)):
-        raise ValueError('There are at least two atoms with the same name in the "cap" of the bifunctional label. '
-                         'The "cap" consists of any atom after the last dihedral definition. These atoms are used to '
-                         'guide ring closure of the bifunctional label and their names must be unique. Please rename'
-                         'the atoms of the cap so that there are no atoms with the exact same name.\n'
-                         'NOTE: This usually only happens when the cap consists of atoms defined on both residues of '
-                         'the bifunctional label')
-
-    ovlp_selection = res1[mask1] + res2[mask2]
+    cap_idxs = list(sorted(cap_idxs))
+    ovlp_selection = struct.atoms[cap_idxs]
     csts = ovlp_selection.names
     csts = csts.astype('U4')
 
@@ -639,10 +632,11 @@ def create_dlibrary(
     ovlp_selection.residues.resids = site2
     res2 += ovlp_selection
     res2_bonds = res2.intra_bonds.indices
-    print(res2_bonds)
+
     IC2 = [chilife.get_internal_coords(res2,
                                        preferred_dihedrals=dihedral_atoms[1],
-                                       bonds=res2_bonds)
+                                       bonds=res2_bonds,
+                                       cap=cap_idxs)
            for ts in struct.trajectory]
 
     for ic1, ic2 in zip(IC1, IC2):

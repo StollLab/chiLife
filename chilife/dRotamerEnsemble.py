@@ -183,16 +183,25 @@ class dRotamerEnsemble:
         chilife.save(name, self.RL1, self.RL2)
 
     def _minimize(self):
+
+        _, rmin_ij, eps_ij, shape = chilife.prep_internal_clash(self)
+        a, b = [list(x) for x in zip(*self.non_bonded)]
+
         def objective(dihedrals, ic1, ic2):
             coords1 = ic1.set_dihedral(
                 dihedrals[: len(self.RL1.dihedral_atoms)], 1, self.RL1.dihedral_atoms
-            ).to_cartesian()[self.RL2.H_mask]
+            ).to_cartesian()[self.RL1.H_mask]
             coords2 = ic2.set_dihedral(
                 dihedrals[-len(self.RL2.dihedral_atoms):], 1, self.RL2.dihedral_atoms
             ).to_cartesian()[self.RL2.H_mask]
 
-            diff = np.linalg.norm(coords1[self.RL1.cst_idx] - coords2[self.RL2.cst_idx], axis=1)
-            return diff @ diff
+            diff = np.linalg.norm(coords1[self.cst_idx1] - coords2[self.cst_idx2], axis=1)
+            ovlp = (coords1[self.cst_idx1] + coords2[self.cst_idx2]) / 2
+            coords = np.concatenate([coords1[self.rl1mask], coords2[self.rl2mask], ovlp], axis=0)
+            r = np.linalg.norm(coords[a] - coords[b], axis=1)
+            score = diff @ diff + chilife.get_lj_energy.py_func(r, rmin_ij, eps_ij).sum()
+
+            return score
 
         scores = np.empty_like(self.weights)
         for i, (ic1, ic2) in enumerate(
@@ -204,14 +213,16 @@ class dRotamerEnsemble:
                     ic2.get_dihedral(1, self.RL2.dihedral_atoms),
                 ]
             )
-            lb = [-np.pi] * len(d0)  # d0 - np.deg2rad(40)  #
-            ub = [np.pi] * len(d0)  # d0 + np.deg2rad(40) #
+            lb = d0 - np.deg2rad(40)  # [-np.pi] * len(d0)  #
+            ub = d0 + np.deg2rad(40)  # [np.pi] * len(d0)  #
             bounds = np.c_[lb, ub]
-            xopt = opt.minimize(objective, x0=d0, args=(ic1, ic2), bounds=bounds)
+            xopt = opt.minimize(objective, x0=d0, args=(ic1, ic2), bounds=bounds, method='SLSQP')
 
             self.RL1._coords[i] = ic1.coords[self.RL1.H_mask]
             self.RL2._coords[i] = ic2.coords[self.RL2.H_mask]
-            scores[i] = xopt.fun
+            tors = d0 - xopt.x
+            tors = tors @ tors
+            scores[i] = xopt.fun + tors
 
         self.RL1.backbone_to_site()
         self.RL2.backbone_to_site()

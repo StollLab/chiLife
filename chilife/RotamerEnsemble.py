@@ -991,12 +991,9 @@ class RotamerEnsemble:
         """ """
         if not hasattr(self, "_bonds"):
             icmask_map = {x: i for i, x in enumerate(np.argwhere(self.ic_mask).ravel())}
-            print(len(self.ic_mask), len(self.H_mask))
-            print(self.internal_coords[0].bonded_pairs)
-            print(icmask_map)
             self._bonds = np.array([(icmask_map[a], icmask_map[b]) for a, b in self.internal_coords[0].bonded_pairs
                                    if a in icmask_map and b in icmask_map])
-            print(self.atom_names[self._bonds])
+            
         return self._bonds
 
     @bonds.setter

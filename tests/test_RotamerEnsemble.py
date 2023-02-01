@@ -272,14 +272,10 @@ def test_dihedral_sigmas_fail():
 
 
 def test_set_dihedral_sigmas():
-    SL = chilife.SpinLabel('R1A')
+    SL = chilife.SpinLabel('R1M')
     assert np.all(SL.sigmas == 35.)
     SL.set_dihedral_sampling_sigmas(25)
     assert np.all(SL.sigmas == 25.)
-
-
-def test_sample_dihedral3():
-    SL = chilife.SpinLabel('R1A', 27, ubq, sample=1000)
 
 
 def test_clash_radius():
@@ -288,7 +284,7 @@ def test_clash_radius():
 
 
 def test_nataa():
-    SL = chilife.SpinLabel('R1A', 28, ubq)
+    SL = chilife.SpinLabel('R1M', 28, ubq)
     assert SL.nataa == 'A'
 
 

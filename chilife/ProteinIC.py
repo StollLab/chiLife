@@ -218,7 +218,9 @@ class ProteinIC:
                 chain: {"ori": np.array([0, 0, 0]), "mx": np.identity(3)}
                 for chain in self.ICs
             }
-
+            self.has_chain_operators = False
+        else:
+            self.has_chain_operators = True
         self._chain_operators = op
         self.perturbed = True
 
@@ -330,13 +332,13 @@ class ProteinIC:
 
         dihedrals = np.atleast_1d(dihedrals)
         atom_list = np.atleast_2d(atom_list)
-
+        zmc = self.zmats[chain]
         for i, (dihedral, atoms) in enumerate(zip(dihedrals, atom_list)):
             stem, stemr = tuple(atoms[2::-1]), tuple(atoms[1:])
             if (resi, stem) in self.atom_dict['dihedrals'][chain]:
                 aidx = self.atom_dict['dihedrals'][chain][resi, stem][atoms[-1]]
                 delta = self.zmats[chain][aidx, 2] - dihedral
-                self.zmats[chain][aidx, 2] = dihedral
+                zmc[aidx, 2] = dihedral
 
                 idxs = []
                 for key, idx in self.atom_dict['dihedrals'][chain][resi, stem].items():
@@ -350,7 +352,7 @@ class ProteinIC:
             elif (resi, stemr) in self.atom_dict['dihedrals'][chain]:
                 aidx = self.atom_dict['dihedrals'][chain][resi, stemr][atoms[0]]
                 delta = self.zmats[chain][aidx, 2] - dihedral
-                self.zmats[chain][aidx, 2] = dihedral
+                zmc[aidx, 2] = dihedral
 
                 idxs = []
                 for key, idx in self.atom_dict['dihedrals'][chain][resi, stemr].items():
@@ -369,7 +371,7 @@ class ProteinIC:
 
             # Check for any atom defined by a similar dihedral in reverse
             if idxs:
-                self.zmats[chain][idxs, 2] -= delta
+                zmc[idxs, 2] -= delta
 
         return self
 
@@ -391,10 +393,12 @@ class ProteinIC:
         angles: numpy.ndarray
             Array of dihedral angles corresponding to the atom sets in atom list.
         """
-        if atom_list == []:
+        if len(atom_list) == 0:
             return np.array([])
+
         if chain is None and len(self.ICs) == 1:
             chain = list(self.ICs.keys())[0]
+
         elif chain is None and len(self.ICs) > 1:
             raise ValueError("You must specify the protein chain")
 
@@ -433,17 +437,9 @@ class ProteinIC:
 
 
             # Apply chain operations if any exist
-            if ~np.allclose(
-                self.chain_operators[segid]["mx"], np.identity(3)
-            ) and ~np.allclose(self.chain_operators[segid]["ori"], np.array([0, 0, 0])):
+            if self.has_chain_operators:
                 cart_coords = cart_coords @ self.chain_operators[segid]["mx"] + self.chain_operators[segid]["ori"]
 
-            has_nan = False
-            if np.any(np.isnan(cart_coords)):
-                has_nan = True
-
-            if has_nan:
-                breakpoint()
             coord_arrays.append(cart_coords)
 
         return np.concatenate(coord_arrays)

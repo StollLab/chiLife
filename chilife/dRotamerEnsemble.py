@@ -1,3 +1,4 @@
+from joblib import Parallel, delayed
 from typing import Union
 from itertools import combinations
 import logging
@@ -74,6 +75,9 @@ class dRotamerEnsemble:
         self.protein_clash_idx = [
             idx for idx in protein_clash_idx if idx not in self.clash_ignore_idx
         ]
+
+        _, self.irmin_ij, self.ieps_ij, _ = chilife.prep_internal_clash(self)
+        self.aidx, self.bidx = [list(x) for x in zip(*self.non_bonded)]
 
         if self.minimize:
             self._minimize()
@@ -184,45 +188,10 @@ class dRotamerEnsemble:
 
     def _minimize(self):
 
-        _, rmin_ij, eps_ij, shape = chilife.prep_internal_clash(self)
-        a, b = [list(x) for x in zip(*self.non_bonded)]
-
-        def objective(dihedrals, ic1, ic2):
-            coords1 = ic1.set_dihedral(
-                dihedrals[: len(self.RL1.dihedral_atoms)], 1, self.RL1.dihedral_atoms
-            ).to_cartesian()[self.RL1.H_mask]
-            coords2 = ic2.set_dihedral(
-                dihedrals[-len(self.RL2.dihedral_atoms):], 1, self.RL2.dihedral_atoms
-            ).to_cartesian()[self.RL2.H_mask]
-
-            diff = np.linalg.norm(coords1[self.cst_idx1] - coords2[self.cst_idx2], axis=1)
-            ovlp = (coords1[self.cst_idx1] + coords2[self.cst_idx2]) / 2
-            coords = np.concatenate([coords1[self.rl1mask], coords2[self.rl2mask], ovlp], axis=0)
-            r = np.linalg.norm(coords[a] - coords[b], axis=1)
-            score = diff @ diff + chilife.get_lj_energy.py_func(r, rmin_ij, eps_ij).sum()
-
-            return score
-
-        scores = np.empty_like(self.weights)
-        for i, (ic1, ic2) in enumerate(
-            zip(self.RL1.internal_coords, self.RL2.internal_coords)
-        ):
-            d0 = np.concatenate(
-                [
-                    ic1.get_dihedral(1, self.RL1.dihedral_atoms),
-                    ic2.get_dihedral(1, self.RL2.dihedral_atoms),
-                ]
-            )
-            lb = d0 - np.deg2rad(40)  # [-np.pi] * len(d0)  #
-            ub = d0 + np.deg2rad(40)  # [np.pi] * len(d0)  #
-            bounds = np.c_[lb, ub]
-            xopt = opt.minimize(objective, x0=d0, args=(ic1, ic2), bounds=bounds, method='SLSQP')
-
-            self.RL1._coords[i] = ic1.coords[self.RL1.H_mask]
-            self.RL2._coords[i] = ic2.coords[self.RL2.H_mask]
-            tors = d0 - xopt.x
-            tors = tors @ tors
-            scores[i] = xopt.fun + tors
+        scores =  [self._min_one(i, ic1, ic2) for i, (ic1, ic2) in
+                 enumerate(zip(self.RL1.internal_coords, self.RL2.internal_coords))]
+        
+        scores = np.asarray(scores)
 
         self.RL1.backbone_to_site()
         self.RL2.backbone_to_site()
@@ -230,8 +199,47 @@ class dRotamerEnsemble:
         scores /= len(self.csts)
         scores -= scores.min()
 
-        self.weights *= np.exp(-scores * self.restraint_weight / (chilife.GAS_CONST * self.temp) / np.exp(-scores).sum())
+        self.weights *= np.exp(-scores / (chilife.GAS_CONST * self.temp) / np.exp(-scores).sum())
         self.weights /= self.weights.sum()
+
+    def _objective(self, dihedrals, ic1, ic2):
+
+        ic1.set_dihedral(dihedrals[: len(self.RL1.dihedral_atoms)], 1, self.RL1.dihedral_atoms)
+        coords1 = ic1.to_cartesian()[self.RL1.H_mask]
+
+        ic2.set_dihedral(dihedrals[-len(self.RL2.dihedral_atoms):], 1, self.RL2.dihedral_atoms)
+        coords2 = ic2.to_cartesian()[self.RL2.H_mask]
+
+        diff = np.linalg.norm(coords1[self.cst_idx1] - coords2[self.cst_idx2], axis=1)
+        ovlp = (coords1[self.cst_idx1] + coords2[self.cst_idx2]) / 2
+        coords = np.concatenate([coords1[self.rl1mask], coords2[self.rl2mask], ovlp], axis=0)
+        r = np.linalg.norm(coords[self.aidx] - coords[self.bidx], axis=1)
+
+        # Faster to compute lj here
+        lj = self.irmin_ij / r
+        lj = lj * lj *lj
+        lj = lj * lj
+
+        # attractive forces are needed, otherwise this term will perpetually push atoms apart
+        internal_energy = self.ieps_ij * (lj * lj - 2 * lj)
+        score = (diff @ diff) * self.restraint_weight / len(diff) + internal_energy.sum()
+
+        return score
+
+    def _min_one(self, i, ic1, ic2):
+
+        d0 = np.concatenate([ic1.get_dihedral(1, self.RL1.dihedral_atoms),
+                             ic2.get_dihedral(1, self.RL2.dihedral_atoms)])
+
+        lb = d0 - np.deg2rad(40)  # [-np.pi] * len(d0)  #
+        ub = d0 + np.deg2rad(40)  # [np.pi] * len(d0)  #
+        bounds = np.c_[lb, ub]
+        xopt = opt.minimize(self._objective, x0=d0, args=(ic1, ic2), bounds=bounds, method='SLSQP')
+        self.RL1._coords[i] = ic1.coords[self.RL1.H_mask]
+        self.RL2._coords[i] = ic2.coords[self.RL2.H_mask]
+        tors = d0 - xopt.x
+        tors = tors @ tors
+        return xopt.fun + tors
 
     @property
     def weights(self):

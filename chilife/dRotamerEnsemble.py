@@ -29,7 +29,7 @@ class dRotamerEnsemble:
         self.forgive = kwargs.setdefault("forgive", 1.0)
         self.clash_radius = kwargs.setdefault("clash_radius", 14.0)
         self._clash_ori_inp = kwargs.setdefault("clash_ori", "cen")
-        self.restraint_weight = kwargs.pop("restraint_weight") if "restraint_weight" in kwargs else 2000  # kcal/mol/A^2
+        self.restraint_weight = kwargs.pop("restraint_weight") if "restraint_weight" in kwargs else 444  # kcal/mol/A^2
         self.alignment_method = kwargs.setdefault("alignment_method", "bisect".lower())
         self.dihedral_sigmas = kwargs.setdefault("dihedral_sigmas", 25)
         self.minimize = kwargs.pop("minimize", True)
@@ -194,8 +194,16 @@ class dRotamerEnsemble:
         scores = np.asarray(scores)
         SSEs = np.linalg.norm(self.RL1.coords[:, self.cst_idx1] - self.RL2.coords[:, self.cst_idx2], axis=2).sum(axis=1)
         RMSD = np.sqrt(SSEs/len(self.csts))
-        print(RMSD)
-        print(RMSD.min())
+        RMSmin= RMSD.min()
+        
+        if RMSmin > 0.3:
+            warnings.warn(f'The minimum RMSD of the cap is {RMSD.min()}, this may result in distorted spin label. '
+                          f'Check that the structures make sense.')
+
+        if RMSmin > 0.5:
+           raise RuntimeError(f'chiLife was unable to connect residues {self.site1} and {self.site2} with {self.res}. '
+                              f'Please double check that this is the inteded labeling site. It is likely that these '
+                              f'sites are too far apart.')
 
         self.RL1.backbone_to_site()
         self.RL2.backbone_to_site()
@@ -354,7 +362,8 @@ class dRotamerEnsemble:
                 elif not bndin[1]:
                     bonds.append([bond[0] + len(self.rl1mask),
                                   np.argwhere(self.atom_names == self.RL2.atom_names[bond[1]]).flat[0]])
-            self._bonds = np.array(bonds)
+
+            self._bonds = np.array(sorted(set(map(tuple, bonds))), dtype=int)
 
         return self._bonds
 

@@ -990,10 +990,11 @@ class RotamerEnsemble:
     def bonds(self):
         """ """
         if not hasattr(self, "_bonds"):
-            bond_tree = cKDTree(self._coords[0])
-            bonds = bond_tree.query_pairs(2.0)
-            self._bonds = set(tuple(sorted(bond)) for bond in bonds)
-        return list(sorted(self._bonds))
+            icmask_map = {x: i for i, x in enumerate(np.argwhere(self.ic_mask).ravel())}
+            self._bonds = np.array([(icmask_map[a], icmask_map[b]) for a, b in self.internal_coords[0].bonded_pairs
+                                   if a in icmask_map and b in icmask_map])
+            
+        return self._bonds
 
     @bonds.setter
     def bonds(self, inp):
@@ -1019,7 +1020,7 @@ class RotamerEnsemble:
         if not hasattr(self, "_non_bonded"):
             idxs = np.arange(len(self.atom_names))
             all_pairs = set(combinations(idxs, 2))
-            self._non_bonded = all_pairs - set(self.bonds)
+            self._non_bonded = all_pairs - set(map(tuple, self.bonds))
 
         return sorted(list(self._non_bonded))
 

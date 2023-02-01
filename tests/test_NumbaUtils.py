@@ -109,7 +109,7 @@ def test_fib_points():
 
 def test_get_sasa1():
     ubq = mda.Universe('test_data/1ubq.pdb').select_atoms('protein')
-    SL = xl.SpinLabel('R1A', 28, ubq)
+    SL = xl.SpinLabel('R1M', 28, ubq)
     atom_coords = SL.coords[0]
     atom_radii = xl.get_lj_rmin(SL.atom_types)
 
@@ -118,7 +118,7 @@ def test_get_sasa1():
 
     area = nu.get_sasa(atom_coords, atom_radii, environment_coords, environment_radii)
 
-    assert area[0] == 289.17354084897187
+    assert area[0] == 272.54997512834973
 
 
 def test_get_sasa2():

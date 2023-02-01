@@ -938,6 +938,7 @@ def get_internal_coords(
     all_ICAtoms = {}
     chain_operators = {}
     segid = 0
+    ixmapped_bonds = []
     for seg in dihedral_segs:
 
         ixmap = {ix[-1]: i for i, ix in enumerate(seg)}
@@ -948,9 +949,9 @@ def get_internal_coords(
         #
         ICatoms = [get_ICAtom(mol, dihedral, ixmap=ixmap) for dihedral in seg]
         all_ICAtoms[segid] = get_ICResidues(ICatoms)
-
+        ixmapped_bonds += [(ixmap[a], ixmap[b]) for a, b in bonds if a in ixmap and b in ixmap]
     # Get bonded pairs within selection
-    bonded_pairs = bonds
+    bonded_pairs = ixmapped_bonds
 
     return ProteinIC.from_ICatoms(
         all_ICAtoms, chain_operators=chain_operators, bonded_pairs=bonded_pairs

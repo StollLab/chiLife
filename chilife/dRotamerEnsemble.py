@@ -29,7 +29,7 @@ class dRotamerEnsemble:
         self.forgive = kwargs.setdefault("forgive", 1.0)
         self.clash_radius = kwargs.setdefault("clash_radius", 14.0)
         self._clash_ori_inp = kwargs.setdefault("clash_ori", "cen")
-        self.restraint_weight = kwargs.pop("restraint_weight") if "restraint_weight" in kwargs else 200  # kcal/mol/A^2
+        self.restraint_weight = kwargs.pop("restraint_weight") if "restraint_weight" in kwargs else 2000  # kcal/mol/A^2
         self.alignment_method = kwargs.setdefault("alignment_method", "bisect".lower())
         self.dihedral_sigmas = kwargs.setdefault("dihedral_sigmas", 25)
         self.minimize = kwargs.pop("minimize", True)
@@ -41,8 +41,8 @@ class dRotamerEnsemble:
 
         self.cst_idx1 = np.where(self.RL1.atom_names[None, :] == self.csts[:, None])[1]
         self.cst_idx2 = np.where(self.RL2.atom_names[None, :] == self.csts[:, None])[1]
-        self.rl1mask = ~np.isin(self.RL1.atom_names, self.csts)
-        self.rl2mask = ~np.isin(self.RL2.atom_names, self.csts)
+        self.rl1mask = np.argwhere(~np.isin(self.RL1.atom_names, self.csts)).flatten()
+        self.rl2mask = np.argwhere(~np.isin(self.RL2.atom_names, self.csts)).flatten()
 
         self.name = self.res
         if self.site is not None:
@@ -192,11 +192,14 @@ class dRotamerEnsemble:
                  enumerate(zip(self.RL1.internal_coords, self.RL2.internal_coords))]
         
         scores = np.asarray(scores)
+        SSEs = np.linalg.norm(self.RL1.coords[:, self.cst_idx1] - self.RL2.coords[:, self.cst_idx2], axis=2).sum(axis=1)
+        RMSD = np.sqrt(SSEs/len(self.csts))
+        print(RMSD)
+        print(RMSD.min())
 
         self.RL1.backbone_to_site()
         self.RL2.backbone_to_site()
 
-        scores /= len(self.csts)
         scores -= scores.min()
 
         self.weights *= np.exp(-scores / (chilife.GAS_CONST * self.temp) / np.exp(-scores).sum())
@@ -332,7 +335,27 @@ class dRotamerEnsemble:
     def bonds(self):
         """ """
         if not hasattr(self, "_bonds"):
-            self._bonds = chilife.guess_bonds(self._lib_coords[0], self.atom_types)
+            bonds = []
+
+            for bond in self.SL1.bonds:
+                bndin = np.isin(bond, self.rl1mask)
+                if np.all(bndin):
+                    bonds.append(bond)
+                elif np.any(bndin):
+                    bonds.append([bond[0], np.argwhere(self.atom_names == self.RL1.atom_names[bond[1]]).flat[0]])
+                else:
+                    bonds.append([np.argwhere(self.atom_names == self.RL1.atom_names[bond[0]]).flat[0],
+                                 np.argwhere(self.atom_names == self.RL1.atom_names[bond[1]]).flat[0]])
+
+            for bond in self.SL2.bonds:
+                bndin = np.isin(bond, self.rl2mask)
+                if np.all(bndin):
+                    bonds.append([b + len(self.rl1mask) for b in bond])
+                elif not bndin[1]:
+                    bonds.append([bond[0] + len(self.rl1mask),
+                                  np.argwhere(self.atom_names == self.RL2.atom_names[bond[1]]).flat[0]])
+            self._bonds = np.array(bonds)
+
         return self._bonds
 
     @bonds.setter

@@ -18,8 +18,9 @@ class dRotamerEnsemble:
     def __init__(self, res, sites, protein=None, chain=None, rotlib=None, **kwargs):
         """ """
         self.res = res
-        self.site, self.site2 = sorted(sites)
-        self.increment = self.site2 - self.site
+        self.site1, self.site2 = sorted(sites)
+        self.site = self.site1
+        self.increment = self.site2 - self.site1
         self.kwargs = kwargs
 
         self.protein = protein
@@ -33,6 +34,7 @@ class dRotamerEnsemble:
         self.alignment_method = kwargs.setdefault("alignment_method", "bisect".lower())
         self.dihedral_sigmas = kwargs.setdefault("dihedral_sigmas", 25)
         self.minimize = kwargs.pop("minimize", True)
+        self.min_method = kwargs.pop('min_method', 'SLSQP')
         self.eval_clash = kwargs.pop("eval_clash", True)
         self.energy_func = kwargs.setdefault("energy_func", chilife.get_lj_rep)
         self.temp = kwargs.setdefault("temp", 298)
@@ -45,13 +47,13 @@ class dRotamerEnsemble:
         self.rl2mask = np.argwhere(~np.isin(self.RL2.atom_names, self.csts)).flatten()
 
         self.name = self.res
-        if self.site is not None:
-            self.name = f"{self.RL1.nataa}{self.site}{self.RL1.nataa}{self.site2}{self.res}"
+        if self.site1 is not None:
+            self.name = f"{self.RL1.nataa}{self.site1}{self.RL1.nataa}{self.site2}{self.res}"
         if self.chain is not None:
             self.name += f"_{self.chain}"
 
         self.selstr = (
-            f"resid {self.site} {self.site2} and segid {self.chain} and not altloc B"
+            f"resid {self.site1} {self.site2} and segid {self.chain} and not altloc B"
         )
 
         self.protein_setup()
@@ -60,7 +62,7 @@ class dRotamerEnsemble:
     def protein_setup(self):
         self.protein = self.protein.select_atoms("not (byres name OH2 or resname HOH)")
         self.clash_ignore_idx = self.protein.select_atoms(
-            f"resid {self.site} {self.site2} and segid {self.chain}"
+            f"resid {self.site1} {self.site2} and segid {self.chain}"
         ).ix
 
         self.resindex = self.protein.select_atoms(self.selstr).residues[0].resindex
@@ -90,22 +92,22 @@ class dRotamerEnsemble:
             chain = "A"
         elif len(set(self.protein.segments.segids)) == 1:
             chain = self.protein.segments.segids[0]
-        elif np.isin(self.protein.residues.resnums, self.site).sum() == 0:
+        elif np.isin(self.protein.residues.resnums, self.site1).sum() == 0:
             raise ValueError(
-                f"Residue {self.site} is not present on the provided protein"
+                f"Residue {self.site1} is not present on the provided protein"
             )
-        elif np.isin(self.protein.residues.resnums, self.site).sum() == 1:
-            chain = self.protein.select_atoms(f"resid {self.site}").segids[0]
+        elif np.isin(self.protein.residues.resnums, self.site1).sum() == 1:
+            chain = self.protein.select_atoms(f"resid {self.site1}").segids[0]
         else:
             raise ValueError(
-                f"Residue {self.site} is present on more than one chain. Please specify the desired chain"
+                f"Residue {self.site1} is present on more than one chain. Please specify the desired chain"
             )
         return chain
 
     def get_lib(self, rotlib):
         if self.protein is not None:
-            # get site backbone information from protein structure
-            sel_txt = f"resnum {self.site} and segid {self.chain}"
+            # get site1 backbone information from protein structure
+            sel_txt = f"resnum {self.site1} and segid {self.chain}"
 
 
         rotlib = self.res if rotlib is None else rotlib
@@ -125,7 +127,7 @@ class dRotamerEnsemble:
             else:
                 warnings.warn(f'No rotamer library found for the given increment (ip{self.increment}) but rotlibs '
                               f'were found for other increments. chiLife will combine these rotlib to model '
-                              f'this site pair and but they may not be accurate! Because there is no information '
+                              f'this site1 pair and but they may not be accurate! Because there is no information '
                               f'about the relative weighting of different rotamer libraries all weights will be '
                               f'set to 1/len(rotlib)')
 
@@ -133,24 +135,36 @@ class dRotamerEnsemble:
             libA, libB, csts = chilife.read_library(rotlib_path)
 
         elif isinstance(rotlib_path, list):
-            concatable = ('coords', 'dihedrals', 'internal_coords')
+            concatable = ['dihedrals', 'internal_coords']
 
             cctA, cctB, ccsts = {}, {}, {}
             libA, libB, csts = chilife.read_library(rotlib_path[0])
             for p in rotlib_path:
                 tlibA, tlibB, tcsts = chilife.read_library(p)
 
+
                 # Libraries must have the same atom order
-                if np.any(tlibA['atom_names'] != libA['atom_names']) or \
-                    np.any(tlibB['atom_names'] != libB['atom_names']):
+                if not np.all(np.isin(tlibA['atom_names'], libA['atom_names'])) and \
+                    np.all(np.isin(tlibB['atom_names'], libB['atom_names'])):
+
+                    print(tlibA['atom_names'])
+                    print(libA['atom_names'])
 
                     raise ValueError(f'Rotlibs {rotlib_path[0].stem} and {p.stem} are not compatable. You may'
                                      f'need to rename one of them.')
+
                 for field in concatable:
                     cctA.setdefault(field, []).append(tlibA[field])
                     cctB.setdefault(field, []).append(tlibB[field])
 
-            for field in concatable:
+                ixmapA = [np.argwhere(tlibA['atom_names'] == aname).flat[0] for aname in libA['atom_names']]
+                ixmapB = [np.argwhere(tlibB['atom_names'] == aname).flat[0] for aname in libB['atom_names']]
+
+                cctA.setdefault('coords', []).append(tlibA['coords'][:, ixmapA])
+                cctB.setdefault('coords', []).append(tlibB['coords'][:, ixmapB])
+
+            for field in concatable + ['coords']:
+
                 libA[field] = np.concatenate(cctA[field])
                 libB[field] = np.concatenate(cctB[field])
 
@@ -164,7 +178,7 @@ class dRotamerEnsemble:
     def create_ensembles(self):
 
         self.RL1 = chilife.RotamerEnsemble(self.res,
-                                           self.site,
+                                           self.site1,
                                            self.protein,
                                            self.chain,
                                            self.libA,
@@ -195,14 +209,15 @@ class dRotamerEnsemble:
         SSEs = np.linalg.norm(self.RL1.coords[:, self.cst_idx1] - self.RL2.coords[:, self.cst_idx2], axis=2).sum(axis=1)
         RMSD = np.sqrt(SSEs/len(self.csts))
         RMSmin= RMSD.min()
-        
+
         if RMSmin > 0.3:
             warnings.warn(f'The minimum RMSD of the cap is {RMSD.min()}, this may result in distorted spin label. '
                           f'Check that the structures make sense.')
 
         if RMSmin > 0.5:
+
            raise RuntimeError(f'chiLife was unable to connect residues {self.site1} and {self.site2} with {self.res}. '
-                              f'Please double check that this is the inteded labeling site. It is likely that these '
+                              f'Please double check that this is the inteded labeling site1. It is likely that these '
                               f'sites are too far apart.')
 
         self.RL1.backbone_to_site()
@@ -242,14 +257,16 @@ class dRotamerEnsemble:
         d0 = np.concatenate([ic1.get_dihedral(1, self.RL1.dihedral_atoms),
                              ic2.get_dihedral(1, self.RL2.dihedral_atoms)])
 
-        lb = d0 - np.deg2rad(40)  # [-np.pi] * len(d0)  #
-        ub = d0 + np.deg2rad(40)  # [np.pi] * len(d0)  #
+        lb =  [-np.pi] * len(d0)  # d0 - np.deg2rad(40)
+        ub =  [np.pi] * len(d0)  # d0 + np.deg2rad(40)  #
         bounds = np.c_[lb, ub]
-        xopt = opt.minimize(self._objective, x0=d0, args=(ic1, ic2), bounds=bounds, method='SLSQP')
+        xopt = opt.minimize(self._objective, x0=d0, args=(ic1, ic2), bounds=bounds, method=self.min_method)
         self.RL1._coords[i] = ic1.coords[self.RL1.H_mask]
         self.RL2._coords[i] = ic2.coords[self.RL2.H_mask]
         tors = d0 - xopt.x
-        tors = tors @ tors
+        tors = np.arctan2(np.sin(tors), np.cos(tors))
+        tors = np.sqrt(tors @ tors)
+
         return xopt.fun + tors
 
     @property
@@ -418,8 +435,7 @@ class dRotamerEnsemble:
         self.RL2.trim_rotamers()
 
     def evaluate(self):
-        """Place rotamer ensemble on protein site and recalculate rotamer weights."""
-
+        """Place rotamer ensemble on protein site1 and recalculate rotamer weights."""
         # Calculate external energies
         energies = self.energy_func(self)
 
@@ -435,7 +451,6 @@ def get_possible_rotlibs(rotlib: str, all: bool = False) -> Union[Path, None]:
     """
 
     """
-
     cwd = Path.cwd()
 
     # Assemble a list of possible rotlib paths starting in the current directory
@@ -444,6 +459,7 @@ def get_possible_rotlibs(rotlib: str, all: bool = False) -> Union[Path, None]:
                         cwd / (rotlib + '.zip'),
                         cwd / (rotlib + '_drotlib.zip')]
 
+    possible_rotlibs += list(cwd.glob(f'*{rotlib}*_drotlib.zip'))
     # Then in the user defined rotamer library directory
     for pth in chilife.USER_RL_DIR:
         possible_rotlibs += list(pth.glob(f'*{rotlib}*_drotlib.zip'))

@@ -17,7 +17,7 @@ class RotamerEnsemble:
     Attributes
     ----------
     name : str
-        String identifying RotamerEnsemble. Defaults to [site][res]_[chain] but chan be changed by the user if desired.
+        String identifying RotamerEnsemble. Defaults to [nataa][site][res]_[chain] but chan be changed by the user if desired.
         This string will be used to name structures when saving PDBs.
     res : string
         3-character name of desired residue, e.g. R1A.
@@ -169,16 +169,15 @@ class RotamerEnsemble:
 
         self._rsigmas = np.deg2rad(self.sigmas)
         self._rkappas = 1 / self._rsigmas**2
-        self.ic_mask = self.atom_names != "Z"
 
         # Remove hydrogen atoms unless otherwise specified
         if not self.use_H:
             self.H_mask = self.atom_types != "H"
-            self.ic_mask *= self.H_mask
             self._coords = self._coords[:, self.H_mask]
             self.atom_types = self.atom_types[self.H_mask]
             self.atom_names = self.atom_names[self.H_mask]
 
+        self.ic_mask = [np.argwhere(self.internal_coords[0].atom_names == a).flat[0] for a in self.atom_names]
         self._lib_coords = self._coords.copy()
         self._lib_IC = self.internal_coords
 
@@ -990,7 +989,7 @@ class RotamerEnsemble:
     def bonds(self):
         """ """
         if not hasattr(self, "_bonds"):
-            icmask_map = {x: i for i, x in enumerate(np.argwhere(self.ic_mask).ravel())}
+            icmask_map = {x: i for i, x in enumerate(self.ic_mask)}
             self._bonds = np.array([(icmask_map[a], icmask_map[b]) for a, b in self.internal_coords[0].bonded_pairs
                                    if a in icmask_map and b in icmask_map])
             

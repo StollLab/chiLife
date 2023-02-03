@@ -10,7 +10,7 @@ class dSpinLabel(dRotamerEnsemble):
 
     def create_ensembles(self):
         self.SL1 = chilife.SpinLabel(self.res,
-                                     self.site,
+                                     self.site1,
                                      self.protein,
                                      self.chain,
                                      self.libA,

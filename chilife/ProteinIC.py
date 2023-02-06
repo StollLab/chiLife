@@ -936,7 +936,7 @@ def get_internal_coords(
             # Get the index of the atom being defined by the preferred dihedral
             idx_of_interest = np.argwhere(mol.atoms.names == dihe[-1]).flatten()
             u_idx_of_interest = mol[idx_of_interest].ix
-            idx_of_interest = np.argwhere(atom_idxs == u_idx_of_interest).flatten()
+            idx_of_interest = np.argwhere(np.isin(atom_idxs, u_idx_of_interest)).flatten()
             for idx, uidx in zip(idx_of_interest, u_idx_of_interest):
                 # Check if it is already in use
                 if np.all(mol.universe.atoms[dihedrals[idx]].names == dihe):

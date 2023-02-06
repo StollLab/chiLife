@@ -30,7 +30,7 @@ class dRotamerEnsemble:
         self.forgive = kwargs.setdefault("forgive", 1.0)
         self.clash_radius = kwargs.setdefault("clash_radius", 14.0)
         self._clash_ori_inp = kwargs.setdefault("clash_ori", "cen")
-        self.restraint_weight = kwargs.pop("restraint_weight") if "restraint_weight" in kwargs else 444  # kcal/mol/A^2
+        self.restraint_weight = kwargs.pop("restraint_weight") if "restraint_weight" in kwargs else 222  # kcal/mol/A^2
         self.alignment_method = kwargs.setdefault("alignment_method", "bisect".lower())
         self.dihedral_sigmas = kwargs.setdefault("dihedral_sigmas", 25)
         self.minimize = kwargs.pop("minimize", True)
@@ -207,17 +207,17 @@ class dRotamerEnsemble:
         
         scores = np.asarray(scores)
         SSEs = np.linalg.norm(self.RL1.coords[:, self.cst_idx1] - self.RL2.coords[:, self.cst_idx2], axis=2).sum(axis=1)
-        RMSD = np.sqrt(SSEs/len(self.csts))
-        RMSmin= RMSD.min()
+        MSD = SSEs/len(self.csts)
+        MSDmin= MSD.min()
 
-        if RMSmin > 0.3:
-            warnings.warn(f'The minimum RMSD of the cap is {RMSD.min()}, this may result in distorted spin label. '
+        if MSDmin > 0.3:
+            warnings.warn(f'The minimum RMSD of the cap is {MSD.min()}, this may result in distorted spin label. '
                           f'Check that the structures make sense.')
 
-        if RMSmin > 0.5:
+        if MSDmin > 0.5:
 
            raise RuntimeError(f'chiLife was unable to connect residues {self.site1} and {self.site2} with {self.res}. '
-                              f'Please double check that this is the inteded labeling site1. It is likely that these '
+                              f'Please double check that this is the intended labeling site1. It is likely that these '
                               f'sites are too far apart.')
 
         self.RL1.backbone_to_site()
@@ -257,8 +257,8 @@ class dRotamerEnsemble:
         d0 = np.concatenate([ic1.get_dihedral(1, self.RL1.dihedral_atoms),
                              ic2.get_dihedral(1, self.RL2.dihedral_atoms)])
 
-        lb =  [-np.pi] * len(d0)  # d0 - np.deg2rad(40)
-        ub =  [np.pi] * len(d0)  # d0 + np.deg2rad(40)  #
+        lb = [-np.pi] * len(d0)  # d0 - np.deg2rad(40)
+        ub = [np.pi] * len(d0)  # d0 + np.deg2rad(40)  #
         bounds = np.c_[lb, ub]
         xopt = opt.minimize(self._objective, x0=d0, args=(ic1, ic2), bounds=bounds, method=self.min_method)
         self.RL1._coords[i] = ic1.coords[self.RL1.H_mask]

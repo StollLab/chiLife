@@ -211,7 +211,7 @@ class dRotamerEnsemble:
         MSDmin= MSD.min()
 
         if MSDmin > 0.3:
-            warnings.warn(f'The minimum RMSD of the cap is {MSD.min()}, this may result in distorted spin label. '
+            warnings.warn(f'The minimum MSD of the cap is {MSD.min()}, this may result in distorted spin label. '
                           f'Check that the structures make sense.')
 
         if MSDmin > 0.5:
@@ -285,13 +285,16 @@ class dRotamerEnsemble:
 
     @coords.setter
     def coords(self, value):
-        if value.shape[1] != self.RL1._coords.shape[1] + self.RL2._coords.shape[1]:
+        if value.shape[1] != len(self.atom_names):
             raise ValueError(
                 f"The provided coordinates do not match the number of atoms of this ensemble ({self.res})"
             )
 
-        self.RL1._coords = value[:, : self.RL1._coords.shape[1]]
-        self.RL2._coords = value[:, -self.RL2._coords.shape[1]:]
+        self.RL1._coords[:, self.rl1mask] = value[:, :len(self.rl1mask)]
+        self.RL2._coords[:, self.rl2mask] = value[:, len(self.rl1mask):len(self.rl1mask) + len(self.rl2mask)]
+        self.RL1._coords[:, self.cst_idx1] = value[:, len(self.rl1mask) + len(self.rl2mask):]
+        self.RL2._coords[:, self.cst_idx2] = value[:, len(self.rl1mask) + len(self.rl2mask):]
+
 
     @property
     def _lib_coords(self):

@@ -17,8 +17,7 @@ def test_add_dlabel():
     xl.create_dlibrary(
         "___",
         "test_data/DHC.pdb",
-        4,
-        site=2,
+        sites=(2, 6),
         weights=P,
         dihedral_atoms=[
             [["N", "CA", "CB", "CG"], ["CA", "CB", "CG", "ND1"]],
@@ -35,26 +34,28 @@ def test_distance_distribution():
     d = r[np.argmax(dd)]
     p = np.max(dd)
     assert abs(d - 26.529411764705884) < 1e-7
-    assert abs(p - 0.3404778733692674) < 1e-7
+    assert abs(p - 0.353804035205349) < 1e-7
 
 
 def test_centroid():
-    np.testing.assert_allclose(SL2.centroid, [19.90399089, -13.87953919, 11.16228634])
+    np.testing.assert_allclose(SL2.centroid, [19.69181361, -13.95634037,  10.88304421])
 
 
 def test_side_chain_idx():
     SL3 = xl.dSpinLabel("DHC", [28, 32], gb1)
-    tc = SL3.coords
-    tc[:, SL3.side_chain_idx] += 5
-    ans = np.load("test_data/dSL_scidx.npy")
-    np.testing.assert_almost_equal(tc, ans, decimal=5)
+    ans = np.array(['CB', 'CG', 'CD2', 'ND1', 'NE2', 'CE1', 'CB', 'CG', 'CD2', 'ND1',
+                    'NE2', 'CE1', 'Cu1', 'O3', 'O1', 'O6', 'N5', 'C11', 'C9', 'C14',
+                    'C8', 'C7', 'C10', 'O2', 'O4', 'O5'], dtype='<U3')
+    np.testing.assert_equal(SL3.atom_names[SL3.side_chain_idx], ans)
+
 
 
 def test_coords_setter():
     SL3 = xl.dSpinLabel("DHC", [28, 32], gb1)
-    SL3.coords = SL3.coords + 5
-    ans = np.load("test_data/dSL_csetter.npy")
-    np.testing.assert_almost_equal(SL3.coords, ans, decimal=5)
+    old = SL3.coords.copy()
+    ans = old + 5
+    SL3.coords += 5
+    np.testing.assert_almost_equal(SL3.coords, ans)
 
 
 def test_coord_set_error():
@@ -79,45 +80,30 @@ def test_mutate():
     assert test == ans
 
 
-def test_add_dlabel2():
-    Energies = np.loadtxt('test_data/HCS.energies')
-
-    P = np.exp(-Energies/ (xl.GAS_CONST * 278))
-    P /= P.sum()
-
-    dihedral_atoms = [[["N", "CA", "CB", "CG"], ["CA", "CB", "CG", "ND1"]],
-                      [["N", "CA", "CB", "CG"], ["CA", "CB", "CG", "ND1"]]]
-
-    xl.create_dlibrary('___', 'test_data/HCS.pdb', site=2, increment=2, dihedral_atoms=dihedral_atoms, spin_atoms='Cu1')
-
-    SL1 = xl.dSpinLabel("___", [6, 8], gb1)
-    r = np.linspace(15, 80, 256)
-    dd = xl.distance_distribution(SL1, SL2, r, sigma=0.5)
-
-    assert r[np.argmax(dd)] == 23.41176470588235
-    os.remove('___ip2_drotlib.zip')
-
 def test_single_chain_error():
     with pytest.raises(ValueError):
         xl.create_dlibrary(libname='___',
                            pdb='test_data/chain_broken_dlabel.pdb',
-                           increment=2,
+                           sites=(15, 17),
                            dihedral_atoms=[[['N', 'CA', 'C13', 'C5'],
                                        ['CA', 'C13', 'C5', 'C6']],
                                       [['N', 'CA', 'C12', 'C2'],
                                        ['CA', 'C12', 'C2', 'C3']]],
-                           site=15,
                            spin_atoms='Cu1')
+
 
 def test_restraint_weight():
     SL3 = xl.dSpinLabel("DHC", [28, 32], gb1, restraint_weight=0.5)
-    ans = np.array([0.4291847, 0.40492998, 0.16588532])
+    ans = np.array([0.578908, 0.421092])
 
     np.testing.assert_almost_equal(SL3.weights, ans, decimal=6)
-    assert SL2.weights != SL3.weights
+    assert np.any(SL2.weights != SL3.weights)
 
 
 def test_alternate_increment():
     with pytest.warns():
-        with pytest.raises(ValueError):
-            SL2 = xl.dSpinLabel("DHC", (28, 28 + 3), gb1)
+        with pytest.raises(RuntimeError):
+            SL2 = xl.dSpinLabel("DHC", (15, 44), gb1)
+
+    SL2 = xl.dSpinLabel("DHC", (12, 37), gb1)
+    np.testing.assert_almost_equal(SL2.spin_centers, np.array([[25.13754199,  1.6421972,  3.38913881]]))

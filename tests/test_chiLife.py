@@ -256,12 +256,11 @@ def test_single_chain_error():
     with pytest.raises(ValueError):
         chilife.create_dlibrary(libname='___',
                                 pdb='test_data/chain_broken_dlabel.pdb',
-                                increment=2,
+                                sites=(15, 17),
                                 dihedral_atoms=[[['N', 'CA', 'C13', 'C5'],
                                               ['CA', 'C13', 'C5', 'C6']],
                                              [['N', 'CA', 'C13', 'C5'],
                                               ['CA', 'C13', 'C5', 'C6']]],
-                                site=15,
                                 spin_atoms='Cu1')
 
 

@@ -481,5 +481,5 @@ def get_possible_rotlibs(rotlib: str, all: bool = False) -> Union[Path, None]:
     else:
         if not isinstance(rotlib, list) or rotlib == []:
             rotlib = None
-
+    print(rotlib)
     return rotlib

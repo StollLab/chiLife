@@ -139,34 +139,47 @@ class dRotamerEnsemble:
 
             cctA, cctB, ccsts = {}, {}, {}
             libA, libB, csts = chilife.read_library(rotlib_path[0])
+            unis = []
+
+            for lib in (libA, libB):
+                names, types = lib['atom_names'], libA['atom_types']
+                residxs =  np.zeros(len(names), dtype=int)
+                resnames, resids = np.array([self.res]), np.array([1])
+                segidx = np.array([0])
+
+                uni = chilife.make_mda_uni(names, types, resnames, residxs, resids, segidx)
+                unis.append(uni)
+
+
             for p in rotlib_path:
                 tlibA, tlibB, tcsts = chilife.read_library(p)
+                for lib, tlib, cct, uni in zip((libA, libB), (tlibA, tlibB), (cctA, cctB), unis):
+
+                    # Libraries must have the same atom order
+                    if not np.all(np.isin(tlib['atom_names'], lib['atom_names'])) and \
+                           np.all(tlib['dihedral_atoms'] == lib['dihedral_atoms']):
+
+                        raise ValueError(f'Rotlibs {rotlib_path[0].stem} and {p.stem} are not compatable. You may'
+                                         f'need to rename one of them.')
 
 
-                # Libraries must have the same atom order
-                if not np.all(np.isin(tlibA['atom_names'], libA['atom_names'])) and \
-                    np.all(np.isin(tlibB['atom_names'], libB['atom_names'])):
+                    # Map coordinates
+                    ixmap = [np.argwhere(tlib['atom_names'] == aname).flat[0] for aname in lib['atom_names']]
+                    cct.setdefault('coords', []).append(tlib['coords'][:, ixmap])
 
-                    print(tlibA['atom_names'])
-                    print(libA['atom_names'])
+                    # Create new internal coords if they are defined differently
+                    lib_ic, tlib_ic =lib['internal_coords'][0], tlib['internal_coords'][0]
+                    if np.any(lib_ic.atom_names != tlib_ic.atom_names):
+                        uni.load_new(cct['coords'][-1])
+                        ics = [chilife.get_internal_coords(uni, lib['dihedral_atoms'], lib_ic.bonded_pairs)
+                               for ts in uni.trajectory]
+                        tlib['internal_coords'] = ics
 
-                    raise ValueError(f'Rotlibs {rotlib_path[0].stem} and {p.stem} are not compatable. You may'
-                                     f'need to rename one of them.')
+                    for field in concatable:
+                        cct.setdefault(field, []).append(tlib[field])
 
-                for field in concatable:
-                    cctA.setdefault(field, []).append(tlibA[field])
-                    cctB.setdefault(field, []).append(tlibB[field])
-
-                ixmapA = [np.argwhere(tlibA['atom_names'] == aname).flat[0] for aname in libA['atom_names']]
-                ixmapB = [np.argwhere(tlibB['atom_names'] == aname).flat[0] for aname in libB['atom_names']]
-
-                cctA.setdefault('coords', []).append(tlibA['coords'][:, ixmapA])
-                cctB.setdefault('coords', []).append(tlibB['coords'][:, ixmapB])
-
-            for field in concatable + ['coords']:
-
-                libA[field] = np.concatenate(cctA[field])
-                libB[field] = np.concatenate(cctB[field])
+                    for field in concatable + ['coords']:
+                        lib[field] = np.concatenate(cct[field])
 
             libA['weights'] = libB['weights'] = np.ones(len(libA['coords'])) / len(libA['coords'])
 
@@ -204,7 +217,7 @@ class dRotamerEnsemble:
 
         scores =  [self._min_one(i, ic1, ic2) for i, (ic1, ic2) in
                  enumerate(zip(self.RL1.internal_coords, self.RL2.internal_coords))]
-        
+
         scores = np.asarray(scores)
         SSEs = np.linalg.norm(self.RL1.coords[:, self.cst_idx1] - self.RL2.coords[:, self.cst_idx2], axis=2).sum(axis=1)
         MSD = SSEs/len(self.csts)
@@ -449,6 +462,9 @@ class dRotamerEnsemble:
         # Remove low-weight rotamers from ensemble
         self.trim_rotamers()
 
+    def __len__(self):
+        return len(self.weights)
+
 
 def get_possible_rotlibs(rotlib: str, all: bool = False) -> Union[Path, None]:
     """
@@ -481,5 +497,9 @@ def get_possible_rotlibs(rotlib: str, all: bool = False) -> Union[Path, None]:
     else:
         if not isinstance(rotlib, list) or rotlib == []:
             rotlib = None
-    print(rotlib)
+
+    # rotlib lists need to be sorted to prevent position mismatches for results with tests.
+    if isinstance(rotlib, list):
+        rotlib = sorted(rotlib)
+
     return rotlib

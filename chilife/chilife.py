@@ -622,9 +622,7 @@ def create_dlibrary(
     res1 += ovlp_selection
     res1_bonds = res1.intra_bonds.indices
 
-    IC1 = [chilife.get_internal_coords(res1,
-                                       preferred_dihedrals=dihedral_atoms[0],
-                                       bonds=res1_bonds)
+    IC1 = [chilife.get_internal_coords(res1, dihedral_atoms[0], res1_bonds)
            for ts in struct.trajectory]
 
 
@@ -633,10 +631,7 @@ def create_dlibrary(
     res2 += ovlp_selection
     res2_bonds = res2.intra_bonds.indices
 
-    IC2 = [chilife.get_internal_coords(res2,
-                                       preferred_dihedrals=dihedral_atoms[1],
-                                       bonds=res2_bonds,
-                                       cap=cap_idxs)
+    IC2 = [chilife.get_internal_coords(res2, dihedral_atoms[1], res2_bonds, cap=cap_idxs)
            for ts in struct.trajectory]
 
     for ic1, ic2 in zip(IC1, IC2):

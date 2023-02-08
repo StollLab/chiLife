@@ -16,7 +16,7 @@ import MDAnalysis as mda
 import chilife
 from .numba_utils import get_sasa
 from .RotamerEnsemble import RotamerEnsemble
-from .dSpinLabel import dSpinLabel
+from .dRotamerEnsemble import dRotamerEnsemble
 
 import networkx as nx
 
@@ -417,11 +417,8 @@ def mutate(
     # Check for dRotamerEnsembles in ensembles
     tensembles = []
     for lib in ensembles:
-        if isinstance(lib, RotamerEnsemble):
+        if isinstance(lib, (RotamerEnsemble, dRotamerEnsemble)):
             tensembles.append(lib)
-        elif isinstance(lib, dSpinLabel):
-            tensembles.append(lib.SL1)
-            tensembles.append(lib.SL2)
         else:
             raise TypeError(
                 f"mutate only accepts RotamerEnsemble, SpinLabel and dSpinLabel objects, not {lib}."
@@ -445,9 +442,13 @@ def mutate(
         )
         ensembles = list(ensembles) + missing_residues
 
-    label_sites = {
-        (int(spin_label.site), spin_label.chain): spin_label for spin_label in ensembles
-    }
+    label_sites = {}
+    for spin_label in ensembles:
+        if isinstance(spin_label, dRotamerEnsemble):
+            label_sites[spin_label.site1, spin_label.chain] = spin_label
+            label_sites[spin_label.site2, spin_label.chain] = spin_label
+        else:
+            label_sites[spin_label.site, spin_label.chain] = spin_label
 
     protein = protein.select_atoms(
         f'(not altloc B) and (not (byres name OH2 or resname HOH))'
@@ -455,11 +456,6 @@ def mutate(
     label_selstr = " or ".join([f"({label.selstr})" for label in ensembles])
     other_atoms = protein.select_atoms(f"not ({label_selstr})")
 
-    # Get new universe information
-    n_residues = len(other_atoms.residues) + len(ensembles)
-    n_atoms = len(other_atoms) + sum(
-        len(spin_label.atom_names) for spin_label in ensembles
-    )
     resids = [res.resid for res in protein.residues]
 
     # Allocate lists for universe information
@@ -473,16 +469,40 @@ def mutate(
 
         # If the residue is the spin labeled residue replace it with the highest probability spin label
         if resloc in label_sites:
-            atom_info += [
-                (i, name, atype)
-                for name, atype in zip(
-                    label_sites[resloc].atom_names, label_sites[resloc].atom_types
-                )
-            ]
+            rot_ens = label_sites[resloc]
+            if isinstance(rot_ens, dRotamerEnsemble):
+                r1l = len(rot_ens.rl1mask)
+                r2l = len(rot_ens.rl2mask)
+                both = r1l + r2l
+
+                if resloc[0] == rot_ens.site1:
+                    # Add site 1
+                    atom_info += [
+                        (i, name, atype)
+                        for name, atype in zip(rot_ens.atom_names[:r1l], rot_ens.atom_types[:r2l])
+                    ]
+
+                elif resloc[0] == rot_ens.site2:
+                    atom_info += [
+                        (i, name, atype)
+                        for name, atype in zip(rot_ens.atom_names[r1l:r1l+r2l], rot_ens.atom_types[r1l:r1l+r2l])
+                    ]
+                    # Add cap
+                    atom_info += [
+                        (i, name, atype)
+                        for name, atype in zip(rot_ens.atom_names[both:], rot_ens.atom_types[both:])
+                    ]
+                else:
+                    raise RuntimeError("The residue specified is not part of the dRotamerEnsemble being constructed")
+            else:
+                atom_info += [
+                    (i, name, atype)
+                    for name, atype in zip(rot_ens.atom_names, rot_ens.atom_types)
+                ]
 
             # Add missing Oxygen from rotamer ensemble
-            res_names.append(label_sites[resloc].res)
-            segidx.append(label_sites[resloc].segindex)
+            res_names.append(rot_ens.res)
+            segidx.append(rot_ens.segindex)
 
         # Else retain the atom information from the parent universe
         else:
@@ -514,11 +534,11 @@ def mutate(
     for spin_label in label_sites.values():
         sl_atoms = U.select_atoms(spin_label.selstr)
         if random_rotamers:
-            sl_atoms.atoms.positions = spin_label._coords[
-                np.random.choice(len(spin_label._coords), p=spin_label.weights)
+            sl_atoms.atoms.positions = spin_label.coords[
+                np.random.choice(len(spin_label.coords), p=spin_label.weights)
             ]
         else:
-            sl_atoms.atoms.positions = spin_label._coords[np.argmax(spin_label.weights)]
+            sl_atoms.atoms.positions = spin_label.coords[np.argmax(spin_label.weights)]
 
     return U
 
@@ -1001,6 +1021,30 @@ def make_mda_uni(anames: ArrayLike,
                  segindices: ArrayLike,
                  segids: ArrayLike = None,
 ) -> MDAnalysis.Universe:
+    """
+
+    Parameters
+    ----------
+    anames : ArrayLike
+        Array of atom names. Length should be equal to the number of atoms.
+    atypes : ArrayLike
+        Array of atom elements or types. Length should be equal to the number of atoms.
+    resnames : ArrayLike
+        Array of residue names. Length should be equal to the number of residues.
+    resindices : ArrayLike
+        Array of residue indices. Length should be equal to the number of atoms. Elements of resindices should
+        map to resnames and resnums of the atoms they represent.
+    resnums : ArrayLike
+        Array of residue numbers. Length should be equal to the number of residues.
+    segindices : ArrayLike
+        Array of segment/chain indices. Length should be equal to the number of residues.
+    segids : ArrayLike, None
+        Array of segment/chain IDs. Length should be equal to the number of segs/chains.
+
+    Returns
+    -------
+
+    """
 
     n_atoms = len(anames)
     n_residues = len(np.unique(resindices))
@@ -1031,7 +1075,7 @@ def make_mda_uni(anames: ArrayLike,
         else:
             i_segment = mda_uni.add_Segment(segid=str(segid))
 
-        mask = np.argwhere(np.asarray(segindices) == i).squeeze()
+        mask = np.argwhere(np.asarray(segindices) == i).flatten()
         mda_uni.residues[mask.tolist()].segments = i_segment
 
     mda_uni.add_TopologyAttr(Segids(np.array(segids)))

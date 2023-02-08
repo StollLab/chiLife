@@ -93,7 +93,7 @@ def read_rotlib(rotlib: Union[Path, BinaryIO] = None) -> Dict:
     return lib
 
 
-@cached(custom_key_maker=hash_file)
+# @cached(custom_key_maker=hash_file)
 def read_drotlib(rotlib: Path) -> Tuple[dict]:
     """Reads RotamerEnsemble for stored spin labels.
 
@@ -112,8 +112,7 @@ def read_drotlib(rotlib: Path) -> Tuple[dict]:
         for f in archive.namelist():
             if 'csts' in f:
                 with archive.open(f) as of:
-                    with np.load(of) as fc:
-                        csts = dict(fc)
+                    csts = np.load(of)
             elif f[-12] == 'A':
                 with archive.open(f) as of:
                     libA = read_rotlib.__wrapped__(of)
@@ -451,7 +450,7 @@ def write_labels(pdb_file: TextIO, *args: SpinLabel, KDE: bool = True, sorted: b
         sorted_index = np.argsort(label.weights)[::-1] if sorted else np.arange(len(label.weights))
         norm_weights = label.weights / label.weights.max()
         if isinstance(label, dRotamerEnsemble):
-            sites = np.concatenate([np.ones(len(label.RL1.atoms), dtype=int) * int(label.site),
+            sites = np.concatenate([np.ones(len(label.RL1.atoms), dtype=int) * int(label.site1),
                                     np.ones(len(label.RL2.atoms), dtype=int) * int(label.site2)])
         else:
             sites = np.ones(len(label.atoms), dtype=int) * int(label.site)

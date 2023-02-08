@@ -6,6 +6,8 @@ from pathlib import Path
 from itertools import combinations, product
 from typing import Callable, Tuple, Union, List, Dict
 from unittest import mock
+
+import networkx as nx
 from tqdm import tqdm
 
 import numpy as np
@@ -513,9 +515,8 @@ def create_library(
 def create_dlibrary(
         libname: str,
         pdb: str,
-        increment: int,
+        sites: Tuple,
         dihedral_atoms: List[List[List[str]]],
-        site: int = 1,
         resname: str = None,
         dihedrals: ArrayLike = None,
         weights: ArrayLike = None,
@@ -569,7 +570,11 @@ def create_dlibrary(
     -------
     None
     """
+
+    site1, site2 = sites
+    increment = site2 - site1
     resname = libname[:3] if resname is None else resname
+
     if len(dihedral_atoms) != 2:
         dihedral_error = True
     elif not isinstance(dihedral_atoms[0], List):
@@ -588,32 +593,50 @@ def create_dlibrary(
         )
 
     struct, spin_atoms = pre_add_library(pdb, spin_atoms, uniform_topology=False)
-    resi1_selection = struct.select_atoms(f"resnum {site}")
-    resi2_selection = struct.select_atoms(f"resnum {site + increment}")
-    resi1_bonds = resi1_selection.intra_bonds.indices
-    resi2_bonds = resi2_selection.intra_bonds.indices
+    res1 = struct.select_atoms(f'resnum {site1}')
+    res2 = struct.select_atoms(f'resnum {site2}')
 
-    IC1 = [
-        chilife.get_internal_coords(
-            struct.select_atoms(f"resnum {site}"),
-            preferred_dihedrals=dihedral_atoms[0],
-            bonds=resi1_bonds,
-        )
-        for ts in struct.trajectory
-    ]
+    # Identify the cap based off of the user defined mobile dihedrals
+    nodes = []
+    for i, res in enumerate((res1, res2)):
+        site = res.resnums[0]
+        dh_atoms = [dihedral[1] for dihedral in dihedral_atoms[i]]
+        terminal_atom_idx = max(struct.select_atoms(f'resnum {site} and name {" ".join(dh_atoms)}').ix)
+        nodes.append(terminal_atom_idx)
 
-    IC2 = [
-        chilife.get_internal_coords(
-            struct.select_atoms(f"resnum {site + increment}"),
-            preferred_dihedrals=dihedral_atoms[1],
-            bonds=resi2_bonds
-        )
-        for ts in struct.trajectory
-    ]
+    G = nx.DiGraph(struct.bonds.indices.tolist())
+    linker = list({node for path in nx.all_simple_paths(G, *nodes) for node in path if node not in nodes})
+    G.remove_nodes_from(nodes)
+
+    cap_idxs = set()
+    for node in linker:
+        cap_idxs |= {a for a in nx.dfs_postorder_nodes(G, node)}
+
+    cap_idxs = list(sorted(cap_idxs))
+    ovlp_selection = struct.atoms[cap_idxs]
+    csts = ovlp_selection.names
+    csts = csts.astype('U4')
+
+    ovlp_selection.residues.resnums = site1
+    ovlp_selection.residues.resids = site1
+    res1 += ovlp_selection
+    res1_bonds = res1.intra_bonds.indices
+
+    IC1 = [chilife.get_internal_coords(res1, dihedral_atoms[0], res1_bonds)
+           for ts in struct.trajectory]
+
+
+    ovlp_selection.residues.resnums = site2
+    ovlp_selection.residues.resids = site2
+    res2 += ovlp_selection
+    res2_bonds = res2.intra_bonds.indices
+
+    IC2 = [chilife.get_internal_coords(res2, dihedral_atoms[1], res2_bonds, cap=cap_idxs)
+           for ts in struct.trajectory]
 
     for ic1, ic2 in zip(IC1, IC2):
-        ic1.shift_resnum(-(site - 1))
-        ic2.shift_resnum(-(site + increment - 1))
+        ic1.shift_resnum(-(site1 - 1))
+        ic2.shift_resnum(-(site2 - 1))
 
         if len(ic1.chains) > 1 or len(ic2.chains) > 1 :
             raise ValueError('The PDB of the label supplied appears to have a chain break. Please check your PDB and '
@@ -621,46 +644,13 @@ def create_dlibrary(
                              'chains in the pdb file. If the error persists, check to be sure all atoms are the correct '
                              'element as chilife uses the elements to determine if atoms are bonded.')
 
-    # Identify atoms that don't move with respect to each other but move with the dihedrals
-    maxindex1 = (
-            max([IC1[0].ICs[1][1][tuple(d[::-1])].index for d in dihedral_atoms[0]]) - 1
-    )
-    maxindex2 = (
-            max([IC2[0].ICs[1][1][tuple(d[::-1])].index for d in dihedral_atoms[1]]) - 1
-    )
 
-    # Get constraint pairs between SLs as constriants
-    cst_pool1 = [
-        atom.index
-        for atom in IC1[0].ICs[1][1].values()
-        if atom.index >= maxindex1 and atom.atype != "H"
-    ]
-    cst_pool2 = [
-        atom.index
-        for atom in IC2[0].ICs[1][1].values()
-        if atom.index >= maxindex2 and atom.atype != "H"
-    ]
-
-    cst_pairs = np.array(list(product(cst_pool1, cst_pool2)))
-
-    constraint_distances = [
-        np.linalg.norm(
-            ic1.coords[cst_pairs[:, 0]] - ic2.coords[cst_pairs[:, 1]], axis=1
-        )
-        for ic1, ic2 in zip(IC1, IC2)
-    ]
-
-    csts = {'cst_pairs': cst_pairs, 'cst_distances': constraint_distances}
 
     # If multi-state pdb extract rotamers from pdb
     if dihedrals is None:
         dihedrals = []
-        for IC, resnum, dihedral_set in zip(
-                [IC1, IC2], [site, site + increment], dihedral_atoms
-        ):
-            dihedrals.append(
-                [[ICi.get_dihedral(1, ddef) for ddef in dihedral_set] for ICi in IC]
-            )
+        for IC, resnum, dihedral_set in zip([IC1, IC2], [site1, site2], dihedral_atoms):
+            dihedrals.append([[ICi.get_dihedral(1, ddef) for ddef in dihedral_set] for ICi in IC])
 
     if weights is None:
         weights = np.ones(len(IC1))
@@ -679,17 +669,17 @@ def create_dlibrary(
     cwd = Path().cwd()
     np.savez(cwd / f'{libname}A_rotlib.npz', **save_dict_1, allow_pickle=True)
     np.savez(cwd / f'{libname}B_rotlib.npz', **save_dict_2, allow_pickle=True)
-    np.savez(cwd / f'{libname}_csts.npz', **csts)
+    np.save(cwd / f'{libname}_csts.npy', csts)
 
     with zipfile.ZipFile(f'{libname}_drotlib.zip', mode='w') as archive:
         archive.write(f'{libname}A_rotlib.npz')
         archive.write(f'{libname}B_rotlib.npz')
-        archive.write(f'{libname}_csts.npz')
+        archive.write(f'{libname}_csts.npy')
 
     # Cleanup intermediate files
     os.remove(f'{libname}A_rotlib.npz')
     os.remove(f'{libname}B_rotlib.npz')
-    os.remove(f'{libname}_csts.npz')
+    os.remove(f'{libname}_csts.npy')
 
     if permanent:
         add_library(f'{libname}_drotlib.zip', libname=libname, default=default, force=force)

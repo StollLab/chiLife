@@ -53,7 +53,7 @@ class ProteinIC:
         List of major side chain and backbone dihedral definitions as defined by user defined and supported residues.
     """
 
-    def __init__(self, zmats: Dict, zmat_idxs: Dict, atom_dict: Dict, ICs: Dict, **kwargs: object):
+    def __init__(self, zmats: Dict, zmat_idxs: Dict, atom_dict: Dict, ICs: Dict, **kwargs: Dict):
         """
         ProteinIC constructor method.
 
@@ -218,7 +218,9 @@ class ProteinIC:
                 chain: {"ori": np.array([0, 0, 0]), "mx": np.identity(3)}
                 for chain in self.ICs
             }
-
+            self.has_chain_operators = False
+        else:
+            self.has_chain_operators = True
         self._chain_operators = op
         self.perturbed = True
 
@@ -330,13 +332,13 @@ class ProteinIC:
 
         dihedrals = np.atleast_1d(dihedrals)
         atom_list = np.atleast_2d(atom_list)
-
+        zmc = self.zmats[chain]
         for i, (dihedral, atoms) in enumerate(zip(dihedrals, atom_list)):
             stem, stemr = tuple(atoms[2::-1]), tuple(atoms[1:])
             if (resi, stem) in self.atom_dict['dihedrals'][chain]:
                 aidx = self.atom_dict['dihedrals'][chain][resi, stem][atoms[-1]]
                 delta = self.zmats[chain][aidx, 2] - dihedral
-                self.zmats[chain][aidx, 2] = dihedral
+                zmc[aidx, 2] = dihedral
 
                 idxs = []
                 for key, idx in self.atom_dict['dihedrals'][chain][resi, stem].items():
@@ -350,7 +352,7 @@ class ProteinIC:
             elif (resi, stemr) in self.atom_dict['dihedrals'][chain]:
                 aidx = self.atom_dict['dihedrals'][chain][resi, stemr][atoms[0]]
                 delta = self.zmats[chain][aidx, 2] - dihedral
-                self.zmats[chain][aidx, 2] = dihedral
+                zmc[aidx, 2] = dihedral
 
                 idxs = []
                 for key, idx in self.atom_dict['dihedrals'][chain][resi, stemr].items():
@@ -369,7 +371,7 @@ class ProteinIC:
 
             # Check for any atom defined by a similar dihedral in reverse
             if idxs:
-                self.zmats[chain][idxs, 2] -= delta
+                zmc[idxs, 2] -= delta
 
         return self
 
@@ -391,10 +393,12 @@ class ProteinIC:
         angles: numpy.ndarray
             Array of dihedral angles corresponding to the atom sets in atom list.
         """
-        if atom_list == []:
+        if len(atom_list) == 0:
             return np.array([])
+
         if chain is None and len(self.ICs) == 1:
             chain = list(self.ICs.keys())[0]
+
         elif chain is None and len(self.ICs) > 1:
             raise ValueError("You must specify the protein chain")
 
@@ -433,17 +437,9 @@ class ProteinIC:
 
 
             # Apply chain operations if any exist
-            if ~np.allclose(
-                self.chain_operators[segid]["mx"], np.identity(3)
-            ) and ~np.allclose(self.chain_operators[segid]["ori"], np.array([0, 0, 0])):
+            if self.has_chain_operators:
                 cart_coords = cart_coords @ self.chain_operators[segid]["mx"] + self.chain_operators[segid]["ori"]
 
-            has_nan = False
-            if np.any(np.isnan(cart_coords)):
-                has_nan = True
-
-            if has_nan:
-                breakpoint()
             coord_arrays.append(cart_coords)
 
         return np.concatenate(coord_arrays)
@@ -871,6 +867,7 @@ def get_internal_coords(
     mol: Union[MDAnalysis.Universe, MDAnalysis.AtomGroup],
     preferred_dihedrals: List = None,
     bonds: ArrayLike = None,
+    **kwargs: Dict
 ) -> ProteinIC:
     """Gather a list of internal coordinate atoms ( ``ICAtom`` ) from and MDAnalysis ``Universe`` of ``AtomGroup`` and
     create a ``ProteinIC`` object from them. If ``preferred_dihedrals`` is passed then any atom that can be defineid by
@@ -895,10 +892,39 @@ def get_internal_coords(
 
     """
     mol = mol.select_atoms("not (byres name OH2 or resname HOH)")
-    bonds = bonds if bonds is not None else guess_bonds(mol.atoms.positions, mol.atoms.types) + mol.atoms[0].ix
+    bonds = bonds.copy() if bonds is not None else guess_bonds(mol.atoms.positions, mol.atoms.types) + mol.atoms[0].ix
+    atom_idxs = mol.atoms.ix.tolist()
+
+    # Remove cap atoms for atom_idxs
+    cap = kwargs.get('cap', [])
+    for idx in cap:
+        if idx in atom_idxs:
+            atom_idxs.remove(idx)
+
+    # Get directional topoly of cap and .
+    if cap:
+        # Get bonds to all cap atoms
+        sub_bonds = [tuple(bond) for bond in bonds if np.any(np.isin(bond, cap))]
+
+        # Identify bound atoms outside the cap and use the first atom as root
+        root = min([bnd[0] for bnd in sub_bonds if bnd[0] not in cap] +
+                   [bnd[1] for bnd in sub_bonds if bnd[1] not in cap])
+
+
+        G = nx.Graph()
+        G.add_edges_from(sub_bonds)
+        edges = [edge for edge in nx.bfs_edges(G, root)]
+
+        for edge in edges:
+            mask = np.all(bonds == edge[::-1], axis=1)
+            if np.any(mask):
+                bndidx = np.argwhere(mask).flat[0]
+                bonds[bndidx] = edge
+
+        cap_idxs =  [edge[1] for edge in edges]
+        atom_idxs += cap_idxs
 
     G = nx.DiGraph()
-    atom_idxs = mol.atoms.ix.tolist()
     G.add_nodes_from(atom_idxs)
     G.add_edges_from(bonds)
     dihedrals = [get_n_pred(G, node, np.minimum(node, 3)) for node in atom_idxs]
@@ -909,24 +935,27 @@ def get_internal_coords(
 
             # Get the index of the atom being defined by the preferred dihedral
             idx_of_interest = np.argwhere(mol.atoms.names == dihe[-1]).flatten()
-            for idx in idx_of_interest:
+            u_idx_of_interest = mol[idx_of_interest].ix
+            idx_of_interest = np.argwhere(np.isin(atom_idxs, u_idx_of_interest)).flatten()
+            for idx, uidx in zip(idx_of_interest, u_idx_of_interest):
                 # Check if it is already in use
                 if np.all(mol.universe.atoms[dihedrals[idx]].names == dihe):
                     present = True
                     continue
 
                 # Check for alternative dihedral definitions that satisfy the preferred dihedral
-                for p in get_all_n_pred(G, idx, 3):
+                for p in get_all_n_pred(G, uidx, 3):
                     if np.all(mol.universe.atoms[p[::-1]].names == dihe):
                         dihedral = p[::-1]
                         break
                 else:
-                    dihedral = [idx]
+                    dihedral = [uidx]
 
                 # If an alternative is found, replace it in the dihedral list.
                 if len(dihedral) == 4:
                     present = True
-                    dihedrals[dihedral[-1]] = dihedral
+                    didx = np.argwhere(atom_idxs == dihedral[-1]).flatten()[0]
+                    dihedrals[didx] = dihedral
 
         if not present and preferred_dihedrals != []:
             raise ValueError(f'There is no dihedral `{dihe}` in the provided protien. Perhaps there is typo or the '

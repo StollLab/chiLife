@@ -37,7 +37,6 @@ class dSpinLabel(dRotamerEnsemble):
 
     @property
     def spin_coords(self):
-
         return self.coords[:, self.spin_idx]
 
     @property

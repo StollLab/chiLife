@@ -34,7 +34,7 @@ class dRotamerEnsemble:
         self.alignment_method = kwargs.setdefault("alignment_method", "bisect".lower())
         self.dihedral_sigmas = kwargs.setdefault("dihedral_sigmas", 25)
         self.minimize = kwargs.pop("minimize", True)
-        self.min_method = kwargs.pop('min_method', 'SLSQP')
+        self.min_method = kwargs.pop('min_method', 'L-BFGS-B')
         self.eval_clash = kwargs.pop("eval_clash", True)
         self.energy_func = kwargs.setdefault("energy_func", chilife.get_lj_rep)
         self.temp = kwargs.setdefault("temp", 298)
@@ -244,10 +244,10 @@ class dRotamerEnsemble:
     def _objective(self, dihedrals, ic1, ic2):
 
         ic1.set_dihedral(dihedrals[: len(self.RL1.dihedral_atoms)], 1, self.RL1.dihedral_atoms)
-        coords1 = ic1.to_cartesian()[self.RL1.H_mask]
+        coords1 = ic1.to_cartesian()[self.RL1.ic_mask]
 
         ic2.set_dihedral(dihedrals[-len(self.RL2.dihedral_atoms):], 1, self.RL2.dihedral_atoms)
-        coords2 = ic2.to_cartesian()[self.RL2.H_mask]
+        coords2 = ic2.to_cartesian()[self.RL2.ic_mask]
 
         diff = np.linalg.norm(coords1[self.cst_idx1] - coords2[self.cst_idx2], axis=1)
         ovlp = (coords1[self.cst_idx1] + coords2[self.cst_idx2]) / 2

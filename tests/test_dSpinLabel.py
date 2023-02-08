@@ -38,7 +38,7 @@ def test_distance_distribution():
 
 
 def test_centroid():
-    np.testing.assert_allclose(SL2.centroid, [19.691814, -13.956343,  10.883043], decimal=5)
+    np.testing.assert_almost_equal(SL2.centroid, [19.691814, -13.956343,  10.883043], decimal=5)
 
 
 def test_side_chain_idx():

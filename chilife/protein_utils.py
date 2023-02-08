@@ -1021,6 +1021,30 @@ def make_mda_uni(anames: ArrayLike,
                  segindices: ArrayLike,
                  segids: ArrayLike = None,
 ) -> MDAnalysis.Universe:
+    """
+
+    Parameters
+    ----------
+    anames : ArrayLike
+        Array of atom names. Length should be equal to the number of atoms.
+    atypes : ArrayLike
+        Array of atom elements or types. Length should be equal to the number of atoms.
+    resnames : ArrayLike
+        Array of residue names. Length should be equal to the number of residues.
+    resindices : ArrayLike
+        Array of residue indices. Length should be equal to the number of atoms. Elements of resindices should
+        map to resnames and resnums of the atoms they represent.
+    resnums : ArrayLike
+        Array of residue numbers. Length should be equal to the number of residues.
+    segindices : ArrayLike
+        Array of segment/chain indices. Length should be equal to the number of residues.
+    segids : ArrayLike, None
+        Array of segment/chain IDs. Length should be equal to the number of segs/chains.
+
+    Returns
+    -------
+
+    """
 
     n_atoms = len(anames)
     n_residues = len(np.unique(resindices))
@@ -1051,7 +1075,7 @@ def make_mda_uni(anames: ArrayLike,
         else:
             i_segment = mda_uni.add_Segment(segid=str(segid))
 
-        mask = np.argwhere(np.asarray(segindices) == i).squeeze()
+        mask = np.argwhere(np.asarray(segindices) == i).flatten()
         mda_uni.residues[mask.tolist()].segments = i_segment
 
     mda_uni.add_TopologyAttr(Segids(np.array(segids)))

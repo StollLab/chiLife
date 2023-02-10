@@ -25,6 +25,15 @@ def test_add_dlabel():
         ],
         spin_atoms=["Cu1"],
     )
+
+    # Test that chain operators were reset
+    libA, libB, csts = xl.read_drotlib('___ip4_drotlib.zip')
+    for lib in (libA, libB):
+        for ic in lib['internal_coords']:
+            np.testing.assert_almost_equal(ic.chain_operators[1]['ori'], np.zeros(3))
+            np.testing.assert_almost_equal(ic.chain_operators[1]['mx'], np.eye(3))
+
+
     os.remove('___ip4_drotlib.zip')
 
 def test_distance_distribution():
@@ -112,4 +121,15 @@ def test_alternate_increment():
 
 def test_min_method():
     SL2 = xl.dSpinLabel("DHC", (28, 32), gb1, min_method='Powell')
-    np.testing.assert_almost_equal(SL2.spin_centers, [[19.10902013, -14.5674808, 13.18468778]])
+    np.testing.assert_almost_equal(SL2.spin_centers, [[19.1090214, -14.5674806, 13.1846896]])
+
+
+def test_no_min():
+    SL2 = xl.dSpinLabel("DHC", (28, 32), gb1, minimize=False)
+
+    bb_coords = gb1.select_atoms('resid 28 32 and name N CA C O').positions
+    bb_idx = np.argwhere(np.isin(SL2.atom_names, SL2.backbone_atoms)).flatten()
+
+    for conf in SL2.coords:
+        # Decimal = 1 because bisect alignment does not place exactly by definition
+        np.testing.assert_almost_equal(conf[bb_idx], bb_coords, decimal=1)

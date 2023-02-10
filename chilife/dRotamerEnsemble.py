@@ -41,6 +41,9 @@ class dRotamerEnsemble:
         self.get_lib(rotlib)
         self.create_ensembles()
 
+        self.RL1.backbone_to_site()
+        self.RL2.backbone_to_site()
+
         self.cst_idx1 = np.where(self.RL1.atom_names[None, :] == self.csts[:, None])[1]
         self.cst_idx2 = np.where(self.RL2.atom_names[None, :] == self.csts[:, None])[1]
         self.rl1mask = np.argwhere(~np.isin(self.RL1.atom_names, self.csts)).flatten()

@@ -636,8 +636,9 @@ def create_dlibrary(
 
     for ic1, ic2 in zip(IC1, IC2):
         ic1.shift_resnum(-(site1 - 1))
+        ic1.chain_operators = None
         ic2.shift_resnum(-(site2 - 1))
-
+        ic2.chain_operators = None
         if len(ic1.chains) > 1 or len(ic2.chains) > 1 :
             raise ValueError('The PDB of the label supplied appears to have a chain break. Please check your PDB and '
                              'make sure there are no chain breaks in the desired label and that there are no other '

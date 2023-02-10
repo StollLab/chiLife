@@ -1,3 +1,4 @@
+import networkx as nx
 from joblib import Parallel, delayed
 from typing import Union
 from itertools import combinations
@@ -61,6 +62,8 @@ class dRotamerEnsemble:
 
         self.protein_setup()
         self.sub_labels = (self.RL1, self.RL2)
+        self._graph = nx.Graph()
+        self._graph.add_edges_from(self.bonds)
 
     def protein_setup(self):
         self.protein = self.protein.select_atoms("not (byres name OH2 or resname HOH)")
@@ -420,6 +423,9 @@ class dRotamerEnsemble:
         idxs = np.arange(len(self.atom_names))
         all_pairs = set(combinations(idxs, 2))
         self._non_bonded = all_pairs - self._bonds
+
+    def _nb_pairs(self, exclude: int):
+        nx.all_pairs_shortest_path(self._graph, 3)
 
     @property
     def non_bonded(self):

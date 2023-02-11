@@ -424,8 +424,15 @@ class dRotamerEnsemble:
         all_pairs = set(combinations(idxs, 2))
         self._non_bonded = all_pairs - self._bonds
 
-    def _nb_pairs(self, exclude: int):
-        nx.all_pairs_shortest_path(self._graph, 3)
+    def nb_pairs(self, exclude: int = 3):
+        if self._nb_pairs is None:
+            pairs = dict(nx.all_pairs_shortest_path(self._graph, exclude - 1))
+            pairs = {(a, b) for a in pairs for b in pairs[a] if a < b}
+            all_pairs = set(combinations(range(len(self.atom_names)), 2))
+            self._nb_pairs = all_pairs - pairs
+
+        for key1 in pairs:
+
 
     @property
     def non_bonded(self):

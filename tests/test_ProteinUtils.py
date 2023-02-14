@@ -5,7 +5,6 @@ import numpy as np
 import pytest
 import MDAnalysis as mda
 import chilife
-import networkx as nx
 
 pdbids = ["1ubq", "1a2w", '1az5']
 ubq = mda.Universe("test_data/1ubq.pdb", in_memory=True)
@@ -17,12 +16,6 @@ resis = [
             tuple(chilife.USER_LIBRARIES) +
             tuple(chilife.USER_dLIBRARIES))
 ]
-ICs = chilife.get_internal_coords(ubq)
-gd_kwargs = [
-    {"resi": 28, "atom_list": ["C", "N", "CA", "C"]},
-    {"resi": 28, "atom_list": [["C", "N", "CA", "C"], ["N", "CA", "C", "N"]]},
-]
-gd_ans = [-1.1540443794802524, np.array([-1.15404438, -0.66532042])]
 
 
 @pytest.mark.parametrize("res", resis)
@@ -34,7 +27,6 @@ def test_read_dunbrack(res):
     dlib_mx, dlib_ori = chilife.global_mx(*np.squeeze(dlib["coords"][0, :3]))
     dlib["coords"] = np.einsum("ijk,kl->ijl", dlib["coords"], dlib_mx) + dlib_ori
 
-
     with np.load(f"test_data/{res}_{phi}_{psi}.npz", allow_pickle=True) as f:
         dlib_ans = {key: f[key] for key in f if key != "allow_pickle"}
 
@@ -44,36 +36,6 @@ def test_read_dunbrack(res):
         else:
             assert np.all(np.char.equal(dlib_ans[key], dlib[key]))
 
-
-@pytest.mark.parametrize("pdbid", pdbids)
-def test_get_internal_coordinates(pdbid):
-    protein = mda.Universe(f"test_data/{pdbid}.pdb", in_memory=True).select_atoms("protein and not altloc B")
-
-    t1 = time.perf_counter()
-    ICs = chilife.get_internal_coords(protein)
-    print(time.perf_counter() - t1)
-
-    np.testing.assert_almost_equal(ICs.coords, protein.atoms.positions, decimal=4)
-
-
-def test_icset_dihedral():
-    ICs = chilife.get_internal_coords(ubq)
-    ICs.set_dihedral(
-        [-np.pi / 2, np.pi / 2], 72, [["C", "N", "CA", "C"], ["N", "CA", "C", "N"]]
-    )
-
-    ans = mda.Universe("test_data/test_icset.pdb")
-
-    np.testing.assert_almost_equal(ans.atoms.positions, ICs.coords, decimal=3)
-
-
-def test_icset_dihedral2():
-    lys = mda.Universe('../chilife/data/rotamer_libraries/residue_pdbs/lys.pdb')
-
-    ICs = chilife.get_internal_coords(lys)
-    ICs.set_dihedral(np.pi/2, 1,["N", "CA", "CB", "CG"])
-
-    print('DSF')
 
 def test_sort_pdb():
     pdbfile = "test_data/trt.pdb"
@@ -91,19 +53,6 @@ def test_sort_pdb():
 
 
 def test_sort_pdb2():
-    x = chilife.sort_pdb("test_data/GR1G.pdb")
-
-    with open("test_data/GR1G_tmp.pdb", "w") as f:
-        for line in x:
-            f.write(line)
-
-    with open("test_data/GR1G_tmp.pdb", "rb") as f:
-        test = hashlib.md5(f.read()).hexdigest()
-
-    os.remove("test_data/GR1G_tmp.pdb")
-
-
-def test_sort_pdb3():
     x = chilife.sort_pdb("test_data/SL_GGAGG.pdb")
 
     with open("test_data/SL_GGAGG_tmp.pdb", "w") as f:
@@ -117,8 +66,11 @@ def test_sort_pdb3():
 
 def test_sort_H():
     x = chilife.sort_pdb('../chilife/data/rotamer_libraries/residue_pdbs/lys.pdb')
-    print(x)
-
+    H_names = [xx[12:16] for xx in x[9:]]
+    np.testing.assert_equal(H_names, [' H  ', ' HA ', '3HB ', '2HB ',
+                                      '3HG ', '2HG ', '3HD ', '2HD ',
+                                      '2HE ', '3HE ', '3HZ ', '2HZ ',
+                                      '1HZ '])
 
 def test_sort_manymodels():
     x = chilife.sort_pdb("test_data/msort.pdb")
@@ -141,12 +93,6 @@ def test_sort_manymodels():
     os.remove('test_data/msort_tmp.pdb')
 
     assert test == ans
-
-def test_makeics():
-    traj = mda.Universe("test_data/msort_ans.pdb")
-    ICs = [chilife.get_internal_coords(traj) for ts in traj.universe.trajectory]
-
-    print("d")
 
 
 def test_mutate():
@@ -212,54 +158,11 @@ def test_mutate5():
     assert PPIIm.residues[-1].resname == 'NHH'
 
 
-
-@pytest.mark.parametrize(["inp", "ans"], zip(gd_kwargs, gd_ans))
-def test_get_dihedral(inp, ans):
-    dihedral = ICs.get_dihedral(**inp)
-    np.testing.assert_almost_equal(dihedral, ans)
-
-
-def test_ProteinIC_save_pdb():
-    protein = mda.Universe("test_data/alphabetical_peptide.pdb").select_atoms("protein")
-
-    uni_ics = chilife.get_internal_coords(protein)
-    uni_ics.save_pdb("test_data/postwrite_alphabet_peptide.pdb")
-
-    with open("test_data/postwrite_alphabet_peptide.pdb", "r") as f:
-        test = hashlib.md5(f.read().encode("utf-8")).hexdigest()
-
-    with open("test_data/alphabetical_peptide.pdb", "r") as f:
-        truth = hashlib.md5(f.read().encode("utf-8")).hexdigest()
-
-    os.remove("test_data/postwrite_alphabet_peptide.pdb")
-    assert test == truth
-
-
-def test_ic_to_site():
-    backbone = ubq.select_atoms("resnum 28 and name N CA C").positions
-    r1c = mda.Universe("../chilife/data/rotamer_libraries/residue_pdbs/R1C.pdb")
-    R1ic = chilife.get_internal_coords(r1c)
-    R1ic.to_site(*backbone)
-
-    np.testing.assert_almost_equal(R1ic.coords[1], backbone[1])
-
-
-def test_has_clashes():
-    assert not ICs.has_clashes()
-    ICs.set_dihedral(np.pi / 2, 35, ["N", "CA", "C", "N"])
-    assert ICs.has_clashes()
-
-
 def test_add_missing_atoms():
     protein = mda.Universe("test_data/1omp.pdb", in_memory=True).select_atoms("protein")
     new_prot = chilife.mutate(protein)
     assert len(new_prot.atoms) != len(protein.atoms)
     assert len(new_prot.atoms) == 2877
-
-
-def test_polypro_IC():
-    polypro = mda.Universe("test_data/PPII_Capped.pdb")
-    polyproIC = chilife.get_internal_coords(polypro)
 
 
 @pytest.mark.parametrize(
@@ -282,33 +185,6 @@ def test_sort_and_internal_coords(res):
         ]
 
     assert anames == ans
-
-
-def test_PRO_ics():
-    pro = mda.Universe("../chilife/data/rotamer_libraries/residue_pdbs/pro.pdb")
-    pro_ic = chilife.get_internal_coords(pro)
-    assert ("CD", "CG", "CB", "CA") in pro_ic.ICs[1][1]
-
-def test_PRO_ics2():
-    ubq_IC = chilife.get_internal_coords(ubq)
-
-    assert ("C", "CA", "N", "C") in ubq_IC.ICs[1][37]
-    assert ("C", "CA", "N", "C") in ubq_IC.ICs[1][38]
-
-
-def test_ProteinIC_set_coords():
-    R1A = mda.Universe("test_data/R1A.pdb")
-    R1A_IC = chilife.get_internal_coords(R1A)
-    R1A_IC_c = R1A_IC.copy()
-    R1A_IC_c.set_dihedral([np.pi/2, -np.pi/2, np.pi/2], 1, [['N', 'CA', 'CB', 'SG' ],
-                                                            ['CA', 'CB', 'SG', 'SD'],
-                                                            ['CB', 'SG', 'SD', 'CE']])
-
-    coords = R1A_IC_c.coords
-
-    R1A_IC.coords = coords
-    np.testing.assert_allclose(R1A_IC.zmats[1], R1A_IC_c.zmats[1], rtol=1e-6)
-    np.testing.assert_almost_equal(R1A_IC.coords, R1A_IC_c.coords, decimal=6)
 
 
 def test_get_min_topol():

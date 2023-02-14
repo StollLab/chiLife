@@ -43,11 +43,11 @@ def test_distance_distribution():
     d = r[np.argmax(dd)]
     p = np.max(dd)
     assert abs(d - 26.529411764705884) < 1e-7
-    assert abs(p - 0.353804035205349) < 1e-7
+    assert abs(p - 0.3539364323697821) < 1e-7
 
 
 def test_centroid():
-    np.testing.assert_almost_equal(SL2.centroid, [19.691814, -13.956343,  10.883043], decimal=5)
+    np.testing.assert_almost_equal(SL2.centroid, [19.693885, -13.955098,  10.878431], decimal=5)
 
 
 def test_side_chain_idx():
@@ -103,8 +103,8 @@ def test_single_chain_error():
 
 
 def test_restraint_weight():
-    SL3 = xl.dSpinLabel("DHC", [28, 32], gb1, restraint_weight=0.5)
-    ans = np.array([0.579035, 0.420965])
+    SL3 = xl.dSpinLabel("DHC", [28, 32], gb1, restraint_weight=5)
+    ans = np.array([0.50070444, 0.49929556])
 
     np.testing.assert_almost_equal(SL3.weights, ans, decimal=3)
     assert np.any(SL2.weights != SL3.weights)
@@ -116,12 +116,12 @@ def test_alternate_increment():
             xl.dSpinLabel("DHC", (15, 44), gb1)
 
     SL2 = xl.dSpinLabel("DHC", (12, 37), gb1)
-    np.testing.assert_almost_equal(SL2.spin_centers, [[26.0352109,  0.8579504,  3.0164344]], decimal=4)
+    np.testing.assert_almost_equal(SL2.spin_centers, [[26.05527756,  0.82122423,  3.00552303]], decimal=4)
 
 
 def test_min_method():
     SL2 = xl.dSpinLabel("DHC", (28, 32), gb1, min_method='Powell')
-    np.testing.assert_almost_equal(SL2.spin_centers, [[19.1090214, -14.5674806, 13.1846896]])
+    np.testing.assert_almost_equal(SL2.spin_centers, [[ 18.6044732, -14.7143718,  12.0796965]])
 
 
 def test_no_min():

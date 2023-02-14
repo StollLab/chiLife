@@ -1,3 +1,4 @@
+import networkx as nx
 from joblib import Parallel, delayed
 from typing import Union
 from itertools import combinations
@@ -33,6 +34,7 @@ class dRotamerEnsemble:
         self.restraint_weight = kwargs.pop("restraint_weight") if "restraint_weight" in kwargs else 222  # kcal/mol/A^2
         self.alignment_method = kwargs.setdefault("alignment_method", "bisect".lower())
         self.dihedral_sigmas = kwargs.setdefault("dihedral_sigmas", 25)
+        self._exclude_nb_interactions = kwargs.setdefault('exclude_nb_interactions', 3)
         self.minimize = kwargs.pop("minimize", True)
         self.min_method = kwargs.pop('min_method', 'L-BFGS-B')
         self.eval_clash = kwargs.pop("eval_clash", True)
@@ -58,6 +60,9 @@ class dRotamerEnsemble:
         self.selstr = (
             f"resid {self.site1} {self.site2} and segid {self.chain} and not altloc B"
         )
+
+        self._graph = nx.Graph()
+        self._graph.add_edges_from(self.bonds)
 
         self.protein_setup()
         self.sub_labels = (self.RL1, self.RL2)
@@ -226,11 +231,11 @@ class dRotamerEnsemble:
         MSD = SSEs/len(self.csts)
         MSDmin= MSD.min()
 
-        if MSDmin > 0.3:
+        if MSDmin > 0.1:
             warnings.warn(f'The minimum MSD of the cap is {MSD.min()}, this may result in distorted spin label. '
                           f'Check that the structures make sense.')
 
-        if MSDmin > 0.5:
+        if MSDmin > 0.25:
 
            raise RuntimeError(f'chiLife was unable to connect residues {self.site1} and {self.site2} with {self.res}. '
                               f'Please double check that this is the intended labeling site1. It is likely that these '
@@ -425,9 +430,10 @@ class dRotamerEnsemble:
     def non_bonded(self):
         """ """
         if not hasattr(self, "_non_bonded"):
-            idxs = np.arange(len(self.atom_names))
-            all_pairs = set(combinations(idxs, 2))
-            self._non_bonded = all_pairs - set(tuple(bond) for bond in self.bonds)
+            pairs = dict(nx.all_pairs_shortest_path(self._graph, self._exclude_nb_interactions - 1))
+            pairs = {(a, b) for a in pairs for b in pairs[a] if a < b}
+            all_pairs = set(combinations(range(len(self.atom_names)), 2))
+            self._non_bonded = all_pairs - pairs
 
         return sorted(list(self._non_bonded))
 

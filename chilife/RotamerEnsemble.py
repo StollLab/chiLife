@@ -4,6 +4,7 @@ import logging
 import numpy as np
 from itertools import combinations
 from scipy.spatial import cKDTree
+import networkx as nx
 from scipy.stats import skewnorm
 import scipy.optimize as opt
 import MDAnalysis as mda
@@ -190,11 +191,13 @@ class RotamerEnsemble:
             np.isin(self.atom_names, RotamerEnsemble.backbone_atoms, invert=True)
         ).flatten()
 
+        self._graph = nx.Graph()
+        self._graph.add_edges_from(self.bonds)
+        _, self.irmin_ij, self.ieps_ij, _ = chilife.prep_internal_clash(self)
+        self.aidx, self.bidx = [list(x) for x in zip(*self.non_bonded)]
+
         # Sample from library if requested
         if self._sample_size and len(self.dihedral_atoms) > 0:
-            # Get list of non-bonded atoms before overwriting
-            a, b = [list(x) for x in zip(*self.non_bonded)]
-
             # Draw samples
             self._coords = np.tile(self._coords[0], (self._sample_size, 1, 1))
             self._coords, self.weights, self.internal_coords = self.sample(
@@ -205,7 +208,7 @@ class RotamerEnsemble:
                 [IC.get_dihedral(1, self.dihedral_atoms) for IC in self.internal_coords]
             )
             # Remove structures with internal clashes
-            dist = np.linalg.norm(self._coords[:, a] - self._coords[:, b], axis=2)
+            dist = np.linalg.norm(self._coords[:, self.aidx] - self._coords[:, self.bidx], axis=2)
             sidx = np.atleast_1d(np.squeeze(np.argwhere(np.all(dist > 2, axis=1))))
             self.internal_coords = self.internal_coords[sidx]
             self._dihedrals = np.rad2deg(self._dihedrals[sidx])
@@ -228,9 +231,7 @@ class RotamerEnsemble:
             self.rmin2 = chilife.get_lj_rmin(self.atom_types[self.side_chain_idx])
             self.eps = chilife.get_lj_eps(self.atom_types[self.side_chain_idx])
 
-        if hasattr(self.protein, "atoms") and isinstance(
-            self.protein.atoms, (mda.AtomGroup, chilife.MolecularSystem)
-        ):
+        if hasattr(self.protein, "atoms") and isinstance(self.protein.atoms, (mda.AtomGroup, chilife.MolecularSystem)):
             self.protein_setup()
             resname = self.protein.atoms[self.clash_ignore_idx[0]].resname
             self.nataa = chilife.nataa_codes.get(resname, resname)
@@ -1017,9 +1018,10 @@ class RotamerEnsemble:
     def non_bonded(self):
         """ """
         if not hasattr(self, "_non_bonded"):
-            idxs = np.arange(len(self.atom_names))
-            all_pairs = set(combinations(idxs, 2))
-            self._non_bonded = all_pairs - set(map(tuple, self.bonds))
+            pairs = dict(nx.all_pairs_shortest_path(self._graph, self._exclude_nb_interactions - 1))
+            pairs = {(a, b) for a in pairs for b in pairs[a] if a < b}
+            all_pairs = set(combinations(range(len(self.atom_names)), 2))
+            self._non_bonded = all_pairs - pairs
 
         return sorted(list(self._non_bonded))
 
@@ -1247,6 +1249,7 @@ def assign_defaults(kwargs):
         "weighted_sampling": False,
         "eval_clash": False,
         "use_H": False,
+        "_exclude_nb_interactions": kwargs.pop('exclude_nb_interactions', 3),
         "_sample_size": kwargs.pop("sample", False),
         "energy_func": chilife.get_lj_rep,
         "trim_tol": 0.005,

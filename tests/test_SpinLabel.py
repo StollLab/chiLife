@@ -110,11 +110,11 @@ def test_minimize():
     SL2 = chilife.SpinLabel("R1M", 238, protein=U, minimize=True)
 
     r = np.linspace(15, 80, 256)
-    chilife.save(U, SL1, SL2)
     P = chilife.distance_distribution(SL1, SL2, r)
     assert np.max(P) - 0.20643375571027256 <= 1e-7
     assert np.argmax(P) == 65
 
+
 def test_spin_center_array_dim():
     SL1 = chilife.SpinLabel('R1M', 5, ubq)
-    assert SL1.spin_centers.shape == (1,3)
+    assert SL1.spin_centers.shape == (1, 3)

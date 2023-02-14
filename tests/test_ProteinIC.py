@@ -112,10 +112,19 @@ def test_set_coords():
 
 
 def test_nonbonded():
-    with open('test_data/ic_nb.pkl', 'wb') as f:
-        pickle.dump(ICs.nonbonded_pairs, f)
-
     with open('test_data/ic_nb.pkl', 'rb') as f:
         nb_ans = pickle.load(f)
 
     np.testing.assert_equal(ICs.nonbonded_pairs, nb_ans)
+
+
+def test_get_zmat_idxs():
+    R1A = mda.Universe("test_data/R1A.pdb")
+    R1A_IC = xl.get_internal_coords(R1A)
+    idxs, stem, idx = R1A_IC.get_zmat_idxs(1, ['CB', 'SG', 'SD', 'CE'], 1)
+    assert stem == ('SD', 'SG', 'CB')
+    assert idx == -1
+
+    idxs, stem, idx = R1A_IC.get_zmat_idxs(1, ['CE', 'SD', 'SG', 'CB'], 1)
+    assert stem == ('SD', 'SG', 'CB')
+    assert idx == 0

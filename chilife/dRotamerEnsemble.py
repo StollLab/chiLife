@@ -35,7 +35,7 @@ class dRotamerEnsemble:
         self.alignment_method = kwargs.setdefault("alignment_method", "bisect".lower())
         self.dihedral_sigmas = kwargs.setdefault("dihedral_sigmas", 25)
         self._exclude_nb_interactions = kwargs.setdefault('exclude_nb_interactions', 3)
-        self.minimize = kwargs.pop("minimize", True)
+        self._minimize = kwargs.pop("minimize", True)
         self.min_method = kwargs.pop('min_method', 'L-BFGS-B')
         self.eval_clash = kwargs.pop("eval_clash", True)
         self.energy_func = kwargs.setdefault("energy_func", chilife.get_lj_rep)
@@ -90,7 +90,7 @@ class dRotamerEnsemble:
         self.aidx, self.bidx = [list(x) for x in zip(*self.non_bonded)]
 
         if self.minimize:
-            self._minimize()
+            self.minimize()
 
         if self.eval_clash:
             self.evaluate()
@@ -221,7 +221,7 @@ class dRotamerEnsemble:
 
         chilife.save(name, self.RL1, self.RL2)
 
-    def _minimize(self):
+    def minimize(self):
 
         scores =  [self._min_one(i, ic1, ic2) for i, (ic1, ic2) in
                  enumerate(zip(self.RL1.internal_coords, self.RL2.internal_coords))]

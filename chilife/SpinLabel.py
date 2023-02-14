@@ -29,8 +29,10 @@ class SpinLabel(RotamerEnsemble):
 
     def __init__(self, label, site=None, protein=None, chain=None, rotlib=None, **kwargs):
 
-        # Overide RotamerEnsemble default of not evaluating clashes
-        kwargs.setdefault("eval_clash", True)
+        # Override RotamerEnsemble default of not evaluating clashes
+        if not kwargs.get('minimize', False):
+            kwargs.setdefault("eval_clash", True)
+
         super().__init__(label, site, protein=protein, chain=chain, rotlib=rotlib, **kwargs)
 
         self.label = label
@@ -83,8 +85,15 @@ class SpinLabel(RotamerEnsemble):
         ]
 
         # Evaluate external clash energies and reweight rotamers
-        if self.eval_clash:
+        if self._minimize and self.eval_clash:
+            raise RuntimeError('Both `minimize` and `eval_clash` options have been selected, but they are incompatible.'
+                               'Please select only on. Also note that minimize performs its own clash evaluations so '
+                               'eval_clash is not necessary.')
+        elif self.eval_clash:
             self.evaluate()
+
+        elif self._minimize:
+            self.minimize()
 
     @classmethod
     def from_mmm(cls, label, site, protein=None, chain=None, **kwargs):

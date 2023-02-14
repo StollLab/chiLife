@@ -1,5 +1,7 @@
 import hashlib, os, pickle
 from functools import partial
+
+import matplotlib.pyplot as plt
 import numpy as np
 import MDAnalysis as mda
 import pytest
@@ -104,8 +106,14 @@ def test_from_wizard():
 
 def test_minimize():
 
-    SL1 = chilife.SpinLabel("R1C", 238, protein=U, eval_clash=False)
-    SL1.minimize()
+    SL1 = chilife.SpinLabel("R1M", 20, protein=U, minimize=True)
+    SL2 = chilife.SpinLabel("R1M", 238, protein=U, minimize=True)
+
+    r = np.linspace(15, 80, 256)
+    chilife.save(U, SL1, SL2)
+    P = chilife.distance_distribution(SL1, SL2, r)
+    assert np.max(P) - 0.20643375571027256 <= 1e-7
+    assert np.argmax(P) == 65
 
 def test_spin_center_array_dim():
     SL1 = chilife.SpinLabel('R1M', 5, ubq)

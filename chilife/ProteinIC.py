@@ -345,7 +345,7 @@ class ProteinIC:
 
         return self
 
-    @cached
+    @cached(custom_key_maker=lambda a, b, c, d: hash((id(a), b, "".join(c), d)))
     def get_zmat_idxs(self, resi, atoms, chain):
         stem, stemr = tuple(atoms[2::-1]), tuple(atoms[1:])
         atom_idx = -1

@@ -747,43 +747,47 @@ class RotamerEnsemble:
         self.current_weight = weight
 
     def minimize(self):
-        """ """
-        def objective(dihedrals, ic):
-            """
+        dummy = self.copy()
 
-            Parameters
-            ----------
-            dihedrals :
-                
-            ic :
-                
+        scores = np.array([self._min_one(i, ic, dummy) for i, ic in enumerate(self.internal_coords)])
+        scores -= scores.min()
 
-            Returns
-            -------
-
-            """
-            coords = ic.set_dihedral(dihedrals, 1, self.dihedral_atoms).to_cartesian()
-            temp_ensemble._coords = np.atleast_3d([coords[self.ic_mask]])
-            return self.energy_func(temp_ensemble)
-
-        temp_ensemble = self.copy()
-        for i, IC in enumerate(self.internal_coords):
-            d0 = IC.get_dihedral(1, self.dihedral_atoms)
-            lb = d0 - np.deg2rad(self.sigmas[i])
-            ub = d0 + np.deg2rad(self.sigmas[i])
-            bounds = np.c_[lb, ub]
-
-            xopt = opt.minimize(
-                objective, x0=self._rdihedrals[i], args=IC, bounds=bounds
-            )
-
-            self._coords[i] = IC.to_cartesian()[self.ic_mask]
-            self.weights[i] = self.weights[i] * np.exp(
-                -xopt.fun / (chilife.GAS_CONST * 298)
-            )
-
+        self.weights *= np.exp(-scores / (chilife.GAS_CONST * self.temp) / np.exp(-scores).sum())
         self.weights /= self.weights.sum()
         self.trim_rotamers()
+
+    def _objective(self, dihedrals, ic1, dummy):
+
+        ic1.set_dihedral(dihedrals[: len(self.dihedral_atoms)], 1, self.dihedral_atoms)
+        coords = ic1.to_cartesian()[self.ic_mask]
+        dummy._coords = np.atleast_3d([coords[self.ic_mask]])
+        r = np.linalg.norm(coords[self.aidx] - coords[self.bidx], axis=1)
+
+        # Faster to compute lj here
+        lj = self.irmin_ij / r
+        lj = lj * lj *lj
+        lj = lj * lj
+
+        # attractive forces are needed, otherwise this term will perpetually push atoms apart
+        internal_energy = self.ieps_ij * (lj * lj - 2 * lj)
+        external_energy = self.energy_func(dummy)
+
+        return external_energy.sum() + internal_energy.sum()
+
+    def _min_one(self, i, ic, dummy):
+
+        d0 = ic.get_dihedral(1, self.dihedral_atoms)
+
+        lb = d0 - np.deg2rad(40)
+        ub = d0 + np.deg2rad(40)  #
+        bounds = np.c_[lb, ub]
+        xopt = opt.minimize(self._objective, x0=d0, args=(ic, dummy), bounds=bounds, method=self.min_method)
+        self._coords[i] = ic.coords[self.ic_mask]
+        tors = d0 - xopt.x
+        tors = np.arctan2(np.sin(tors), np.cos(tors))
+        tors = np.sqrt(tors @ tors)
+
+        return xopt.fun + tors
 
     def trim_rotamers(self):
         """Remove rotamers with small weights from ensemble"""
@@ -982,9 +986,17 @@ class RotamerEnsemble:
         else:
             self.current_weight = 0
 
-        # Evaluate external clash energies and reweight rotamers
-        if self.eval_clash:
+        # Evaluate external clash energies and reweigh rotamers
+
+        if self._minimize and self.eval_clash:
+            raise RuntimeError('Both `minimize` and `eval_clash` options have been selected, but they are incompatible.'
+                               'Please select only on. Also note that minimize performs its own clash evaluations so '
+                               'eval_clash is not necessary.')
+        elif self.eval_clash:
             self.evaluate()
+
+        elif self._minimize:
+            self.minimize()
 
     @property
     def bonds(self):
@@ -1252,6 +1264,8 @@ def assign_defaults(kwargs):
         "_exclude_nb_interactions": kwargs.pop('exclude_nb_interactions', 3),
         "_sample_size": kwargs.pop("sample", False),
         "energy_func": chilife.get_lj_rep,
+        "_minimize": kwargs.pop('minimize', False),
+        "min_method": 'L-BFGS-B',
         "trim_tol": 0.005,
     }
 

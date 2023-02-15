@@ -3,6 +3,7 @@ import logging
 from dataclasses import dataclass
 from typing import List, Union, Dict, Tuple
 
+from memoization import cached
 import MDAnalysis
 import networkx as nx
 import numpy as np
@@ -334,46 +335,51 @@ class ProteinIC:
         atom_list = np.atleast_2d(atom_list)
         zmc = self.zmats[chain]
         for i, (dihedral, atoms) in enumerate(zip(dihedrals, atom_list)):
-            stem, stemr = tuple(atoms[2::-1]), tuple(atoms[1:])
-            if (resi, stem) in self.atom_dict['dihedrals'][chain]:
-                aidx = self.atom_dict['dihedrals'][chain][resi, stem][atoms[-1]]
-                delta = self.zmats[chain][aidx, 2] - dihedral
-                zmc[aidx, 2] = dihedral
+            idxs, stem, idx = self.get_zmat_idxs(resi, atoms, chain)
+            aidx = self.atom_dict['dihedrals'][chain][resi, stem][atoms[-1]]
+            delta = self.zmats[chain][aidx, 2] - dihedral
+            zmc[aidx, 2] = dihedral
 
-                idxs = []
-                for key, idx in self.atom_dict['dihedrals'][chain][resi, stem].items():
-                    if idx != aidx:
-                        idxs.append(idx)
-
-                    restem = (stem[1], stem[0], key)
-                    if (resi, restem) in self.atom_dict['dihedrals'][chain]:
-                        idxs += [idx for idx in self.atom_dict['dihedrals'][chain][resi, restem].values()]
-
-            elif (resi, stemr) in self.atom_dict['dihedrals'][chain]:
-                aidx = self.atom_dict['dihedrals'][chain][resi, stemr][atoms[0]]
-                delta = self.zmats[chain][aidx, 2] - dihedral
-                zmc[aidx, 2] = dihedral
-
-                idxs = []
-                for key, idx in self.atom_dict['dihedrals'][chain][resi, stemr].items():
-                    if idx != aidx:
-                        idxs.append(idx)
-
-                    restem = (stemr[1], stemr[0], key)
-                    if (resi, restem) in self.atom_dict['dihedrals'][chain]:
-                        idxs += [idx for idx in self.atom_dict['dihedrals'][chain][resi, restem].values()]
-
-            else:
-                raise ValueError(
-                    f"Dihedral with atoms {atoms} not found in chain {chain} on resi {resi} internal coordinates:\n"
-                    + "\n".join([str(ic) for ic in self.ICs[chain][resi]])
-                )
-
-            # Check for any atom defined by a similar dihedral in reverse
             if idxs:
                 zmc[idxs, 2] -= delta
 
         return self
+
+    @cached(custom_key_maker=lambda a, b, c, d: hash((id(a), b, "".join(c), d)))
+    def get_zmat_idxs(self, resi, atoms, chain):
+        stem, stemr = tuple(atoms[2::-1]), tuple(atoms[1:])
+        atom_idx = -1
+        if (resi, stem) in self.atom_dict['dihedrals'][chain]:
+            aidx = self.atom_dict['dihedrals'][chain][resi, stem][atoms[-1]]
+            idxs = []
+            for key, idx in self.atom_dict['dihedrals'][chain][resi, stem].items():
+                if idx != aidx:
+                    idxs.append(idx)
+
+                restem = (stem[1], stem[0], key)
+                if (resi, restem) in self.atom_dict['dihedrals'][chain]:
+                    idxs += [idx for idx in self.atom_dict['dihedrals'][chain][resi, restem].values()]
+
+        elif (resi, stemr) in self.atom_dict['dihedrals'][chain]:
+            stem = stemr
+            atom_idx = 0
+            aidx = self.atom_dict['dihedrals'][chain][resi, stemr][atoms[0]]
+
+            idxs = []
+            for key, idx in self.atom_dict['dihedrals'][chain][resi, stemr].items():
+                if idx != aidx:
+                    idxs.append(idx)
+
+                restem = (stemr[1], stemr[0], key)
+                if (resi, restem) in self.atom_dict['dihedrals'][chain]:
+                    idxs += [idx for idx in self.atom_dict['dihedrals'][chain][resi, restem].values()]
+        else:
+            raise ValueError(
+                f"Dihedral with atoms {atoms} not found in chain {chain} on resi {resi} internal coordinates:\n"
+                + "\n".join([str(ic) for ic in self.ICs[chain][resi]])
+            )
+
+        return idxs, stem, atom_idx
 
     def get_dihedral(self, resi: int, atom_list: ArrayLike, chain: Union[int, str] = None):
         """Get the dihedral angle(s) of one or more atom sets at the specified residue. Dihedral angles are returned in

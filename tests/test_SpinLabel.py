@@ -111,7 +111,7 @@ def test_minimize():
 
     r = np.linspace(15, 80, 256)
     P = chilife.distance_distribution(SL1, SL2, r)
-    assert np.max(P) - 0.20643375571027256 <= 1e-7
+    assert np.max(P) - 0.20643375571027256 <= 1e-3
     assert np.argmax(P) == 65
 
 

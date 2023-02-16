@@ -89,7 +89,7 @@ class dRotamerEnsemble:
         _, self.irmin_ij, self.ieps_ij, _ = chilife.prep_internal_clash(self)
         self.aidx, self.bidx = [list(x) for x in zip(*self.non_bonded)]
 
-        if self.minimize:
+        if self._minimize:
             self.minimize()
 
         if self.eval_clash:

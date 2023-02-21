@@ -11,12 +11,17 @@ resonance (DEER), in other standalone protein modeling applications that allow u
 pyrosetta and NIH-Xplor.
  
 ## Getting Started
-chiLife can be installed by downloading and unpacking the GitHub repository, or using `git clone` followed by a standard 
-python setuptools installation.
+Stable distributions of chiLife can be installed using `pip`. 
+```bash
+pip install chiLife
+```
+
+Alternatively the development version can be installed by downloading and unpacking the GitHub repository, or using 
+`git clone` followed by a standard python setuptools installation.
 ```bash
 git clone https://github.com/mtessmer/chiLife.git
 cd chiLife
-python setup.py install
+pip install -e .   # Install as editable and update using `git pull origin main`
 ```  
 ***
 ## chiLife Module
@@ -55,7 +60,7 @@ for spine in ['left', 'top', 'right']:
 plt.show()
 ```
 
-![MBP L20R1 S238R1](img/L20R1_S238R1_Pr.png)
+![MBP L20R1 S238R1](https://github.com/StollLab/chiLife/raw/main/img/L20R1_S238R1_Pr.png)
 
 The side chain ensembles can then be saved using a simple `save` function that accepts an arbitrary number of `
 RotamerEnsemble`, `SpinLabel`, `MDAnalyisis.Universe` and `MDAnalyiss.AtomGroup` objects. Because 
@@ -68,7 +73,7 @@ structure you can use the [`mutate`](#mutating-protein-structures) function desc
 xl.save('MBP_L20R1_S238R1.pdb', SL1, SL2, MBP)
 ```
 
-![MBP L20R1 S238R1 Structure](img/L20R1_S238R1_Structure.png)
+![MBP L20R1 S238R1 Structure](https://github.com/StollLab/chiLife/raw/main/img/L20R1_S238R1_Structure.png)
 
 
 ### Mimicking MMM and MTSSLWizard

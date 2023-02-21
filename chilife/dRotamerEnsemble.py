@@ -29,7 +29,7 @@ class dRotamerEnsemble:
         self.chain = chain if chain is not None else self.guess_chain()
         self.protein_tree = self.kwargs.setdefault("protein_tree", None)
 
-        self.forgive = kwargs.setdefault("forgive", 1.0)
+        self.forgive = kwargs.setdefault("forgive", 0.95)
         self.clash_radius = kwargs.setdefault("clash_radius", 14.0)
         self._clash_ori_inp = kwargs.setdefault("clash_ori", "cen")
         self.restraint_weight = kwargs.pop("restraint_weight") if "restraint_weight" in kwargs else 222  # kcal/mol/A^2
@@ -39,7 +39,7 @@ class dRotamerEnsemble:
         self._minimize = kwargs.pop("minimize", True)
         self.min_method = kwargs.pop('min_method', 'L-BFGS-B')
         self.eval_clash = kwargs.pop("eval_clash", True)
-        self.energy_func = kwargs.setdefault("energy_func", chilife.get_lj_rep)
+        self.energy_func = kwargs.setdefault("energy_func", chilife.get_lj_energy)
         self.temp = kwargs.setdefault("temp", 298)
         self.get_lib(rotlib)
         self.create_ensembles()

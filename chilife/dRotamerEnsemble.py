@@ -487,10 +487,10 @@ def get_possible_rotlibs(rotlib: str, all: bool = False) -> Union[Path, None]:
                         cwd / (rotlib + '.zip'),
                         cwd / (rotlib + '_drotlib.zip')]
 
-    possible_rotlibs += list(cwd.glob(f'*{rotlib}*_drotlib.zip'))
+    possible_rotlibs += list(cwd.glob(f'{rotlib}*_drotlib.zip'))
     # Then in the user defined rotamer library directory
     for pth in chilife.USER_RL_DIR:
-        possible_rotlibs += list(pth.glob(f'*{rotlib}*_drotlib.zip'))
+        possible_rotlibs += list(pth.glob(f'{rotlib}*_drotlib.zip'))
 
     # Then in the chilife directory
     possible_rotlibs += list((chilife.RL_DIR / 'user_rotlibs').glob(f'*{rotlib}*'))

@@ -2,13 +2,17 @@ from setuptools import setup
 from pathlib import Path
 import shutil
 
+with open('README.md', 'r') as f:
+    readme = f.read()
+
 setup(
     name='chilife',
-    version='0.1',
+    version='0.1.2',
+    python_requires='>=3.8',
     packages=['chilife'],
     package_data={'chilife': ['data/*', 'data/*/*', 'data/*/*/*']},
-    url='',
-    license='',
+    license='GNU GPLv3',
+    license_files=('LICENSE'),
     author='Maxx Tessmer',
     author_email='mhtessmer@gmail.com',
     install_requires=['numpy>=1.23.0',
@@ -23,7 +27,16 @@ setup(
                       'setuptools>=53.0.0',
                       'networkx>=2.8',
                       'rtoml>=0.9.0'],
-    description=''
+    url='https://gitlab.com/StollLab/chiLife',
+    project_urls = {'Source': 'https://gitlab.com/StollLab/chiLife'},
+    keywords=['Spin label', 'EPR', 'DEER', 'PELDOR', 'Side chain'],
+    description='A package for modeling non-canonical amino acid side chain ensembles.',
+    long_description = readme,
+    long_description_content_type = 'text/markdown',
+        classifiers=['License :: OSI Approved :: GNU General Public License v3 (GPLv3)',
+                 'Programming Language :: Python :: 3.8',
+                 'Programming Language :: Python :: 3.9',
+                 'Programming Language :: Python :: 3.10']
 )
 
 import matplotlib as mpl

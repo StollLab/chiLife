@@ -300,11 +300,12 @@ def prep_external_clash(ensemble):
 
     # Calculate rmin and epsilon for all atoms in protein that may clash
     if hasattr(ensemble, 'ermin_ij'):
-        rmin_ij, eps_ij = ensemble.ermin_ij, ensemble.eeps_ij
+        rmin_ij = np.tile(ensemble.ermin_ij, len(ensemble.coords))
+        eps_ij = np.tile(ensemble.eeps_ij, len(ensemble.coords))
     else:
         rmin_ij, eps_ij = get_lj_params(ensemble)
-        ensemble.ermin_ij = rmin_ij
-        ensemble.eeps_ij = eps_ij
+        ensemble.ermin_ij = rmin_ij[:len(ensemble.coords)]
+        ensemble.eeps_ij = eps_ij[:len(ensemble.coords)]
 
     # Calculate distances
     dist = cdist(

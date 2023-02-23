@@ -92,6 +92,8 @@ class dRotamerEnsemble:
         ]
 
         _, self.irmin_ij, self.ieps_ij, _ = chilife.prep_internal_clash(self)
+        _, self.ermin_ij, self.eeps_ij, _ = chilife.prep_external_clash(self)
+
         self.aidx, self.bidx = [list(x) for x in zip(*self.non_bonded)]
 
         if self._minimize:

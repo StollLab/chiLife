@@ -235,9 +235,8 @@ class dRotamerEnsemble:
         chilife.save(name, self.RL1, self.RL2)
 
     def minimize(self):
-        dummy = self.copy()
 
-        scores =  [self._min_one(i, ic1, ic2, dummy) for i, (ic1, ic2) in
+        scores =  [self._min_one(i, ic1, ic2) for i, (ic1, ic2) in
                  enumerate(zip(self.RL1.internal_coords, self.RL2.internal_coords))]
 
         scores = np.asarray(scores)
@@ -263,7 +262,7 @@ class dRotamerEnsemble:
         self.weights *= np.exp(-scores / (chilife.GAS_CONST * self.temp) / np.exp(-scores).sum())
         self.weights /= self.weights.sum()
 
-    def _objective(self, dihedrals, ic1, ic2, dummy):
+    def _objective(self, dihedrals, ic1, ic2):
 
         ic1.set_dihedral(dihedrals[: len(self.RL1.dihedral_atoms)], 1, self.RL1.dihedral_atoms)
         coords1 = ic1.to_cartesian()[self.RL1.ic_mask]
@@ -274,7 +273,6 @@ class dRotamerEnsemble:
         diff = np.linalg.norm(coords1[self.cst_idx1] - coords2[self.cst_idx2], axis=1)
         ovlp = (coords1[self.cst_idx1] + coords2[self.cst_idx2]) / 2
         coords = np.concatenate([coords1[self.rl1mask], coords2[self.rl2mask], ovlp], axis=0)
-        dummy._coords = np.atleast_3d(coords)
         r = np.linalg.norm(coords[self.aidx] - coords[self.bidx], axis=1)
 
         # Faster to compute lj here
@@ -284,12 +282,11 @@ class dRotamerEnsemble:
 
         # attractive forces are needed, otherwise this term will perpetually push atoms apart
         internal_energy = self.ieps_ij * (lj * lj - 2 * lj)
-        external_energy = self.energy_func(dummy)
-        score = (diff @ diff) * self.restraint_weight / len(diff) + internal_energy.sum() + external_energy.sum()
+        score = (diff @ diff) * self.restraint_weight / len(diff) + internal_energy.sum()
 
         return score
 
-    def _min_one(self, i, ic1, ic2, dummy):
+    def _min_one(self, i, ic1, ic2):
 
         d0 = np.concatenate([ic1.get_dihedral(1, self.RL1.dihedral_atoms),
                              ic2.get_dihedral(1, self.RL2.dihedral_atoms)])

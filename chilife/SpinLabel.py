@@ -229,4 +229,4 @@ class SpinLabel(RotamerEnsemble):
 
 
     def _base_copy(self, rotlib=None):
-        return chilife.SpinLabel(self.res, self.site, rotlib=rotlib)
+        return chilife.SpinLabel(self.res, self.site, rotlib=rotlib, chain=self.chain)

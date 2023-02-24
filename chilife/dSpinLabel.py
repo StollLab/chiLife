@@ -28,7 +28,7 @@ class dSpinLabel(dRotamerEnsemble):
 
 
     def copy(self):
-        new_copy = chilife.dSpinLabel(self.res, (self.site1, self.site2),
+        new_copy = chilife.dSpinLabel(self.res, (self.site1, self.site2), chain=self.chain,
                                             protein=self.protein,
                                             rotlib={'csts': self.csts, 'libA': self.libA, 'libB': self.libB},
                                             minimize=False,

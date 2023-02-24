@@ -487,7 +487,7 @@ class RotamerEnsemble:
         return new_copy
 
     def _base_copy(self, rotlib=None):
-        return chilife.RotamerEnsemble(self.res, self.site, rotlib=rotlib)
+        return chilife.RotamerEnsemble(self.res, self.site, rotlib=rotlib, chain=self.chain)
 
     def to_site(self, site_pos=None):
         """Move spin label to new site
@@ -1059,7 +1059,7 @@ class RotamerEnsemble:
         self._bonds = all_pairs - self._non_bonded
 
     def __len__(self):
-        return len(self.weights)
+        return len(self.coords)
 
     @property
     def clash_ori(self):

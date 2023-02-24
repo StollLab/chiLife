@@ -300,20 +300,22 @@ def prep_external_clash(ensemble):
 
     # Calculate rmin and epsilon for all atoms in protein that may clash
     if hasattr(ensemble, 'ermin_ij'):
-        rmin_ij = np.tile(ensemble.ermin_ij, len(ensemble.coords))
-        eps_ij = np.tile(ensemble.eeps_ij, len(ensemble.coords))
+        rmin_ij = ensemble.ermin_ij
+        eps_ij = ensemble.eeps_ij
     else:
         rmin_ij, eps_ij = get_lj_params(ensemble)
-        ensemble.ermin_ij = rmin_ij[:len(ensemble.coords)]
-        ensemble.eeps_ij = eps_ij[:len(ensemble.coords)]
+        ensemble.ermin_ij = rmin_ij
+        ensemble.eeps_ij = eps_ij
 
+    if len(ensemble) == 1:
+        ec = ensemble.coords[0, ensemble.side_chain_idx]
+    else:
+        ec = ensemble.coords[:, ensemble.side_chain_idx].reshape(-1, 3)
+    pc = ensemble.protein_tree.data[ensemble.protein_clash_idx]
     # Calculate distances
-    dist = cdist(
-        ensemble.coords[:, ensemble.side_chain_idx].reshape(-1, 3),
-        ensemble.protein_tree.data[ensemble.protein_clash_idx],
-    ).ravel()
+    dist = cdist(ec, pc).ravel()
     shape = (
-        len(ensemble.coords),
+        len(ensemble),
         len(ensemble.side_chain_idx) * len(ensemble.protein_clash_idx),
     )
 

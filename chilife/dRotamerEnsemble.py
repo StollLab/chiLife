@@ -383,10 +383,12 @@ class dRotamerEnsemble:
 
     @property
     def side_chain_idx(self):
-        side_chain_idx = np.argwhere(
-            np.isin(self.atom_names, dRotamerEnsemble.backbone_atoms, invert=True)
-        ).flatten()
-        return side_chain_idx
+        if not hasattr(self, '_side_chain_idx'):
+            self._side_chain_idx = np.argwhere(
+                np.isin(self.atom_names, dRotamerEnsemble.backbone_atoms, invert=True)
+            ).flatten()
+
+        return self._side_chain_idx
 
     @property
     def rmin2(self):
@@ -488,10 +490,10 @@ class dRotamerEnsemble:
         self.trim_rotamers()
 
     def __len__(self):
-        return len(self.weights)
+        return len(self.RL1.coords)
 
     def copy(self):
-        new_copy = chilife.dRotamerEnsemble(self.res, (self.site1, self.site2),
+        new_copy = chilife.dRotamerEnsemble(self.res, (self.site1, self.site2), chain = self.chain,
                                             protein=self.protein,
                                             rotlib={'csts': self.csts, 'libA': self.libA, 'libB': self.libB},
                                             minimize=False,

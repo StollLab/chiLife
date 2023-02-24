@@ -30,7 +30,6 @@ class dRotamerEnsemble:
         self.protein_tree = self.kwargs.setdefault("protein_tree", None)
 
         self.forgive = kwargs.setdefault("forgive", 0.95)
-        self.clash_radius = kwargs.setdefault("clash_radius", 14.0)
         self._clash_ori_inp = kwargs.setdefault("clash_ori", "cen")
         self.restraint_weight = kwargs.pop("restraint_weight") if "restraint_weight" in kwargs else 222  # kcal/mol/A^2
         self.alignment_method = kwargs.setdefault("alignment_method", "bisect".lower())
@@ -64,6 +63,10 @@ class dRotamerEnsemble:
 
         self._graph = nx.Graph()
         self._graph.add_edges_from(self.bonds)
+
+        self.clash_radius = kwargs.setdefault("clash_radius", None)
+        if self.clash_radius is None:
+            self.clash_radius = np.linalg.norm(self.clash_ori - self.coords, axis=-1).max() + 5
 
         self.protein_setup()
         self.sub_labels = (self.RL1, self.RL2)
@@ -291,8 +294,8 @@ class dRotamerEnsemble:
         d0 = np.concatenate([ic1.get_dihedral(1, self.RL1.dihedral_atoms),
                              ic2.get_dihedral(1, self.RL2.dihedral_atoms)])
 
-        lb = [-np.pi] * len(d0)  # d0 - np.deg2rad(40)
-        ub = [np.pi] * len(d0)  # d0 + np.deg2rad(40)  #
+        lb = d0 - np.pi  # np.deg2rad(40)
+        ub = d0 + np.pi  # np.deg2rad(40) #
         bounds = np.c_[lb, ub]
         xopt = opt.minimize(self._objective, x0=d0, args=(ic1, ic2), bounds=bounds, method=self.min_method)
         self.RL1._coords[i] = ic1.coords[self.RL1.H_mask]

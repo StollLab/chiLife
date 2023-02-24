@@ -454,7 +454,7 @@ class RotamerEnsemble:
         self.site = site
         self.to_site()
 
-    def copy(self, site=None, chain=None):
+    def copy(self, site=None, chain=None, rotlib=None):
         """Create a deep copy of the spin label. Assign new site and chain information if desired
 
         Parameters
@@ -468,15 +468,8 @@ class RotamerEnsemble:
         -------
 
         """
-        new_copy = deepcopy(self)
-        if site is not None:
-            new_copy.site = site
-        if chain is not None:
-            new_copy.chain = chain
-        return new_copy
+        new_copy = self._base_copy(rotlib)
 
-    def __deepcopy__(self, memodict={}):
-        new_copy = chilife.RotamerEnsemble(self.res, self.site)
         for item in self.__dict__:
             if isinstance(item, np.ndarray):
                 new_copy.__dict__[item] = self.__dict__[item].copy()
@@ -486,7 +479,15 @@ class RotamerEnsemble:
                 new_copy.protein = None
             else:
                 new_copy.protein = self.protein
+
+        if site is not None:
+            new_copy.site = site
+        if chain is not None:
+            new_copy.chain = chain
         return new_copy
+
+    def _base_copy(self, rotlib=None):
+        return chilife.RotamerEnsemble(self.res, self.site, rotlib=rotlib)
 
     def to_site(self, site_pos=None):
         """Move spin label to new site

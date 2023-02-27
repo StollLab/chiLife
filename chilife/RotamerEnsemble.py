@@ -336,14 +336,11 @@ class RotamerEnsemble:
 
         chain = guess_chain(traj, site) if chain is None else chain
 
-        altlocs = True
         if isinstance(traj, (mda.AtomGroup, mda.Universe)):
             if not hasattr(traj.universe._topology, "altLocs"):
-                res = traj.select_atoms(f"segid {chain} and resnum {site}")
-                altlocs = False
+                traj.add_TopologyAttr('altLocs', ["A"] * len(traj.atoms))
 
-        if altlocs:
-            res = traj.select_atoms(f"segid {chain} and resnum {site} and not altloc B")
+        res = traj.select_atoms(f"segid {chain} and resnum {site} and not altloc B")
 
         resname = res.residues[0].resname
         dihedral_defs = kwargs.get('dihedral_atoms', chilife.dihedral_defs.get(resname, ()))
@@ -952,6 +949,11 @@ class RotamerEnsemble:
 
     def protein_setup(self):
         """ """
+
+        if isinstance(self.protein, (mda.AtomGroup, mda.Universe)):
+            if not hasattr(self.protein.universe._topology, "altLocs"):
+                self.protein.universe.add_TopologyAttr('altLocs', np.full(len(self.protein.universe.atoms), ""))
+
         # Position library at selected residue
         self.resindex = self.protein.select_atoms(self.selstr).resindices[0]
         self.segindex = self.protein.select_atoms(self.selstr).segindices[0]

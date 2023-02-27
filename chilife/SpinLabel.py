@@ -3,6 +3,7 @@ from functools import partial
 import numpy as np
 from scipy.spatial.distance import cdist
 from scipy.spatial import cKDTree
+import MDAnalysis as mda
 from .RotamerEnsemble import RotamerEnsemble
 import chilife
 
@@ -64,6 +65,11 @@ class SpinLabel(RotamerEnsemble):
         return np.average(self.spin_centers, weights=self.weights, axis=0)
 
     def protein_setup(self):
+
+        if isinstance(self.protein, (mda.AtomGroup, mda.Universe)):
+            if not hasattr(self.protein.universe._topology, "altLocs"):
+                self.protein.universe.add_TopologyAttr('altLocs', np.full(len(self.protein.universe.atoms), ""))
+
         self.protein = self.protein.select_atoms("not (byres name OH2 or resname HOH)")
         self.to_site()
         self.backbone_to_site()

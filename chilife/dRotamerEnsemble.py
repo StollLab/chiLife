@@ -9,6 +9,7 @@ from pathlib import Path
 import numpy as np
 from scipy.spatial import cKDTree
 import scipy.optimize as opt
+import MDAnalysis as mda
 
 import chilife
 
@@ -68,6 +69,10 @@ class dRotamerEnsemble:
         self.sub_labels = (self.RL1, self.RL2)
 
     def protein_setup(self):
+        if isinstance(self.protein, (mda.AtomGroup, mda.Universe)):
+            if not hasattr(self.protein.universe._topology, "altLocs"):
+                self.protein.universe.add_TopologyAttr('altLocs', np.full(len(self.protein.universe.atoms), ""))
+
         self.protein = self.protein.select_atoms("not (byres name OH2 or resname HOH)")
         self.clash_ignore_idx = self.protein.select_atoms(
             f"resid {self.site1} {self.site2} and segid {self.chain}"

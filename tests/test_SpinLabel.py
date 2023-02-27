@@ -118,3 +118,11 @@ def test_minimize():
 def test_spin_center_array_dim():
     SL1 = chilife.SpinLabel('R1M', 5, ubq)
     assert SL1.spin_centers.shape == (1, 3)
+
+def test_no_altoloc():
+    GR1G = mda.Universe('test_data/GR1G.gro')
+    assert not hasattr(GR1G._topology, "altLocs")
+    SL = chilife.SpinLabel('R1M', 2, GR1G)
+    assert hasattr(GR1G._topology, "altLocs")
+
+

@@ -53,7 +53,7 @@ class dRotamerEnsemble:
 
         self.name = self.res
         if self.site1 is not None:
-            self.name = f"{self.RL1.nataa}{self.site1}{self.RL1.nataa}{self.site2}{self.res}"
+            self.name = f"{self.RL1.nataa}{self.site1}-{self.RL1.nataa}{self.site2}{self.res}"
         if self.chain is not None:
             self.name += f"_{self.chain}"
 

@@ -1,4 +1,5 @@
 import logging
+from copy import deepcopy
 import numpy as np
 import chilife
 from .dRotamerEnsemble import dRotamerEnsemble
@@ -24,6 +25,33 @@ class dSpinLabel(dRotamerEnsemble):
                                      **self.kwargs)
 
         self.RL1, self.RL2 = self.SL1, self.SL2
+
+
+    def copy(self):
+        new_copy = chilife.dSpinLabel(self.res, (self.site1, self.site2), chain=self.chain,
+                                            protein=self.protein,
+                                            rotlib={'csts': self.csts, 'libA': self.libA, 'libB': self.libB},
+                                            minimize=False,
+                                            eval_clash=False)
+        for item in self.__dict__:
+            if isinstance(self.__dict__[item], np.ndarray):
+                new_copy.__dict__[item] = self.__dict__[item].copy()
+
+            elif item == 'SL1':
+                new_copy.__dict__[item] == self.__dict__[item].copy(rotlib=self.libA)
+                new_copy.__dict__['RL1'] == new_copy.__dict__[item]
+
+            elif item == 'SL2':
+                new_copy.__dict__[item] == self.__dict__[item].copy(rotlib=self.libB)
+                new_copy.__dict__['RL2'] = new_copy.__dict__[item]
+
+            elif item in ('protein', 'RL1', 'RL2'):
+                pass
+
+            else:
+                new_copy.__dict__[item] = deepcopy(self.__dict__[item])
+
+        return new_copy
 
 
     @property

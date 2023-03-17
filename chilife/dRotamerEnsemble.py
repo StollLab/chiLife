@@ -1,5 +1,5 @@
 import networkx as nx
-from joblib import Parallel, delayed
+from copy import deepcopy
 from typing import Union
 from itertools import combinations
 import logging
@@ -29,8 +29,7 @@ class dRotamerEnsemble:
         self.chain = chain if chain is not None else self.guess_chain()
         self.protein_tree = self.kwargs.setdefault("protein_tree", None)
 
-        self.forgive = kwargs.setdefault("forgive", 1.0)
-        self.clash_radius = kwargs.setdefault("clash_radius", 14.0)
+        self.forgive = kwargs.setdefault("forgive", 0.95)
         self._clash_ori_inp = kwargs.setdefault("clash_ori", "cen")
         self.restraint_weight = kwargs.pop("restraint_weight") if "restraint_weight" in kwargs else 222  # kcal/mol/A^2
         self.alignment_method = kwargs.setdefault("alignment_method", "bisect".lower())
@@ -39,7 +38,7 @@ class dRotamerEnsemble:
         self._minimize = kwargs.pop("minimize", True)
         self.min_method = kwargs.pop('min_method', 'L-BFGS-B')
         self.eval_clash = kwargs.pop("eval_clash", True)
-        self.energy_func = kwargs.setdefault("energy_func", chilife.get_lj_rep)
+        self.energy_func = kwargs.setdefault("energy_func", chilife.get_lj_energy)
         self.temp = kwargs.setdefault("temp", 298)
         self.get_lib(rotlib)
         self.create_ensembles()
@@ -54,7 +53,7 @@ class dRotamerEnsemble:
 
         self.name = self.res
         if self.site1 is not None:
-            self.name = f"{self.RL1.nataa}{self.site1}{self.RL1.nataa}{self.site2}{self.res}"
+            self.name = f"{self.RL1.nataa}{self.site1}-{self.RL1.nataa}{self.site2}{self.res}"
         if self.chain is not None:
             self.name += f"_{self.chain}"
 
@@ -64,6 +63,10 @@ class dRotamerEnsemble:
 
         self._graph = nx.Graph()
         self._graph.add_edges_from(self.bonds)
+
+        self.clash_radius = kwargs.setdefault("clash_radius", None)
+        if self.clash_radius is None:
+            self.clash_radius = np.linalg.norm(self.clash_ori - self.coords, axis=-1).max() + 5
 
         self.protein_setup()
         self.sub_labels = (self.RL1, self.RL2)
@@ -92,6 +95,8 @@ class dRotamerEnsemble:
         ]
 
         _, self.irmin_ij, self.ieps_ij, _ = chilife.prep_internal_clash(self)
+        _, self.ermin_ij, self.eeps_ij, _ = chilife.prep_external_clash(self)
+
         self.aidx, self.bidx = [list(x) for x in zip(*self.non_bonded)]
 
         if self._minimize:
@@ -118,10 +123,16 @@ class dRotamerEnsemble:
         return chain
 
     def get_lib(self, rotlib):
-        if self.protein is not None:
-            # get site1 backbone information from protein structure
-            sel_txt = f"resnum {self.site1} and segid {self.chain}"
 
+        # If given a dictionary use that as the rotlib
+        if isinstance(rotlib, dict):
+            if tuple(sorted(rotlib.keys())) != ('csts', 'libA', 'libB'):
+                raise RuntimeError('Non-file dRotamerEnsemble rotlibs must be dictionaries consisting of exactle 3 '
+                                   'entries: `csts`, `libA` and `libB`')
+            self.csts = rotlib['csts']
+            self.libA, self.libB = rotlib['libA'], rotlib['libB']
+            self.kwargs["eval_clash"] = False
+            return None
 
         rotlib = self.res if rotlib is None else rotlib
         if 'ip' not in rotlib:
@@ -283,8 +294,8 @@ class dRotamerEnsemble:
         d0 = np.concatenate([ic1.get_dihedral(1, self.RL1.dihedral_atoms),
                              ic2.get_dihedral(1, self.RL2.dihedral_atoms)])
 
-        lb = [-np.pi] * len(d0)  # d0 - np.deg2rad(40)
-        ub = [np.pi] * len(d0)  # d0 + np.deg2rad(40)  #
+        lb = d0 - np.pi  # np.deg2rad(40)
+        ub = d0 + np.pi  # np.deg2rad(40) #
         bounds = np.c_[lb, ub]
         xopt = opt.minimize(self._objective, x0=d0, args=(ic1, ic2), bounds=bounds, method=self.min_method)
         self.RL1._coords[i] = ic1.coords[self.RL1.H_mask]
@@ -372,10 +383,12 @@ class dRotamerEnsemble:
 
     @property
     def side_chain_idx(self):
-        side_chain_idx = np.argwhere(
-            np.isin(self.atom_names, dRotamerEnsemble.backbone_atoms, invert=True)
-        ).flatten()
-        return side_chain_idx
+        if not hasattr(self, '_side_chain_idx'):
+            self._side_chain_idx = np.argwhere(
+                np.isin(self.atom_names, dRotamerEnsemble.backbone_atoms, invert=True)
+            ).flatten()
+
+        return self._side_chain_idx
 
     @property
     def rmin2(self):
@@ -391,7 +404,7 @@ class dRotamerEnsemble:
         if not hasattr(self, "_bonds"):
             bonds = []
 
-            for bond in self.SL1.bonds:
+            for bond in self.RL1.bonds:
                 bndin = np.isin(bond, self.rl1mask)
                 if np.all(bndin):
                     bonds.append(bond)
@@ -401,7 +414,7 @@ class dRotamerEnsemble:
                     bonds.append([np.argwhere(self.atom_names == self.RL1.atom_names[bond[0]]).flat[0],
                                  np.argwhere(self.atom_names == self.RL1.atom_names[bond[1]]).flat[0]])
 
-            for bond in self.SL2.bonds:
+            for bond in self.RL2.bonds:
                 bndin = np.isin(bond, self.rl2mask)
                 if np.all(bndin):
                     bonds.append([b + len(self.rl1mask) for b in bond])
@@ -477,8 +490,30 @@ class dRotamerEnsemble:
         self.trim_rotamers()
 
     def __len__(self):
-        return len(self.weights)
+        return len(self.RL1.coords)
 
+    def copy(self):
+        new_copy = chilife.dRotamerEnsemble(self.res, (self.site1, self.site2), chain = self.chain,
+                                            protein=self.protein,
+                                            rotlib={'csts': self.csts, 'libA': self.libA, 'libB': self.libB},
+                                            minimize=False,
+                                            eval_clash=False)
+        for item in self.__dict__:
+            if isinstance(self.dict[item], np.ndarray):
+                new_copy.__dict__[item] = self.__dict__[item].copy()
+
+            elif item == 'RL1':
+                new_copy.__dict__[item] == self.__dict__[item].copy(rotlib=self.libA)
+
+            elif item == 'RL2':
+                new_copy.__dict__[item] == self.__dict__[item].copy(rotlib=self.libB)
+
+            elif item == 'protein':
+                pass
+
+            else:
+                new_copy.__dict__[item] = deepcopy(self.__dict__[item])
+        return new_copy
 
 def get_possible_rotlibs(rotlib: str, all: bool = False) -> Union[Path, None]:
     """

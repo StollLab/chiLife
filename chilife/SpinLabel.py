@@ -227,13 +227,6 @@ class SpinLabel(RotamerEnsemble):
         prelib.weights /= prelib.weights.sum()
         return prelib
 
-    def __deepcopy__(self, memodict={}):
-        new_copy = chilife.SpinLabel(self.res, self.site)
-        for item in self.__dict__:
-            if item != "protein":
-                new_copy.__dict__[item] = deepcopy(self.__dict__[item])
-            elif self.__dict__[item] is None:
-                new_copy.protein = None
-            else:
-                new_copy.protein = self.protein.copy()
-        return new_copy
+
+    def _base_copy(self, rotlib=None):
+        return chilife.SpinLabel(self.res, self.site, rotlib=rotlib, chain=self.chain)

@@ -299,15 +299,23 @@ def prep_external_clash(ensemble):
     """
 
     # Calculate rmin and epsilon for all atoms in protein that may clash
-    rmin_ij, eps_ij = get_lj_params(ensemble)
+    if hasattr(ensemble, 'ermin_ij'):
+        rmin_ij = ensemble.ermin_ij
+        eps_ij = ensemble.eeps_ij
+    else:
+        rmin_ij, eps_ij = get_lj_params(ensemble)
+        ensemble.ermin_ij = rmin_ij
+        ensemble.eeps_ij = eps_ij
 
+    if len(ensemble) == 1:
+        ec = ensemble.coords[0, ensemble.side_chain_idx]
+    else:
+        ec = ensemble.coords[:, ensemble.side_chain_idx].reshape(-1, 3)
+    pc = ensemble.protein_tree.data[ensemble.protein_clash_idx]
     # Calculate distances
-    dist = cdist(
-        ensemble.coords[:, ensemble.side_chain_idx].reshape(-1, 3),
-        ensemble.protein_tree.data[ensemble.protein_clash_idx],
-    ).ravel()
+    dist = cdist(ec, pc).ravel()
     shape = (
-        len(ensemble.coords),
+        len(ensemble),
         len(ensemble.side_chain_idx) * len(ensemble.protein_clash_idx),
     )
 
@@ -334,19 +342,27 @@ def prep_internal_clash(ensemble):
                 Shape the array should be so that the energy is evaluated for each rotamer of the ensemble separately.
         """
 
-    a, b = [list(x) for x in zip(*ensemble.non_bonded)]
-    a_eps = chilife.get_lj_eps(ensemble.atom_types[a])
-    a_radii = chilife.get_lj_rmin(ensemble.atom_types[a])
-    b_eps = chilife.get_lj_eps(ensemble.atom_types[b])
-    b_radii = chilife.get_lj_rmin(ensemble.atom_types[b])
+    if hasattr(ensemble, 'ermin_ij'):
+        rmin_ij, eps_ij = ensemble.ermin_ij, ensemble.eeps_ij
+    else:
+        a, b = [list(x) for x in zip(*ensemble.non_bonded)]
+        a_eps = chilife.get_lj_eps(ensemble.atom_types[a])
+        a_radii = chilife.get_lj_rmin(ensemble.atom_types[a])
+        b_eps = chilife.get_lj_eps(ensemble.atom_types[b])
+        b_radii = chilife.get_lj_rmin(ensemble.atom_types[b])
 
-    join_rmin = chilife.get_lj_rmin("join_protocol")[()]
-    join_eps = chilife.get_lj_eps("join_protocol")[()]
+        join_rmin = chilife.get_lj_rmin("join_protocol")[()]
+        join_eps = chilife.get_lj_eps("join_protocol")[()]
 
-    rmin_ij = join_rmin(a_radii * ensemble.forgive, b_radii * ensemble.forgive, flat=True)
-    eps_ij = join_eps(a_eps, b_eps, flat=True)
+        rmin_ij = join_rmin(a_radii * ensemble.forgive, b_radii * ensemble.forgive, flat=True)
+        eps_ij = join_eps(a_eps, b_eps, flat=True)
 
-    dist = np.linalg.norm(ensemble.coords[:, a] - ensemble.coords[:, b], axis=2)
+        ensemble.irmin_ij = rmin_ij
+        ensemble.ieps_ij = eps_ij
+        ensemble.aidx = a
+        ensemble.bidx = b
+
+    dist = np.linalg.norm(ensemble.coords[:, ensemble.aidx] - ensemble.coords[:, ensemble.bidx], axis=2)
     shape = (len(ensemble.coords), len(a_radii))
 
     return dist, rmin_ij, eps_ij, shape

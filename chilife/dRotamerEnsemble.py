@@ -254,7 +254,7 @@ class dRotamerEnsemble:
         if MSDmin > 0.25:
 
            raise RuntimeError(f'chiLife was unable to connect residues {self.site1} and {self.site2} with {self.res}. '
-                              f'Please double check that this is the intended labeling site1. It is likely that these '
+                              f'Please double check that this is the intended labeling site. It is likely that these '
                               f'sites are too far apart.')
 
         self.RL1.backbone_to_site()

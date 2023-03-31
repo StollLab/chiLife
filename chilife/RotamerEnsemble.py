@@ -1195,6 +1195,13 @@ class RotamerEnsemble:
         """ """
         return np.squeeze(self.backbone[1])
 
+    @property
+    def CB(self):
+        if 'CB' not in self.atom_names:
+            raise ValueError("There is no CB atom in this side chain")
+        cbidx = np.argwhere(self.atom_names == 'CB').flat[0]
+        return self.coords[:, cbidx].mean(axis=0)
+
     def get_sasa(self):
         """ """
         atom_radii = chilife.get_lj_rmin(self.atom_types)

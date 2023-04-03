@@ -24,7 +24,7 @@ class dSpinLabel(dRotamerEnsemble):
                                      self.libB,
                                      **self.kwargs)
 
-        self.RL1, self.RL2 = self.SL1, self.SL2
+        self.RE1, self.RE2 = self.SL1, self.SL2
 
 
     def copy(self):
@@ -39,13 +39,13 @@ class dSpinLabel(dRotamerEnsemble):
 
             elif item == 'SL1':
                 new_copy.__dict__[item] == self.__dict__[item].copy(rotlib=self.libA)
-                new_copy.__dict__['RL1'] == new_copy.__dict__[item]
+                new_copy.__dict__['RE1'] == new_copy.__dict__[item]
 
             elif item == 'SL2':
                 new_copy.__dict__[item] == self.__dict__[item].copy(rotlib=self.libB)
-                new_copy.__dict__['RL2'] = new_copy.__dict__[item]
+                new_copy.__dict__['RE2'] = new_copy.__dict__[item]
 
-            elif item in ('protein', 'RL1', 'RL2'):
+            elif item in ('protein', 'RE1', 'RE2'):
                 pass
 
             else:

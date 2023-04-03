@@ -43,17 +43,17 @@ class dRotamerEnsemble:
         self.get_lib(rotlib)
         self.create_ensembles()
 
-        self.RL1.backbone_to_site()
-        self.RL2.backbone_to_site()
+        self.RE1.backbone_to_site()
+        self.RE2.backbone_to_site()
 
-        self.cst_idx1 = np.where(self.RL1.atom_names[None, :] == self.csts[:, None])[1]
-        self.cst_idx2 = np.where(self.RL2.atom_names[None, :] == self.csts[:, None])[1]
-        self.rl1mask = np.argwhere(~np.isin(self.RL1.atom_names, self.csts)).flatten()
-        self.rl2mask = np.argwhere(~np.isin(self.RL2.atom_names, self.csts)).flatten()
+        self.cst_idx1 = np.where(self.RE1.atom_names[None, :] == self.csts[:, None])[1]
+        self.cst_idx2 = np.where(self.RE2.atom_names[None, :] == self.csts[:, None])[1]
+        self.rl1mask = np.argwhere(~np.isin(self.RE1.atom_names, self.csts)).flatten()
+        self.rl2mask = np.argwhere(~np.isin(self.RE2.atom_names, self.csts)).flatten()
 
         self.name = self.res
         if self.site1 is not None:
-            self.name = f"{self.RL1.nataa}{self.site1}-{self.RL1.nataa}{self.site2}{self.res}"
+            self.name = f"{self.RE1.nataa}{self.site1}-{self.RE2.nataa}{self.site2}{self.res}"
         if self.chain is not None:
             self.name += f"_{self.chain}"
 
@@ -72,7 +72,7 @@ class dRotamerEnsemble:
         self.eps = chilife.get_lj_eps(self.atom_types[self.side_chain_idx])
 
         self.protein_setup()
-        self.sub_labels = (self.RL1, self.RL2)
+        self.sub_labels = (self.RE1, self.RE2)
 
     def protein_setup(self):
         if isinstance(self.protein, (mda.AtomGroup, mda.Universe)):
@@ -217,14 +217,14 @@ class dRotamerEnsemble:
 
     def create_ensembles(self):
 
-        self.RL1 = chilife.RotamerEnsemble(self.res,
+        self.RE1 = chilife.RotamerEnsemble(self.res,
                                            self.site1,
                                            self.protein,
                                            self.chain,
                                            self.libA,
                                            **self.kwargs)
 
-        self.RL2 = chilife.RotamerEnsemble(self.res,
+        self.RE2 = chilife.RotamerEnsemble(self.res,
                                            self.site2,
                                            self.protein,
                                            self.chain,
@@ -238,15 +238,15 @@ class dRotamerEnsemble:
         if not name.endswith(".pdb"):
             name += ".pdb"
 
-        chilife.save(name, self.RL1, self.RL2)
+        chilife.save(name, self.RE1, self.RE2)
 
     def minimize(self):
 
         scores =  [self._min_one(i, ic1, ic2) for i, (ic1, ic2) in
-                 enumerate(zip(self.RL1.internal_coords, self.RL2.internal_coords))]
+                   enumerate(zip(self.RE1.internal_coords, self.RE2.internal_coords))]
 
         scores = np.asarray(scores)
-        SSEs = np.linalg.norm(self.RL1.coords[:, self.cst_idx1] - self.RL2.coords[:, self.cst_idx2], axis=2).sum(axis=1)
+        SSEs = np.linalg.norm(self.RE1.coords[:, self.cst_idx1] - self.RE2.coords[:, self.cst_idx2], axis=2).sum(axis=1)
         MSD = SSEs/len(self.csts)
         MSDmin= MSD.min()
 
@@ -260,8 +260,8 @@ class dRotamerEnsemble:
                               f'Please double check that this is the intended labeling site. It is likely that these '
                               f'sites are too far apart.')
 
-        self.RL1.backbone_to_site()
-        self.RL2.backbone_to_site()
+        self.RE1.backbone_to_site()
+        self.RE2.backbone_to_site()
 
         scores -= scores.min()
 
@@ -270,11 +270,11 @@ class dRotamerEnsemble:
 
     def _objective(self, dihedrals, ic1, ic2):
 
-        ic1.set_dihedral(dihedrals[: len(self.RL1.dihedral_atoms)], 1, self.RL1.dihedral_atoms)
-        coords1 = ic1.to_cartesian()[self.RL1.ic_mask]
+        ic1.set_dihedral(dihedrals[: len(self.RE1.dihedral_atoms)], 1, self.RE1.dihedral_atoms)
+        coords1 = ic1.to_cartesian()[self.RE1.ic_mask]
 
-        ic2.set_dihedral(dihedrals[-len(self.RL2.dihedral_atoms):], 1, self.RL2.dihedral_atoms)
-        coords2 = ic2.to_cartesian()[self.RL2.ic_mask]
+        ic2.set_dihedral(dihedrals[-len(self.RE2.dihedral_atoms):], 1, self.RE2.dihedral_atoms)
+        coords2 = ic2.to_cartesian()[self.RE2.ic_mask]
 
         diff = np.linalg.norm(coords1[self.cst_idx1] - coords2[self.cst_idx2], axis=1)
         ovlp = (coords1[self.cst_idx1] + coords2[self.cst_idx2]) / 2
@@ -294,15 +294,15 @@ class dRotamerEnsemble:
 
     def _min_one(self, i, ic1, ic2):
 
-        d0 = np.concatenate([ic1.get_dihedral(1, self.RL1.dihedral_atoms),
-                             ic2.get_dihedral(1, self.RL2.dihedral_atoms)])
+        d0 = np.concatenate([ic1.get_dihedral(1, self.RE1.dihedral_atoms),
+                             ic2.get_dihedral(1, self.RE2.dihedral_atoms)])
 
         lb = d0 - np.pi  # np.deg2rad(40)
         ub = d0 + np.pi  # np.deg2rad(40) #
         bounds = np.c_[lb, ub]
         xopt = opt.minimize(self._objective, x0=d0, args=(ic1, ic2), bounds=bounds, method=self.min_method)
-        self.RL1._coords[i] = ic1.coords[self.RL1.H_mask]
-        self.RL2._coords[i] = ic2.coords[self.RL2.H_mask]
+        self.RE1._coords[i] = ic1.coords[self.RE1.H_mask]
+        self.RE2._coords[i] = ic2.coords[self.RE2.H_mask]
         tors = d0 - xopt.x
         tors = np.arctan2(np.sin(tors), np.cos(tors))
         tors = np.sqrt(tors @ tors)
@@ -311,17 +311,17 @@ class dRotamerEnsemble:
 
     @property
     def weights(self):
-        return self.RL1.weights
+        return self.RE1.weights
 
     @weights.setter
     def weights(self, value):
-        self.RL1.weights = value
-        self.RL2.weights = value
+        self.RE1.weights = value
+        self.RE2.weights = value
 
     @property
     def coords(self):
-        ovlp = (self.RL1.coords[:, self.cst_idx1] + self.RL2.coords[:, self.cst_idx2]) / 2
-        return np.concatenate([self.RL1._coords[:, self.rl1mask], self.RL2._coords[:, self.rl2mask], ovlp], axis=1)
+        ovlp = (self.RE1.coords[:, self.cst_idx1] + self.RE2.coords[:, self.cst_idx2]) / 2
+        return np.concatenate([self.RE1._coords[:, self.rl1mask], self.RE2._coords[:, self.rl2mask], ovlp], axis=1)
 
     @coords.setter
     def coords(self, value):
@@ -330,29 +330,29 @@ class dRotamerEnsemble:
                 f"The provided coordinates do not match the number of atoms of this ensemble ({self.res})"
             )
 
-        self.RL1._coords[:, self.rl1mask] = value[:, :len(self.rl1mask)]
-        self.RL2._coords[:, self.rl2mask] = value[:, len(self.rl1mask):len(self.rl1mask) + len(self.rl2mask)]
-        self.RL1._coords[:, self.cst_idx1] = value[:, len(self.rl1mask) + len(self.rl2mask):]
-        self.RL2._coords[:, self.cst_idx2] = value[:, len(self.rl1mask) + len(self.rl2mask):]
+        self.RE1._coords[:, self.rl1mask] = value[:, :len(self.rl1mask)]
+        self.RE2._coords[:, self.rl2mask] = value[:, len(self.rl1mask):len(self.rl1mask) + len(self.rl2mask)]
+        self.RE1._coords[:, self.cst_idx1] = value[:, len(self.rl1mask) + len(self.rl2mask):]
+        self.RE2._coords[:, self.cst_idx2] = value[:, len(self.rl1mask) + len(self.rl2mask):]
 
 
     @property
     def _lib_coords(self):
-        ovlp = (self.RL1._lib_coords[:, self.cst_idx1] + self.RL2._lib_coords[:, self.cst_idx2]) / 2
-        return np.concatenate([self.RL1._lib_coords[:, self.rl1mask],
-                               self.RL2._lib_coords[:, self.rl2mask], ovlp], axis=1)
+        ovlp = (self.RE1._lib_coords[:, self.cst_idx1] + self.RE2._lib_coords[:, self.cst_idx2]) / 2
+        return np.concatenate([self.RE1._lib_coords[:, self.rl1mask],
+                               self.RE2._lib_coords[:, self.rl2mask], ovlp], axis=1)
 
     @property
     def atom_names(self):
-        return np.concatenate((self.RL1.atom_names[self.rl1mask],
-                               self.RL2.atom_names[self.rl2mask],
-                               self.RL1.atom_names[self.cst_idx1]))
+        return np.concatenate((self.RE1.atom_names[self.rl1mask],
+                               self.RE2.atom_names[self.rl2mask],
+                               self.RE1.atom_names[self.cst_idx1]))
 
     @property
     def atom_types(self):
-        return np.concatenate((self.RL1.atom_types[self.rl1mask],
-                               self.RL2.atom_types[self.rl2mask],
-                               self.RL1.atom_types[self.cst_idx2]))
+        return np.concatenate((self.RE1.atom_types[self.rl1mask],
+                               self.RE2.atom_types[self.rl2mask],
+                               self.RE1.atom_types[self.cst_idx2]))
 
     @property
     def centroid(self):
@@ -399,23 +399,23 @@ class dRotamerEnsemble:
         if not hasattr(self, "_bonds"):
             bonds = []
 
-            for bond in self.RL1.bonds:
+            for bond in self.RE1.bonds:
                 bndin = np.isin(bond, self.rl1mask)
                 if np.all(bndin):
                     bonds.append(bond)
                 elif np.any(bndin):
-                    bonds.append([bond[0], np.argwhere(self.atom_names == self.RL1.atom_names[bond[1]]).flat[0]])
+                    bonds.append([bond[0], np.argwhere(self.atom_names == self.RE1.atom_names[bond[1]]).flat[0]])
                 else:
-                    bonds.append([np.argwhere(self.atom_names == self.RL1.atom_names[bond[0]]).flat[0],
-                                 np.argwhere(self.atom_names == self.RL1.atom_names[bond[1]]).flat[0]])
+                    bonds.append([np.argwhere(self.atom_names == self.RE1.atom_names[bond[0]]).flat[0],
+                                  np.argwhere(self.atom_names == self.RE1.atom_names[bond[1]]).flat[0]])
 
-            for bond in self.RL2.bonds:
+            for bond in self.RE2.bonds:
                 bndin = np.isin(bond, self.rl2mask)
                 if np.all(bndin):
                     bonds.append([b + len(self.rl1mask) for b in bond])
                 elif not bndin[1]:
                     bonds.append([bond[0] + len(self.rl1mask),
-                                  np.argwhere(self.atom_names == self.RL2.atom_names[bond[1]]).flat[0]])
+                                  np.argwhere(self.atom_names == self.RE2.atom_names[bond[1]]).flat[0]])
 
             self._bonds = np.array(sorted(set(map(tuple, bonds))), dtype=int)
 
@@ -469,8 +469,8 @@ class dRotamerEnsemble:
         self._bonds = all_pairs - self._non_bonded
 
     def trim_rotamers(self):
-        self.RL1.trim_rotamers()
-        self.RL2.trim_rotamers()
+        self.RE1.trim_rotamers()
+        self.RE2.trim_rotamers()
 
     def evaluate(self):
         """Place rotamer ensemble on protein site1 and recalculate rotamer weights."""
@@ -485,7 +485,7 @@ class dRotamerEnsemble:
         self.trim_rotamers()
 
     def __len__(self):
-        return len(self.RL1.coords)
+        return len(self.RE1.coords)
 
     def copy(self):
         new_copy = chilife.dRotamerEnsemble(self.res, (self.site1, self.site2), chain = self.chain,
@@ -497,10 +497,10 @@ class dRotamerEnsemble:
             if isinstance(self.dict[item], np.ndarray):
                 new_copy.__dict__[item] = self.__dict__[item].copy()
 
-            elif item == 'RL1':
+            elif item == 'RE1':
                 new_copy.__dict__[item] == self.__dict__[item].copy(rotlib=self.libA)
 
-            elif item == 'RL2':
+            elif item == 'RE2':
                 new_copy.__dict__[item] == self.__dict__[item].copy(rotlib=self.libB)
 
             elif item == 'protein':

@@ -16,14 +16,28 @@ lj_ans = [
     [10.0, 4.0649501, 1.07172709, 0.32288702, 0.10849416, 0.03992503, 0.01586676],
 ]
 
-#
+
 @pytest.mark.parametrize(('func', 'ans'), zip(lj_funcs, lj_ans))
 def test_lj(func, ans):
-    SL = chilife.RotamerEnsemble('TRP', 28, protein, energy_func=func)
-    print(SL.atom_energies)
+    RL = chilife.RotamerEnsemble('TRP', 28, protein, energy_func=func, eval_clash=True)
+    print(RL.atom_energies)
     # E = func(r, rmin, eps)
     # np.testing.assert_almost_equal(E[60:116:8], ans)
 
+
+@pytest.mark.parametrize('func',  lj_funcs)
+def test_efunc(func):
+    RL = chilife.RotamerEnsemble('TRP', 28, protein)
+    test = func(RL)
+    ans = np.load(f'test_data/{func.__name__}.npy')
+    np.testing.assert_almost_equal(test, ans)
+
+@pytest.mark.parametrize('func',  lj_funcs)
+def test_efunc_dlabel(func):
+    dSL = chilife.dSpinLabel('DHC', (28, 32), protein, eval_clash=False)
+    test = func(dSL)
+    ans = np.load(f'test_data/d{func.__name__}.npy')
+    np.testing.assert_almost_equal(test, ans)
 
 def test_prep_internal_clash():
     SL = chilife.RotamerEnsemble('TRP', 28, protein)

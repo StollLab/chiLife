@@ -68,6 +68,9 @@ class dRotamerEnsemble:
         if self.clash_radius is None:
             self.clash_radius = np.linalg.norm(self.clash_ori - self.coords, axis=-1).max() + 5
 
+        self.rmin2 = chilife.get_lj_rmin(self.atom_types[self.side_chain_idx])
+        self.eps = chilife.get_lj_eps(self.atom_types[self.side_chain_idx])
+
         self.protein_setup()
         self.sub_labels = (self.RL1, self.RL2)
 
@@ -389,14 +392,6 @@ class dRotamerEnsemble:
             ).flatten()
 
         return self._side_chain_idx
-
-    @property
-    def rmin2(self):
-        return np.concatenate([self.RL1.rmin2, self.RL2.rmin2])
-
-    @property
-    def eps(self):
-        return np.concatenate([self.RL1.eps, self.RL2.eps])
 
     @property
     def bonds(self):

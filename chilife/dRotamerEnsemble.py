@@ -31,7 +31,8 @@ class dRotamerEnsemble:
 
         self.forgive = kwargs.setdefault("forgive", 0.95)
         self._clash_ori_inp = kwargs.setdefault("clash_ori", "cen")
-        self.restraint_weight = kwargs.pop("restraint_weight") if "restraint_weight" in kwargs else 222  # kcal/mol/A^2
+        self.restraint_weight = kwargs.pop("restraint_weight") if "restraint_weight" in kwargs else 222
+        self.torsion_weight = kwargs.pop("torsion_weight") if "torsion_weight" in kwargs else 5
         self.alignment_method = kwargs.setdefault("alignment_method", "bisect".lower())
         self.dihedral_sigmas = kwargs.setdefault("dihedral_sigmas", 25)
         self._exclude_nb_interactions = kwargs.setdefault('exclude_nb_interactions', 3)
@@ -98,7 +99,7 @@ class dRotamerEnsemble:
         ]
 
         _, self.irmin_ij, self.ieps_ij, _ = chilife.prep_internal_clash(self)
-        _, self.ermin_ij, self.eeps_ij, _ = chilife.prep_external_clash(self)
+        _, self.ermin_ij, self.eeps_ij = chilife.prep_external_clash(self)
 
         self.aidx, self.bidx = [list(x) for x in zip(*self.non_bonded)]
 
@@ -307,7 +308,7 @@ class dRotamerEnsemble:
         tors = np.arctan2(np.sin(tors), np.cos(tors))
         tors = np.sqrt(tors @ tors)
 
-        return xopt.fun + tors
+        return xopt.fun + tors * self.torsion_weight
 
     @property
     def weights(self):

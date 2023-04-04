@@ -50,8 +50,8 @@ def clash_only(func):
             if system.protein is None and _protein is not None:
                 system.protein = _protein
 
-            r, rmin, eps, shape = prep_external_clash(system)
-            E = func(r, rmin, eps, **kwargs).reshape(shape)
+            r, rmin, eps = prep_external_clash(system)
+            E = func(r, rmin, eps, **kwargs)
 
             if internal:
                 r, rmin, eps, shape = prep_internal_clash(system)
@@ -128,24 +128,26 @@ def get_lj_energy(r, rmin, eps, forgive=1, cap=10, rmax=10):
         Vector of atom pair energies calculated using the modified lj potential function.
 
     """
+    r = np.atleast_2d(r)
     lj_energy = np.zeros_like(r)
     rmin_lower = forgive * rmin
 
     # Piecewise function for flat lj potential near rmin
-    for i in range(len(r)):
-        if r[i] < rmin_lower[i]:
-            lj = rmin_lower[i] / r[i]
-            lj = lj * lj * lj
-            lj = lj * lj
-            lj_energy[i] = np.minimum(eps[i] * (lj**2 - 2 * lj), cap * eps[i])
+    for j, rotamer in enumerate(r):
+        for i in range(len(rotamer)):
+            if rotamer[i] < rmin_lower[i]:
+                lj = rmin_lower[i] / rotamer[i]
+                lj = lj * lj * lj
+                lj = lj * lj
+                lj_energy[j, i] = np.minimum(eps[i] * (lj**2 - 2 * lj), cap * eps[i])
 
-        elif rmin_lower[i] <= r[i] < rmin[i]:
-            lj_energy[i] = -eps[i]
-        elif r[i] < rmax:
-            lj = rmin[i] / r[i]
-            lj = lj * lj * lj
-            lj = lj * lj
-            lj_energy[i] = eps[i] * (lj**2 - 2 * lj)
+            elif rmin_lower[i] <= rotamer[i] < rmin[i]:
+                lj_energy[j, i] = -eps[i]
+            elif rotamer[i] < rmax:
+                lj = rmin[i] / rotamer[i]
+                lj = lj * lj * lj
+                lj = lj * lj
+                lj_energy[j, i] = eps[i] * (lj**2 - 2 * lj)
 
     return lj_energy
 
@@ -175,22 +177,23 @@ def get_lj_scwrl(r, rmin, eps, forgive=1):
     lj_energy: numpy.ndarray
         Vector of atom pair energies calculated using the modified lj potential function.
     """
+    r = np.atleast_2d(r)
     lj_energy = np.empty_like(r)
     rmin_lower = rmin * forgive
-
-    # Piecewise function for flat lj potential near rmin
-    for i in range(len(r)):
-        rat = r[i] / (rmin_lower[i] / 1.12246204831)
-        if rat < 0.8254:
-            lj_energy[i] = 10 * eps[i]
-        elif rat <= 1:
-            lj_energy[i] = 57.273 * (1 - rat) * eps[i]
-        elif rat < 10 / 9:
-            lj_energy[i] = eps[i] * (10 - 9 * rat) ** (57.273 / (9 * eps[i])) - eps[i]
-        elif rat < 4 / 3:
-            lj_energy[i] = (eps[i] / 4) * (9 * rat - 10) ** 2 - eps[i]
-        else:
-            lj_energy[i] = 0
+    for j, rotamer in enumerate(r):
+        # Piecewise function for flat lj potential near rmin
+        for i in range(len(rotamer)):
+            rat = rotamer[i] / (rmin_lower[i] / 1.12246204831)
+            if rat < 0.8254:
+                lj_energy[j, i] = 10 * eps[i]
+            elif rat <= 1:
+                lj_energy[j, i] = 57.273 * (1 - rat) * eps[i]
+            elif rat < 10 / 9:
+                lj_energy[j, i] = eps[i] * (10 - 9 * rat) ** (57.273 / (9 * eps[i])) - eps[i]
+            elif rat < 4 / 3:
+                lj_energy[j, i] = (eps[i] / 4) * (9 * rat - 10) ** 2 - eps[i]
+            else:
+                lj_energy[j, i] = 0
 
     return lj_energy
 
@@ -224,15 +227,17 @@ def get_lj_rep(r, rmin, eps, forgive=0.9, cap=10):
     lj_energy: numpy.ndarray
         Vector of atom pair energies calculated using the modified lj potential function.
     """
+    r = np.atleast_2d(r)
     lj_energy = np.empty_like(r)
     rmin_lower = forgive * rmin
 
     # Piecewise function for flat lj potential near rmin
-    for i in range(len(r)):
-        lj = rmin_lower[i] / r[i]
-        lj = lj * lj * lj
-        lj = lj * lj
-        lj_energy[i] = np.minimum(eps[i] * lj**2, cap * eps[i])
+    for i, rotamer in enumerate(r):
+        for j in range(len(rotamer)):
+            lj = rmin_lower[j] / rotamer[j]
+            lj = lj * lj * lj
+            lj = lj * lj
+            lj_energy[i, j] = np.minimum(eps[j] * lj**2, cap * eps[j])
 
     return lj_energy
 
@@ -265,15 +270,16 @@ def get_lj_attr(r, rmin, eps, forgive=0.9, floor=-2):
       lj_energy: numpy.ndarray
           Vector of atom pair energies calculated using the modified lj potential function.
       """
+    r = np.atleast_2d([r])
     lj_energy = np.empty_like(r)
     rmin_lower = forgive * rmin
-
-    # Piecewise function for flat lj potential near rmin
-    for i in range(len(r)):
-        lj = rmin_lower[i] / r[i]
-        lj = lj * lj * lj
-        lj = lj * lj
-        lj_energy[i] = np.maximum(-2 * eps[i] * lj, eps[i] * floor)
+    for j, rotamer in enumerate(r):
+        # Piecewise function for flat lj potential near rmin
+        for i in range(len(rotamer)):
+            lj = rmin_lower[i] / rotamer[i]
+            lj = lj * lj * lj
+            lj = lj * lj
+            lj_energy[j, i] = np.maximum(-2 * eps[i] * lj, eps[i] * floor)
 
     return lj_energy
 
@@ -313,13 +319,8 @@ def prep_external_clash(ensemble):
         ec = ensemble.coords[:, ensemble.side_chain_idx].reshape(-1, 3)
     pc = ensemble.protein_tree.data[ensemble.protein_clash_idx]
     # Calculate distances
-    dist = cdist(ec, pc).ravel()
-    shape = (
-        len(ensemble),
-        len(ensemble.side_chain_idx) * len(ensemble.protein_clash_idx),
-    )
-
-    return dist, rmin_ij, eps_ij, shape
+    dist = cdist(ec, pc).reshape(len(ensemble), -1)
+    return dist, rmin_ij, eps_ij
 
 
 def prep_internal_clash(ensemble):
@@ -423,15 +424,8 @@ def get_lj_params(ensemble):
     join_rmin = chilife.get_lj_rmin("join_protocol")[()]
     join_eps = chilife.get_lj_eps("join_protocol")[()]
 
-    rmin_ij = np.tile(
-        join_rmin(
-            ensemble.rmin2 * ensemble.forgive, protein_lj_radii * ensemble.forgive
-        ).reshape(-1),
-        len(ensemble.coords),
-    )
-    eps_ij = np.tile(
-        join_eps(ensemble.eps, protein_lj_eps).reshape((-1)), len(ensemble.coords)
-    )
+    rmin_ij = join_rmin(ensemble.rmin2 * ensemble.forgive, protein_lj_radii * ensemble.forgive).reshape(-1)
+    eps_ij = join_eps(ensemble.eps, protein_lj_eps).reshape((-1))
 
     return rmin_ij, eps_ij
 

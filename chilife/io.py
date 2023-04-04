@@ -450,8 +450,8 @@ def write_labels(pdb_file: TextIO, *args: SpinLabel, KDE: bool = True, sorted: b
         sorted_index = np.argsort(label.weights)[::-1] if sorted else np.arange(len(label.weights))
         norm_weights = label.weights / label.weights.max()
         if isinstance(label, dRotamerEnsemble):
-            sites = np.concatenate([np.ones(len(label.RL1.atoms), dtype=int) * int(label.site1),
-                                    np.ones(len(label.RL2.atoms), dtype=int) * int(label.site2)])
+            sites = np.concatenate([np.ones(len(label.RE1.atoms), dtype=int) * int(label.site1),
+                                    np.ones(len(label.RE2.atoms), dtype=int) * int(label.site2)])
         else:
             sites = np.ones(len(label.atoms), dtype=int) * int(label.site)
         for mdl, (conformer, weight) in enumerate(

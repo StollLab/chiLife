@@ -58,7 +58,9 @@ def clash_only(func):
                 Einternal = func(r, rmin, eps, **kwargs)
                 E = np.concatenate((E, Einternal), axis=1)
 
+            system.atom_energies = E.reshape(len(E), len(system.side_chain_idx), -1).sum(axis=2)
             E = E.sum(axis=1)
+
 
         elif isinstance(system, (mda.Universe, mda.AtomGroup, chilife.Protein)):
             bonds = {(a, b) for a, b in system.atoms.bonds.indices}

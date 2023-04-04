@@ -798,6 +798,8 @@ class RotamerEnsemble:
         self._coords = self._coords[keep_idx]
         self._dihedrals = self._dihedrals[keep_idx]
         self.weights = self.weights[keep_idx]
+        if self.atom_energies is not None:
+            self.atom_energies = self.atom_energies[keep_idx]
         if len(arg_sort_weights) == len(self.internal_coords):
             self.internal_coords = [self.internal_coords[x] for x in keep_idx]
 

@@ -43,11 +43,11 @@ def test_distance_distribution():
     d = r[np.argmax(dd)]
     p = np.max(dd)
     assert abs(d - 26.529411764705884) < 1e-7
-    assert abs(p - 0.3541771056476368) < 1e-7
+    assert abs(p - 0.3548311024322747) < 1e-7
 
 
 def test_centroid():
-    np.testing.assert_almost_equal(SL2.centroid, [19.72030189, -13.92661415,  11.02192713], decimal=5)
+    np.testing.assert_almost_equal(SL2.centroid, [19.69981126, -13.95217125,  10.8655417], decimal=5)
 
 
 def test_side_chain_idx():
@@ -104,7 +104,7 @@ def test_single_chain_error():
 
 def test_restraint_weight():
     SL3 = xl.dSpinLabel("DHC", [28, 32], gb1, restraint_weight=5)
-    ans = np.array([0.67547773, 0.32452227])
+    ans = np.array([0.51175099, 0.48824901])
 
     np.testing.assert_almost_equal(SL3.weights, ans, decimal=3)
     assert np.any(SL2.weights != SL3.weights)
@@ -116,20 +116,18 @@ def test_alternate_increment():
             xl.dSpinLabel("DHC", (15, 44), gb1)
 
     SL2 = xl.dSpinLabel("DHC", (12, 37), gb1)
-    ans = np.array([[24.57566352,  1.97824049,  3.73004511],
+    ans = np.array([[25.50056398,  1.27502619,  3.3972164 ],
                     [24.45518418,  2.0136011 ,  3.74825233],
+                    [24.57566352,  1.97824049,  3.73004511],
                     [24.63698352,  1.94542836,  3.70611475],
-                    [25.50056398,  1.27502619,  3.3972164 ],
                     [24.52183104,  2.00650002,  3.74023405]])
     np.testing.assert_almost_equal(SL2.spin_centers, ans, decimal=4)
 
 
 def test_min_method():
     SL2 = xl.dSpinLabel("DHC", (28, 32), gb1, min_method='Powell')
-    ans = np.array([[ 18.60625961, -14.705718  ,  12.06246574],
-                    [ 18.55611902, -14.7362964 ,  11.95830604],
-                    [ 18.59731431, -14.71823756,  12.02207577],
-                    [ 18.89539069, -14.54316631,  12.85377067]])
+    ans = np.array([[ 18.6062596, -14.705718 ,  12.0624657],
+                    [ 18.5973143, -14.7182376,  12.0220758]])
 
     np.testing.assert_almost_equal(SL2.spin_centers, ans)
 

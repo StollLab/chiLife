@@ -32,6 +32,7 @@ def test_efunc(func):
     ans = np.load(f'test_data/{func.__name__}.npy')
     np.testing.assert_almost_equal(test, ans)
 
+
 @pytest.mark.parametrize('func',  lj_funcs)
 def test_efunc_dlabel(func):
     dSL = chilife.dSpinLabel('DHC', (28, 32), protein, eval_clash=False)
@@ -39,10 +40,6 @@ def test_efunc_dlabel(func):
     ans = np.load(f'test_data/d{func.__name__}.npy')
     np.testing.assert_almost_equal(test, ans)
 
-def test_get_lj_parms():
-    dSL = chilife.dSpinLabel('DHC', (28, 32), protein, eval_clash=False, minimize=False)
-    para = chilife.get_lj_params(dSL)
-    print(para)
 
 def test_prep_internal_clash():
     SL = chilife.RotamerEnsemble('TRP', 28, protein)

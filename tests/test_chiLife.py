@@ -111,6 +111,18 @@ def test_distance_distribution(args, kws, expected):
     np.testing.assert_almost_equal(P, P_ans)
 
 
+def test_distance_distribution_dep():
+    ans = np.load('test_data/dependent_dist.npy')
+    SL1 = chilife.SpinLabel('R1M', 295, anf)
+    SL2 = chilife.dSpinLabel('DHC', (233, 237), anf)
+    r = np.linspace(2.5, 35, 256)
+    P1 = chilife.distance_distribution(SL1, SL2, r)
+    P2 = chilife.distance_distribution(SL1, SL2, r, dependent=True)
+
+    assert np.sum(np.abs(P1-P2)) > 0.2
+    np.testing.assert_almost_equal(P2, ans)
+
+
 def test_spin_populations():
     SL1 = chilife.SpinLabel('R1M', 211, protein)
     SL2 = chilife.SpinLabel('R1M', 275, protein)

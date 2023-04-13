@@ -19,7 +19,7 @@ import MDAnalysis.transformations
 import chilife
 from .protein_utils import dihedral_defs, local_mx, sort_pdb, mutate, get_min_topol
 from .ProteinIC import ProteinIC
-from .scoring import get_lj_rep, GAS_CONST
+from .scoring import get_lj_rep, GAS_CONST, get_lj_params, reweight_rotamers
 from .numba_utils import get_delta_r, normdist
 from .SpinLabel import SpinLabel
 from .RotamerEnsemble import RotamerEnsemble
@@ -50,6 +50,7 @@ def distance_distribution(
         r: ArrayLike = None,
         sigma: float = 1.0,
         use_spin_centers: bool = True,
+        dependent: bool = False,
         uq: bool = False,
 ) -> np.ndarray:
     """Calculates total distribution of spin-spin distances among an arbitrary number of spin labels, using the
@@ -73,6 +74,8 @@ def distance_distribution(
     use_spin_centers : bool
         If False, distances are computed between spin centers. If True, distances are computed by summing over
         the distributed spin density on spin-bearing atoms on the labels.
+    dependent: bool
+        Consider the (clash) effects of spin label rotamers on each other.
     uq : bool
         Perform uncertainty analysis (experimental)
 
@@ -128,11 +131,11 @@ def distance_distribution(
 
     else:
 
-        P = pair_dd(*args, r=r, sigma=sigma, use_spin_centers=use_spin_centers)
+        P = pair_dd(*args, r=r, sigma=sigma, use_spin_centers=use_spin_centers, dependent=dependent)
         return P
 
 
-def pair_dd(*args, r: ArrayLike, sigma: float = 1.0, use_spin_centers: bool = True) -> np.ndarray:
+def pair_dd(*args, r: ArrayLike, sigma: float = 1.0, use_spin_centers: bool = True, dependent=False) -> np.ndarray:
     """Obtain the total pairwise spin-spin distance distribution over ``r`` for a list of spin labels.
     The distribution is calculated by convolving the weighted histogram of pairwise spin-spin
     distances with a normal distribution with standard deviation ``sigma``.
@@ -148,7 +151,8 @@ def pair_dd(*args, r: ArrayLike, sigma: float = 1.0, use_spin_centers: bool = Tr
     use_spin_centers : bool
         If False, distances are computed between spin centers. If True, distances are computed by summing over
         the distributed spin density on spin-bearing atoms on the labels.
-
+    dependent: bool
+        Consider the (clash) effects of spin label rotamers on each other.
     Returns
     -------
     P : np.ndarray
@@ -172,6 +176,34 @@ def pair_dd(*args, r: ArrayLike, sigma: float = 1.0, use_spin_centers: bool = Tr
 
         distances.append(cdist(coords1, coords2).flatten())
         weights.append(np.outer(weights1, weights2).flatten())
+
+        if dependent:
+            nrot1, nrot2 = len(SL1), len(SL2)
+            nat1, nat2 = len(SL1.side_chain_idx), len(SL2.side_chain_idx)
+
+            rot_coords1 = SL1.coords[:, SL1.side_chain_idx].reshape(-1, 3)
+            rot_coords2 = SL2.coords[:, SL2.side_chain_idx].reshape(-1, 3)
+            rsl = cdist(rot_coords1, rot_coords2)
+            rsl = rsl.reshape(nrot1, nat1, nrot2, nat2).transpose(0, 2, 1, 3)
+            join_rmin = chilife.get_lj_rmin("join_protocol")[()]
+            join_eps = chilife.get_lj_eps("join_protocol")[()]
+
+            rmin_ij = join_rmin(SL1.rmin2, SL2.rmin2)
+            eps_ij = join_eps(SL1.eps, SL2.eps)
+
+            lj = rmin_ij[None, None, ...] / rsl
+            lj = lj * lj * lj
+            lj = lj * lj
+            lj = lj * lj
+
+            # Cap
+            lj[lj > 10] = 10
+            # Rep only
+            E = eps_ij * (lj * lj)
+            E = E.sum(axis=(2, 3))
+            weights[-1], _ = reweight_rotamers(E.flatten(), SL1.temp, weights[-1])
+
+
 
     distances = np.concatenate(distances)
     weights = np.concatenate(weights)

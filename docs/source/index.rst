@@ -1,9 +1,11 @@
 χLife
 ======
 
+.. mdinclude:: ../../README.md
+
 .. toctree::
     :maxdepth: 2
-
+    
     chilife
     rotamer_ensemble
     spin_label

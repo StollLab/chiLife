@@ -206,9 +206,7 @@ def fit_alignment(N, CA, C):
         "Superimposition by minimizing RMSD of the backbone coordinates it not yet implemented"
     )
 
-
     return rotation_matrix, origin
-
 
 
 def parse_backbone(rotamer_library, kind):

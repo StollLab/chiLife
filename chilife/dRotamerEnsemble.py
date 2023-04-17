@@ -526,4 +526,3 @@ class dRotamerEnsemble:
             else:
                 new_copy.__dict__[item] = deepcopy(self.__dict__[item])
         return new_copy
-

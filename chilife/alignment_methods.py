@@ -28,7 +28,7 @@ def rosetta_alignment(N, CA, C):
     N : numpy.ndarray (1x3)
         Backbone nitrogen coordinates.
     CA : numpy.ndarray (1x3)
-        Backbone Calpha carbon coordinates.
+        Backbone alpha carbon coordinates.
     C : numpy.ndarray (1x3)
         Backbone carbonyl carbon coordinates.
 
@@ -69,7 +69,7 @@ def bisect_alignment(N, CA, C):
     N : numpy.ndarray (1x3)
         Backbone nitrogen coordinates.
     CA : numpy.ndarray (1x3)
-        Backbone Calpha carbon coordinates.
+        Backbone alpha carbon coordinates.
     C : numpy.ndarray (1x3)
         Backbone carbonyl carbon coordinates.
 
@@ -88,7 +88,7 @@ def bisect_alignment(N, CA, C):
     zaxis = CA_N + CA_C
     zaxis = zaxis / np.linalg.norm(zaxis)
 
-    # Define new y axis
+    # Define new y-axis
     yaxis_plane = N - C
     z_comp = yaxis_plane.dot(zaxis)
     yaxis = yaxis_plane - z_comp * zaxis
@@ -114,7 +114,7 @@ def mmm_alignment(N, CA, C):
     N : numpy.ndarray (1x3)
         Backbone nitrogen coordinates.
     CA : numpy.ndarray (1x3)
-        Backbone Calpha carbon coordinates.
+        Backbone alpha carbon coordinates.
     C : numpy.ndarray (1x3)
         Backbone carbonyl carbon coordinates.
 
@@ -151,7 +151,7 @@ def fit_alignment(N, CA, C):
     N : numpy.ndarray (2x3)
         Backbone nitrogen coordinates.
     CA : numpy.ndarray (2x3)
-        Backbone Calpha carbon coordinates.
+        Backbone alpha carbon coordinates.
     C : numpy.ndarray (2x3)
         Backbone carbonyl carbon coordinates.
 
@@ -215,8 +215,8 @@ def parse_backbone(rotamer_library, kind):
     Parameters
     ----------
     rotamer_library : RotamerEnsemble
-        RotamerEnsemble that the rotation matrix will operate on. If using the `fit` method, the rotamer ensemble must
-        have a `protein` feature.
+        The RotamerEnsemble object that the rotation matrix will operate on. If using the `fit` method, the rotamer
+        ensemble must have a `protein` feature.
     kind : str
         Specifies if the backbone is for the rotamer ensemble (local) or the protein (global)
 

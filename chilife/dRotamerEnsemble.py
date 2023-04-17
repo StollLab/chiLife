@@ -174,13 +174,12 @@ class dRotamerEnsemble:
 
             for lib in (libA, libB):
                 names, types = lib['atom_names'], libA['atom_types']
-                residxs =  np.zeros(len(names), dtype=int)
+                residxs = np.zeros(len(names), dtype=int)
                 resnames, resids = np.array([self.res]), np.array([1])
                 segidx = np.array([0])
 
                 uni = chilife.make_mda_uni(names, types, resnames, residxs, resids, segidx)
                 unis.append(uni)
-
 
             for p in rotlib_path:
                 tlibA, tlibB, tcsts = chilife.read_library(p)
@@ -188,18 +187,16 @@ class dRotamerEnsemble:
 
                     # Libraries must have the same atom order
                     if not np.all(np.isin(tlib['atom_names'], lib['atom_names'])) and \
-                           np.all(tlib['dihedral_atoms'] == lib['dihedral_atoms']):
-
+                            np.all(tlib['dihedral_atoms'] == lib['dihedral_atoms']):
                         raise ValueError(f'Rotlibs {rotlib_path[0].stem} and {p.stem} are not compatable. You may'
                                          f'need to rename one of them.')
-
 
                     # Map coordinates
                     ixmap = [np.argwhere(tlib['atom_names'] == aname).flat[0] for aname in lib['atom_names']]
                     cct.setdefault('coords', []).append(tlib['coords'][:, ixmap])
 
                     # Create new internal coords if they are defined differently
-                    lib_ic, tlib_ic =lib['internal_coords'][0], tlib['internal_coords'][0]
+                    lib_ic, tlib_ic = lib['internal_coords'][0], tlib['internal_coords'][0]
                     if np.any(lib_ic.atom_names != tlib_ic.atom_names):
                         uni.load_new(cct['coords'][-1])
                         ics = [chilife.get_internal_coords(uni, lib['dihedral_atoms'], lib_ic.bonded_pairs)
@@ -218,7 +215,6 @@ class dRotamerEnsemble:
         self.libA, self.libB = libA, libB
         self.kwargs["eval_clash"] = False
 
-
     def create_ensembles(self):
 
         self.RE1 = chilife.RotamerEnsemble(self.res,
@@ -235,7 +231,6 @@ class dRotamerEnsemble:
                                            self.libB,
                                            **self.kwargs)
 
-
     def save_pdb(self, name=None):
         if name is None:
             name = self.name + ".pdb"
@@ -246,23 +241,22 @@ class dRotamerEnsemble:
 
     def minimize(self):
 
-        scores =  [self._min_one(i, ic1, ic2) for i, (ic1, ic2) in
-                   enumerate(zip(self.RE1.internal_coords, self.RE2.internal_coords))]
+        scores = [self._min_one(i, ic1, ic2) for i, (ic1, ic2) in
+                  enumerate(zip(self.RE1.internal_coords, self.RE2.internal_coords))]
 
         scores = np.asarray(scores)
         SSEs = np.linalg.norm(self.RE1.coords[:, self.cst_idx1] - self.RE2.coords[:, self.cst_idx2], axis=2).sum(axis=1)
-        MSD = SSEs/len(self.csts)
-        MSDmin= MSD.min()
+        MSD = SSEs / len(self.csts)
+        MSDmin = MSD.min()
 
         if MSDmin > 0.1:
             warnings.warn(f'The minimum MSD of the cap is {MSD.min()}, this may result in distorted spin label. '
                           f'Check that the structures make sense.')
 
         if MSDmin > 0.25:
-
-           raise RuntimeError(f'chiLife was unable to connect residues {self.site1} and {self.site2} with {self.res}. '
-                              f'Please double check that this is the intended labeling site. It is likely that these '
-                              f'sites are too far apart.')
+            raise RuntimeError(f'chiLife was unable to connect residues {self.site1} and {self.site2} with {self.res}. '
+                               f'Please double check that this is the intended labeling site. It is likely that these '
+                               f'sites are too far apart.')
         self.cap_MSDs = MSD
         self.RE1.backbone_to_site()
         self.RE2.backbone_to_site()
@@ -287,7 +281,7 @@ class dRotamerEnsemble:
 
         # Faster to compute lj here
         lj = self.irmin_ij / r
-        lj = lj * lj *lj
+        lj = lj * lj * lj
         lj = lj * lj
 
         # attractive forces are needed, otherwise this term will perpetually push atoms apart
@@ -339,7 +333,6 @@ class dRotamerEnsemble:
         self.RE1._coords[:, self.cst_idx1] = value[:, len(self.rl1mask) + len(self.rl2mask):]
         self.RE2._coords[:, self.cst_idx2] = value[:, len(self.rl1mask) + len(self.rl2mask):]
 
-
     @property
     def _lib_coords(self):
         ovlp = (self.RE1._lib_coords[:, self.cst_idx1] + self.RE2._lib_coords[:, self.cst_idx2]) / 2
@@ -390,6 +383,7 @@ class dRotamerEnsemble:
 
     @property
     def side_chain_idx(self):
+        "Indices of side chain atoms"
         if not hasattr(self, '_side_chain_idx'):
             self._side_chain_idx = np.argwhere(
                 np.isin(self.atom_names, dRotamerEnsemble.backbone_atoms, invert=True)
@@ -399,7 +393,7 @@ class dRotamerEnsemble:
 
     @property
     def bonds(self):
-        """ """
+        """List of intra-label atom pairs that are covalently bonded."""
         if not hasattr(self, "_bonds"):
             bonds = []
 
@@ -428,15 +422,11 @@ class dRotamerEnsemble:
     @bonds.setter
     def bonds(self, inp):
         """
-
+        Set of intralabel bonded pairs.
         Parameters
         ----------
-        inp :
-
-
-        Returns
-        -------
-
+        inp : ArrayLike
+            List of atom ID pairs that are bonded
         """
         self._bonds = set(tuple(i) for i in inp)
         idxs = np.arange(len(self.atom_names))
@@ -445,7 +435,8 @@ class dRotamerEnsemble:
 
     @property
     def non_bonded(self):
-        """ """
+        """ list of indices of intra-label non-bonded atom pairs. Primarily used for internal clash evaluation when
+        sampling the dihedral space"""
         if not hasattr(self, "_non_bonded"):
             pairs = dict(nx.all_pairs_shortest_path(self._graph, self._exclude_nb_interactions - 1))
             pairs = {(a, b) for a in pairs for b in pairs[a] if a < b}
@@ -457,15 +448,11 @@ class dRotamerEnsemble:
     @non_bonded.setter
     def non_bonded(self, inp):
         """
-
+        Create a set of non-bonded atom pair indices within a single side chain
         Parameters
         ----------
-        inp :
-
-
-        Returns
-        -------
-
+        inp : ArrayLike
+            List of atom ID pairs that are not bonded
         """
         self._non_bonded = set(tuple(i) for i in inp)
         idxs = np.arange(len(self.atom_names))
@@ -473,6 +460,7 @@ class dRotamerEnsemble:
         self._bonds = all_pairs - self._non_bonded
 
     def trim_rotamers(self):
+        """Remove low probability rotamers from the ensemble"""
 
         arg_sort_weights = np.argsort(self.weights)[::-1]
         sorted_weights = self.weights[arg_sort_weights]
@@ -488,7 +476,6 @@ class dRotamerEnsemble:
         self.RE1.trim_rotamers(keep_idx=keep_idx)
         self.RE2.trim_rotamers(keep_idx=keep_idx)
 
-
     def evaluate(self):
         """Place rotamer ensemble on protein site1 and recalculate rotamer weights."""
         # Calculate external energies
@@ -502,10 +489,12 @@ class dRotamerEnsemble:
         self.trim_rotamers()
 
     def __len__(self):
+        """Return the length of the rotamer library (number of rotamers)"""
         return len(self.RE1.coords)
 
     def copy(self):
-        new_copy = chilife.dRotamerEnsemble(self.res, (self.site1, self.site2), chain = self.chain,
+        """Create a deep copy of the dRotamerEnsemble object"""
+        new_copy = chilife.dRotamerEnsemble(self.res, (self.site1, self.site2), chain=self.chain,
                                             protein=self.protein,
                                             rotlib={'csts': self.csts, 'libA': self.libA, 'libB': self.libB},
                                             minimize=False,

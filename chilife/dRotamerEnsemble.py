@@ -477,10 +477,12 @@ class dRotamerEnsemble:
         cumulative_weights = np.cumsum(sorted_weights)
         cutoff = np.maximum(1, len(cumulative_weights[cumulative_weights < 1 - self.trim_tol]))
         keep_idx = arg_sort_weights[:cutoff]
+        if hasattr(self, 'cap_MSDs'):
+            self.cap_MSDs = self.cap_MSDs[keep_idx]
+            self.rotamer_scores = self.rotamer_scores[keep_idx]
 
-        self.cap_MSDs = self.cap_MSDs[keep_idx]
-        self.rotamer_scores = self.rotamer_scores[keep_idx]
-        self.rot_clash_energy = self.rot_clash_energy[keep_idx]
+        if hasattr(self, 'rot_clash_energy'):
+            self.rot_clash_energy = self.rot_clash_energy[keep_idx]
         self.RE1.trim_rotamers(keep_idx=keep_idx)
         self.RE2.trim_rotamers(keep_idx=keep_idx)
 

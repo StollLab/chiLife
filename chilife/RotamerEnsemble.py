@@ -787,21 +787,23 @@ class RotamerEnsemble:
 
         return xopt.fun + tors
 
-    def trim_rotamers(self):
+    def trim_rotamers(self, keep_idx = None):
         """Remove rotamers with small weights from ensemble"""
-        arg_sort_weights = np.argsort(self.weights)[::-1]
-        sorted_weights = self.weights[arg_sort_weights]
-        cumulative_weights = np.cumsum(sorted_weights)
-        cutoff = np.maximum(1, len(cumulative_weights[cumulative_weights < 1 - self.trim_tol]))
-        keep_idx = arg_sort_weights[:cutoff]
+        if keep_idx is None:
+            arg_sort_weights = np.argsort(self.weights)[::-1]
+            sorted_weights = self.weights[arg_sort_weights]
+            cumulative_weights = np.cumsum(sorted_weights)
+            cutoff = np.maximum(1, len(cumulative_weights[cumulative_weights < 1 - self.trim_tol]))
+            keep_idx = arg_sort_weights[:cutoff]
 
+        if len(self.weights) == len(self.internal_coords):
+            self.internal_coords = [self.internal_coords[x] for x in keep_idx]
         self._coords = self._coords[keep_idx]
         self._dihedrals = self._dihedrals[keep_idx]
         self.weights = self.weights[keep_idx]
         if self.atom_energies is not None:
             self.atom_energies = self.atom_energies[keep_idx]
-        if len(arg_sort_weights) == len(self.internal_coords):
-            self.internal_coords = [self.internal_coords[x] for x in keep_idx]
+
 
         # Renormalize weights
         self.weights /= self.weights.sum()

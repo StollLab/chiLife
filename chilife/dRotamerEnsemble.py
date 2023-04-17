@@ -38,6 +38,7 @@ class dRotamerEnsemble:
         self._exclude_nb_interactions = kwargs.setdefault('exclude_nb_interactions', 3)
         self._minimize = kwargs.pop("minimize", True)
         self.min_method = kwargs.pop('min_method', 'L-BFGS-B')
+        self.trim_tol = kwargs.pop('trim_tol', 0.005)
         self.eval_clash = kwargs.pop("eval_clash", True)
         self.energy_func = kwargs.setdefault("energy_func", chilife.get_lj_energy)
         self.temp = kwargs.setdefault("temp", 298)
@@ -260,12 +261,12 @@ class dRotamerEnsemble:
            raise RuntimeError(f'chiLife was unable to connect residues {self.site1} and {self.site2} with {self.res}. '
                               f'Please double check that this is the intended labeling site. It is likely that these '
                               f'sites are too far apart.')
-
+        self.cap_MSDs = MSD
         self.RE1.backbone_to_site()
         self.RE2.backbone_to_site()
 
         scores -= scores.min()
-
+        self.rotamer_scores = scores
         self.weights *= np.exp(-scores / (chilife.GAS_CONST * self.temp) / np.exp(-scores).sum())
         self.weights /= self.weights.sum()
 
@@ -470,14 +471,25 @@ class dRotamerEnsemble:
         self._bonds = all_pairs - self._non_bonded
 
     def trim_rotamers(self):
-        self.RE1.trim_rotamers()
-        self.RE2.trim_rotamers()
+
+        arg_sort_weights = np.argsort(self.weights)[::-1]
+        sorted_weights = self.weights[arg_sort_weights]
+        cumulative_weights = np.cumsum(sorted_weights)
+        cutoff = np.maximum(1, len(cumulative_weights[cumulative_weights < 1 - self.trim_tol]))
+        keep_idx = arg_sort_weights[:cutoff]
+
+        self.cap_MSDs = self.cap_MSDs[keep_idx]
+        self.rotamer_scores = self.rotamer_scores[keep_idx]
+        self.rot_clash_energy = self.rot_clash_energy[keep_idx]
+        self.RE1.trim_rotamers(keep_idx=keep_idx)
+        self.RE2.trim_rotamers(keep_idx=keep_idx)
+
 
     def evaluate(self):
         """Place rotamer ensemble on protein site1 and recalculate rotamer weights."""
         # Calculate external energies
         energies = self.energy_func(self)
-
+        self.rot_clash_energy = energies
         # Calculate total weights (combining internal and external)
         self.weights, self.partition = chilife.reweight_rotamers(energies, self.temp, self.weights)
         logging.info(f"Relative partition function: {self.partition:.3}")

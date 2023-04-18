@@ -136,7 +136,7 @@ class RotamerEnsemble:
                 will not be used. If ``int`` the ensemble will be generated with that many off-rotamer samples.
             energy_func : callable
                 Python function or callable object that takes a protein and a RotamerEnsemble object as input and
-                reutrns an energy value (kcal/mol) for each atom of each rotamer in the ensemble. See also
+                returns an energy value (kcal/mol) for each atom of each rotamer in the ensemble. See also
                 :mod:`Scoring <chiLife.scoring>` . Defaults to :mod:`chiLife.get_lj_rep <chiLife.get_lj_rep>` .
         """
 

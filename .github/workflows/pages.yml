@@ -29,6 +29,7 @@ jobs:
            python -m pip install numpydoc  
            python -m pip install sphinx_mdinclude
            python -m pip install sphinx-rtd-theme
+           python -m pip install nbsphinx
            python -m pip install .
     - name: Build with Sphinx
       run: |

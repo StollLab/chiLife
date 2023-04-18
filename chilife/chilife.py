@@ -363,7 +363,7 @@ def repack(
     with tqdm(total=repetitions) as pbar:
         while count < repetitions:
 
-            # Randomly select a residue from the repack residues
+            # Randomly select a residue from the repacked residues
             SiteLibrary = repack_residue_libraries[
                 np.random.choice(len(repack_residue_libraries), p=sample_freq)
             ]

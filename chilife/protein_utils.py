@@ -20,6 +20,7 @@ from .dRotamerEnsemble import dRotamerEnsemble
 
 import networkx as nx
 
+
 def get_dihedral_rotation_matrix(theta: float, v: ArrayLike) -> ArrayLike:
     """Build a matrix that will rotate coordinates about a vector, v, by theta in radians.
 
@@ -46,9 +47,9 @@ def get_dihedral_rotation_matrix(theta: float, v: ArrayLike) -> ArrayLike:
 
     # Rotation matrix. See https://en.wikipedia.org/wiki/Rotation_matrix#Rotation_matrix_from_axis_and_angle
     rotation_matrix = (
-        np.identity(3) * np.cos(theta)
-        + np.sin(theta) * Vx
-        + (1 - np.cos(theta)) * np.outer(v, v)
+            np.identity(3) * np.cos(theta)
+            + np.sin(theta) * Vx
+            + (1 - np.cos(theta)) * np.outer(v, v)
     )
 
     return rotation_matrix
@@ -310,7 +311,7 @@ def save_ensemble(name: str, atoms: ArrayLike, coords: ArrayLike = None) -> None
 
 
 def save_pdb(name: Union[str, Path], atoms: ArrayLike, coords: ArrayLike, mode: str = "w") -> None:
-    """Save a single state pdb structure of the provided atoms and coords
+    """Save a single state pdb structure of the provided atoms and coords.
 
     Parameters
     ----------
@@ -338,12 +339,12 @@ def save_pdb(name: Union[str, Path], atoms: ArrayLike, coords: ArrayLike, mode: 
 
 
 def get_missing_residues(
-    protein: Union[MDAnalysis.Universe, MDAnalysis.AtomGroup],
-    ignore: Set[int] = None,
-    use_H: bool = False,
+        protein: Union[MDAnalysis.Universe, MDAnalysis.AtomGroup],
+        ignore: Set[int] = None,
+        use_H: bool = False,
 ) -> List:
-    """Get a list of RotamerEnsemble objects corresponding to the residues of the provided protein that are missing heavy
-    atoms
+    """Get a list of RotamerEnsemble objects corresponding to the residues of the provided protein that are missing
+    heavy atoms.
 
     Parameters
     ----------
@@ -357,7 +358,7 @@ def get_missing_residues(
     Returns
     -------
     missing_residues : list
-        List of RotamerEnsemble objects corresponding to residues with missing heavy atoms.
+        A list of RotamerEnsemble objects corresponding to residues with missing heavy atoms.
     """
     ignore = set() if ignore is None else ignore
     missing_residues = []
@@ -366,9 +367,9 @@ def get_missing_residues(
     for res in protein.residues:
         # Only consider supported residues because otherwise chiLife wouldn't know what's missing
         if (
-            res.resname not in chilife.SUPPORTED_RESIDUES
-            or res.resnum in ignore
-            or res.resname in ["ALA", "GLY"]
+                res.resname not in chilife.SUPPORTED_RESIDUES
+                or res.resnum in ignore
+                or res.resname in ["ALA", "GLY"]
         ):
             continue
 
@@ -389,10 +390,10 @@ def get_missing_residues(
 
 
 def mutate(
-    protein: MDAnalysis.Universe,
-    *ensembles: RotamerEnsemble,
-    add_missing_atoms: bool = True,
-    random_rotamers: bool = False,
+        protein: MDAnalysis.Universe,
+        *ensembles: RotamerEnsemble,
+        add_missing_atoms: bool = True,
+        random_rotamers: bool = False,
 ) -> MDAnalysis.Universe:
     """Create a new Universe where the native residue is replaced with the highest probability rotamer from a
     RotamerEnsemble or SpinLabel object.
@@ -400,7 +401,7 @@ def mutate(
     Parameters
     ----------
     protein : MDAnalysis.Universe
-        Universe containing protein to be spin labeled
+        An MDA Universe object containing protein to be spin labeled
     ensembles : RotamerEnsemble, SpinLabel
         Precomputed RotamerEnsemble or SpinLabel object to use for selecting and replacing the spin native amino acid
     random_rotamers :bool
@@ -415,16 +416,16 @@ def mutate(
     """
 
     # Check for dRotamerEnsembles in ensembles
-    tensembles = []
+    temp_ensemble = []
     for lib in ensembles:
         if isinstance(lib, (RotamerEnsemble, dRotamerEnsemble)):
-            tensembles.append(lib)
+            temp_ensemble.append(lib)
         else:
             raise TypeError(
                 f"mutate only accepts RotamerEnsemble, SpinLabel and dSpinLabel objects, not {lib}."
             )
 
-    ensembles = tensembles
+    ensembles = temp_ensemble
 
     if add_missing_atoms:
         if len(ensembles) > 0 and all(not hasattr(lib, "H_mask") for lib in ensembles):
@@ -485,7 +486,7 @@ def mutate(
                 elif resloc[0] == rot_ens.site2:
                     atom_info += [
                         (i, name, atype)
-                        for name, atype in zip(rot_ens.atom_names[r1l:r1l+r2l], rot_ens.atom_types[r1l:r1l+r2l])
+                        for name, atype in zip(rot_ens.atom_names[r1l:r1l + r2l], rot_ens.atom_types[r1l:r1l + r2l])
                     ]
                     # Add cap
                     atom_info += [
@@ -544,9 +545,9 @@ def mutate(
 
 
 def randomize_rotamers(
-    protein: Union[mda.Universe, mda.AtomGroup],
-    rotamer_libraries: List[RotamerEnsemble],
-    **kwargs,
+        protein: Union[mda.Universe, mda.AtomGroup],
+        rotamer_libraries: List[RotamerEnsemble],
+        **kwargs,
 ) -> None:
     """Modify a protein object in place to randomize side chain conformations.
 
@@ -566,7 +567,7 @@ def randomize_rotamers(
 
 
 def get_sas_res(
-    protein: Union[mda.Universe, mda.AtomGroup], cutoff: float = 30
+        protein: Union[mda.Universe, mda.AtomGroup], cutoff: float = 30
 ) -> Set[Tuple[int, str]]:
     """Run FreeSASA to get solvent accessible surface residues in the provided protein
 
@@ -599,7 +600,7 @@ def fetch(accession_number: str, save: bool = False) -> MDAnalysis.Universe:
     Parameters
     ----------
     accession_number : str
-        4 letter structure PDBID or alpha fold accession number. Note that AlphaFold accession numbers must begin with
+        4 letter structure PDB ID or alpha fold accession number. Note that AlphaFold accession numbers must begin with
         'AF-'.
     save : bool
         If true the fetched PDB will be saved to the disk.
@@ -638,10 +639,10 @@ def atom_sort_key(pdb_line: str) -> Tuple[str, int, int]:
     Returns
     -------
     tuple :
-        chainid, resid, name_order.
+        chain_id, resid, name_order.
         ordered ranking of atom for sorting the pdb.
     """
-    chainid = pdb_line[21]
+    chain_id = pdb_line[21]
     res_name = pdb_line[17:20].strip()
     resid = int(pdb_line[22:26].strip())
     atom_name = pdb_line[12:17].strip()
@@ -649,7 +650,7 @@ def atom_sort_key(pdb_line: str) -> Tuple[str, int, int]:
     if res_name == "ACE":
         if atom_type != 'H' and atom_name not in ('CH3', 'C', 'O'):
             raise ValueError(f'"{atom_name}" is not canonical name of an ACE residue atom. \n'
-                             f'Please rename to "CH3", "C", or "O"')    
+                             f'Please rename to "CH3", "C", or "O"')
         name_order = (
             {"CH3": 0, "C": 1, "O": 2}.get(atom_name, 4) if atom_type != "H" else 5
         )
@@ -657,7 +658,7 @@ def atom_sort_key(pdb_line: str) -> Tuple[str, int, int]:
     else:
         name_order = atom_order.get(atom_name, 4) if atom_type != "H" else atom_order.get(atom_name, 7)
 
-    return chainid, resid, name_order
+    return chain_id, resid, name_order
 
 
 def pose2mda(pose) -> MDAnalysis.Universe:
@@ -748,7 +749,7 @@ def guess_bonds(coords: ArrayLike, atom_types: ArrayLike) -> np.ndarray:
 
 
 def get_min_topol(lines: List[List[str]],
-                  forced_bonds : set = None) -> Set[Tuple[int, int]]:
+                  forced_bonds: set = None) -> Set[Tuple[int, int]]:
     """ Git the minimum topology shared by all the states/models a PDB ensemble. This is to ensure a consistent
     internal coordinate system between all conformers of an ensemble even when there are minor differences in topology.
     e.g. when dHis-Cu-NTA has the capping ligand in different bond orientations.
@@ -758,7 +759,8 @@ def get_min_topol(lines: List[List[str]],
     lines : List[List[str]]
         List of lists corresponding to individual states/models of a pdb file. All models must have the same stoma in
         the same order and only the coordinates should differ.
-
+    forced_bonds : set
+        A set of bonds to that must be used regardless even if the bond lengths are not physically reasonable.
     Returns
     -------
     minimal_bond_set : Set[Tuple[int, int]]
@@ -785,7 +787,24 @@ def get_min_topol(lines: List[List[str]],
     return minimal_bond_set
 
 
-def parse_connect(connect):
+def parse_connect(connect: List[str]) -> Tuple[Set[Tuple[int]]]:
+    """
+    Parse PDB CONECT information to get a list covalent bonds, hydrogen bonds and ionic bonds.
+
+    Parameters
+    ----------
+    connect : List[str]
+        A list of strings that are the CONECT lines from a PDB file.
+
+    Returns
+    -------
+    c_bonds : Set[Tuple[int]]
+        Set of atom index pairs corresponding to atoms that are bound covalently.
+    h_bonds : Set[Tuple[int]]
+        Set of atom index pairs corresponding to atoms that are hydrogen bound.
+    ci_bonds : Set[Tuple[int]]
+        Set of atom index pairs corresponding to atoms that are bound ionically.
+    """
     c_bonds, h_bonds, i_bonds = set(), set(), set()
     for line in connect:
         line = line.ljust(61)
@@ -835,7 +854,7 @@ def sort_pdb(pdbfile: Union[str, List[str], List[List[str]]],
         lines = [line for line in lines if line.startswith(('MODEL', 'ENDMDL', 'CONECT', 'ATOM', 'HETATM'))]
         for i, line in enumerate(lines):
             if line.startswith('MODEL'):
-                start_idxs.append(i+1)
+                start_idxs.append(i + 1)
             elif line.startswith("ENDMDL"):
                 end_idxs.append(i)
             elif line.startswith('CONECT'):
@@ -861,7 +880,7 @@ def sort_pdb(pdbfile: Union[str, List[str], List[List[str]]],
                 idxs, bonds = idxs
 
             lines[:] = [[lines[idx + start][:6] + f"{i + 1:5d}" + lines[idx + start][11:]
-                        for i, idx in enumerate(idxs)]
+                         for i, idx in enumerate(idxs)]
                         for start in start_idxs]
 
             if kwargs.get('return_bonds', False):
@@ -875,7 +894,31 @@ def sort_pdb(pdbfile: Union[str, List[str], List[List[str]]],
     return lines
 
 
-def _sort_pdb_lines(lines, bonds=None, index=False, **kwargs):
+def _sort_pdb_lines(lines, bonds=None, index=False, **kwargs) -> \
+        Union[List[str], List[int], Tuple[list[str], List[Tuple[int]]]]:
+    """
+    Helper function to sort PDB ATOM and HETATM lines based off of the topology of the topology of the molecule.
+
+    Parameters
+    ----------
+    lines : List[str]
+        A list of the PDB ATOM and HETATM lines.
+    bonds : Set[Tuple[int]]
+        A Set of tuples of atom indices corresponding to atoms ( `lines` ) that are bound to each other.
+    index : bool
+        If True a list of atom indices will be returned
+    **kwargs : dict
+        Additional keyword arguments.
+        return_bonds : bool
+            Return bond indices as well, usually only used when letting the function guess the bonds.
+
+    Returns
+    -------
+    lines : List[str | int]
+        The sorted lines or indices corresponding to the sorted lines.
+    bonds: Set[Tuple[int]]
+        A set of tuples containing pars of indices corresponding to the atoms bound to in lines.
+    """
 
     lines = [line for line in lines if line.startswith(("ATOM", "HETATM"))]
     n_atoms = len(lines)
@@ -897,7 +940,6 @@ def _sort_pdb_lines(lines, bonds=None, index=False, **kwargs):
         bonds = guess_bonds(coords, atypes)
         presort_bonds = set(tuple(sorted((b1, b2))) for b1, b2 in bonds)
 
-
     # get residue groups
     chain, resi = lines[0][21], int(lines[0][22:26].strip())
     start = 0
@@ -916,7 +958,7 @@ def _sort_pdb_lines(lines, bonds=None, index=False, **kwargs):
         n_heavy = np.sum(atypes[start:stop] != 'H')
 
         #  Force N, CA, C,
-        if np.array_equal(anames[start: start+4], ['N', 'CA', 'C', 'O']):
+        if np.array_equal(anames[start: start + 4], ['N', 'CA', 'C', 'O']):
             sorted_args = [0, 1, 2, 3]
         # if not a canonical and the first amino acid use the first heavy atom
         elif start == 0:
@@ -979,7 +1021,7 @@ def _sort_pdb_lines(lines, bonds=None, index=False, **kwargs):
         sorted_args = sorted_args + CA_edges
 
         # get any leftover atoms (eg HN)
-        if len(sorted_args) != stop-start:
+        if len(sorted_args) != stop - start:
             for idx in range(stop - start):
                 if idx not in sorted_args:
                     sorted_args.append(idx)
@@ -1018,8 +1060,9 @@ def make_mda_uni(anames: ArrayLike,
                  resnums: ArrayLike,
                  segindices: ArrayLike,
                  segids: ArrayLike = None,
-) -> MDAnalysis.Universe:
+                 ) -> MDAnalysis.Universe:
     """
+    Create an MDAnalysis universe from numpy arrays of atom information.
 
     Parameters
     ----------
@@ -1041,7 +1084,8 @@ def make_mda_uni(anames: ArrayLike,
 
     Returns
     -------
-
+    mda_uni : MDAnalysis.Universe
+        The Universe created by the function.
     """
 
     n_atoms = len(anames)
@@ -1083,6 +1127,7 @@ def make_mda_uni(anames: ArrayLike,
 
     return mda_uni
 
+
 DATA_DIR = Path(__file__).parent.absolute() / "data/"
 RL_DIR = Path(__file__).parent.absolute() / "data/rotamer_libraries/"
 
@@ -1095,8 +1140,12 @@ with open(RL_DIR / "RotlibIndexes.pkl", "rb") as f:
 
 with open(DATA_DIR / 'BondDefs.pkl', 'rb') as f:
     bond_hmax_dict = {key: (val + 0.4 if 'H' in key else val + 0.35) for key, val in pickle.load(f).items()}
-    bond_hmax_dict = defaultdict(lambda : 0, bond_hmax_dict)
+    bond_hmax_dict = defaultdict(lambda: 0, bond_hmax_dict)
+
+
     def bond_hmax(a): return bond_hmax_dict.get(tuple(i for i in a), 0)
+
+
     bond_hmax = np.vectorize(bond_hmax, signature="(n)->()")
 
 atom_order = {"N": 0, "CA": 1, "C": 2, "O": 3, 'H': 5}

@@ -852,11 +852,7 @@ def prep_restype_savedict(
         print(internal_coords[0].get_dihedral(5, ['NE2', 'Cu1', 'O3', 'C11']))
         print(internal_coords[4].coords)
 
-<<<<<<< HEAD
-        raise (ValueError(
-=======
         raise ValueError(
->>>>>>> 653ab3e (Update chilife.py docstrings)
             f'Coords of rotamer {" ".join((str(idx) for idx in idxs))} at atoms {" ".join((str(idx) for idx in adxs))} '
             f'cannot be converted to internal coords')
 

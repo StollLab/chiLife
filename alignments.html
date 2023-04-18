@@ -49,15 +49,7 @@
 <li class="toctree-l1 current"><a class="reference internal" href="utils.html">Utils</a><ul class="current">
 <li class="toctree-l2"><a class="reference internal" href="numba_utils.html">Numba Utils</a></li>
 <li class="toctree-l2"><a class="reference internal" href="protein_utils.html">Protein Utils</a></li>
-<li class="toctree-l2 current"><a class="current reference internal" href="#">Alignment Methods</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#chilife.alignment_methods.alignment_method"><code class="docutils literal notranslate"><span class="pre">alignment_method()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="#chilife.alignment_methods.bisect_alignment"><code class="docutils literal notranslate"><span class="pre">bisect_alignment()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="#chilife.alignment_methods.fit_alignment"><code class="docutils literal notranslate"><span class="pre">fit_alignment()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="#chilife.alignment_methods.mmm_alignment"><code class="docutils literal notranslate"><span class="pre">mmm_alignment()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="#chilife.alignment_methods.parse_backbone"><code class="docutils literal notranslate"><span class="pre">parse_backbone()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="#chilife.alignment_methods.rosetta_alignment"><code class="docutils literal notranslate"><span class="pre">rosetta_alignment()</span></code></a></li>
-</ul>
-</li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Alignment Methods</a></li>
 <li class="toctree-l2"><a class="reference internal" href="scoring.html">Scoring</a></li>
 </ul>
 </li>
@@ -88,137 +80,8 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="module-chilife.alignment_methods">
-<span id="alignment-methods"></span><h1>Alignment Methods<a class="headerlink" href="#module-chilife.alignment_methods" title="Permalink to this heading"></a></h1>
-<dl class="py function">
-<dt class="sig sig-object py" id="chilife.alignment_methods.alignment_method">
-<span class="sig-prename descclassname"><span class="pre">chilife.alignment_methods.</span></span><span class="sig-name descname"><span class="pre">alignment_method</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">func</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#chilife.alignment_methods.alignment_method" title="Permalink to this definition"></a></dt>
-<dd><p>Decorator to add function to the superimpositions dictionary</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>func</strong> (<em>callable</em>) – Function that performs a alignment_method.</p>
-</dd>
-<dt class="field-even">Return type<span class="colon">:</span></dt>
-<dd class="field-even"><p>Unmodified original function.</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py function">
-<dt class="sig sig-object py" id="chilife.alignment_methods.bisect_alignment">
-<span class="sig-prename descclassname"><span class="pre">chilife.alignment_methods.</span></span><span class="sig-name descname"><span class="pre">bisect_alignment</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">N</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">CA</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">C</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#chilife.alignment_methods.bisect_alignment" title="Permalink to this definition"></a></dt>
-<dd><p>Calculates a rotation matrix and translation to transform an amino acid from the local coordinate frame to the
-global coordinate frame for a given residue with backbone coordinates (N, C, CA). Principal axis bisects the
-N-&gt;Ca-&gt;C angle.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>N</strong> (<em>numpy.ndarray</em><em> (</em><em>1x3</em><em>)</em>) – Backbone nitrogen coordinates.</p></li>
-<li><p><strong>CA</strong> (<em>numpy.ndarray</em><em> (</em><em>1x3</em><em>)</em>) – Backbone alpha carbon coordinates.</p></li>
-<li><p><strong>C</strong> (<em>numpy.ndarray</em><em> (</em><em>1x3</em><em>)</em>) – Backbone carbonyl carbon coordinates.</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p><ul class="simple">
-<li><p><strong>rotation_matrix</strong> (<em>numpy ndarray (3x3)</em>) – Rotation  matrix to rotate spin label to achieve the correct orientation.</p></li>
-<li><p><strong>origin</strong> (<em>numpy.ndarray (1x3)</em>) – New origin position in 3 dimensional space.</p></li>
-</ul>
-</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py function">
-<dt class="sig sig-object py" id="chilife.alignment_methods.fit_alignment">
-<span class="sig-prename descclassname"><span class="pre">chilife.alignment_methods.</span></span><span class="sig-name descname"><span class="pre">fit_alignment</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">N</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">CA</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">C</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#chilife.alignment_methods.fit_alignment" title="Permalink to this definition"></a></dt>
-<dd><p>Superimpose the residues such that the root mean squared deviation of the backbone atoms is minimized.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>N</strong> (<em>numpy.ndarray</em><em> (</em><em>2x3</em><em>)</em>) – Backbone nitrogen coordinates.</p></li>
-<li><p><strong>CA</strong> (<em>numpy.ndarray</em><em> (</em><em>2x3</em><em>)</em>) – Backbone alpha carbon coordinates.</p></li>
-<li><p><strong>C</strong> (<em>numpy.ndarray</em><em> (</em><em>2x3</em><em>)</em>) – Backbone carbonyl carbon coordinates.</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p><ul class="simple">
-<li><p><strong>rotation_matrix</strong> (<em>numpy ndarray (3x3)</em>) – Rotation  matrix to rotate spin label to achieve the correct orientation.</p></li>
-<li><p><strong>origin</strong> (<em>numpy.ndarray (1x3)</em>) – New origin position in 3 dimensional space.</p></li>
-</ul>
-</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py function">
-<dt class="sig sig-object py" id="chilife.alignment_methods.mmm_alignment">
-<span class="sig-prename descclassname"><span class="pre">chilife.alignment_methods.</span></span><span class="sig-name descname"><span class="pre">mmm_alignment</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">N</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">CA</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">C</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#chilife.alignment_methods.mmm_alignment" title="Permalink to this definition"></a></dt>
-<dd><p>Calculates a rotation matrix and translation to transform an amino acid from the local coordinate frame to the
-global coordinate frame for a given residue with backbone coordinates (N, C, CA). Principal axis is defined
-along the CA-&gt;N bond.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>N</strong> (<em>numpy.ndarray</em><em> (</em><em>1x3</em><em>)</em>) – Backbone nitrogen coordinates.</p></li>
-<li><p><strong>CA</strong> (<em>numpy.ndarray</em><em> (</em><em>1x3</em><em>)</em>) – Backbone alpha carbon coordinates.</p></li>
-<li><p><strong>C</strong> (<em>numpy.ndarray</em><em> (</em><em>1x3</em><em>)</em>) – Backbone carbonyl carbon coordinates.</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p><ul class="simple">
-<li><p><strong>rotation_matrix</strong> (<em>numpy ndarray (3x3)</em>) – Rotation  matrix to rotate spin label to achieve the correct orientation.</p></li>
-<li><p><strong>origin</strong> (<em>numpy.ndarray (1x3)</em>) – New origin position in 3 dimensional space.</p></li>
-</ul>
-</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py function">
-<dt class="sig sig-object py" id="chilife.alignment_methods.parse_backbone">
-<span class="sig-prename descclassname"><span class="pre">chilife.alignment_methods.</span></span><span class="sig-name descname"><span class="pre">parse_backbone</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">rotamer_library</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">kind</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#chilife.alignment_methods.parse_backbone" title="Permalink to this definition"></a></dt>
-<dd><p>Extract appropriate backbone information to make a rotation matrix using the method provided</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>rotamer_library</strong> (<a class="reference internal" href="rotamer_ensemble.html#chilife.RotamerEnsemble" title="chilife.RotamerEnsemble"><em>RotamerEnsemble</em></a>) – The RotamerEnsemble object that the rotation matrix will operate on. If using the <cite>fit</cite> method, the rotamer
-ensemble must have a <cite>protein</cite> feature.</p></li>
-<li><p><strong>kind</strong> (<em>str</em>) – Specifies if the backbone is for the rotamer ensemble (local) or the protein (global)</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p><strong>N, CA, C</strong> – Numpy arrays of N, CA and C coordinates of the rotamer ensemble backbone. If using method <cite>fit</cite> arrays are 2x3
-with the first coordinate as the rotamer ensemble backbone and the second as the protein site backbone.</p>
-</dd>
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>tuple</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py function">
-<dt class="sig sig-object py" id="chilife.alignment_methods.rosetta_alignment">
-<span class="sig-prename descclassname"><span class="pre">chilife.alignment_methods.</span></span><span class="sig-name descname"><span class="pre">rosetta_alignment</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">N</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">CA</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">C</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#chilife.alignment_methods.rosetta_alignment" title="Permalink to this definition"></a></dt>
-<dd><p>Calculates a rotation matrix and translation to transform an amino acid from the local coordinate frame to the
-global coordinate frame for a given residue with backbone coordinates (N, C, CA). Principal axis is the C-&gt;Ca Bond.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>N</strong> (<em>numpy.ndarray</em><em> (</em><em>1x3</em><em>)</em>) – Backbone nitrogen coordinates.</p></li>
-<li><p><strong>CA</strong> (<em>numpy.ndarray</em><em> (</em><em>1x3</em><em>)</em>) – Backbone alpha carbon coordinates.</p></li>
-<li><p><strong>C</strong> (<em>numpy.ndarray</em><em> (</em><em>1x3</em><em>)</em>) – Backbone carbonyl carbon coordinates.</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p><ul class="simple">
-<li><p><strong>rotation_matrix</strong> (<em>numpy ndarray (3x3)</em>) – Rotation  matrix to rotate spin label to achieve the correct orientation.</p></li>
-<li><p><strong>origin</strong> (<em>numpy.ndarray (1x3)</em>) – New origin position in 3 dimensional space.</p></li>
-</ul>
-</p>
-</dd>
-</dl>
-</dd></dl>
-
+  <section id="alignment-methods">
+<h1>Alignment Methods<a class="headerlink" href="#alignment-methods" title="Permalink to this heading"></a></h1>
 </section>
 
 

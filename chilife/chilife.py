@@ -54,13 +54,12 @@ def distance_distribution(
         uq: bool = False,
 ) -> np.ndarray:
     """Calculates total distribution of spin-spin distances among an arbitrary number of spin labels, using the
-    distance range ``r`` (in angstrom).
-
-    The distance distribution is obtained by summing over all pair distance distributions. These in turn are calculated
-    by summing over rotamer pairs with the appropriate weights. For each rotamer pair, the distance distribution is
-    either just the distance between the ``spin_center`` coordinates of two labels (if ``spin_populations=False``) or
-    the weighted sum over all pairs of spn-bearing atoms (``spin_populations=True``). The resulting distance histogram
-    is convolved with a normal distribution with a standard deviation ``sigma``.
+    distance range ``r`` (in angstrom). The distance distribution is obtained by summing over all pair distance
+    distributions. These in turn are calculated by summing over rotamer pairs with the appropriate weights. For each
+    rotamer pair, the distance distribution is either just the distance between the ``spin_center`` coordinates of two
+    labels (if ``spin_populations=False``) or the weighted sum over all pairs of spn-bearing atoms
+    (``spin_populations=True``). The resulting distance histogram is convolved with a normal distribution with a
+    standard deviation ``sigma`` .
 
     Parameters
     ----------
@@ -153,6 +152,7 @@ def pair_dd(*args, r: ArrayLike, sigma: float = 1.0, use_spin_centers: bool = Tr
         the distributed spin density on spin-bearing atoms on the labels.
     dependent: bool
         Consider the (clash) effects of spin label rotamers on each other.
+
     Returns
     -------
     P : np.ndarray

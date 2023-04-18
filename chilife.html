@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>χLife &mdash; χLife  documentation</title>
+      <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+        <script src="_static/doctools.js"></script>
+        <script src="_static/sphinx_highlight.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="RotamerEnsemble" href="rotamer_ensemble.html" />
+    <link rel="prev" title="χLife" href="index.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            χLife
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">χLife</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#chilife.chilife.add_dihedral_def"><code class="docutils literal notranslate"><span class="pre">add_dihedral_def()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#chilife.chilife.add_library"><code class="docutils literal notranslate"><span class="pre">add_library()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#chilife.chilife.add_rotlib_dir"><code class="docutils literal notranslate"><span class="pre">add_rotlib_dir()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#chilife.chilife.add_to_defaults"><code class="docutils literal notranslate"><span class="pre">add_to_defaults()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#chilife.chilife.add_to_toml"><code class="docutils literal notranslate"><span class="pre">add_to_toml()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#chilife.chilife.create_dlibrary"><code class="docutils literal notranslate"><span class="pre">create_dlibrary()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#chilife.chilife.create_library"><code class="docutils literal notranslate"><span class="pre">create_library()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#chilife.chilife.distance_distribution"><code class="docutils literal notranslate"><span class="pre">distance_distribution()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#chilife.chilife.list_available_rotlibs"><code class="docutils literal notranslate"><span class="pre">list_available_rotlibs()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#chilife.chilife.pair_dd"><code class="docutils literal notranslate"><span class="pre">pair_dd()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#chilife.chilife.pre_add_library"><code class="docutils literal notranslate"><span class="pre">pre_add_library()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#chilife.chilife.prep_restype_savedict"><code class="docutils literal notranslate"><span class="pre">prep_restype_savedict()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#chilife.chilife.remove_from_defaults"><code class="docutils literal notranslate"><span class="pre">remove_from_defaults()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#chilife.chilife.remove_from_toml"><code class="docutils literal notranslate"><span class="pre">remove_from_toml()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#chilife.chilife.remove_library"><code class="docutils literal notranslate"><span class="pre">remove_library()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#chilife.chilife.repack"><code class="docutils literal notranslate"><span class="pre">repack()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#chilife.chilife.rotlib_info"><code class="docutils literal notranslate"><span class="pre">rotlib_info()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#chilife.chilife.safe_save"><code class="docutils literal notranslate"><span class="pre">safe_save()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#chilife.chilife.traj_dd"><code class="docutils literal notranslate"><span class="pre">traj_dd()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="rotamer_ensemble.html">RotamerEnsemble</a></li>
+<li class="toctree-l1"><a class="reference internal" href="spin_label.html">SpinLabel</a></li>
+<li class="toctree-l1"><a class="reference internal" href="protein.html">Protein</a></li>
+<li class="toctree-l1"><a class="reference internal" href="utils.html">Utils</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">χLife</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">χLife</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/chilife.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="module-chilife.chilife">
+<span id="life"></span><h1>χLife<a class="headerlink" href="#module-chilife.chilife" title="Permalink to this heading"></a></h1>
+<dl class="py function">
+<dt class="sig sig-object py" id="chilife.chilife.add_dihedral_def">
+<span class="sig-prename descclassname"><span class="pre">chilife.chilife.</span></span><span class="sig-name descname"><span class="pre">add_dihedral_def</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dihedrals</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ArrayLike</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">force</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#chilife.chilife.add_dihedral_def" title="Permalink to this definition"></a></dt>
+<dd><p>Helper function to add the dihedral definitions of user defined labels and libraries to the chilife knowledge
+base.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>name</strong> (<em>str</em>) – Name of the residue.</p></li>
+<li><p><strong>dihedrals</strong> (<em>ArrayLike</em>) – List of lists of atom names defining the dihedrals.</p></li>
+<li><p><strong>force</strong> (<em>bool</em>) – Overwrite any dihedral definition with the same name if it exists.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="chilife.chilife.add_library">
+<span class="sig-prename descclassname"><span class="pre">chilife.chilife.</span></span><span class="sig-name descname"><span class="pre">add_library</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">filename</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">libname</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">default</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">force</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#chilife.chilife.add_library" title="Permalink to this definition"></a></dt>
+<dd><p>Add the provided rotamer library to the chilife rotamer library directory so that it does not need to be
+in the working directory when utilizing.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>filename</strong> (<em>str</em><em>, </em><em>Path</em>) – Name or Path object oof the rotamer library npz file.</p></li>
+<li><p><strong>libname</strong> (<em>str</em>) – Unique name of the rotamer library</p></li>
+<li><p><strong>default</strong> (<em>bool</em>) – If True, chilife will make this the default rotamer library for this residue type.</p></li>
+<li><p><strong>force</strong> (<em>bool</em>) – If True, chilife will overwrite any existing rotamer library with the same name if it exists.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="chilife.chilife.add_rotlib_dir">
+<span class="sig-prename descclassname"><span class="pre">chilife.chilife.</span></span><span class="sig-name descname"><span class="pre">add_rotlib_dir</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">directory</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Path</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#chilife.chilife.add_rotlib_dir" title="Permalink to this definition"></a></dt>
+<dd><p>Add a directory to search for rotlibs when none are found in te working directory. This directory will be
+searched before the chiLife default rotlib directory.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="chilife.chilife.add_to_defaults">
+<span class="sig-prename descclassname"><span class="pre">chilife.chilife.</span></span><span class="sig-name descname"><span class="pre">add_to_defaults</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">resname</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rotlib_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">default</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#chilife.chilife.add_to_defaults" title="Permalink to this definition"></a></dt>
+<dd><p>Helper function to add a rotamer library to the defaults stack.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>resname</strong> (<em>str</em>) – 3 letter code name of the residue.</p></li>
+<li><p><strong>rotlib_name</strong> (<em>str</em>) – Name of the rotamer library.</p></li>
+<li><p><strong>default</strong> (<em>bool</em>) – If True the rotamer library will be added to the top of the defaults stacking making it the new default
+rotamer library for the residue type. If False it will be added to the bottom of the stack and will only be the
+default if there are no other rotamer libraries for the residue type.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="chilife.chilife.add_to_toml">
+<span class="sig-prename descclassname"><span class="pre">chilife.chilife.</span></span><span class="sig-name descname"><span class="pre">add_to_toml</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">key</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">value</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">List</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">dict</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">force</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#chilife.chilife.add_to_toml" title="Permalink to this definition"></a></dt>
+<dd><p>Helper function to add new key:value pairs to toml files like dihedral_defs.toml</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>file</strong> (<em>str</em><em>, </em><em>Path</em>) – Name or path to the toml file to be edited.</p></li>
+<li><p><strong>key</strong> (<em>str</em>) – toml entry to be added.</p></li>
+<li><p><strong>value</strong> (<em>str</em><em>, </em><em>List</em><em>, </em><em>dict</em>) – Item to add to the toml file under the key.</p></li>
+<li><p><strong>force</strong> (<em>bool</em>) – If True, any existing data under the <cite>key</cite> entry will be overwritten.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="chilife.chilife.create_dlibrary">
+<span class="sig-prename descclassname"><span class="pre">chilife.chilife.</span></span><span class="sig-name descname"><span class="pre">create_dlibrary</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">libname</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pdb</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sites</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tuple</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dihedral_atoms</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">resname</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dihedrals</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ArrayLike</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">weights</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ArrayLike</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">permanent</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">default</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">force</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">spin_atoms</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#chilife.chilife.create_dlibrary" title="Permalink to this definition"></a></dt>
+<dd><p>Add a user defined dSpinLabel from a pdb file.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>libname</strong> (<em>str</em><em>,</em>) – Name for the user defined label.</p></li>
+<li><p><strong>pdb</strong> (<em>str</em>) – Name of (and path to) pdb file containing the user defined spin label structure. This pdb file should contain
+only the desired spin label and no additional residues.</p></li>
+<li><p><strong>sites</strong> (<em>Tuple</em><em>[</em><em>int</em><em>]</em>) – The residue numbers that the bifunctional label is attached to.</p></li>
+<li><p><strong>dihedral_atoms</strong> (<em>List</em><em>[</em><em>List</em><em>[</em><em>List</em><em>[</em><em>str</em><em>]</em><em>]</em><em>]</em>) – <p>A list defining the mobile dihedral atoms of both halves of the bifunctional label. There should be  two
+entries, one for each site that the bifunctional label attaches to. Each entry should contain a sublist of
+dihedral definitions. Dihedral definitions are a list of four strings that are the names of the four atoms
+defining the dihedral angle.</p>
+<blockquote>
+<div><div class="highlight-python notranslate"><div class="highlight"><pre><span></span>
+</pre></div>
+</div>
+<p>[
+# Side chain 1
+[[‘CA’, ‘CB’, ‘SG’, ‘SD’],
+[‘CB’, ‘SG’, ‘SD’, ‘CE’]…],</p>
+<p># Side chain 2
+[[‘CA’, ‘CB’, ‘SG’, ‘SD’],
+[‘CB’, ‘SG’, ‘SD’, ‘CE’]…]
+]</p>
+</div></blockquote>
+</p></li>
+<li><p><strong>resname</strong> (<em>str</em>) – Residue type 3-letter code.</p></li>
+<li><p><strong>dihedrals</strong> (<em>ArrayLike</em><em>, </em><em>optional</em>) – Array of dihedral angles. If provided the new label object will be stored as a rotamer library with the
+dihedrals provided.</p></li>
+<li><p><strong>weights</strong> (<em>ArrayLike</em><em>, </em><em>optional</em>) – Weights associated with the dihedral angles provided by the <code class="docutils literal notranslate"><span class="pre">dihedrals</span></code> keyword argument
+permanent: bool
+If set to True the library will be stored in the chilife user_rotlibs directory in addition to the current
+working directory.</p></li>
+<li><p><strong>permanent</strong> (<em>bool</em>) – If set to True, a copy of the rotamer library will be stored in the chiLife rotamer libraries directory</p></li>
+<li><p><strong>default</strong> (<em>bool</em>) – If set to true and permanent is also set to true then this rotamer library will become the default rotamer
+library for the given resname</p></li>
+<li><p><strong>force</strong> (<em>bool = False</em><em>,</em>) – If set to True and permanent is also set to true this library will overwrite any existing library with the same
+name.</p></li>
+<li><p><strong>spin_atoms</strong> (<em>list</em><em>, </em><em>dict</em>) – List of atom names on which the spin density is localized, e.g [‘N’, ‘O’], or dictionary with spin atom
+names (key ‘spin_atoms’) and spin atom weights (key ‘spin_weights’).</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="chilife.chilife.create_library">
+<span class="sig-prename descclassname"><span class="pre">chilife.chilife.</span></span><span class="sig-name descname"><span class="pre">create_library</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">libname</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pdb</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dihedral_atoms</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">site</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">resname</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dihedrals</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ArrayLike</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">weights</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ArrayLike</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sigmas</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ArrayLike</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">permanent</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">default</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">force</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">spin_atoms</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#chilife.chilife.create_library" title="Permalink to this definition"></a></dt>
+<dd><p>Add a user defined SpinLabel from a pdb file.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>libname</strong> (<em>str</em>) – Name for the new rotamer library.</p></li>
+<li><p><strong>pdb</strong> (<em>str</em>) – Name of (and path to) pdb file containing the user defined spin label structure. This pdb file should contain
+only the desired spin label and no additional residues.</p></li>
+<li><p><strong>site</strong> (<em>int</em>) – The residue number of the side chain in the pdb file you would like to add.</p></li>
+<li><p><strong>resname</strong> (<em>str</em>) – 3-letter residue code.</p></li>
+<li><p><strong>dihedral_atoms</strong> (<em>list</em>) – <p>a list of rotatable dihedrals. List should contain sub-lists of 4 atom names. Atom names must be the same as
+defined in the pdb file eg:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="p">[[</span><span class="s1">&#39;CA&#39;</span><span class="p">,</span> <span class="s1">&#39;CB&#39;</span><span class="p">,</span> <span class="s1">&#39;SG&#39;</span><span class="p">,</span> <span class="s1">&#39;SD&#39;</span><span class="p">],</span>
+<span class="p">[</span><span class="s1">&#39;CB&#39;</span><span class="p">,</span> <span class="s1">&#39;SG&#39;</span><span class="p">,</span> <span class="s1">&#39;SD&#39;</span><span class="p">,</span> <span class="s1">&#39;CE&#39;</span><span class="p">]</span><span class="o">...</span><span class="p">]</span>
+</pre></div>
+</div>
+</p></li>
+<li><p><strong>dihedrals</strong> (<em>ArrayLike</em><em>, </em><em>optional</em>) – Array of dihedral angles. If provided the new label object will be stored as a rotamer library with the
+dihedrals provided. Array should be n x m where n is the number of rotamers and m is the number of dihedrals.</p></li>
+<li><p><strong>weights</strong> (<em>ArrayLike</em><em>, </em><em>optional</em>) – Weights associated with the dihedral angles provided by the <code class="docutils literal notranslate"><span class="pre">dihedrals</span></code> keyword argument. There should be one
+weight per rotamer and the rotamer weights should sum to 1.</p></li>
+<li><p><strong>sigmas</strong> (<em>ArrayLike</em><em>, </em><em>optional</em>) – Sigma parameter for distributions of dihedral angles. Should be n x m matrix where n is the number of rotamers
+and m is the number of dihedrals. This feature will be used when performing off rotamer samplings.</p></li>
+<li><p><strong>permanent</strong> (<em>bool</em>) – If set to True the library will be stored in the chilife user_rotlibs directory in addition to the current
+working directory.</p></li>
+<li><p><strong>default</strong> (<em>bool</em>) – If set to true and permanent is also set to true then this rotamer library will become the default rotamer
+library for the given resname</p></li>
+<li><p><strong>force</strong> (<em>bool = False</em><em>,</em>) – If set to True and permanent is also set to true this library will overwrite any existing library with the same
+name.</p></li>
+<li><p><strong>spin_atoms</strong> (<em>list</em>) – A list of atom names on which the spin density is localized.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="chilife.chilife.distance_distribution">
+<span class="sig-prename descclassname"><span class="pre">chilife.chilife.</span></span><span class="sig-name descname"><span class="pre">distance_distribution</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="spin_label.html#chilife.SpinLabel" title="chilife.SpinLabel"><span class="pre">SpinLabel</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">r</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ArrayLike</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sigma</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_spin_centers</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dependent</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">uq</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">np.ndarray</span></span></span><a class="headerlink" href="#chilife.chilife.distance_distribution" title="Permalink to this definition"></a></dt>
+<dd><p>Calculates total distribution of spin-spin distances among an arbitrary number of spin labels, using the
+distance range <code class="docutils literal notranslate"><span class="pre">r</span></code> (in angstrom).</p>
+<p>The distance distribution is obtained by summing over all pair distance distributions. These in turn are calculated
+by summing over rotamer pairs with the appropriate weights. For each rotamer pair, the distance distribution is
+either just the distance between the <code class="docutils literal notranslate"><span class="pre">spin_center</span></code> coordinates of two labels (if <code class="docutils literal notranslate"><span class="pre">spin_populations=False</span></code>) or
+the weighted sum over all pairs of spn-bearing atoms (<code class="docutils literal notranslate"><span class="pre">spin_populations=True</span></code>). The resulting distance histogram
+is convolved with a normal distribution with a standard deviation <code class="docutils literal notranslate"><span class="pre">sigma</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>*args</strong> (<a class="reference internal" href="spin_label.html#chilife.SpinLabel" title="chilife.SpinLabel"><em>SpinLabel</em></a>) – Any number of spin label objects.</p></li>
+<li><p><strong>r</strong> (<em>ArrayLike</em>) – Evenly spaced array of distances (in angstrom) to calculate the distance distribution over.</p></li>
+<li><p><strong>sigma</strong> (<em>float</em>) – The standard deviation of the normal distribution used in convolution with the distance histogram, in angstrom.
+Default is 1.</p></li>
+<li><p><strong>use_spin_centers</strong> (<em>bool</em>) – If False, distances are computed between spin centers. If True, distances are computed by summing over
+the distributed spin density on spin-bearing atoms on the labels.</p></li>
+<li><p><strong>dependent</strong> (<em>bool</em>) – Consider the (clash) effects of spin label rotamers on each other.</p></li>
+<li><p><strong>uq</strong> (<em>bool</em>) – Perform uncertainty analysis (experimental)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>P</strong> – Predicted distance distribution, in 1/angstrom</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>np.ndarray</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="chilife.chilife.list_available_rotlibs">
+<span class="sig-prename descclassname"><span class="pre">chilife.chilife.</span></span><span class="sig-name descname"><span class="pre">list_available_rotlibs</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#chilife.chilife.list_available_rotlibs" title="Permalink to this definition"></a></dt>
+<dd><p>Lists residue types and rotamer libraries that are currently available. More information on any individual rotamer
+library by using the rotlib_info function.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="chilife.chilife.pair_dd">
+<span class="sig-prename descclassname"><span class="pre">chilife.chilife.</span></span><span class="sig-name descname"><span class="pre">pair_dd</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">r</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ArrayLike</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sigma</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_spin_centers</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dependent</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">np.ndarray</span></span></span><a class="headerlink" href="#chilife.chilife.pair_dd" title="Permalink to this definition"></a></dt>
+<dd><p>Obtain the total pairwise spin-spin distance distribution over <code class="docutils literal notranslate"><span class="pre">r</span></code> for a list of spin labels.
+The distribution is calculated by convolving the weighted histogram of pairwise spin-spin
+distances with a normal distribution with standard deviation <code class="docutils literal notranslate"><span class="pre">sigma</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>*args</strong> (<a class="reference internal" href="spin_label.html#chilife.SpinLabel" title="chilife.SpinLabel"><em>SpinLabel</em></a>) – SpinLabels to use when calculating the distance distribution</p></li>
+<li><p><strong>r</strong> (<em>ArrayLike</em>) – Distance domain vector, in angstrom</p></li>
+<li><p><strong>sigma</strong> (<em>float</em>) – Standard deviation of normal distribution used for convolution, in angstrom</p></li>
+<li><p><strong>use_spin_centers</strong> (<em>bool</em>) – If False, distances are computed between spin centers. If True, distances are computed by summing over
+the distributed spin density on spin-bearing atoms on the labels.</p></li>
+<li><p><strong>dependent</strong> (<em>bool</em>) – Consider the (clash) effects of spin label rotamers on each other.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>P</strong> – Predicted normalized distance distribution, in units of 1/angstrom</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>np.ndarray</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="chilife.chilife.pre_add_library">
+<span class="sig-prename descclassname"><span class="pre">chilife.chilife.</span></span><span class="sig-name descname"><span class="pre">pre_add_library</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pdb</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">spin_atoms</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">uniform_topology</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">MDAnalysis.Universe</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Dict</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#chilife.chilife.pre_add_library" title="Permalink to this definition"></a></dt>
+<dd><p>Helper function to sort PDBs, save spin atoms, update lists, etc. when adding a SpinLabel or dSpinLabel.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>pdb</strong> (<em>str</em>) – Name (and path) of the pdb containing the new label.</p></li>
+<li><p><strong>spin_atoms</strong> (<em>List</em><em>[</em><em>str</em><em>]</em>) – Atoms of the SpinLabel where the unpaired electron is located.</p></li>
+<li><p><strong>uniform_topology</strong> (<em>bool</em>) – Assume all rotamers of the library have the same topology (i.e. no differences in atom bonding). If false
+chilife will attempt to find the minimal topology shared between all rotamers for defining internal coordinates.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p><strong>struct</strong> (<em>MDAnalysis.Universe</em>) – MDAnalysis Universe object containing the rotamer ensemble with each rotamer as a frame. All atoms should be
+properly sorted for consistent construction of internal coordinates.</p></li>
+<li><p><strong>spin_atoms</strong> (<em>dict</em>) – Dictionary of spin atoms and weights if specified.</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="chilife.chilife.prep_restype_savedict">
+<span class="sig-prename descclassname"><span class="pre">chilife.chilife.</span></span><span class="sig-name descname"><span class="pre">prep_restype_savedict</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">libname</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">resname</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">internal_coords</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">ProteinIC</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">weights</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ArrayLike</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dihedrals</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ArrayLike</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dihedral_atoms</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ArrayLike</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sigmas</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ArrayLike</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">resi</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">spin_atoms</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Dict</span></span></span><a class="headerlink" href="#chilife.chilife.prep_restype_savedict" title="Permalink to this definition"></a></dt>
+<dd><p>Helper function to add new residue types to chilife</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>libname</strong> (<em>str</em>) – Name of residue to be stored.</p></li>
+<li><p><strong>resname</strong> (<em>str</em>) – Residue name (3-letter code)</p></li>
+<li><p><strong>internal_coords</strong> (<em>List</em><em>[</em><em>ProteinIC</em><em>]</em>) – list of internal coordinates of the new residue type.</p></li>
+<li><p><strong>weights</strong> (<em>ArrayLike</em>) – Array of weights corresponding to each rotamer of the library</p></li>
+<li><p><strong>dihedrals</strong> (<em>ArrayLike</em>) – Array of mobile dihedral angles for each rotamer fo the library</p></li>
+<li><p><strong>dihedral_atoms</strong> (<em>ArrayLike</em>) – Definition of mobile dihedral angles for a single structure. Should be a list of 4 string lists where the
+four strings are the names of the atoms that define the dihedral.</p></li>
+<li><p><strong>sigmas</strong> (<em>ArrayLike</em>) – Array of sigma values for each dihedral of each rotamer.</p></li>
+<li><p><strong>resi</strong> (<em>int</em>) – The residue number to be stored.</p></li>
+<li><p><strong>spin_atoms</strong> (<em>List</em><em>[</em><em>str</em><em>]</em>) – A list of atom names corresponding to the atoms where the spin density resides.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>save_dict</strong> – Dictionary of all the data needed to build a RotamerEnsemble.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>dict</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="chilife.chilife.remove_from_defaults">
+<span class="sig-prename descclassname"><span class="pre">chilife.chilife.</span></span><span class="sig-name descname"><span class="pre">remove_from_defaults</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">rotlib_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#chilife.chilife.remove_from_defaults" title="Permalink to this definition"></a></dt>
+<dd><p>Helper function to remove a rotamer library from the defaults stack.
+:param rotlib_name: Name of the rotamer library to be removed.
+:type rotlib_name: str</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="chilife.chilife.remove_from_toml">
+<span class="sig-prename descclassname"><span class="pre">chilife.chilife.</span></span><span class="sig-name descname"><span class="pre">remove_from_toml</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">entry</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#chilife.chilife.remove_from_toml" title="Permalink to this definition"></a></dt>
+<dd><p>Remove an entry for a chilife toml file
+:param file: Name or Path of the toml file to be edited.
+:type file: str, Path
+:param entry: Entry or key of the toml file to be removed.
+:type entry: str</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="chilife.chilife.remove_library">
+<span class="sig-prename descclassname"><span class="pre">chilife.chilife.</span></span><span class="sig-name descname"><span class="pre">remove_library</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">prompt</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#chilife.chilife.remove_library" title="Permalink to this definition"></a></dt>
+<dd><p>Removes a library from the chilife rotamer library directory and from the chilife dihedral definitions</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>name</strong> (<em>str</em>) – Name of the rotamer library</p></li>
+<li><p><strong>prompt</strong> (<em>bool</em>) – If set to False al warnings will be ignored.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="chilife.chilife.repack">
+<span class="sig-prename descclassname"><span class="pre">chilife.chilife.</span></span><span class="sig-name descname"><span class="pre">repack</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="pre">protein:</span> <span class="pre">Union[mda.Universe,</span> <span class="pre">mda.AtomGroup],</span> <span class="pre">*spin_labels:</span> <span class="pre">RotamerEnsemble,</span> <span class="pre">repetitions:</span> <span class="pre">int</span> <span class="pre">=</span> <span class="pre">200,</span> <span class="pre">temp:</span> <span class="pre">float</span> <span class="pre">=</span> <span class="pre">1,</span> <span class="pre">energy_func:</span> <span class="pre">Callable</span> <span class="pre">=</span> <span class="pre">&lt;function</span> <span class="pre">get_lj_rep&gt;,</span> <span class="pre">off_rotamer=False,</span> <span class="pre">**kwargs</span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">mda.Universe</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">ArrayLike</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#chilife.chilife.repack" title="Permalink to this definition"></a></dt>
+<dd><p>Markov chain Monte Carlo repack a protein around any number of SpinLabel or RotamerEnsemble objects.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>protein</strong> (<em>MDAnalysis.Universe</em><em>, </em><em>MDAnalysis.AtomGroup</em>) – Protein to be repacked</p></li>
+<li><p><strong>spin_labels</strong> (<a class="reference internal" href="rotamer_ensemble.html#chilife.RotamerEnsemble" title="chilife.RotamerEnsemble"><em>RotamerEnsemble</em></a><em>, </em><a class="reference internal" href="spin_label.html#chilife.SpinLabel" title="chilife.SpinLabel"><em>SpinLabel</em></a>) – RotamerEnsemble or SpinLabel object placed at site of interest</p></li>
+<li><p><strong>repetitions</strong> (<em>int</em>) – Number of successful MC samples to perform before terminating the MC sampling loop</p></li>
+<li><p><strong>temp</strong> (<em>float</em><em>, </em><em>ArrayLike</em>) – Temperature (Kelvin) for both clash evaluation and metropolis-hastings acceptance criteria. Accepts a list or
+array like object of temperatures if a temperature schedule is desired</p></li>
+<li><p><strong>energy_func</strong> (<em>Callable</em>) – Energy function to be used for clash evaluation. Must accept a protein and RotamerEnsemble object and return an
+array of potentials in kcal/mol, with one energy per rotamer in the rotamer ensemble</p></li>
+<li><p><strong>off_rotamer</strong> (<em>bool</em>) – Boolean argument that decides whether off rotamer sampling is used when repacking the provided residues.</p></li>
+<li><p><strong>kwargs</strong> (<em>dict</em>) – Additional keyword arguments to be passed to <code class="docutils literal notranslate"><span class="pre">mutate</span></code> .</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p><strong>protein</strong> (<em>MDAnalysis.Universe</em>) – MCMC trajectory of local repack</p></li>
+<li><p><strong>deltaEs</strong> (<em>np.ndarray:</em>) – Change in energy_func score at each accept of MCMC trajectory</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="chilife.chilife.rotlib_info">
+<span class="sig-prename descclassname"><span class="pre">chilife.chilife.</span></span><span class="sig-name descname"><span class="pre">rotlib_info</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">rotlib</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#chilife.chilife.rotlib_info" title="Permalink to this definition"></a></dt>
+<dd><blockquote>
+<div><p>Display detailed information about the rotamer library.</p>
+</div></blockquote>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>rotlib</strong> (<em>str</em>) – Name of the rotamer library to print the information of.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="chilife.chilife.safe_save">
+<span class="sig-prename descclassname"><span class="pre">chilife.chilife.</span></span><span class="sig-name descname"><span class="pre">safe_save</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">backup</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#chilife.chilife.safe_save" title="Permalink to this definition"></a></dt>
+<dd><p>Helper function to save toml files. Will preserve original toml file if there is an error.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>file</strong> (<em>str</em><em>, </em><em>Path</em>) – Name of the toml file to be saved.</p></li>
+<li><p><strong>data</strong> (<em>dict</em>) – Data to save in the toml file.</p></li>
+<li><p><strong>backup</strong> (<em>dict</em>) – Original data from the toml file to save if there is an error.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="chilife.chilife.traj_dd">
+<span class="sig-prename descclassname"><span class="pre">chilife.chilife.</span></span><span class="sig-name descname"><span class="pre">traj_dd</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">SL1</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">SpinLabelTraj</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">SL2</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">SpinLabelTraj</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">r</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ArrayLike</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sigma</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">np.ndarray</span></span></span><a class="headerlink" href="#chilife.chilife.traj_dd" title="Permalink to this definition"></a></dt>
+<dd><p>Calculate a distance distribution from a trajectory of spin labels by calling <code class="docutils literal notranslate"><span class="pre">distance_distribution</span></code> on each
+frame and averaging the resulting distributions.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>SL1</strong> (<em>SpinLabelTrajectory</em>) – Spin label to use for distance distribution calculation.</p></li>
+<li><p><strong>SL2</strong> (<em>SpinLabelTrajectory</em>) – Spin label to use for distance distribution calculation.</p></li>
+<li><p><strong>r</strong> (<em>ArrayLike</em>) – Distance domain to use when calculating distance distribution.</p></li>
+<li><p><strong>sigma</strong> (<em>float</em>) – Standard deviation of the gaussian kernel used to smooth the distance distribution</p></li>
+<li><p><strong>**kwargs</strong> (<em>dict</em><em>, </em><em>optional</em>) – Additional keyword arguments to pass to <code class="docutils literal notranslate"><span class="pre">distance_distribution</span></code> .</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>P</strong> – Distance distribution calculated from the provided SpinLabelTrajectories</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>ndarray</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="index.html" class="btn btn-neutral float-left" title="χLife" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="rotamer_ensemble.html" class="btn btn-neutral float-right" title="RotamerEnsemble" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022, Maxx Tessmer.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

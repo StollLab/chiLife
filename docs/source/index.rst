@@ -11,6 +11,7 @@
     spin_label
     protein
     utils
+    examples
 
 
 Indices and tables

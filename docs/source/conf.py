@@ -32,7 +32,10 @@ extensions = ['sphinx.ext.autodoc',
               'sphinx_mdinclude',
               'sphinx.ext.coverage',
               'sphinx.ext.napoleon',
-              'nbsphinx']
+              'sphinx_gallery.load_style',
+              'nbsphinx',
+              'nbsphinx_link',
+              'IPython.sphinxext.ipython_console_highlighting']
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
@@ -41,9 +44,12 @@ templates_path = ['_templates']
 # directories to ignore when looking for source files.
 # This pattern also affects html_static_path and html_extra_path.
 exclude_patterns = []
-
 autodoc_member_order = 'groupwise'
 autodoc_type_aliases = {ArrayLike: 'ArrayLike'}
+source_suffix = [".rst", ".md"]
+nbsphinx_thumbnails = {
+    'gallery/05-Membrane_Docking.nblink': 'gallery/figure_06.png',
+}
 
 
 #--Spinx-Galery

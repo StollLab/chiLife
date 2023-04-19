@@ -34,6 +34,8 @@ jobs:
            python -m pip install nbsphinx
            python -m pip install ipython
            python -m pip install .
+    - name: Setup Pandoc
+      uses: r-lib/actions/setup-pandoc@v2
     - name: Build with Sphinx
       run: |
            sphinx-build -E -b html ./docs/source ./pages

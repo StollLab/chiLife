@@ -936,12 +936,9 @@ def _sort_pdb_lines(lines, bonds=None, index=False, **kwargs):
         if len(sorted_args) != n_heavy:
 
             root_idx = 1 if len(sorted_args) == 4 else sorted_args[0]
-
             bonds = np.array([bond for bond in presort_bonds
                               if (start <= bond[0] < stop) and (start <= bond[1] < stop)])
             bonds -= start
-
-
             bonds = np.asarray(bonds)
 
             # Get all nearest neighbors and sort by distance
@@ -993,13 +990,14 @@ def _sort_pdb_lines(lines, bonds=None, index=False, **kwargs):
     lines.sort(key=atom_sort_key)
 
     if 'input_bonds' not in locals():
-        input_bonds = bonds
+        input_bonds = presort_bonds
         idxmap = {presort_idx_key[line[6:11]]: i for i, line in enumerate(lines)}
     else:
         idxmap = {index_key[line[6:11]]: i for i, line in enumerate(lines)}
 
     # Return line indices if requested
     if index:
+        str_lines = lines
         lines = [index_key[line[6:11]] for line in lines]
 
     # Otherwise make new indices

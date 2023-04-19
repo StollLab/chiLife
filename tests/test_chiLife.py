@@ -420,3 +420,12 @@ def test_add_rotlib_dir():
 
 def test_list_rotlibs():
     chilife.list_available_rotlibs()
+
+def test_create_library_diff():
+    spin_atoms = ['N1', 'O1']
+    dihedral_atoms = [['N', 'CA', 'CB', 'SG'],
+                      ['CA', 'CB', 'SG', 'CD'],
+                      ['CB', 'SG', 'CD', 'C3'],
+                      ['SG', 'CD', 'C3', 'C4']]
+
+    chilife.create_library('R3A', 'test_data/R3A_Ensemble.pdb', site=2, dihedral_atoms=dihedral_atoms, spin_atoms=spin_atoms)

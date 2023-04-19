@@ -916,7 +916,6 @@ def get_internal_coords(
         root = min([bnd[0] for bnd in sub_bonds if bnd[0] not in cap] +
                    [bnd[1] for bnd in sub_bonds if bnd[1] not in cap])
 
-
         G = nx.Graph()
         G.add_edges_from(sub_bonds)
         edges = [edge for edge in nx.bfs_edges(G, root)]

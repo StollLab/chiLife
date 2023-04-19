@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Membrane Docking &mdash; χLife  documentation</title>
+      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/sg_gallery.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/nbsphinx-code-cells.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+        <script src="../_static/doctools.js"></script>
+        <script src="../_static/sphinx_highlight.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+        <script>window.MathJax = {"tex": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true}, "options": {"ignoreHtmlClass": "tex2jax_ignore|mathjax_ignore|document", "processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+        <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Custom Energy Function" href="06-Custom_Energy_Function.html" />
+    <link rel="prev" title="Repacking with MCMC Sampling" href="04-Repacking_with_MCMC_Sampling.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            χLife
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../chilife.html">χLife</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../rotamer_ensemble.html">RotamerEnsemble</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../spin_label.html">SpinLabel</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../protein.html">Protein</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../utils.html">Utils</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../examples.html">Examples</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="01-Basic_Spin_Labeling.html">Basic Spin Labeling</a></li>
+<li class="toctree-l2"><a class="reference internal" href="02-SDSL_Site_Screen.html">SDSL Site Screen</a></li>
+<li class="toctree-l2"><a class="reference internal" href="03-Adding_Custom_Spin_Lables.html">Adding Custom Spin Labels</a></li>
+<li class="toctree-l2"><a class="reference internal" href="04-Repacking_with_MCMC_Sampling.html">Repacking with MCMC Sampling</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Membrane Docking</a></li>
+<li class="toctree-l2"><a class="reference internal" href="06-Custom_Energy_Function.html">Custom Energy Function</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">χLife</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../examples.html">Examples</a></li>
+      <li class="breadcrumb-item active">Membrane Docking</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/gallery/05-Membrane_Docking.nblink.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="Membrane-Docking">
+<h1>Membrane Docking<a class="headerlink" href="#Membrane-Docking" title="Permalink to this heading"></a></h1>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[1]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">scipy.spatial.transform</span> <span class="kn">import</span> <span class="n">Rotation</span>
+<span class="kn">from</span> <span class="nn">scipy.optimize</span> <span class="kn">import</span> <span class="n">minimize</span>
+<span class="kn">import</span> <span class="nn">chilife</span> <span class="k">as</span> <span class="nn">xl</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area stderr docutils container">
+<div class="highlight"><pre>
+C:\Program Files\Python310\lib\site-packages\tqdm\auto.py:22: TqdmWarning: IProgress not found. Please update jupyter and ipywidgets. See https://ipywidgets.readthedocs.io/en/stable/user_install.html
+  from .autonotebook import tqdm as notebook_tqdm
+</pre></div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Get protein and membrane depth data</span>
+<span class="n">CPLA_C2</span> <span class="o">=</span> <span class="n">xl</span><span class="o">.</span><span class="n">fetch</span><span class="p">(</span><span class="s1">&#39;1bci&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">select_atoms</span><span class="p">(</span><span class="s1">&#39;protein&#39;</span><span class="p">)</span>
+<span class="n">sites</span><span class="p">,</span> <span class="n">depths</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">loadtxt</span><span class="p">(</span><span class="s1">&#39;Membrane_depths.txt&#39;</span><span class="p">)</span>
+
+<span class="c1"># Create labels and extract centroid</span>
+<span class="n">label_list</span> <span class="o">=</span> <span class="p">[</span><span class="n">xl</span><span class="o">.</span><span class="n">SpinLabel</span><span class="p">(</span><span class="s1">&#39;R1M&#39;</span><span class="p">,</span> <span class="n">site</span><span class="p">,</span> <span class="n">protein</span><span class="o">=</span> <span class="n">CPLA_C2</span><span class="p">,</span> <span class="n">sample</span><span class="o">=</span><span class="mi">1000</span><span class="p">)</span> <span class="k">for</span> <span class="n">site</span> <span class="ow">in</span> <span class="n">sites</span><span class="p">]</span>
+<span class="n">spin_centroids</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">SL</span><span class="o">.</span><span class="n">spin_centroid</span> <span class="k">for</span> <span class="n">SL</span> <span class="ow">in</span> <span class="n">label_list</span><span class="p">])</span>
+
+<span class="c1"># Translate array of spin centroids to the origin for rotating</span>
+<span class="n">spin_at_ori</span> <span class="o">=</span> <span class="n">spin_centroids</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">spin_centroids</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+<span class="c1"># Create the objective function to fit Euler angles and membrane depth to the data</span>
+<span class="k">def</span> <span class="nf">objective</span><span class="p">(</span><span class="n">par</span><span class="p">):</span>
+    <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">z</span><span class="p">,</span> <span class="n">zdepth</span> <span class="o">=</span> <span class="n">par</span>
+
+    <span class="c1"># Create a rotation matrix from the Euler angles</span>
+    <span class="n">R</span> <span class="o">=</span> <span class="n">Rotation</span><span class="o">.</span><span class="n">from_euler</span><span class="p">(</span><span class="s1">&#39;xyz&#39;</span><span class="p">,</span> <span class="p">[</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">z</span><span class="p">])</span>
+    <span class="n">M</span> <span class="o">=</span> <span class="n">R</span><span class="o">.</span><span class="n">as_matrix</span><span class="p">()</span>
+
+    <span class="c1"># Rotate and translate the spins</span>
+    <span class="n">spin_coords</span> <span class="o">=</span> <span class="n">spin_at_ori</span><span class="nd">@M</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">zdepth</span><span class="p">])</span>
+
+    <span class="c1"># Compare the spin depth to the experimental depths and return the sum of squares error</span>
+    <span class="n">resid</span> <span class="o">=</span> <span class="n">spin_coords</span><span class="p">[:,</span> <span class="mi">2</span><span class="p">]</span> <span class="o">-</span> <span class="n">depths</span>
+    <span class="k">return</span> <span class="n">resid</span> <span class="o">@</span> <span class="n">resid</span>
+
+<span class="n">fit</span> <span class="o">=</span> <span class="n">minimize</span><span class="p">(</span><span class="n">objective</span><span class="p">,</span> <span class="n">x0</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">bounds</span><span class="o">=</span><span class="p">[[</span><span class="o">-</span><span class="mi">180</span><span class="p">,</span> <span class="mi">180</span><span class="p">],</span> <span class="p">[</span><span class="o">-</span><span class="mi">180</span><span class="p">,</span> <span class="mi">180</span><span class="p">],</span> <span class="p">[</span><span class="o">-</span><span class="mi">180</span><span class="p">,</span> <span class="mi">180</span><span class="p">],</span> <span class="p">[</span><span class="o">-</span><span class="mi">100</span><span class="p">,</span> <span class="mi">100</span><span class="p">]])</span>
+<br/></pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area stderr docutils container">
+<div class="highlight"><pre>
+WARNING:py.warnings:e:\07)programming\python\chilife\chilife\protein_utils.py:731: FutureWarning: elementwise comparison failed; returning scalar instead, but in the future will perform elementwise comparison
+  if atom_list == []:
+
+</pre></div></div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Move CPLA_C2 to the best fit location</span>
+<span class="n">R</span> <span class="o">=</span> <span class="n">Rotation</span><span class="o">.</span><span class="n">from_euler</span><span class="p">(</span><span class="s1">&#39;xyz&#39;</span><span class="p">,</span> <span class="n">fit</span><span class="o">.</span><span class="n">x</span><span class="p">[:</span><span class="mi">3</span><span class="p">])</span><span class="o">.</span><span class="n">as_matrix</span><span class="p">()</span>
+<span class="n">CPLA_C2</span><span class="o">.</span><span class="n">atoms</span><span class="o">.</span><span class="n">positions</span> <span class="o">=</span> <span class="p">(</span><span class="n">CPLA_C2</span><span class="o">.</span><span class="n">atoms</span><span class="o">.</span><span class="n">positions</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">spin_centroids</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">))</span> <span class="o">@</span> <span class="n">R</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">fit</span><span class="o">.</span><span class="n">x</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]])</span>
+
+<span class="c1"># Move spin labels to new location and get the centroids for plotting</span>
+<span class="n">spin_centroids</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty_like</span><span class="p">(</span><span class="n">spin_centroids</span><span class="p">)</span>
+<span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">SL</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">label_list</span><span class="p">):</span>
+    <span class="n">SL</span><span class="o">.</span><span class="n">to_site</span><span class="p">(</span><span class="n">CPLA_C2</span><span class="o">.</span><span class="n">select_atoms</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;name N CA C and resid </span><span class="si">{</span><span class="n">SL</span><span class="o">.</span><span class="n">site</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">positions</span><span class="p">)</span>
+    <span class="n">spin_centroids</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">SL</span><span class="o">.</span><span class="n">spin_centroid</span>
+
+
+<span class="n">xl</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="s1">&#39;C2_docked.pdb&#39;</span><span class="p">,</span> <span class="o">*</span><span class="n">label_list</span><span class="p">,</span> <span class="n">CPLA_C2</span><span class="p">,</span> <span class="n">KDE</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">sites</span><span class="p">,</span> <span class="n">depths</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;Data&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">sites</span><span class="p">,</span> <span class="n">spin_centroids</span><span class="p">[:,</span><span class="mi">2</span><span class="p">],</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;Model&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s1">&#39;Membrane Depth ($\AA$)&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s1">&#39;Residue Number&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+<br/></pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../_images/gallery_05-Membrane_Docking_4_0.png" src="../_images/gallery_05-Membrane_Docking_4_0.png" />
+</div>
+</div>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="04-Repacking_with_MCMC_Sampling.html" class="btn btn-neutral float-left" title="Repacking with MCMC Sampling" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="06-Custom_Energy_Function.html" class="btn btn-neutral float-right" title="Custom Energy Function" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022, Maxx Tessmer.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Scoring &mdash; χLife  documentation</title>
+      <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="_static/sg_gallery.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+        <script src="_static/doctools.js"></script>
+        <script src="_static/sphinx_highlight.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Examples" href="examples.html" />
+    <link rel="prev" title="Alignment Methods" href="alignments.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            χLife
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="chilife.html">χLife</a></li>
+<li class="toctree-l1"><a class="reference internal" href="rotamer_ensemble.html">RotamerEnsemble</a></li>
+<li class="toctree-l1"><a class="reference internal" href="spin_label.html">SpinLabel</a></li>
+<li class="toctree-l1"><a class="reference internal" href="protein.html">Protein</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="utils.html">Utils</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="numba_utils.html">Numba Utils</a></li>
+<li class="toctree-l2"><a class="reference internal" href="protein_utils.html">Protein Utils</a></li>
+<li class="toctree-l2"><a class="reference internal" href="alignments.html">Alignment Methods</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Scoring</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#chilife.scoring.clash_only"><code class="docutils literal notranslate"><span class="pre">clash_only()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#chilife.scoring.get_lj_attr"><code class="docutils literal notranslate"><span class="pre">get_lj_attr()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#chilife.scoring.get_lj_energy"><code class="docutils literal notranslate"><span class="pre">get_lj_energy()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#chilife.scoring.get_lj_params"><code class="docutils literal notranslate"><span class="pre">get_lj_params()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#chilife.scoring.get_lj_rep"><code class="docutils literal notranslate"><span class="pre">get_lj_rep()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#chilife.scoring.get_lj_scwrl"><code class="docutils literal notranslate"><span class="pre">get_lj_scwrl()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#chilife.scoring.join_arith"><code class="docutils literal notranslate"><span class="pre">join_arith()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#chilife.scoring.join_geom"><code class="docutils literal notranslate"><span class="pre">join_geom()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#chilife.scoring.prep_external_clash"><code class="docutils literal notranslate"><span class="pre">prep_external_clash()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#chilife.scoring.prep_internal_clash"><code class="docutils literal notranslate"><span class="pre">prep_internal_clash()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#chilife.scoring.reweight_rotamers"><code class="docutils literal notranslate"><span class="pre">reweight_rotamers()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#chilife.scoring.set_lj_params"><code class="docutils literal notranslate"><span class="pre">set_lj_params()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="examples.html">Examples</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">χLife</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="utils.html">Utils</a></li>
+      <li class="breadcrumb-item active">Scoring</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/scoring.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="scoring">
+<h1>Scoring<a class="headerlink" href="#scoring" title="Permalink to this heading"></a></h1>
+<p>This module consists of several built in scoring functions as well as helper functions to setup scoring. In
+addition to the built in scoring functions, users can also define their own scoring functions. The only
+requirements are that the scoring function accepts a RotamerEnsemble or SpinLabel object and outputs an energy score
+for each rotamer in the ensemble. The energy score should be in kcal/mol.</p>
+<span class="target" id="module-chilife.scoring"></span><dl class="py function">
+<dt class="sig sig-object py" id="chilife.scoring.clash_only">
+<span class="sig-prename descclassname"><span class="pre">chilife.scoring.</span></span><span class="sig-name descname"><span class="pre">clash_only</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">func</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#chilife.scoring.clash_only" title="Permalink to this definition"></a></dt>
+<dd><p>Decorator to convert a Lennard-Jones style clash evaluation function into a chiLife compatible energy func.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>func</strong> (<em>callable</em>) – Python function object that computes the (modified) Lennard-Jones potential given arrays of atom pair
+distances, <cite>r</cite>, rmin values <cite>rmin</cite>, energies, <cite>eps</cite>, and additional keyword arguments.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>energy_func</strong> – The original input function now wrapped to accept a protein object and, optionally, a RotamerEnsemble/SpinLabel
+object.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>callable</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="chilife.scoring.get_lj_attr">
+<span class="sig-prename descclassname"><span class="pre">chilife.scoring.</span></span><span class="sig-name descname"><span class="pre">get_lj_attr</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">r</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rmin</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eps</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">forgive</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.9</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">floor</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-2</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#chilife.scoring.get_lj_attr" title="Permalink to this definition"></a></dt>
+<dd><p>Calculate only the attractive terms of the lenard-jones potential from a set of atom pairs with distance <cite>r</cite>,
+rmin values of <cite>rmin</cite> and epsilon values of <cite>eps</cite>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>r</strong> (<em>numpy.ndarray</em>) – Vector of inter-atomic distances between non-bonded atoms of a system.</p></li>
+<li><p><strong>rmin</strong> (<em>numpy.ndarray</em>) – Vector of rmin parameters, in angstoms,  corresponding to atoms pairs of r.</p></li>
+<li><p><strong>eps</strong> (<em>numpy.ndarray</em>) – Vector of epsilon parameters corresponding to atom pairs of r</p></li>
+<li><p><strong>forgive</strong> (<em>numpy.ndarray</em>) – The <cite>forgive</cite> factor is a softening term to mitigate rigid body artifacts. It is set to a value between 0 1nd 1
+and modifies the rmin parameter of all atom pairs in <cite>r</cite> to be the fraction, <cite>forgive</cite> of the thair original
+value. This allows atoms to be closer than otherwise allowed to prevent explosion of the jennard-jones repulsion
+in situations that would otherwise be resolved with minor atomic displacements.</p></li>
+<li><p><strong>cap</strong> (<em>flaot</em>) – Maximum allowed energy factor. Sets a cap on the maximum energy contribution of one atom pair interaction as
+another mechanism for softening. <cite>cap</cite> is sets the actual max value as a multiple of the <cite>eps</cite> parameter. i.e.
+the maximum allowed energy from a single atom pair interaction is the <cite>eps</cite> parameter multiplied by <cite>cap</cite>.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>lj_energy</strong> – Vector of atom pair energies calculated using the modified lj potential function.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>numpy.ndarray</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="chilife.scoring.get_lj_energy">
+<span class="sig-prename descclassname"><span class="pre">chilife.scoring.</span></span><span class="sig-name descname"><span class="pre">get_lj_energy</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">r</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rmin</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eps</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">forgive</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cap</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rmax</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#chilife.scoring.get_lj_energy" title="Permalink to this definition"></a></dt>
+<dd><p>Return a vector with the energy values for the flat bottom lenard-jones potential from a set of atom pairs with
+distance <cite>r</cite>, rmin values of <cite>rmin</cite> and epsilon values of <cite>eps</cite>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>r</strong> (<em>numpy.ndarray</em>) – Vector of inter-atomic distances between non-bonded atoms of a system.</p></li>
+<li><p><strong>rmin</strong> (<em>numpy.ndarray</em>) – Vector of rmin parameters, in angstoms,  corresponding to atoms pairs of r.</p></li>
+<li><p><strong>eps</strong> (<em>numpy.ndarray</em>) – Vector of epsilon parameters corresponding to atom pairs of r</p></li>
+<li><p><strong>forgive</strong> (<em>numpy.ndarray</em>) – The <cite>forgive</cite> factor is a softening term to mitigate rigid body artifacts. It is set to a value between 0 1nd 1
+and modifies the rmin parameter of all atom pairs in <cite>r</cite> to be the fraction, <cite>forgive</cite> of the thair original
+value. This allows atoms to be closer than otherwise allowed to prevent explosion of the jennard-jones repulsion
+in situations that would otherwise be resolved with minor atomic displacements.</p></li>
+<li><p><strong>cap</strong> (<em>flaot</em>) – Maximum allowed energy factor. Sets a cap on the maximum energy contribution of one atom pair interaction as
+another mechanism for softening. <cite>cap</cite> is sets the actual max value as a multiple of the <cite>eps</cite> parameter. i.e.
+the maximum allowed energy from a single atom pair interaction is the <cite>eps</cite> parameter multiplied by <cite>cap</cite>.</p></li>
+<li><p><strong>rmax</strong> (<em>float</em>) – Maximum distance to consider for potential calculation. Any atom pairs with r &gt; rmax will be set to 0.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>lj_energy</strong> – Vector of atom pair energies calculated using the modified lj potential function.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>numpy.ndarray</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="chilife.scoring.get_lj_params">
+<span class="sig-prename descclassname"><span class="pre">chilife.scoring.</span></span><span class="sig-name descname"><span class="pre">get_lj_params</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ensemble</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#chilife.scoring.get_lj_params" title="Permalink to this definition"></a></dt>
+<dd><p>calculate the lennard jones parameters between atoms of a rotamer ensemble and associated protein.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>ensemble</strong> (<a class="reference internal" href="rotamer_ensemble.html#chilife.RotamerEnsemble" title="chilife.RotamerEnsemble"><em>RotamerEnsemble</em></a>) – The RotamerEnsemble to get the lj params for. Should have an associated protein object.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p><strong>rmin_ij</strong> (<em>nummpy.ndarray</em>) – Vector of <code class="docutils literal notranslate"><span class="pre">rmin</span></code> lennard-jones parameters corresponding to atoms i and j of the RotamerEnsemble and the
+associated protein respectively.</p></li>
+<li><p><strong>eps_ij</strong> (<em>numpy.ndarray</em>) – Vector of <code class="docutils literal notranslate"><span class="pre">eps</span></code> lennard-jones parameters corresponding to atoms i and j of the RotamerEnsemble and the
+associated protein respectively.</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="chilife.scoring.get_lj_rep">
+<span class="sig-prename descclassname"><span class="pre">chilife.scoring.</span></span><span class="sig-name descname"><span class="pre">get_lj_rep</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">r</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rmin</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eps</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">forgive</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.9</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cap</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#chilife.scoring.get_lj_rep" title="Permalink to this definition"></a></dt>
+<dd><p>Calculate only the repulsive terms of the lenard-jones potential from a set of atom pairs with distance <cite>r</cite>,
+rmin values of <cite>rmin</cite> and epsilon values of <cite>eps</cite>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>r</strong> (<em>numpy.ndarray</em>) – Vector of inter-atomic distances between non-bonded atoms of a system.</p></li>
+<li><p><strong>rmin</strong> (<em>numpy.ndarray</em>) – Vector of rmin parameters, in angstoms,  corresponding to atoms pairs of r.</p></li>
+<li><p><strong>eps</strong> (<em>numpy.ndarray</em>) – Vector of epsilon parameters corresponding to atom pairs of r</p></li>
+<li><p><strong>forgive</strong> (<em>numpy.ndarray</em>) – The <cite>forgive</cite> factor is a softening term to mitigate rigid body artifacts. It is set to a value between 0 1nd 1
+and modifies the rmin parameter of all atom pairs in <cite>r</cite> to be the fraction, <cite>forgive</cite> of the thair original
+value. This allows atoms to be closer than otherwise allowed to prevent explosion of the jennard-jones repulsion
+in situations that would otherwise be resolved with minor atomic displacements.</p></li>
+<li><p><strong>cap</strong> (<em>flaot</em>) – Maximum allowed energy factor. Sets a cap on the maximum energy contribution of one atom pair interaction as
+another mechanism for softening. <cite>cap</cite> is sets the actual max value as a multiple of the <cite>eps</cite> parameter. i.e.
+the maximum allowed energy from a single atom pair interaction is the <cite>eps</cite> parameter multiplied by <cite>cap</cite>.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>lj_energy</strong> – Vector of atom pair energies calculated using the modified lj potential function.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>numpy.ndarray</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="chilife.scoring.get_lj_scwrl">
+<span class="sig-prename descclassname"><span class="pre">chilife.scoring.</span></span><span class="sig-name descname"><span class="pre">get_lj_scwrl</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">r</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rmin</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eps</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">forgive</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#chilife.scoring.get_lj_scwrl" title="Permalink to this definition"></a></dt>
+<dd><p>Calculate a scwrl-like lenard-jones potential from a set of atom pairs with distance <cite>r</cite>, rmin values of <cite>rmin</cite>
+and epsilon values of <cite>eps</cite>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>r</strong> (<em>numpy.ndarray</em>) – Vector of inter-atomic distances between non-bonded atoms of a system.</p></li>
+<li><p><strong>rmin</strong> (<em>numpy.ndarray</em>) – Vector of rmin parameters, in angstoms,  corresponding to atoms pairs of r.</p></li>
+<li><p><strong>eps</strong> (<em>numpy.ndarray</em>) – Vector of epsilon parameters corresponding to atom pairs of r</p></li>
+<li><p><strong>forgive</strong> (<em>numpy.ndarray</em>) – The <cite>forgive</cite> factor is a softening term to mitigate rigid body artifacts. It is set to a value between 0 1nd 1
+and modifies the rmin parameter of all atom pairs in <cite>r</cite> to be the fraction, <cite>forgive</cite> of the thair original
+value. This allows atoms to be closer than otherwise allowed to prevent explosion of the jennard-jones repulsion
+in situations that would otherwise be resolved with minor atomic displacements.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>lj_energy</strong> – Vector of atom pair energies calculated using the modified lj potential function.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>numpy.ndarray</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="chilife.scoring.join_arith">
+<span class="sig-prename descclassname"><span class="pre">chilife.scoring.</span></span><span class="sig-name descname"><span class="pre">join_arith</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">a</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">b</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">flat</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#chilife.scoring.join_arith" title="Permalink to this definition"></a></dt>
+<dd><p>Function to join Lennard-Jones parameters (<code class="docutils literal notranslate"><span class="pre">rmin</span></code> or <code class="docutils literal notranslate"><span class="pre">eps</span></code>) using their arithmatic mean. Parameters can be
+joined in two different ways (see keyword argument <code class="docutils literal notranslate"><span class="pre">flat</span></code>)</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>a</strong> (<em>numpy.ndarray</em>) – Single atom parameters of atoms of group a</p></li>
+<li><p><strong>b</strong> (<em>numpy.ndarray</em>) – Single atom parameters of atoms of group b</p></li>
+<li><p><strong>flat</strong> (<em>bool</em>) – Only join parameters i of group a and j of group b if i=j. If false all combinations of i,j are computed.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>param</strong> – The joined parameters of group a and b</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>numpy.ndarray</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="chilife.scoring.join_geom">
+<span class="sig-prename descclassname"><span class="pre">chilife.scoring.</span></span><span class="sig-name descname"><span class="pre">join_geom</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">a</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">b</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">flat</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#chilife.scoring.join_geom" title="Permalink to this definition"></a></dt>
+<dd><p>Function to join Lennard-Jones parameters (<code class="docutils literal notranslate"><span class="pre">rmin</span></code> or <code class="docutils literal notranslate"><span class="pre">eps</span></code>) using their geometric mean. Parameters can be
+joined in two different ways (see keyword argument <code class="docutils literal notranslate"><span class="pre">flat</span></code>)</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>a</strong> (<em>numpy.ndarray</em>) – Single atom parameters of atoms of group a</p></li>
+<li><p><strong>b</strong> (<em>numpy.ndarray</em>) – Single atom parameters of atoms of group b</p></li>
+<li><p><strong>flat</strong> (<em>bool</em>) – Only join parameters i of group a and j of group b if i=j. If false all combinations of i,j are computed.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>param</strong> – The joined parameters of group a and b</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>numpy.ndarray</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="chilife.scoring.prep_external_clash">
+<span class="sig-prename descclassname"><span class="pre">chilife.scoring.</span></span><span class="sig-name descname"><span class="pre">prep_external_clash</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ensemble</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#chilife.scoring.prep_external_clash" title="Permalink to this definition"></a></dt>
+<dd><p>Helper function to prepare the lj parameters of a rotamer ensemble, presumably with an associated protein.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>ensemble</strong> (<a class="reference internal" href="rotamer_ensemble.html#chilife.RotamerEnsemble" title="chilife.RotamerEnsemble"><em>RotamerEnsemble</em></a>) – The RotamerEnsemble to prepare the clash parameters for. The RotamerEnsemble should have an associated protein.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p><strong>dist</strong> (<em>numpy.ndarray</em>) – Array of pairwise distances between atoms in the RotamerEnsemble and atoms in the associated protein.</p></li>
+<li><p><strong>rmin_ij</strong> (<em>numpy.ndarray</em>) – <code class="docutils literal notranslate"><span class="pre">rmin</span></code> parameters of the lj potential associated with the atom <code class="docutils literal notranslate"><span class="pre">i</span></code> and atom <code class="docutils literal notranslate"><span class="pre">j</span></code> pair.</p></li>
+<li><p><strong>eps_ij</strong> (<em>numpy.ndarray</em>) – <code class="docutils literal notranslate"><span class="pre">eps</span></code> parameters of the lj potential associated with the atom <code class="docutils literal notranslate"><span class="pre">i</span></code> and atom <code class="docutils literal notranslate"><span class="pre">j</span></code> pair.</p></li>
+<li><p><strong>shape</strong> (<em>Tuple[int]</em>) – Shape the array should be so that the energy is evaluated for each rotamer of the ensemble separately.</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="chilife.scoring.prep_internal_clash">
+<span class="sig-prename descclassname"><span class="pre">chilife.scoring.</span></span><span class="sig-name descname"><span class="pre">prep_internal_clash</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ensemble</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#chilife.scoring.prep_internal_clash" title="Permalink to this definition"></a></dt>
+<dd><p>Helper function to prepare the lj parameters of a rotamer ensemble to evaluate internal clashes.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>ensemble</strong> (<a class="reference internal" href="rotamer_ensemble.html#chilife.RotamerEnsemble" title="chilife.RotamerEnsemble"><em>RotamerEnsemble</em></a>) – The RotamerEnsemble to prepare the clash parameters for.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p><strong>dist</strong> (<em>numpy.ndarray</em>) – Array of pairwise distances between atoms in the RotamerEnsemble and atoms in the associated protein.</p></li>
+<li><p><strong>rmin_ij</strong> (<em>numpy.ndarray</em>) – <code class="docutils literal notranslate"><span class="pre">rmin</span></code> parameters of the lj potential associated with the atom <code class="docutils literal notranslate"><span class="pre">i</span></code> and atom <code class="docutils literal notranslate"><span class="pre">j</span></code> pair.</p></li>
+<li><p><strong>eps_ij</strong> (<em>numpy.ndarray</em>) – <code class="docutils literal notranslate"><span class="pre">eps</span></code> parameters of the lj potential associated with the atom <code class="docutils literal notranslate"><span class="pre">i</span></code> and atom <code class="docutils literal notranslate"><span class="pre">j</span></code> pair.</p></li>
+<li><p><strong>shape</strong> (<em>Tuple[int]</em>) – Shape the array should be so that the energy is evaluated for each rotamer of the ensemble separately.</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="chilife.scoring.reweight_rotamers">
+<span class="sig-prename descclassname"><span class="pre">chilife.scoring.</span></span><span class="sig-name descname"><span class="pre">reweight_rotamers</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">energies</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">temp</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">weights</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#chilife.scoring.reweight_rotamers" title="Permalink to this definition"></a></dt>
+<dd><p>Adjust rotamer population weights based on external energies (from clash evaluations).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>energies</strong> (<em>numpy.ndarray</em>) – Array of external energies, in kcal/mol</p></li>
+<li><p><strong>temp</strong> (<em>scalar</em>) – Temperature, in kelvin</p></li>
+<li><p><strong>weights</strong> (<em>numpy.ndarray</em>) – Current weights of rotamers</p></li>
+<li><p><strong>return_partition</strong> (<em>bool</em>) – If True, return the value of the partition function an additional argument; see below</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p><strong>new_weights</strong> (<em>numpy.ndarray</em>) – Adjusted weights</p></li>
+<li><p><strong>partition</strong> (<em>float (optional)</em>) – The partition function relative to the free label. A small partition function suggests the interactions with
+neighboring atoms are unfavorable while a large partition function suggests the opposite.</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="chilife.scoring.set_lj_params">
+<span class="sig-prename descclassname"><span class="pre">chilife.scoring.</span></span><span class="sig-name descname"><span class="pre">set_lj_params</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">forcefield</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#chilife.scoring.set_lj_params" title="Permalink to this definition"></a></dt>
+<dd><blockquote>
+<div><p>Global setting for using different atom type parameterization for clash evaluations. Running this function
+once will set the parameters for the whole session.</p>
+</div></blockquote>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>forcefield</strong> (<em>str</em>) – Name of the forcefield to be used.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="alignments.html" class="btn btn-neutral float-left" title="Alignment Methods" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="examples.html" class="btn btn-neutral float-right" title="Examples" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022, Maxx Tessmer.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

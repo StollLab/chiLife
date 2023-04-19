@@ -498,7 +498,7 @@ def create_library(
     resname = libname[:3] if resname is None else resname
     struct, spin_atoms = pre_add_library(pdb, spin_atoms)
     resi_selection = struct.select_atoms(f"resnum {site}")
-    bonds = resi_selection.intra_bonds.indices - resi_selection.atoms[0].ix
+    bonds = resi_selection.intra_bonds.indices
 
     # Convert loaded rotamer ensemble to internal coords
     internal_coords = [

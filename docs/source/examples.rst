@@ -2,7 +2,9 @@ Examples
 ========
 
 .. nbgallery::
-    :name: Examples
+    :caption: This is a thumbnail gallery:
+    :name: rst-gallery
+    :glob:
 
     gallery/01-Basic_Spin_Labeling.nblink
     gallery/02-SDSL_Site_Screen.nblink

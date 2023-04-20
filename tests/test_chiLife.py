@@ -4,6 +4,8 @@ import pytest
 import MDAnalysis as mda
 import chilife
 import matplotlib.pyplot as plt
+import matplotlib as mpl
+from pathlib import Path
 
 labels = ["R1M", "R7M", "V1M", "M1M", "I1M"]
 atom_names = ["C", "H", "N", "O", "S", "SE", "Br"]
@@ -11,7 +13,7 @@ rmin_params = [2.0000, 1.27, 1.8500, 1.7000, 2.0000, 2.0000, 1.9800]
 eps_params = [-0.110, -0.022, -0.200, -0.120, -0.450, -0.450, -0.320]
 U = mda.Universe("test_data/m1omp.pdb")
 protein = U.select_atoms("protein")
-r = np.linspace(0, 100, 2**8)
+r = np.linspace(0, 100, 2 ** 8)
 old_ef = lambda protein, ensemble: chilife.get_lj_rep(protein, ensemble, forgive=0.8)
 
 with open('test_data/test_from_MMM.pkl', 'rb') as f:
@@ -35,7 +37,6 @@ for SL in labels:
     SL1 = chilife.SpinLabel(SL, site1, protein, chain)
     SL2 = chilife.SpinLabel(SL, site2, protein, chain)
     [args.append([SL1, SL2]) for i in range(5)]
-
 
     kws.append({"r": np.linspace(0, 80, 1024)})
     kws.append({"r": np.linspace(20, 80, 256)})
@@ -119,7 +120,7 @@ def test_distance_distribution_dep():
     P1 = chilife.distance_distribution(SL1, SL2, r)
     P2 = chilife.distance_distribution(SL1, SL2, r, dependent=True)
 
-    assert np.sum(np.abs(P1-P2)) > 0.2
+    assert np.sum(np.abs(P1 - P2)) > 0.2
     np.testing.assert_almost_equal(P2, ans)
 
 
@@ -184,19 +185,19 @@ def test_fetch_PDB():
 
     assert np.all(U1.atoms.positions == U2.atoms.positions)
 
-def test_fetch_AF():
 
+def test_fetch_AF():
     U = chilife.fetch('AF-O34208')
     ans = np.array([[-38.834, -52.705, 45.698],
-                    [-38.5,   -54.236, 47.741],
+                    [-38.5, -54.236, 47.741],
                     [-38.903, -51.597, 46.216],
                     [-38.123, -55.685, 48.115],
-                    [-38.65,  -56.141, 49.474],
-                    [-38.411, -57.378, 49.85 ],
-                    [-39.277, -55.422, 50.23 ],
+                    [-38.65, -56.141, 49.474],
+                    [-38.411, -57.378, 49.85],
+                    [-39.277, -55.422, 50.23],
                     [-39.532, -53.088, 44.618],
                     [-40.791, -52.617, 43.986],
-                    [-42.008, -52.46,  44.944]])
+                    [-42.008, -52.46, 44.944]])
     np.testing.assert_allclose(U.atoms.positions[100:110], ans)
 
 
@@ -248,7 +249,6 @@ def test_create_library():
         permanent=True
     )
 
-
     SL = chilife.SpinLabel('___', 238, protein)
     np.testing.assert_allclose(SL.spin_centers, np.array([[-24.44447989, 15.0841676, 14.75408798]]))
 
@@ -270,9 +270,9 @@ def test_single_chain_error():
                                 pdb='test_data/chain_broken_dlabel.pdb',
                                 sites=(15, 17),
                                 dihedral_atoms=[[['N', 'CA', 'C13', 'C5'],
-                                              ['CA', 'C13', 'C5', 'C6']],
-                                             [['N', 'CA', 'C13', 'C5'],
-                                              ['CA', 'C13', 'C5', 'C6']]],
+                                                 ['CA', 'C13', 'C5', 'C6']],
+                                                [['N', 'CA', 'C13', 'C5'],
+                                                 ['CA', 'C13', 'C5', 'C6']]],
                                 spin_atoms='Cu1')
 
 
@@ -410,6 +410,7 @@ def test_add_library_fail():
                                weights=weights, permanent=True)
     os.remove('R1M_rotlib.npz')
 
+
 def test_add_rotlib_dir():
     chilife.add_rotlib_dir('test_data/usr_rtlb')
     SL = chilife.SpinLabel('XYZ', 211, protein)
@@ -421,6 +422,7 @@ def test_add_rotlib_dir():
 def test_list_rotlibs():
     chilife.list_available_rotlibs()
 
+
 def test_create_library_diff():
     spin_atoms = ['N1', 'O1']
     dihedral_atoms = [['N', 'CA', 'CB', 'SG'],
@@ -428,5 +430,19 @@ def test_create_library_diff():
                       ['CB', 'SG', 'CD', 'C3'],
                       ['SG', 'CD', 'C3', 'C4']]
 
-    chilife.create_library('R3A', 'test_data/R3A_Ensemble.pdb', site=2, dihedral_atoms=dihedral_atoms, spin_atoms=spin_atoms)
+    chilife.create_library('R3A', 'test_data/R3A_Ensemble.pdb', site=2, dihedral_atoms=dihedral_atoms,
+                           spin_atoms=spin_atoms)
     os.remove('R3A_rotlib.npz')
+
+
+def test_chilife_mplstyle():
+    mlp_stylelib_path = Path(mpl.get_configdir()) / 'stylelib'
+
+    style_files = list(Path("../mplstyles/").glob("*.mplstyle"))
+    assert len(style_files) > 0
+    for style_file in style_files:
+        test_file = mlp_stylelib_path / style_file.name
+        print(test_file)
+        assert test_file.exists()
+
+    plt.style.use('chiLife')

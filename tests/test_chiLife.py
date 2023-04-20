@@ -429,3 +429,4 @@ def test_create_library_diff():
                       ['SG', 'CD', 'C3', 'C4']]
 
     chilife.create_library('R3A', 'test_data/R3A_Ensemble.pdb', site=2, dihedral_atoms=dihedral_atoms, spin_atoms=spin_atoms)
+    os.remove('R3A_rotlib.npz')

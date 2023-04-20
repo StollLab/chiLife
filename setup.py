@@ -7,7 +7,7 @@ with open('README.md', 'r') as f:
 
 setup(
     name='chilife',
-    version='0.1.4',
+    version='0.1.5',
     python_requires='>=3.8',
     packages=['chilife'],
     package_data={'chilife': ['data/*', 'data/*/*', 'data/*/*/*']},

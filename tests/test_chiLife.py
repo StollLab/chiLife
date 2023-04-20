@@ -4,6 +4,8 @@ import pytest
 import MDAnalysis as mda
 import chilife
 import matplotlib.pyplot as plt
+import matplotlib as mpl
+from pathlib import Path
 
 labels = ["R1M", "R7M", "V1M", "M1M", "I1M"]
 atom_names = ["C", "H", "N", "O", "S", "SE", "Br"]
@@ -435,3 +437,10 @@ def test_create_library_diff():
 
 def test_chilife_mplstyle():
     plt.style.use('chiLife')
+
+    mlp_stylelib_path = Path(mpl.get_data_path(), 'stylelib')
+    style_files = Path("mplstyles/").glob("*.mplstyle")
+    for style_file in style_files:
+        test_file = mlp_stylelib_path / style_file.name
+        assert test_file.exists()
+

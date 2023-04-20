@@ -40,7 +40,8 @@ setup(
 )
 
 import matplotlib as mpl
-mlp_stylelib_path = Path(mpl.get_configdir(), 'stylelib')
+mpl_stylelib_path = Path(mpl.get_configdir()) / 'stylelib'
+mpl_stylelib_path.mkdir(parents=True, exist_ok=True)
 style_files = Path("mplstyles/").glob("*.mplstyle")
 for style_file in style_files:
-    shutil.copy(style_file, mlp_stylelib_path)
+    shutil.copy(style_file, mpl_stylelib_path)

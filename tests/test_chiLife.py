@@ -436,11 +436,13 @@ def test_create_library_diff():
 
 
 def test_chilife_mplstyle():
-    plt.style.use('chiLife')
+    mlp_stylelib_path = Path(mpl.get_configdir()) / 'stylelib'
 
-    mlp_stylelib_path = Path(mpl.get_configdir(), 'stylelib')
-    style_files = Path("mplstyles/").glob("*.mplstyle")
+    style_files = list(Path("../mplstyles/").glob("*.mplstyle"))
+    assert len(style_files) > 0
     for style_file in style_files:
         test_file = mlp_stylelib_path / style_file.name
+        print(test_file)
         assert test_file.exists()
 
+    plt.style.use('chiLife')

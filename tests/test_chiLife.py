@@ -438,7 +438,7 @@ def test_create_library_diff():
 def test_chilife_mplstyle():
     plt.style.use('chiLife')
 
-    mlp_stylelib_path = Path(mpl.get_data_path(), 'stylelib')
+    mlp_stylelib_path = Path(mpl.get_configdir(), 'stylelib')
     style_files = Path("mplstyles/").glob("*.mplstyle")
     for style_file in style_files:
         test_file = mlp_stylelib_path / style_file.name

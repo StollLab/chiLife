@@ -511,7 +511,7 @@ eps_charmm = {
     "N": -0.200,
     "O": -0.120,
     "S": -0.450,
-    "SE": -0.450,
+    "Se": -0.450,
     "Br": -0.320,
     "Cu": -0.1505,
      'B': -0.0380,
@@ -535,7 +535,7 @@ rmin_uff = {
     "N": 3.660,
     "O": 3.500,
     "S": 4.035,
-    "SE": 4.035,  # Default Selenium to Sulfur
+    "Se": 4.035,  # Default Selenium to Sulfur
     "Br": 4.189,
     "join_protocol": join_geom,
 }
@@ -550,6 +550,11 @@ eps_uff = {
     "Br": -0.251,
     "join_protocol": join_geom,
 }
+
+for dictionary in rmin_charmm, eps_charmm, rmin_uff, eps_uff:
+    tdict = {**{key.upper(): val for key, val in dictionary.items()},
+             **{key.lower(): val for key, val in dictionary.items()}}
+    dictionary.update(tdict)
 
 lj_params = {"uff": [rmin_uff, eps_uff], "charmm": [rmin_charmm, eps_charmm]}
 

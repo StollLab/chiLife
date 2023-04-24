@@ -53,3 +53,8 @@ def test_prep_internal_clash():
 
 def test_molar_gas_constant():
     np.testing.assert_almost_equal(chilife.scoring.GAS_CONST, 1.987204258640832e-3, decimal=10)
+
+
+def test_get_lj_case_sensitivity():
+    x = chilife.get_lj_rmin(['CA', 'Ca', 'ca'])
+    assert np.all(x == 1.367)

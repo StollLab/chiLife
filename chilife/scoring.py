@@ -487,7 +487,7 @@ rmin_charmm = {
      "N": 1.8500,
      "O": 1.7000,
      "S": 2.0000,
-    "SE": 2.0000,  # Default Selenium to Sulfur
+    "Se": 2.0000,  # Default Selenium to Sulfur
     "Br": 1.9800,
     "Cu": 0.7251,  # ion 2+
      'B': 2.5500,
@@ -511,7 +511,7 @@ eps_charmm = {
     "N": -0.200,
     "O": -0.120,
     "S": -0.450,
-    "SE": -0.450,
+    "Se": -0.450,
     "Br": -0.320,
     "Cu": -0.1505,
      'B': -0.0380,
@@ -535,8 +535,20 @@ rmin_uff = {
     "N": 3.660,
     "O": 3.500,
     "S": 4.035,
-    "SE": 4.035,  # Default Selenium to Sulfur
+    "Se": 4.035,  # Default Selenium to Sulfur
     "Br": 4.189,
+    "Na": 2.983,
+    "Mg": 3.021,
+    "P" : 4.147,
+    "Cl": 3.947,
+    "K" : 3.812,
+    "Ca": 3.399,
+    "Mn": 2.961,
+    "Fe": 2.912,
+    "Co": 2.872,
+    "Ni": 2.834,
+    "Cu": 3.495,
+    "Gd": 3.368,
     "join_protocol": join_geom,
 }
 
@@ -546,10 +558,27 @@ eps_uff = {
     "N": -0.069,
     "O": -0.060,
     "S": -0.274,
-    "SE": -0.274,  # Default Selenium to Sulfur
+    "Se": -0.274,  # Default Selenium to Sulfur
     "Br": -0.251,
+    "Na": -0.030,
+    "Mg": -0.111,
+    "P" : -0.305,
+    "Cl": -0.227,
+    "K" : -0.035,
+    "Ca": -0.238,
+    "Mn": -0.013,
+    "Fe": -0.013,
+    "Co": -0.014,
+    "Ni": -0.015,
+    "Cu": -0.005,
+    "Gd": -0.009,
     "join_protocol": join_geom,
 }
+
+for dictionary in rmin_charmm, eps_charmm, rmin_uff, eps_uff:
+    tdict = {**{key.upper(): val for key, val in dictionary.items()},
+             **{key.lower(): val for key, val in dictionary.items()}}
+    dictionary.update(tdict)
 
 lj_params = {"uff": [rmin_uff, eps_uff], "charmm": [rmin_charmm, eps_charmm]}
 

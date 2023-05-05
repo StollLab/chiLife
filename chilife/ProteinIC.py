@@ -3,7 +3,7 @@ import logging
 from dataclasses import dataclass
 from typing import List, Union, Dict, Tuple
 
-from memoization import cached
+from memoization import cached, suppress_warnings
 import MDAnalysis
 import networkx as nx
 import numpy as np
@@ -344,7 +344,7 @@ class ProteinIC:
                 zmc[idxs, 2] -= delta
 
         return self
-
+    suppress_warnings()
     @cached(custom_key_maker=lambda a, b, c, d: hash((id(a), b, "".join(c), d)))
     def get_zmat_idxs(self, resi, atoms, chain):
         stem, stemr = tuple(atoms[2::-1]), tuple(atoms[1:])

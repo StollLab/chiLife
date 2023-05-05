@@ -9,7 +9,7 @@ import zipfile
 
 import numpy as np
 from scipy.stats import gaussian_kde
-from memoization import cached
+from memoization import cached, suppress_warnings
 import MDAnalysis as mda
 
 import chilife
@@ -62,7 +62,7 @@ def hash_file(file: Union[Path, BinaryIO]):
     return hash.hexdigest()
 
 
-#
+suppress_warnings()
 @cached(custom_key_maker=hash_file)
 def read_rotlib(rotlib: Union[Path, BinaryIO] = None) -> Dict:
     """Reads RotamerEnsemble for stored spin labels.

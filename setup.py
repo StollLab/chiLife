@@ -7,7 +7,7 @@ with open('README.md', 'r') as f:
 
 setup(
     name='chilife',
-    version='0.1.6',
+    version='0.1.7',
     python_requires='>=3.8',
     packages=['chilife'],
     package_data={'chilife': ['data/*', 'data/*/*', 'data/*/*/*']},
@@ -18,7 +18,7 @@ setup(
     install_requires=['numpy>=1.23.0',
                       'scipy>=1.6.3',
                       'matplotlib>=3.3.4',
-                      'numba>=0.56.2',
+                      'numba>=0.57.0',
                       'mdanalysis>=2.0.0',
                       'tqdm>=4.45.0',
                       'pytest>=6.2.2',

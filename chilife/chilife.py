@@ -1182,7 +1182,7 @@ def remove_rotlib_dir(directory: Union[Path, str]) -> None:
             f.write(str(p))
             f.write('\n')
 
-def rotlib_info(rotlib: str):
+def rotlib_info(rotlib: str = None):
     """
         Display detailed information about the rotamer library.
     Parameters

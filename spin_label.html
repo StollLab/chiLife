@@ -45,7 +45,17 @@
               <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="chilife.html">χLife</a></li>
 <li class="toctree-l1"><a class="reference internal" href="rotamer_ensemble.html">RotamerEnsemble</a></li>
-<li class="toctree-l1 current"><a class="current reference internal" href="#">SpinLabel</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">SpinLabel</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#chilife.SpinLabel"><code class="docutils literal notranslate"><span class="pre">SpinLabel</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#chilife.SpinLabel.from_mmm"><code class="docutils literal notranslate"><span class="pre">SpinLabel.from_mmm()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#chilife.SpinLabel.from_wizard"><code class="docutils literal notranslate"><span class="pre">SpinLabel.from_wizard()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#chilife.SpinLabel.spin_centers"><code class="docutils literal notranslate"><span class="pre">SpinLabel.spin_centers</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#chilife.SpinLabel.spin_centroid"><code class="docutils literal notranslate"><span class="pre">SpinLabel.spin_centroid</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#chilife.SpinLabel.spin_coords"><code class="docutils literal notranslate"><span class="pre">SpinLabel.spin_coords</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
 <li class="toctree-l1"><a class="reference internal" href="protein.html">Protein</a></li>
 <li class="toctree-l1"><a class="reference internal" href="utils.html">Utils</a></li>
 <li class="toctree-l1"><a class="reference internal" href="examples.html">Examples</a></li>
@@ -82,6 +92,58 @@ and therefore has all the properties and methods offered by the <a class="refere
 object. Additionally SpinLabels have several other features unique to spin labels and useful
 for protein and spin label modeling.</p>
 <p>SpinLabels</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="chilife.SpinLabel">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">chilife.</span></span><span class="sig-name descname"><span class="pre">SpinLabel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">label</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">site</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">protein</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">chain</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rotlib</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#chilife.SpinLabel" title="Permalink to this definition"></a></dt>
+<dd><p>A RotamerEnsemble made from a side chain with one or more unpaired electrons.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>label</strong> – str
+Name of desired spin label, e.g. R1A.</p></li>
+<li><p><strong>site</strong> – int
+Protein residue number to attach spin label to.</p></li>
+<li><p><strong>chain</strong> – str
+Protein chain identifier to attach spin label to.</p></li>
+<li><p><strong>protein</strong> – MDAnalysis.Universe, MDAnalysis.AtomGroup
+Object containing all protein information (coords, atom types, etc.)</p></li>
+<li><p><strong>protein_tree</strong> – cKDtree
+k-dimensional tree object associated with the protein coordinates.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="chilife.SpinLabel.from_mmm">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">from_mmm</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">label</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">site</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">protein</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">chain</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#chilife.SpinLabel.from_mmm" title="Permalink to this definition"></a></dt>
+<dd><p>Create a SpinLabel object using the default MMM protocol with any modifications passed via kwargs</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="chilife.SpinLabel.from_wizard">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">from_wizard</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">label</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">site</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">protein</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">chain</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">to_find</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">200</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">to_try</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">vdw</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2.5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">clashes</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">5</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#chilife.SpinLabel.from_wizard" title="Permalink to this definition"></a></dt>
+<dd><p>Create a SpinLabel object using the default MTSSLWizard protocol with any modifications passed via kwargs</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="chilife.SpinLabel.spin_centers">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">spin_centers</span></span><a class="headerlink" href="#chilife.SpinLabel.spin_centers" title="Permalink to this definition"></a></dt>
+<dd><p>get the spin center of the rotamers in the ensemble</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="chilife.SpinLabel.spin_centroid">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">spin_centroid</span></span><a class="headerlink" href="#chilife.SpinLabel.spin_centroid" title="Permalink to this definition"></a></dt>
+<dd><p>Average location of all the label’s <cite>spin_coords</cite> weighted based off of the rotamer weights</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="chilife.SpinLabel.spin_coords">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">spin_coords</span></span><a class="headerlink" href="#chilife.SpinLabel.spin_coords" title="Permalink to this definition"></a></dt>
+<dd><p>get the spin coordinates of the rotamer ensemble</p>
+</dd></dl>
+
+</dd></dl>
+
 </section>
 
 

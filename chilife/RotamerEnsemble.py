@@ -900,34 +900,12 @@ class RotamerEnsemble:
 
         # If the rotlib isn't a dict try to figure out where it is
         if not isinstance(rotlib, dict):
-            # Assemble a list of possible rotlib paths
-            possible_rotlibs = [Path(rotlib),
-                                cwd / rotlib,
-                                cwd / (rotlib + '.npz'),
-                                cwd / (rotlib + '_rotlib.npz')]
-            possible_rotlibs += list(Path.cwd().glob(f'{rotlib}*.npz'))
+            trotlib = chilife.get_possible_rotlibs(rotlib, suffix='rotlib', extension='.npz', was_none=was_none)
+            if trotlib:
+                rotlib = trotlib
+            elif rotlib not in chilife.SUPPORTED_RESIDUES:
+                raise NameError(f'There is no rotamer library called {rotlib} in this directory or in chilife')
 
-            for pth in chilife.USER_RL_DIR:
-                possible_rotlibs += list(pth.glob(f'{rotlib}*.npz'))
-
-            # Check if any exist
-            for possible_file in possible_rotlibs:
-                if possible_file.exists() and possible_file.suffix == '.npz':
-                    rotlib = possible_file
-                    break
-            #  If non exist
-            else:
-                # if rotlib wasnt specified look for default  in chilife/permanent libraries
-                if rotlib in chilife.USER_LIBRARIES and was_none:
-                    rotlib = chilife.RL_DIR / 'user_rotlibs' / (chilife.rotlib_defaults[self.res][0] + '_rotlib.npz')
-                # If rotlib was specified look for a rotlib with that name
-                elif rotlib in chilife.USER_LIBRARIES:
-                    rotlib = chilife.RL_DIR / 'user_rotlibs' / (rotlib + '_rotlib.npz')
-                # If rotlib is not in USER_LIBRARIES or SUPPOERTED LABELS throw and error.
-                elif rotlib not in chilife.SUPPORTED_RESIDUES:
-                    raise NameError(f'There is no rotamer library called {rotlib} in this directory or in chilife')
-
-            # Read the library
             lib = chilife.read_library(rotlib, Phi, Psi)
 
         # If rotlib is a dict, assume that dict is in the format that read_library`would return

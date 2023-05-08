@@ -1,6 +1,5 @@
 import networkx as nx
 from copy import deepcopy
-from typing import Union
 from itertools import combinations
 import logging
 import warnings
@@ -144,11 +143,14 @@ class dRotamerEnsemble:
             rotlib += f'ip{self.increment}'
 
         # Check if any exist
-        rotlib_path = get_possible_rotlibs(rotlib)
+        rotlib_path = chilife.get_possible_rotlibs(rotlib, suffix='drotlib', extension='.zip')
 
         if rotlib_path is None:
             # Check if libraries exist but for different i+n
-            rotlib_path = get_possible_rotlibs(rotlib.replace(f'ip{self.increment}', ''), all=True)
+            rotlib_path = chilife.get_possible_rotlibs(rotlib.replace(f'ip{self.increment}', ''),
+                                                       suffix='drotlib',
+                                                       extension='.zip',
+                                                       return_all=True)
 
             if rotlib_path is None:
                 raise NameError(f'There is no rotamer library called {rotlib} in this directory or in chilife')
@@ -525,40 +527,3 @@ class dRotamerEnsemble:
                 new_copy.__dict__[item] = deepcopy(self.__dict__[item])
         return new_copy
 
-def get_possible_rotlibs(rotlib: str, all: bool = False) -> Union[Path, None]:
-    """
-
-    """
-    cwd = Path.cwd()
-
-    # Assemble a list of possible rotlib paths starting in the current directory
-    possible_rotlibs = [Path(rotlib),
-                        cwd / rotlib,
-                        cwd / (rotlib + '.zip'),
-                        cwd / (rotlib + '_drotlib.zip')]
-
-    possible_rotlibs += list(cwd.glob(f'{rotlib}*_drotlib.zip'))
-    # Then in the user defined rotamer library directory
-    for pth in chilife.USER_RL_DIR:
-        possible_rotlibs += list(pth.glob(f'{rotlib}*_drotlib.zip'))
-
-    # Then in the chilife directory
-    possible_rotlibs += list((chilife.RL_DIR / 'user_rotlibs').glob(f'*{rotlib}*'))
-
-    if all:
-        rotlib = []
-    for possible_file in possible_rotlibs:
-        if possible_file.exists() and all:
-                rotlib.append(possible_file)
-        elif possible_file.exists():
-            rotlib = possible_file
-            break
-    else:
-        if not isinstance(rotlib, list) or rotlib == []:
-            rotlib = None
-
-    # rotlib lists need to be sorted to prevent position mismatches for results with tests.
-    if isinstance(rotlib, list):
-        rotlib = sorted(rotlib)
-
-    return rotlib

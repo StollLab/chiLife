@@ -1229,7 +1229,6 @@ def remove_rotlib_dir(directory: Union[Path, str]) -> None:
             f.write('\n')
 
 
-<<<<<<< HEAD
 def get_possible_rotlibs(rotlib: str,
                          suffix: str,
                          extension: str,

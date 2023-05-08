@@ -54,13 +54,12 @@ def distance_distribution(
         uq: bool = False,
 ) -> np.ndarray:
     """Calculates total distribution of spin-spin distances among an arbitrary number of spin labels, using the
-    distance range ``r`` (in angstrom).
-
-    The distance distribution is obtained by summing over all pair distance distributions. These in turn are calculated
-    by summing over rotamer pairs with the appropriate weights. For each rotamer pair, the distance distribution is
-    either just the distance between the ``spin_center`` coordinates of two labels (if ``spin_populations=False``) or
-    the weighted sum over all pairs of spn-bearing atoms (``spin_populations=True``). The resulting distance histogram
-    is convolved with a normal distribution with a standard deviation ``sigma``.
+    distance range ``r`` (in angstrom). The distance distribution is obtained by summing over all pair distance
+    distributions. These in turn are calculated by summing over rotamer pairs with the appropriate weights. For each
+    rotamer pair, the distance distribution is either just the distance between the ``spin_center`` coordinates of two
+    labels (if ``spin_populations=False``) or the weighted sum over all pairs of spn-bearing atoms
+    (``spin_populations=True``). The resulting distance histogram is convolved with a normal distribution with a
+    standard deviation ``sigma`` .
 
     Parameters
     ----------
@@ -153,6 +152,7 @@ def pair_dd(*args, r: ArrayLike, sigma: float = 1.0, use_spin_centers: bool = Tr
         the distributed spin density on spin-bearing atoms on the labels.
     dependent: bool
         Consider the (clash) effects of spin label rotamers on each other.
+
     Returns
     -------
     P : np.ndarray
@@ -363,7 +363,7 @@ def repack(
     with tqdm(total=repetitions) as pbar:
         while count < repetitions:
 
-            # Randomly select a residue from the repack residues
+            # Randomly select a residue from the repacked residues
             SiteLibrary = repack_residue_libraries[
                 np.random.choice(len(repack_residue_libraries), p=sample_freq)
             ]
@@ -461,7 +461,7 @@ def create_library(
     resname : str
         3-letter residue code.
     dihedral_atoms : list
-        List of rotatable dihedrals. List should contain sub-lists of 4 atom names. Atom names must be the same as
+        a list of rotatable dihedrals. List should contain sub-lists of 4 atom names. Atom names must be the same as
         defined in the pdb file eg:
         
         .. code-block:: python
@@ -488,7 +488,7 @@ def create_library(
         If set to True and permanent is also set to true this library will overwrite any existing library with the same
         name.
     spin_atoms : list
-        List of atom names on which the spin density is localized.
+        A list of atom names on which the spin density is localized.
     Returns
     -------
     None
@@ -508,7 +508,7 @@ def create_library(
         for _ in struct.trajectory
     ]
 
-    # set resnum to 1 and remove chain operators so all rotamers are in the ic coordinate frame
+    # set residue number to 1 and remove chain operators so all rotamers are in the ic coordinate frame
     for ic in internal_coords:
         ic.shift_resnum(-(site - 1))
         ic.chain_operators = None
@@ -561,24 +561,31 @@ def create_dlibrary(
     ----------
     libname: str,
         Name for the user defined label.
-    increment : int
-        The number of residues the second site away from the first site.
     pdb : str
         Name of (and path to) pdb file containing the user defined spin label structure. This pdb file should contain
         only the desired spin label and no additional residues.
-    site : int
-        The residue number of the first side chain in the pdb file you would like to add.
-    resname : str
-        Residue type 3-letter code.
-    dihedral_atoms : list
-        list of rotatable dihedrals. List should contain lists of 4 atom names. Atom names must be the same as defined
-        in the pdb file eg:
-        
-        .. code-block:: python
-        
+    sites : Tuple[int]
+        The residue numbers that the bifunctional label is attached to.
+    dihedral_atoms: List[List[List[str]]]
+        A list defining the mobile dihedral atoms of both halves of the bifunctional label. There should be  two
+        entries, one for each site that the bifunctional label attaches to. Each entry should contain a sublist of
+        dihedral definitions. Dihedral definitions are a list of four strings that are the names of the four atoms
+        defining the dihedral angle.
+
+            .. code-block:: python
+
+            [
+            # Side chain 1
+            [['CA', 'CB', 'SG', 'SD'],
+            ['CB', 'SG', 'SD', 'CE']...],
+
+            # Side chain 2
             [['CA', 'CB', 'SG', 'SD'],
             ['CB', 'SG', 'SD', 'CE']...]
+            ]
 
+    resname : str
+        Residue type 3-letter code.
     dihedrals : ArrayLike, optional
         Array of dihedral angles. If provided the new label object will be stored as a rotamer library with the
         dihedrals provided.
@@ -587,6 +594,8 @@ def create_dlibrary(
         permanent: bool
         If set to True the library will be stored in the chilife user_rotlibs directory in addition to the current
         working directory.
+    permanent : bool
+        If set to True, a copy of the rotamer library will be stored in the chiLife rotamer libraries directory
     default : bool
         If set to true and permanent is also set to true then this rotamer library will become the default rotamer
         library for the given resname
@@ -596,9 +605,6 @@ def create_dlibrary(
     spin_atoms : list, dict
         List of atom names on which the spin density is localized, e.g ['N', 'O'], or dictionary with spin atom
         names (key 'spin_atoms') and spin atom weights (key 'spin_weights').
-    Returns
-    -------
-    None
     """
 
     site1, site2 = sites
@@ -810,6 +816,8 @@ def prep_restype_savedict(
         Array of sigma values for each dihedral of each rotamer.
     resi: int
         The residue number to be stored.
+    spin_atoms: List[str]
+        A list of atom names corresponding to the atoms where the spin density resides.
     Returns
     -------
     save_dict : dict
@@ -844,9 +852,9 @@ def prep_restype_savedict(
         print(internal_coords[0].get_dihedral(5, ['NE2', 'Cu1', 'O3', 'C11']))
         print(internal_coords[4].coords)
 
-        raise (ValueError(
+        raise ValueError(
             f'Coords of rotamer {" ".join((str(idx) for idx in idxs))} at atoms {" ".join((str(idx) for idx in adxs))} '
-            f'cannot be converted to internal coords'))
+            f'cannot be converted to internal coords')
 
     save_dict = {'rotlib': libname,
                  'resname': resname,
@@ -886,7 +894,7 @@ def add_library(filename: Union[str, Path], libname: str = None, default: bool =
     filename : str, Path
         Name or Path object oof the rotamer library npz file.
     libname : str
-        Uniqe name of the rotamer library
+        Unique name of the rotamer library
     default : bool
         If True, chilife will make this the default rotamer library for this residue type.
     force : bool
@@ -1043,7 +1051,7 @@ def remove_from_toml(file: Union[str, Path], entry: str):
     return True
 
 
-def add_to_defaults(resname: str, rotlibname: str, default: bool = False):
+def add_to_defaults(resname: str, rotlib_name: str, default: bool = False):
     """
     Helper function to add a rotamer library to the defaults stack.
 
@@ -1051,7 +1059,7 @@ def add_to_defaults(resname: str, rotlibname: str, default: bool = False):
     ----------
     resname : str
         3 letter code name of the residue.
-    rotlibname : str
+    rotlib_name : str
         Name of the rotamer library.
     default : bool
         If True the rotamer library will be added to the top of the defaults stacking making it the new default
@@ -1070,20 +1078,20 @@ def add_to_defaults(resname: str, rotlibname: str, default: bool = False):
 
     pos = 0 if default else len(local[resname])
 
-    if rotlibname not in chilife.rotlib_defaults[resname]:
-        chilife.rotlib_defaults[resname].insert(pos, rotlibname)
-    if rotlibname not in local[resname]:
-        local[resname].insert(pos, rotlibname)
+    if rotlib_name not in chilife.rotlib_defaults[resname]:
+        chilife.rotlib_defaults[resname].insert(pos, rotlib_name)
+    if rotlib_name not in local[resname]:
+        local[resname].insert(pos, rotlib_name)
 
     safe_save(file, local, backup)
 
 
-def remove_from_defaults(rotlibname: str):
+def remove_from_defaults(rotlib_name: str):
     """
     Helper function to remove a rotamer library from the defaults stack.
     Parameters
     ----------
-    rotlibname : str
+    rotlib_name : str
         Name of the rotamer library to be removed.
     """
     file = RL_DIR / 'defaults.toml'
@@ -1091,11 +1099,11 @@ def remove_from_defaults(rotlibname: str):
         local = rtoml.load(f)
         backup = deepcopy(local)
 
-    keys = [key for key, val in local.items() if rotlibname in val]
+    keys = [key for key, val in local.items() if rotlib_name in val]
 
     for key in keys:
-        chilife.rotlib_defaults[key].remove(rotlibname)
-        local[key].remove(rotlibname)
+        chilife.rotlib_defaults[key].remove(rotlib_name)
+        local[key].remove(rotlib_name)
         if local[key] == []:
             del local[key]
 
@@ -1267,7 +1275,7 @@ def get_possible_rotlibs(rotlib: str,
     return rotlib
 
 
-def rotlib_info(rotlib: str = None):
+def rotlib_info(rotlib: str):
     """
         Display detailed information about the rotamer library.
     Parameters

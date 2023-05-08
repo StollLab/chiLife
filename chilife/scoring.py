@@ -8,7 +8,7 @@ import chilife
 
 
 def clash_only(func):
-    """decorator to convert a Lennard-Jones style clash evaluation function into a chiLife compatible energy func.
+    """Decorator to convert a Lennard-Jones style clash evaluation function into a chiLife compatible energy func.
 
     Parameters
     ----------
@@ -18,28 +18,26 @@ def clash_only(func):
 
     Returns
     -------
-    energy_func: callable
+    energy_func : callable
         The original input function now wrapped to accept a protein object and, optionally, a RotamerEnsemble/SpinLabel
-         object.
+        object.
     """
 
     @wraps(func)
     def energy_func(system, **kwargs):
         """
-
         Parameters
         ----------
         system : MDAnalysis.Universe, MDAnalysis.AtomGroup, RotamerEnsemble, Protein
             Molecular system for which you wish to calculate the energy of
 
-        **kwargs :
-            
+        **kwargs : dict
+            Additional arguments to pass to the wrapped function
 
         Returns
         -------
         E : numpy.ndarray
             Array of energy values (kcal/mol) for each rotamer in an ensemble or for the whole system.
-
         """
         internal = kwargs.pop("internal", False)
         rmax = kwargs.get("rmax", 10)

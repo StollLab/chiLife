@@ -4,8 +4,8 @@ directed spin labels (SDSLs), and using those ensembles to predict experimental 
 simple, flexible and interoperable python interface to protein side chain ensemble modeling, allowing for rapid 
 development of custom analysis and modeling pipelines. Simplicity is facilitated by the use of `RotamerEnsemble` and 
 `SpinLabel` objects with standard interfaces for all supported side chain types, side chain modeling methods and 
-protein modeling methods. Flexibility is achieved by allowing users to create and use custom `RotamerEnsemble`s and 
-`SpinLabel`s as well as custom side chain modeling methods. Interoperability sought by interactions with other 
+protein modeling methods. Flexibility is achieved by allowing users to create and use custom `RotamerEnsemble` and 
+`SpinLabel` objects as well as custom side chain modeling methods. Interoperability sought by interactions with other 
 Python-based molecular modeling packages. This enables the use of experimental data, like double electron-electron 
 resonance (DEER), in other standalone protein modeling applications that allow user defined restraints, such as 
 pyrosetta and NIH-Xplor.
@@ -26,11 +26,11 @@ pip install -e .   # Install as editable and update using `git pull origin main`
 ***
 ## chiLife Module
 The primary feature of chiLife is the `SpinLabel` object, which inherits from the more abstract `RotamerEnsemble` 
-object. While this README primarily will refer to `SpinLabel`s, be aware that most properties and functions discussed 
-are also functional on `RotamerLibrary` objects as well. `SpinLabel`s can be created and "attached" to protein models 
-easily and quickly, allowing for on the fly simulation of distance distributions while modeling, or scriptable 
-analysis. Notably, attaching a `SpinLabel` to a protein does not alter the protein in any way, allowing the protein 
-model to retain the native amino acid.
+object. While most people will primarily use `SpinLabel` objects, be aware that most properties and functions 
+discussed are also functional on `RotamerLibrary` objects as well. `SpinLabel` objects can be created and "attached" to 
+protein models easily and quickly, allowing for on the fly simulation of distance distributions while modeling, or 
+scriptable analysis. Notably, attaching a `SpinLabel` to a protein does not alter the protein in any way, allowing the 
+protein model to retain the native amino acid.
 
 ### Simple rotamer-library based SpinLabel modeling
 

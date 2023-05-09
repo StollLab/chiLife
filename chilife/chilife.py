@@ -445,7 +445,10 @@ def create_library(
         permanent: bool = False,
         default: bool = False,
         force: bool = False,
-        spin_atoms: List[str] = None
+        spin_atoms: List[str] = None,
+        description: str = None,
+        comment: str = None,
+        reference: str = None
 ) -> None:
     """Add a user defined SpinLabel from a pdb file.
 
@@ -533,7 +536,9 @@ def create_library(
 
     save_dict = prep_restype_savedict(libname, resname, internal_coords,
                                       weights, dihedrals, dihedral_atoms,
-                                      sigmas=sigmas, spin_atoms=spin_atoms)
+                                      sigmas=sigmas, spin_atoms=spin_atoms,
+                                      description=description, comment=comment,
+                                      reference=reference)
 
     # Save rotamer library
     np.savez(Path().cwd() / f'{libname}_rotlib.npz', **save_dict, allow_pickle=True)
@@ -554,6 +559,9 @@ def create_dlibrary(
         default: bool = False,
         force: bool = False,
         spin_atoms: List[str] = None,
+        description: str = None,
+        comment: str = None,
+        reference: str = None
 ) -> None:
     """Add a user defined dSpinLabel from a pdb file.
 
@@ -693,7 +701,8 @@ def create_dlibrary(
     libname = libname + f'ip{increment}'
     save_dict_1 = prep_restype_savedict(libname + 'A', resname, IC1,
                                         weights, dihedrals[0], dihedral_atoms[0],
-                                        spin_atoms=spin_atoms)
+                                        spin_atoms=spin_atoms, description=description,
+                                        comment=comment, reference=reference)
     save_dict_2 = prep_restype_savedict(libname + 'B', resname, IC2,
                                         weights, dihedrals[1], dihedral_atoms[1],
                                         resi=1 + increment,
@@ -793,7 +802,10 @@ def prep_restype_savedict(
         dihedral_atoms: ArrayLike,
         sigmas: ArrayLike = None,
         resi: int = 1,
-        spin_atoms: List[str] = None
+        spin_atoms: List[str] = None,
+        description=None,
+        comment=None,
+        reference=None
 ) -> Dict:
     """Helper function to add new residue types to chilife
 
@@ -864,7 +876,10 @@ def prep_restype_savedict(
                  'atom_types': atom_types,
                  'atom_names': atom_names,
                  'dihedrals': dihedrals,
-                 'dihedral_atoms': dihedral_atoms}
+                 'dihedral_atoms': dihedral_atoms,
+                 'description': description,
+                 'comment': comment,
+                 'reference': reference}
 
     if sigmas is None:
         pass

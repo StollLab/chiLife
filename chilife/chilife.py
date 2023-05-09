@@ -492,9 +492,13 @@ def create_library(
         name.
     spin_atoms : list
         A list of atom names on which the spin density is localized.
-    Returns
-    -------
-    None
+    description : str
+        A short (< 60 characters) description of the side chain library being created
+    comment : str
+        Additional information about the rotamer library that may not fit in description.
+    reference : str
+        Any relevant citations associated with the rotamer library.
+
     """
     resname = libname[:3] if resname is None else resname
     struct, spin_atoms = pre_add_library(pdb, spin_atoms)
@@ -613,6 +617,12 @@ def create_dlibrary(
     spin_atoms : list, dict
         List of atom names on which the spin density is localized, e.g ['N', 'O'], or dictionary with spin atom
         names (key 'spin_atoms') and spin atom weights (key 'spin_weights').
+    description : str
+        A short (< 60 characters) description of the side chain library being created
+    comment : str
+        Additional information about the rotamer library that may not fit in description.
+    reference : str
+        Any relevant citations associated with the rotamer library.
     """
 
     site1, site2 = sites
@@ -803,9 +813,9 @@ def prep_restype_savedict(
         sigmas: ArrayLike = None,
         resi: int = 1,
         spin_atoms: List[str] = None,
-        description=None,
-        comment=None,
-        reference=None
+        description: str = None,
+        comment: str = None,
+        reference: str = None
 ) -> Dict:
     """Helper function to add new residue types to chilife
 
@@ -830,6 +840,12 @@ def prep_restype_savedict(
         The residue number to be stored.
     spin_atoms: List[str]
         A list of atom names corresponding to the atoms where the spin density resides.
+    description : str
+        A short (< 60 characters) description of the side chain library being created
+    comment : str
+        Additional information about the rotamer library that may not fit in description.
+    reference : str
+        Any relevant citations associated with the rotamer library.
     Returns
     -------
     save_dict : dict
@@ -894,7 +910,7 @@ def prep_restype_savedict(
         save_dict.update(spin_atoms)
 
     save_dict['type'] = 'chilife rotamer library'
-    save_dict['format_version'] = 1.0
+    save_dict['format_version'] = 1.1
 
     return save_dict
 

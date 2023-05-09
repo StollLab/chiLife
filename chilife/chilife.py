@@ -498,7 +498,6 @@ def create_library(
         Additional information about the rotamer library that may not fit in description.
     reference : str
         Any relevant citations associated with the rotamer library.
-
     """
     resname = libname[:3] if resname is None else resname
     struct, spin_atoms = pre_add_library(pdb, spin_atoms)

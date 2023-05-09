@@ -445,7 +445,10 @@ def create_library(
         permanent: bool = False,
         default: bool = False,
         force: bool = False,
-        spin_atoms: List[str] = None
+        spin_atoms: List[str] = None,
+        description: str = None,
+        comment: str = None,
+        reference: str = None
 ) -> None:
     """Add a user defined SpinLabel from a pdb file.
 
@@ -489,9 +492,12 @@ def create_library(
         name.
     spin_atoms : list
         A list of atom names on which the spin density is localized.
-    Returns
-    -------
-    None
+    description : str
+        A short (< 60 characters) description of the side chain library being created
+    comment : str
+        Additional information about the rotamer library that may not fit in description.
+    reference : str
+        Any relevant citations associated with the rotamer library.
     """
     resname = libname[:3] if resname is None else resname
     struct, spin_atoms = pre_add_library(pdb, spin_atoms)
@@ -533,7 +539,9 @@ def create_library(
 
     save_dict = prep_restype_savedict(libname, resname, internal_coords,
                                       weights, dihedrals, dihedral_atoms,
-                                      sigmas=sigmas, spin_atoms=spin_atoms)
+                                      sigmas=sigmas, spin_atoms=spin_atoms,
+                                      description=description, comment=comment,
+                                      reference=reference)
 
     # Save rotamer library
     np.savez(Path().cwd() / f'{libname}_rotlib.npz', **save_dict, allow_pickle=True)
@@ -554,6 +562,9 @@ def create_dlibrary(
         default: bool = False,
         force: bool = False,
         spin_atoms: List[str] = None,
+        description: str = None,
+        comment: str = None,
+        reference: str = None
 ) -> None:
     """Add a user defined dSpinLabel from a pdb file.
 
@@ -605,6 +616,12 @@ def create_dlibrary(
     spin_atoms : list, dict
         List of atom names on which the spin density is localized, e.g ['N', 'O'], or dictionary with spin atom
         names (key 'spin_atoms') and spin atom weights (key 'spin_weights').
+    description : str
+        A short (< 60 characters) description of the side chain library being created
+    comment : str
+        Additional information about the rotamer library that may not fit in description.
+    reference : str
+        Any relevant citations associated with the rotamer library.
     """
 
     site1, site2 = sites
@@ -693,7 +710,8 @@ def create_dlibrary(
     libname = libname + f'ip{increment}'
     save_dict_1 = prep_restype_savedict(libname + 'A', resname, IC1,
                                         weights, dihedrals[0], dihedral_atoms[0],
-                                        spin_atoms=spin_atoms)
+                                        spin_atoms=spin_atoms, description=description,
+                                        comment=comment, reference=reference)
     save_dict_2 = prep_restype_savedict(libname + 'B', resname, IC2,
                                         weights, dihedrals[1], dihedral_atoms[1],
                                         resi=1 + increment,
@@ -793,7 +811,10 @@ def prep_restype_savedict(
         dihedral_atoms: ArrayLike,
         sigmas: ArrayLike = None,
         resi: int = 1,
-        spin_atoms: List[str] = None
+        spin_atoms: List[str] = None,
+        description: str = None,
+        comment: str = None,
+        reference: str = None
 ) -> Dict:
     """Helper function to add new residue types to chilife
 
@@ -818,6 +839,12 @@ def prep_restype_savedict(
         The residue number to be stored.
     spin_atoms: List[str]
         A list of atom names corresponding to the atoms where the spin density resides.
+    description : str
+        A short (< 60 characters) description of the side chain library being created
+    comment : str
+        Additional information about the rotamer library that may not fit in description.
+    reference : str
+        Any relevant citations associated with the rotamer library.
     Returns
     -------
     save_dict : dict
@@ -864,7 +891,10 @@ def prep_restype_savedict(
                  'atom_types': atom_types,
                  'atom_names': atom_names,
                  'dihedrals': dihedrals,
-                 'dihedral_atoms': dihedral_atoms}
+                 'dihedral_atoms': dihedral_atoms,
+                 'description': description,
+                 'comment': comment,
+                 'reference': reference}
 
     if sigmas is None:
         pass
@@ -879,7 +909,7 @@ def prep_restype_savedict(
         save_dict.update(spin_atoms)
 
     save_dict['type'] = 'chilife rotamer library'
-    save_dict['format_version'] = 1.0
+    save_dict['format_version'] = 1.1
 
     return save_dict
 

@@ -1,8 +1,8 @@
 # chiLife
-chiLife (or χLife) is a python module for modeling non-canonical amino acid side chain ensembles, primarily site 
+chiLife (or χLife) is a python package for modeling non-canonical amino acid side chain ensembles, primarily site 
 directed spin labels (SDSLs), and using those ensembles to predict experimental results. The goal of chiLife is to provide a 
 simple, flexible and interoperable python interface to protein side chain ensemble modeling, allowing for rapid 
-development of custom analysis and modeling pipelines. Simplicity is facilitated by the use of `RotamerEnsemble` and 
+development of custom analysis and modeling pipelines.  This is facilitated by the use of `RotamerEnsemble` and 
 `SpinLabel` objects with standard interfaces for all supported side chain types, side chain modeling methods and 
 protein modeling methods. Flexibility is achieved by allowing users to create and use custom `RotamerEnsemble` and 
 `SpinLabel` objects as well as custom side chain modeling methods. Interoperability sought by interactions with other 
@@ -197,7 +197,7 @@ forthcoming chiLife rotamer library repository.
 User defined labels can be constructed from a single state pdb file or a multi-state PDB file. If constructed from a 
 single state pdb file a list of dihedral angles and weights can be passed via the `dihedrals` and `weigts` keyword
 arguments. For each set of dihedral angles, chiLife create a rotamer and store the whole library using the specified 
-name. Alternatively using a multi-state PDB file can add some additional information, such as isomeric heterogenity of 
+name. Alternatively using a multi-state PDB file can add some additional information, such as isomeric heterogeneity of 
 the rotamer library, which will be maintained by chiLife.
 
-For more information on how to use chiLife as a python module, see [examples](#examples/)
+For more information on how to use chiLife as a python module, see [examples](https://stolllab.github.io/chiLife/examples.html)

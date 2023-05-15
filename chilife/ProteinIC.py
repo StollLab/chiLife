@@ -458,10 +458,10 @@ class ProteinIC:
 
         Parameters
         ----------
-ond        p : ArrayLike
+        p : ArrayLike
             Three 3D cartesian coordinates defining the site to move the ProteinIC object to.
         method : str
-            Alignment method to use. See :mod:`Alignment Methods <chiLife.superimpositions>` .
+            Alignment method to use. See :doc:`Alignment Methods <alignments>` .
 
         """
         p1, p2, p3 = p

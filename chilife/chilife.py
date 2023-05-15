@@ -585,15 +585,15 @@ def create_dlibrary(
 
             .. code-block:: python
 
-            [
-            # Side chain 1
-            [['CA', 'CB', 'SG', 'SD'],
-            ['CB', 'SG', 'SD', 'CE']...],
+                [
+                # Side chain 1
+                [['CA', 'CB', 'SG', 'SD'],
+                ['CB', 'SG', 'SD', 'CE']...],
 
-            # Side chain 2
-            [['CA', 'CB', 'SG', 'SD'],
-            ['CB', 'SG', 'SD', 'CE']...]
-            ]
+                # Side chain 2
+                [['CA', 'CB', 'SG', 'SD'],
+                ['CB', 'SG', 'SD', 'CE']...]
+                ]
 
     resname : str
         Residue type 3-letter code.
@@ -1307,9 +1307,12 @@ def get_possible_rotlibs(rotlib: str,
 
 def rotlib_info(rotlib: str):
     """
-        Display detailed information about the rotamer library.
+    Display detailed information about the rotamer library.
+
     Parameters
     ----------
     rotlib : str
         Name of the rotamer library to print the information of.
+
     """
+    pass

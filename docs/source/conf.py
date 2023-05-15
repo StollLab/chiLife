@@ -35,7 +35,8 @@ extensions = ['sphinx.ext.autodoc',
               'nbsphinx',
               'nbsphinx_link',
               'IPython.sphinxext.ipython_console_highlighting',
-              'sphinx_gallery.load_style']
+              'sphinx_gallery.load_style',
+              'sphinxcontrib.email']
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
@@ -47,7 +48,8 @@ exclude_patterns = []
 autodoc_member_order = 'groupwise'
 autodoc_type_aliases = {ArrayLike: 'ArrayLike'}
 source_suffix = [".rst", ".md"]
-
+add_module_names = False
+python_use_unqualified_type_names = True
 
 #--Spinx-Galery
 # sphinx_gallery_conf = {

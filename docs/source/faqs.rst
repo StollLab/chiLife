@@ -40,8 +40,9 @@ their locations. This function searches the chilife installation directory, any 
 same places chiLife will look when create new :class:`~chilife.SpinLabel` and :class:`~chilife.RotamerEnsemble` objects
 and their bifunctional analogs.
 
-    NOTE: Additional rotamer libraries can be made by the user, provided by colleagues/collaborators, or found in the
-    curated chiLife_rotlibs_ GitHub repo.
+.. note::
+   Additional rotamer libraries can be made by the user, provided by colleagues/collaborators, or found in the
+   curated chiLife_rotlibs_ GitHub repo.
 
 .. _chiLife_rotlibs: https://github.com/mtessmer/chiLife_rotlibs
 
@@ -55,12 +56,27 @@ and more. Check out :func:`~chilife.chilife.create_library` and :func:`~chilife.
 creating custom :ref:`custom-rotamer-libraries` section.
 
 
+I created my own rotamer library or got one from a collaborator now how do I use it?
+------------------------------------------------------------------------------------
+chiLife searches for rotamer libraries in 3 places. 1) the current working directory, 2) Any number of
+:ref:`user defined folders <direct_rotlib_storage>` , 3) The default chiLife
+rotamer library directory. In most cases you will just need to place the rotamer library in the directory you want to
+use it in and chiLife should find it. If there is some discrepancy between the rotamer library name and the 3 letter
+code used to represent the residue, then you can force the use of a specific rotamer library using the ``rotlib``
+keyword argument:
+
+.. code-block::
+
+    xl.SpinLabel('R1A', 28, protein, rotlib='/path/to/my/specific/R1A_speciail_rotlib.npz')
+
+
 Where can I find rotamer libraries for my spin label?
 -----------------------------------------------------
 If you are looking rotamer libraries that do not ship with chiLife by default you can find several on the curated
 chiLife_rotlibs_ GitHub repo, you can :ref:`make your own <custom-rotamer-libraries>`, get them from a collaborator, or
 reach out to :email:`Maxx Tessmer <mhtessmer@gmail.com>` for additional information.
 
+.. _direct_rotlib_storage:
 
 How do I tell chiLife where I store my personal rotamer libraries?
 -------------------------------------------------------------------
@@ -79,9 +95,10 @@ You can save your ensembles (and proteins) as a pdb file using the :func:`~chili
 using your favorite molecular visualization software (We recommend PyMol). The function :func:`~chilife.io.save`
 accepts any number of protein, :class:`~chilife.RotamerEnsemble`  and :class:`~chilife.dRotamerEnsemble` objects.
 
-    NOTE: If only a :class:`~chilife.SpinLabel` is given to :func:`~chilife.io.save`, chiLife will only save a
-    :class:`~chilife.SpinLabel`. i.e. chilife will not save the protein that the spin label is attached to unless you
-    pass the protein explicitly.
+.. warning::
+   If only a :class:`~chilife.SpinLabel` is given to :func:`~chilife.io.save`, chiLife will only save a
+   :class:`~chilife.SpinLabel`. i.e. chilife will not save the protein that the spin label is attached to unless you
+   pass the protein explicitly.
 
 In addition to saving your ensemble, chilife will save a set of pseudo-atoms named ``NEN`` representing the
 localization of the unpaired electron density if saving a :class:`~chilife.SpinLabel`. The weight of the rotamer is

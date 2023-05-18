@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Rotamer Libraries &mdash; χLife  documentation</title>
+      <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="_static/sg_gallery.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+        <script src="_static/doctools.js"></script>
+        <script src="_static/sphinx_highlight.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Protein" href="protein.html" />
+    <link rel="prev" title="Side chain ensembles" href="rotamer_ensemble.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            χLife
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="chilife.html">χLife</a></li>
+<li class="toctree-l1"><a class="reference internal" href="rotamer_ensemble.html">Side chain ensembles</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Rotamer Libraries</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#creating-custom-rotamer-libraries">Creating Custom Rotamer Libraries</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#defining-mobile-dihedrals">Defining Mobile Dihedrals</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#setting-rotamer-dihedrals">Setting Rotamer Dihedrals</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#setting-dihedral-variances-for-off-rotamer-sampling">Setting Dihedral Variances for Off Rotamer Sampling</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#setting-rotamer-weights">Setting Rotamer Weights</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#defining-spin-atoms-and-their-weights">Defining Spin-atoms and Their Weights</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#using-custom-rotlibs">Using Custom Rotlibs</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#differences-when-creating-bifunctional-rotamer-libraries">Differences When Creating Bifunctional Rotamer Libraries</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="protein.html">Protein</a></li>
+<li class="toctree-l1"><a class="reference internal" href="utils.html">Utils</a></li>
+<li class="toctree-l1"><a class="reference internal" href="examples.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="faqs.html">Frequently Asked Questions</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">χLife</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Rotamer Libraries</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/rotamer_libraries.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="rotamer-libraries">
+<h1>Rotamer Libraries<a class="headerlink" href="#rotamer-libraries" title="Permalink to this heading"></a></h1>
+<section id="creating-custom-rotamer-libraries">
+<span id="custom-rotamer-libraries"></span><h2>Creating Custom Rotamer Libraries<a class="headerlink" href="#creating-custom-rotamer-libraries" title="Permalink to this heading"></a></h2>
+<p>A major component of chilife is the creation and sharing of custom rotamer libraries. This is to facilitate rapid
+distribution of libraries for novel spin labels and encourage rapid rotamer library testing and development. Rotamer
+libraries are added through the <a class="reference internal" href="chilife.html#chilife.chilife.create_library" title="chilife.chilife.create_library"><code class="xref py py-func docutils literal notranslate"><span class="pre">create_library()</span></code></a> and  <a class="reference internal" href="chilife.html#chilife.chilife.create_dlibrary" title="chilife.chilife.create_dlibrary"><code class="xref py py-func docutils literal notranslate"><span class="pre">create_dlibrary()</span></code></a>
+functions:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">xl</span><span class="o">.</span><span class="n">create_library</span><span class="p">(</span><span class="s1">&#39;NSL&#39;</span><span class="p">,</span> <span class="s1">&#39;NSL.pdb&#39;</span><span class="p">,</span> <span class="o">...</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>or by saving an existing <a class="reference internal" href="rotamer_ensemble.html#chilife.RotamerEnsemble" title="chilife.RotamerEnsemble"><code class="xref py py-class docutils literal notranslate"><span class="pre">RotamerEnsemble</span></code></a> or <a class="reference internal" href="rotamer_ensemble.html#chilife.SpinLabel" title="chilife.SpinLabel"><code class="xref py py-class docutils literal notranslate"><span class="pre">SpinLabel</span></code></a> object as a rotamer library:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">mySL</span> <span class="o">=</span> <span class="n">xl</span><span class="o">.</span><span class="n">SpinLabel</span><span class="p">(</span><span class="s1">&#39;R1M&#39;</span><span class="p">)</span>
+<span class="c1"># Some wizardry to optimize structures, weights, etc.</span>
+<span class="o">...</span>
+<span class="n">mySL</span><span class="o">.</span><span class="n">to_rotlib</span><span class="p">(</span><span class="s1">&#39;myR1&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>chiLife <code class="xref py py-class docutils literal notranslate"><span class="pre">dRotamerEnsembles</span></code> and <code class="xref py py-class docutils literal notranslate"><span class="pre">dSpinLabels</span></code> do not yet have a <code class="docutils literal notranslate"><span class="pre">to_rotlib</span></code>
+method.</p>
+</div>
+<p>chiLife rotamer library creation is very flexible and offers users many ways to modify their rotamer libraries.
+Below we discuss several intricacies of making rotamer libraries with chiLife and general considerations that should be
+taken into account when making custom rotamer libraries.</p>
+<p>All rotamer libraries in chiLife must start with some sort of structural ensemble that approximates the side chain’s
+conformational landscape. This can be a very crude approximation, contain only a single or a very detailed
+approximation containing several rotamers with different weights and statistical parameters describing dihedral motion
+near every rotamer. As a result, there are many different ways in which a rotamer library can be developed.</p>
+<p>The fastest and simplest way to develop a rotamer “library” is to create a PDB file of a single conformation of your
+rotamer attached to a protein backbone. This can be done with several molecular modeling applications like PyMol,
+Avogadro, OpenBabel, etc. Ideally the rotamer’s geometry is optimized before passing it to chiLife, either with a
+molecular mechanics forcefield like MMFF94, or better yet by DFT with an application like ORCA or Gaussian. For example,
+we could create a completely fictional spin label that we will call “NSL”:</p>
+<img alt="_static/mono_NSL.png" src="_static/mono_NSL.png" />
+<p>Once a PDB structure is generated it can be added by passing the rotlib name and pdb file to the
+<a class="reference internal" href="chilife.html#chilife.chilife.create_library" title="chilife.chilife.create_library"><code class="xref py py-func docutils literal notranslate"><span class="pre">create_library()</span></code></a> function:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">xl</span><span class="o">.</span><span class="n">create_library</span><span class="p">(</span><span class="s1">&#39;NSL&#39;</span><span class="p">,</span> <span class="s1">&#39;NSL.pdb&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>All labels in a pdb file passed to <code class="xref py py-func docutils literal notranslate"><span class="pre">create_rotlib()</span></code> must have the backbone atoms named using
+standard PDB conventions and all other atoms must have unique names. Additionally all atoms must have the same
+residue number and be on the same chain.</p>
+</div>
+<p>This is the bare minimum required to generate a chilife rotlib and any <a class="reference internal" href="rotamer_ensemble.html#chilife.RotamerEnsemble" title="chilife.RotamerEnsemble"><code class="xref py py-class docutils literal notranslate"><span class="pre">RotamerEnsemble</span></code></a> generated with
+it will only have 1 rotamer that always models in the exact same conformation, regardless of how unfavorable that
+conformation is in a given protein environment.</p>
+<p>To allow our side chain a little flexibility we can tell chiLife what the mobile dihedrals are.</p>
+<section id="defining-mobile-dihedrals">
+<h3>Defining Mobile Dihedrals<a class="headerlink" href="#defining-mobile-dihedrals" title="Permalink to this heading"></a></h3>
+</section>
+<section id="setting-rotamer-dihedrals">
+<h3>Setting Rotamer Dihedrals<a class="headerlink" href="#setting-rotamer-dihedrals" title="Permalink to this heading"></a></h3>
+</section>
+<section id="setting-dihedral-variances-for-off-rotamer-sampling">
+<h3>Setting Dihedral Variances for Off Rotamer Sampling<a class="headerlink" href="#setting-dihedral-variances-for-off-rotamer-sampling" title="Permalink to this heading"></a></h3>
+</section>
+<section id="setting-rotamer-weights">
+<h3>Setting Rotamer Weights<a class="headerlink" href="#setting-rotamer-weights" title="Permalink to this heading"></a></h3>
+</section>
+<section id="defining-spin-atoms-and-their-weights">
+<h3>Defining Spin-atoms and Their Weights<a class="headerlink" href="#defining-spin-atoms-and-their-weights" title="Permalink to this heading"></a></h3>
+</section>
+<section id="using-custom-rotlibs">
+<h3>Using Custom Rotlibs<a class="headerlink" href="#using-custom-rotlibs" title="Permalink to this heading"></a></h3>
+</section>
+</section>
+<section id="differences-when-creating-bifunctional-rotamer-libraries">
+<h2>Differences When Creating Bifunctional Rotamer Libraries<a class="headerlink" href="#differences-when-creating-bifunctional-rotamer-libraries" title="Permalink to this heading"></a></h2>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="rotamer_ensemble.html" class="btn btn-neutral float-left" title="Side chain ensembles" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="protein.html" class="btn btn-neutral float-right" title="Protein" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022, Maxx Tessmer.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

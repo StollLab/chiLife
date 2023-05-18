@@ -43,11 +43,12 @@
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <ul>
 <li class="toctree-l1"><a class="reference internal" href="chilife.html">χLife</a></li>
-<li class="toctree-l1"><a class="reference internal" href="rotamer_ensemble.html">RotamerEnsemble</a></li>
-<li class="toctree-l1"><a class="reference internal" href="spin_label.html">SpinLabel</a></li>
+<li class="toctree-l1"><a class="reference internal" href="rotamer_ensemble.html">Side chain ensembles</a></li>
+<li class="toctree-l1"><a class="reference internal" href="rotamer_libraries.html">Rotamer Libraries</a></li>
 <li class="toctree-l1"><a class="reference internal" href="protein.html">Protein</a></li>
 <li class="toctree-l1"><a class="reference internal" href="utils.html">Utils</a></li>
 <li class="toctree-l1"><a class="reference internal" href="examples.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="faqs.html">Frequently Asked Questions</a></li>
 </ul>
 
         </div>
@@ -79,10 +80,10 @@
 </section>
 <section id="chilife">
 <h1>chiLife<a class="headerlink" href="#chilife" title="Permalink to this heading"></a></h1>
-<p>chiLife (or χLife) is a python module for modeling non-canonical amino acid side chain ensembles, primarily site
+<p>chiLife (or χLife) is a python package for modeling non-canonical amino acid side chain ensembles, primarily site
 directed spin labels (SDSLs), and using those ensembles to predict experimental results. The goal of chiLife is to provide a
 simple, flexible and interoperable python interface to protein side chain ensemble modeling, allowing for rapid
-development of custom analysis and modeling pipelines. Simplicity is facilitated by the use of <code class="docutils literal notranslate"><span class="pre">RotamerEnsemble</span></code> and
+development of custom analysis and modeling pipelines.  This is facilitated by the use of <code class="docutils literal notranslate"><span class="pre">RotamerEnsemble</span></code> and
 <code class="docutils literal notranslate"><span class="pre">SpinLabel</span></code> objects with standard interfaces for all supported side chain types, side chain modeling methods and
 protein modeling methods. Flexibility is achieved by allowing users to create and use custom <code class="docutils literal notranslate"><span class="pre">RotamerEnsemble</span></code> and
 <code class="docutils literal notranslate"><span class="pre">SpinLabel</span></code> objects as well as custom side chain modeling methods. Interoperability sought by interactions with other
@@ -122,8 +123,8 @@ protein model to retain the native amino acid.</p>
 <span class="n">MBP</span> <span class="o">=</span> <span class="n">xl</span><span class="o">.</span><span class="n">fetch</span><span class="p">(</span><span class="s1">&#39;1omp&#39;</span><span class="p">,</span> <span class="n">save</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
 <span class="c1"># Create Spin lables</span>
-<span class="n">SL1</span> <span class="o">=</span> <span class="n">xl</span><span class="o">.</span><span class="n">SpinLabel</span><span class="p">(</span><span class="s1">&#39;R1C&#39;</span><span class="p">,</span> <span class="n">site</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span> <span class="n">chain</span><span class="o">=</span><span class="s1">&#39;A&#39;</span><span class="p">,</span> <span class="n">protein</span><span class="o">=</span><span class="n">MBP</span><span class="p">)</span>
-<span class="n">SL2</span> <span class="o">=</span> <span class="n">xl</span><span class="o">.</span><span class="n">SpinLabel</span><span class="p">(</span><span class="s1">&#39;R1C&#39;</span><span class="p">,</span> <span class="n">site</span><span class="o">=</span><span class="mi">238</span><span class="p">,</span> <span class="n">chain</span><span class="o">=</span><span class="s1">&#39;A&#39;</span><span class="p">,</span> <span class="n">protein</span><span class="o">=</span><span class="n">MBP</span><span class="p">)</span>
+<span class="n">SL1</span> <span class="o">=</span> <span class="n">xl</span><span class="o">.</span><span class="n">SpinLabel</span><span class="p">(</span><span class="s1">&#39;R1M&#39;</span><span class="p">,</span> <span class="n">site</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span> <span class="n">chain</span><span class="o">=</span><span class="s1">&#39;A&#39;</span><span class="p">,</span> <span class="n">protein</span><span class="o">=</span><span class="n">MBP</span><span class="p">)</span>
+<span class="n">SL2</span> <span class="o">=</span> <span class="n">xl</span><span class="o">.</span><span class="n">SpinLabel</span><span class="p">(</span><span class="s1">&#39;R1M&#39;</span><span class="p">,</span> <span class="n">site</span><span class="o">=</span><span class="mi">238</span><span class="p">,</span> <span class="n">chain</span><span class="o">=</span><span class="s1">&#39;A&#39;</span><span class="p">,</span> <span class="n">protein</span><span class="o">=</span><span class="n">MBP</span><span class="p">)</span>
 
 <span class="c1"># Calculate distribution</span>
 <span class="n">r</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">100</span><span class="p">,</span> <span class="mi">256</span><span class="p">)</span>
@@ -175,10 +176,10 @@ methods to sample side chain conformations that deviate from canonical dihedral 
 <span class="n">MBP</span> <span class="o">=</span> <span class="n">xl</span><span class="o">.</span><span class="n">fetch</span><span class="p">(</span><span class="s1">&#39;1omp&#39;</span><span class="p">)</span>
 
 <span class="c1"># Create a SpinLabel object using the MTSSLWizard &#39;Accessible Volume&#39; Approach</span>
-<span class="n">SL1</span> <span class="o">=</span> <span class="n">xl</span><span class="o">.</span><span class="n">SpinLabel</span><span class="o">.</span><span class="n">from_wizard</span><span class="p">(</span><span class="s1">&#39;R1C&#39;</span><span class="p">,</span> <span class="n">site</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span> <span class="n">chain</span><span class="o">=</span><span class="s1">&#39;A&#39;</span><span class="p">,</span> <span class="n">protein</span><span class="o">=</span><span class="n">MBP</span><span class="p">)</span>
+<span class="n">SL1</span> <span class="o">=</span> <span class="n">xl</span><span class="o">.</span><span class="n">SpinLabel</span><span class="o">.</span><span class="n">from_wizard</span><span class="p">(</span><span class="s1">&#39;R1M&#39;</span><span class="p">,</span> <span class="n">site</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span> <span class="n">chain</span><span class="o">=</span><span class="s1">&#39;A&#39;</span><span class="p">,</span> <span class="n">protein</span><span class="o">=</span><span class="n">MBP</span><span class="p">)</span>
 
 <span class="c1"># Create a SpinLabel object by sampling off-rotamer dihedral conformations using the rotamer library as a prior</span>
-<span class="n">SL2</span> <span class="o">=</span> <span class="n">xl</span><span class="o">.</span><span class="n">SpinLabel</span><span class="p">(</span><span class="s1">&#39;R1C&#39;</span><span class="p">,</span> <span class="n">site</span><span class="o">=</span><span class="mi">238</span><span class="p">,</span> <span class="n">chain</span><span class="o">=</span><span class="s1">&#39;A&#39;</span><span class="p">,</span> <span class="n">sample</span><span class="o">=</span><span class="mi">2000</span><span class="p">,</span> <span class="n">protein</span><span class="o">=</span><span class="n">MBP</span><span class="p">)</span>
+<span class="n">SL2</span> <span class="o">=</span> <span class="n">xl</span><span class="o">.</span><span class="n">SpinLabel</span><span class="p">(</span><span class="s1">&#39;R1M&#39;</span><span class="p">,</span> <span class="n">site</span><span class="o">=</span><span class="mi">238</span><span class="p">,</span> <span class="n">chain</span><span class="o">=</span><span class="s1">&#39;A&#39;</span><span class="p">,</span> <span class="n">sample</span><span class="o">=</span><span class="mi">2000</span><span class="p">,</span> <span class="n">protein</span><span class="o">=</span><span class="n">MBP</span><span class="p">)</span>
 
 <span class="c1"># Create a SpinLabel object from a ProEPR.repack trajectory</span>
 <span class="n">traj</span><span class="p">,</span> <span class="n">de</span> <span class="o">=</span> <span class="n">xl</span><span class="o">.</span><span class="n">repack</span><span class="p">(</span><span class="n">SL1</span><span class="p">,</span> <span class="n">SL2</span><span class="p">,</span> <span class="n">protein</span><span class="o">=</span><span class="n">MBP</span><span class="p">)</span>
@@ -208,14 +209,14 @@ the most probable spin label conformer. This can be done easily with the <code c
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">chilife</span> <span class="k">as</span> <span class="nn">xl</span>
 
 <span class="n">MBP</span> <span class="o">=</span> <span class="n">xl</span><span class="o">.</span><span class="n">fetch</span><span class="p">(</span><span class="s1">&#39;1omp&#39;</span><span class="p">)</span>
-<span class="n">SL</span> <span class="o">=</span> <span class="n">xl</span><span class="o">.</span><span class="n">SpinLabel</span><span class="p">(</span><span class="s1">&#39;R1C&#39;</span><span class="p">,</span> <span class="mi">238</span><span class="p">,</span> <span class="n">protein</span><span class="o">=</span><span class="n">MBP</span><span class="p">)</span>
+<span class="n">SL</span> <span class="o">=</span> <span class="n">xl</span><span class="o">.</span><span class="n">SpinLabel</span><span class="p">(</span><span class="s1">&#39;R1M&#39;</span><span class="p">,</span> <span class="mi">238</span><span class="p">,</span> <span class="n">protein</span><span class="o">=</span><span class="n">MBP</span><span class="p">)</span>
 <span class="n">MBP_S238R1</span> <span class="o">=</span> <span class="n">xl</span><span class="o">.</span><span class="n">mutate</span><span class="p">(</span><span class="n">MBP</span><span class="p">,</span> <span class="n">SL</span><span class="p">)</span>
 <span class="n">xl</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="s1">&#39;MBP_S238R1.pdb&#39;</span><span class="p">,</span> <span class="n">MBP_S238R1</span><span class="p">)</span>
 </pre></div>
 </div>
 <p>chiLife can actually mutate several sites at once, and can mutate canonical amino acids as well.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">SL1</span> <span class="o">=</span> <span class="n">xl</span><span class="o">.</span><span class="n">SpinLabel</span><span class="p">(</span><span class="s1">&#39;R1C&#39;</span><span class="p">,</span> <span class="mi">20</span><span class="p">,</span> <span class="n">protein</span><span class="o">=</span><span class="n">MBP</span><span class="p">)</span>
-<span class="n">SL2</span> <span class="o">=</span> <span class="n">xl</span><span class="o">.</span><span class="n">SpinLabel</span><span class="p">(</span><span class="s1">&#39;R1C&#39;</span><span class="p">,</span> <span class="mi">238</span><span class="p">,</span> <span class="n">protein</span><span class="o">=</span><span class="n">MBP</span><span class="p">)</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">SL1</span> <span class="o">=</span> <span class="n">xl</span><span class="o">.</span><span class="n">SpinLabel</span><span class="p">(</span><span class="s1">&#39;R1M&#39;</span><span class="p">,</span> <span class="mi">20</span><span class="p">,</span> <span class="n">protein</span><span class="o">=</span><span class="n">MBP</span><span class="p">)</span>
+<span class="n">SL2</span> <span class="o">=</span> <span class="n">xl</span><span class="o">.</span><span class="n">SpinLabel</span><span class="p">(</span><span class="s1">&#39;R1M&#39;</span><span class="p">,</span> <span class="mi">238</span><span class="p">,</span> <span class="n">protein</span><span class="o">=</span><span class="n">MBP</span><span class="p">)</span>
 <span class="n">L284V</span> <span class="o">=</span> <span class="n">xl</span><span class="o">.</span><span class="n">RotamerEnsemble</span><span class="p">(</span><span class="s1">&#39;VAL&#39;</span><span class="p">,</span> <span class="mi">284</span><span class="p">,</span> <span class="n">protein</span><span class="o">=</span><span class="n">MBP</span><span class="p">)</span>
 </pre></div>
 </div>
@@ -259,9 +260,9 @@ and you specify <code class="docutils literal notranslate"><span class="pre">xl.
 <p>User defined labels can be constructed from a single state pdb file or a multi-state PDB file. If constructed from a
 single state pdb file a list of dihedral angles and weights can be passed via the <code class="docutils literal notranslate"><span class="pre">dihedrals</span></code> and <code class="docutils literal notranslate"><span class="pre">weigts</span></code> keyword
 arguments. For each set of dihedral angles, chiLife create a rotamer and store the whole library using the specified
-name. Alternatively using a multi-state PDB file can add some additional information, such as isomeric heterogenity of
+name. Alternatively using a multi-state PDB file can add some additional information, such as isomeric heterogeneity of
 the rotamer library, which will be maintained by chiLife.</p>
-<p>For more information on how to use chiLife as a python module, see <span class="xref std std-ref">examples</span></p>
+<p>For more information on how to use chiLife as a python module, see <a class="reference external" href="https://stolllab.github.io/chiLife/examples.html">examples</a></p>
 <div class="toctree-wrapper compound">
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="chilife.html">χLife</a><ul>
@@ -285,17 +286,48 @@ the rotamer library, which will be maintained by chiLife.</p>
 <li class="toctree-l2"><a class="reference internal" href="chilife.html#chilife.chilife.rotlib_info"><code class="docutils literal notranslate"><span class="pre">rotlib_info()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="chilife.html#chilife.chilife.safe_save"><code class="docutils literal notranslate"><span class="pre">safe_save()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="chilife.html#chilife.chilife.traj_dd"><code class="docutils literal notranslate"><span class="pre">traj_dd()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="chilife.html#chilife.io.read_bbdep"><code class="docutils literal notranslate"><span class="pre">read_bbdep()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="chilife.html#chilife.io.read_distance_distribution"><code class="docutils literal notranslate"><span class="pre">read_distance_distribution()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="chilife.html#chilife.io.read_drotlib"><code class="docutils literal notranslate"><span class="pre">read_drotlib()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="chilife.html#chilife.io.read_library"><code class="docutils literal notranslate"><span class="pre">read_library()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="chilife.html#chilife.io.read_rotlib"><code class="docutils literal notranslate"><span class="pre">read_rotlib()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="chilife.html#chilife.io.save"><code class="docutils literal notranslate"><span class="pre">save()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="chilife.html#chilife.io.write_ic"><code class="docutils literal notranslate"><span class="pre">write_ic()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="chilife.html#chilife.io.write_labels"><code class="docutils literal notranslate"><span class="pre">write_labels()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="chilife.html#chilife.io.write_protein"><code class="docutils literal notranslate"><span class="pre">write_protein()</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="rotamer_ensemble.html">RotamerEnsemble</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="rotamer_ensemble.html#chilife.RotamerEnsemble"><code class="docutils literal notranslate"><span class="pre">RotamerEnsemble</span></code></a></li>
+<li class="toctree-l1"><a class="reference internal" href="rotamer_ensemble.html">Side chain ensembles</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="rotamer_ensemble.html#rotamerensemble">RotamerEnsemble</a></li>
+<li class="toctree-l2"><a class="reference internal" href="rotamer_ensemble.html#spinlabel">SpinLabel</a></li>
+<li class="toctree-l2"><a class="reference internal" href="rotamer_ensemble.html#drotamerensemble">dRotamerEnsemble</a></li>
+<li class="toctree-l2"><a class="reference internal" href="rotamer_ensemble.html#dspinlabel">dSpinLabel</a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="spin_label.html">SpinLabel</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="spin_label.html#chilife.SpinLabel"><code class="docutils literal notranslate"><span class="pre">SpinLabel</span></code></a></li>
+<li class="toctree-l1"><a class="reference internal" href="rotamer_libraries.html">Rotamer Libraries</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="rotamer_libraries.html#creating-custom-rotamer-libraries">Creating Custom Rotamer Libraries</a></li>
+<li class="toctree-l2"><a class="reference internal" href="rotamer_libraries.html#differences-when-creating-bifunctional-rotamer-libraries">Differences When Creating Bifunctional Rotamer Libraries</a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="protein.html">Protein</a></li>
+<li class="toctree-l1"><a class="reference internal" href="protein.html">Protein</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="protein.html#chilife.Protein.Atom"><code class="docutils literal notranslate"><span class="pre">Atom</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="protein.html#chilife.Protein.AtomSelection"><code class="docutils literal notranslate"><span class="pre">AtomSelection</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="protein.html#chilife.Protein.MolecularSystem"><code class="docutils literal notranslate"><span class="pre">MolecularSystem</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="protein.html#chilife.Protein.Protein"><code class="docutils literal notranslate"><span class="pre">Protein</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="protein.html#chilife.Protein.Residue"><code class="docutils literal notranslate"><span class="pre">Residue</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="protein.html#chilife.Protein.ResidueSelection"><code class="docutils literal notranslate"><span class="pre">ResidueSelection</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="protein.html#chilife.Protein.Segment"><code class="docutils literal notranslate"><span class="pre">Segment</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="protein.html#chilife.Protein.SegmentSelection"><code class="docutils literal notranslate"><span class="pre">SegmentSelection</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="protein.html#chilife.ProteinIC.ICAtom"><code class="docutils literal notranslate"><span class="pre">ICAtom</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="protein.html#chilife.ProteinIC.ProteinIC"><code class="docutils literal notranslate"><span class="pre">ProteinIC</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="protein.html#chilife.ProteinIC.get_ICAtom"><code class="docutils literal notranslate"><span class="pre">get_ICAtom()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="protein.html#chilife.ProteinIC.get_ICResidues"><code class="docutils literal notranslate"><span class="pre">get_ICResidues()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="protein.html#chilife.ProteinIC.get_all_n_pred"><code class="docutils literal notranslate"><span class="pre">get_all_n_pred()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="protein.html#chilife.ProteinIC.get_internal_coords"><code class="docutils literal notranslate"><span class="pre">get_internal_coords()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="protein.html#chilife.ProteinIC.get_n_pred"><code class="docutils literal notranslate"><span class="pre">get_n_pred()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="protein.html#chilife.ProteinIC.ic_mx"><code class="docutils literal notranslate"><span class="pre">ic_mx()</span></code></a></li>
+</ul>
+</li>
 <li class="toctree-l1"><a class="reference internal" href="utils.html">Utils</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="numba_utils.html">Numba Utils</a></li>
 <li class="toctree-l2"><a class="reference internal" href="protein_utils.html">Protein Utils</a></li>
@@ -310,6 +342,18 @@ the rotamer library, which will be maintained by chiLife.</p>
 <li class="toctree-l2"><a class="reference internal" href="gallery/04-Repacking_with_MCMC_Sampling.html">Repacking with MCMC Sampling</a></li>
 <li class="toctree-l2"><a class="reference internal" href="gallery/05-Membrane_Docking.html">Membrane Docking</a></li>
 <li class="toctree-l2"><a class="reference internal" href="gallery/06-Custom_Energy_Function.html">Custom Energy Function</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="faqs.html">Frequently Asked Questions</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="faqs.html#what-is-the-difference-between-a-chilife-rotamerensemble-and-a-chilife-spinlabel">What is the difference between a <code class="xref py py-class docutils literal notranslate"><span class="pre">chilife.RotamerEnsemble</span></code> and a <code class="xref py py-class docutils literal notranslate"><span class="pre">chilife.SpinLabel</span></code>?</a></li>
+<li class="toctree-l2"><a class="reference internal" href="faqs.html#how-do-i-use-my-own-pdb-file">How do I use my own PDB file?</a></li>
+<li class="toctree-l2"><a class="reference internal" href="faqs.html#what-spin-labels-and-rotamer-libraries-are-available">What spin labels and rotamer libraries are available?</a></li>
+<li class="toctree-l2"><a class="reference internal" href="faqs.html#how-do-i-create-my-own-rotamer-libraries">How do I create my own rotamer libraries?</a></li>
+<li class="toctree-l2"><a class="reference internal" href="faqs.html#i-created-my-own-rotamer-library-or-got-one-from-a-collaborator-now-how-do-i-use-it">I created my own rotamer library or got one from a collaborator now how do I use it?</a></li>
+<li class="toctree-l2"><a class="reference internal" href="faqs.html#where-can-i-find-rotamer-libraries-for-my-spin-label">Where can I find rotamer libraries for my spin label?</a></li>
+<li class="toctree-l2"><a class="reference internal" href="faqs.html#how-do-i-tell-chilife-where-i-store-my-personal-rotamer-libraries">How do I tell chiLife where I store my personal rotamer libraries?</a></li>
+<li class="toctree-l2"><a class="reference internal" href="faqs.html#how-do-i-emulate-mmm-and-mtsslwizard-behavior">How do I emulate MMM and MTSSLWizard behavior?</a></li>
+<li class="toctree-l2"><a class="reference internal" href="faqs.html#how-do-i-view-my-rotamer-spin-label-ensembles">How do I view my rotamer/spin label ensembles?</a></li>
 </ul>
 </li>
 </ul>

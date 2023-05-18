@@ -20,7 +20,7 @@
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
     <link rel="next" title="Utils" href="utils.html" />
-    <link rel="prev" title="SpinLabel" href="spin_label.html" /> 
+    <link rel="prev" title="Rotamer Libraries" href="rotamer_libraries.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -44,11 +44,77 @@
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="chilife.html">χLife</a></li>
-<li class="toctree-l1"><a class="reference internal" href="rotamer_ensemble.html">RotamerEnsemble</a></li>
-<li class="toctree-l1"><a class="reference internal" href="spin_label.html">SpinLabel</a></li>
-<li class="toctree-l1 current"><a class="current reference internal" href="#">Protein</a></li>
+<li class="toctree-l1"><a class="reference internal" href="rotamer_ensemble.html">Side chain ensembles</a></li>
+<li class="toctree-l1"><a class="reference internal" href="rotamer_libraries.html">Rotamer Libraries</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Protein</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#chilife.Protein.Atom"><code class="docutils literal notranslate"><span class="pre">Atom</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#chilife.Protein.AtomSelection"><code class="docutils literal notranslate"><span class="pre">AtomSelection</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#chilife.Protein.MolecularSystem"><code class="docutils literal notranslate"><span class="pre">MolecularSystem</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#chilife.Protein.Protein"><code class="docutils literal notranslate"><span class="pre">Protein</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#chilife.Protein.Protein.from_pdb"><code class="docutils literal notranslate"><span class="pre">Protein.from_pdb()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#chilife.Protein.Residue"><code class="docutils literal notranslate"><span class="pre">Residue</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#chilife.Protein.ResidueSelection"><code class="docutils literal notranslate"><span class="pre">ResidueSelection</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#chilife.Protein.Segment"><code class="docutils literal notranslate"><span class="pre">Segment</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#chilife.Protein.SegmentSelection"><code class="docutils literal notranslate"><span class="pre">SegmentSelection</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#chilife.ProteinIC.ICAtom"><code class="docutils literal notranslate"><span class="pre">ICAtom</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#chilife.ProteinIC.ICAtom.name"><code class="docutils literal notranslate"><span class="pre">ICAtom.name</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#chilife.ProteinIC.ICAtom.atype"><code class="docutils literal notranslate"><span class="pre">ICAtom.atype</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#chilife.ProteinIC.ICAtom.index"><code class="docutils literal notranslate"><span class="pre">ICAtom.index</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#chilife.ProteinIC.ICAtom.resn"><code class="docutils literal notranslate"><span class="pre">ICAtom.resn</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#chilife.ProteinIC.ICAtom.resi"><code class="docutils literal notranslate"><span class="pre">ICAtom.resi</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#chilife.ProteinIC.ICAtom.atom_names"><code class="docutils literal notranslate"><span class="pre">ICAtom.atom_names</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#chilife.ProteinIC.ICAtom.bond_idx"><code class="docutils literal notranslate"><span class="pre">ICAtom.bond_idx</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#chilife.ProteinIC.ICAtom.bond"><code class="docutils literal notranslate"><span class="pre">ICAtom.bond</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#chilife.ProteinIC.ICAtom.angle_idx"><code class="docutils literal notranslate"><span class="pre">ICAtom.angle_idx</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#chilife.ProteinIC.ICAtom.angle"><code class="docutils literal notranslate"><span class="pre">ICAtom.angle</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#chilife.ProteinIC.ICAtom.dihedral_idx"><code class="docutils literal notranslate"><span class="pre">ICAtom.dihedral_idx</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#chilife.ProteinIC.ICAtom.dihedral"><code class="docutils literal notranslate"><span class="pre">ICAtom.dihedral</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#chilife.ProteinIC.ICAtom.dihederal_resi"><code class="docutils literal notranslate"><span class="pre">ICAtom.dihederal_resi</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#chilife.ProteinIC.ProteinIC"><code class="docutils literal notranslate"><span class="pre">ProteinIC</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#chilife.ProteinIC.ProteinIC.zmats"><code class="docutils literal notranslate"><span class="pre">ProteinIC.zmats</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#chilife.ProteinIC.ProteinIC.zmat_idxs"><code class="docutils literal notranslate"><span class="pre">ProteinIC.zmat_idxs</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#chilife.ProteinIC.ProteinIC.atom_dict"><code class="docutils literal notranslate"><span class="pre">ProteinIC.atom_dict</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#chilife.ProteinIC.ProteinIC.ICS"><code class="docutils literal notranslate"><span class="pre">ProteinIC.ICS</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#chilife.ProteinIC.ProteinIC.atoms"><code class="docutils literal notranslate"><span class="pre">ProteinIC.atoms</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#chilife.ProteinIC.ProteinIC.atom_types"><code class="docutils literal notranslate"><span class="pre">ProteinIC.atom_types</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#chilife.ProteinIC.ProteinIC.atom_names"><code class="docutils literal notranslate"><span class="pre">ProteinIC.atom_names</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#chilife.ProteinIC.ProteinIC.resis"><code class="docutils literal notranslate"><span class="pre">ProteinIC.resis</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#chilife.ProteinIC.ProteinIC.resnames"><code class="docutils literal notranslate"><span class="pre">ProteinIC.resnames</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#chilife.ProteinIC.ProteinIC.chains"><code class="docutils literal notranslate"><span class="pre">ProteinIC.chains</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#chilife.ProteinIC.ProteinIC.bonded_pairs"><code class="docutils literal notranslate"><span class="pre">ProteinIC.bonded_pairs</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#chilife.ProteinIC.ProteinIC.perturbed"><code class="docutils literal notranslate"><span class="pre">ProteinIC.perturbed</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#chilife.ProteinIC.ProteinIC.dihedral_defs"><code class="docutils literal notranslate"><span class="pre">ProteinIC.dihedral_defs</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#chilife.ProteinIC.ProteinIC.collect_dih_list"><code class="docutils literal notranslate"><span class="pre">ProteinIC.collect_dih_list()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#chilife.ProteinIC.ProteinIC.copy"><code class="docutils literal notranslate"><span class="pre">ProteinIC.copy()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#chilife.ProteinIC.ProteinIC.from_ICatoms"><code class="docutils literal notranslate"><span class="pre">ProteinIC.from_ICatoms()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#chilife.ProteinIC.ProteinIC.get_dihedral"><code class="docutils literal notranslate"><span class="pre">ProteinIC.get_dihedral()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#chilife.ProteinIC.ProteinIC.get_resi_dihs"><code class="docutils literal notranslate"><span class="pre">ProteinIC.get_resi_dihs()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#chilife.ProteinIC.ProteinIC.has_clashes"><code class="docutils literal notranslate"><span class="pre">ProteinIC.has_clashes()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#chilife.ProteinIC.ProteinIC.save_pdb"><code class="docutils literal notranslate"><span class="pre">ProteinIC.save_pdb()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#chilife.ProteinIC.ProteinIC.set_dihedral"><code class="docutils literal notranslate"><span class="pre">ProteinIC.set_dihedral()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#chilife.ProteinIC.ProteinIC.shift_resnum"><code class="docutils literal notranslate"><span class="pre">ProteinIC.shift_resnum()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#chilife.ProteinIC.ProteinIC.to_cartesian"><code class="docutils literal notranslate"><span class="pre">ProteinIC.to_cartesian()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#chilife.ProteinIC.ProteinIC.to_site"><code class="docutils literal notranslate"><span class="pre">ProteinIC.to_site()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#chilife.ProteinIC.ProteinIC.chain_operators"><code class="docutils literal notranslate"><span class="pre">ProteinIC.chain_operators</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#chilife.ProteinIC.ProteinIC.coords"><code class="docutils literal notranslate"><span class="pre">ProteinIC.coords</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#chilife.ProteinIC.ProteinIC.nonbonded_pairs"><code class="docutils literal notranslate"><span class="pre">ProteinIC.nonbonded_pairs</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#chilife.ProteinIC.get_ICAtom"><code class="docutils literal notranslate"><span class="pre">get_ICAtom()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#chilife.ProteinIC.get_ICResidues"><code class="docutils literal notranslate"><span class="pre">get_ICResidues()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#chilife.ProteinIC.get_all_n_pred"><code class="docutils literal notranslate"><span class="pre">get_all_n_pred()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#chilife.ProteinIC.get_internal_coords"><code class="docutils literal notranslate"><span class="pre">get_internal_coords()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#chilife.ProteinIC.get_n_pred"><code class="docutils literal notranslate"><span class="pre">get_n_pred()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#chilife.ProteinIC.ic_mx"><code class="docutils literal notranslate"><span class="pre">ic_mx()</span></code></a></li>
+</ul>
+</li>
 <li class="toctree-l1"><a class="reference internal" href="utils.html">Utils</a></li>
 <li class="toctree-l1"><a class="reference internal" href="examples.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="faqs.html">Frequently Asked Questions</a></li>
 </ul>
 
         </div>
@@ -75,15 +141,719 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="module-chilife.Protein">
-<span id="protein"></span><h1>Protein<a class="headerlink" href="#module-chilife.Protein" title="Permalink to this heading"></a></h1>
+  <section id="protein">
+<h1>Protein<a class="headerlink" href="#protein" title="Permalink to this heading"></a></h1>
+<p>Under construction. The chiLife.Protein module is not yet officially supported.</p>
+<span class="target" id="module-chilife.Protein"></span><dl class="py class">
+<dt class="sig sig-object py" id="chilife.Protein.Atom">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">Atom</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">protein</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mask</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#chilife.Protein.Atom" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="chilife.Protein.AtomSelection">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">AtomSelection</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">protein</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mask</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#chilife.Protein.AtomSelection" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="chilife.Protein.MolecularSystem">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">MolecularSystem</span></span><a class="headerlink" href="#chilife.Protein.MolecularSystem" title="Permalink to this definition"></a></dt>
+<dd><p>Base class for molecular systems</p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="chilife.Protein.Protein">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">Protein</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atomids</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">np.ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">names</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">np.ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">altlocs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">np.ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">resnames</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">np.ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">resnums</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">np.ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">chains</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">np.ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">trajectory</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">np.ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">occupancies</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">np.ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">np.ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">segs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">np.ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">atypes</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">np.ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">charges</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">np.ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'Noname_Protein'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#chilife.Protein.Protein" title="Permalink to this definition"></a></dt>
+<dd><p>Protein object</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="chilife.Protein.Protein.from_pdb">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">from_pdb</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file_name</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#chilife.Protein.Protein.from_pdb" title="Permalink to this definition"></a></dt>
+<dd><p>reads a pdb file and returns a Protein object</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="chilife.Protein.Residue">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">Residue</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">protein</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mask</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#chilife.Protein.Residue" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="chilife.Protein.ResidueSelection">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">ResidueSelection</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">protein</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mask</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#chilife.Protein.ResidueSelection" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="chilife.Protein.Segment">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">Segment</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">protein</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mask</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#chilife.Protein.Segment" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="chilife.Protein.SegmentSelection">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">SegmentSelection</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">protein</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mask</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#chilife.Protein.SegmentSelection" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<span class="target" id="module-chilife.ProteinIC"></span><dl class="py class">
+<dt class="sig sig-object py" id="chilife.ProteinIC.ICAtom">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">ICAtom</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">atype</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">index</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">resn</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">resi</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">atom_names</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">tuple</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bond_idx</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">nan</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bond</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">nan</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">angle_idx</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">nan</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">angle</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">nan</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dihedral_idx</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">nan</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dihedral</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">nan</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dihedral_resi</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">nan</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#chilife.ProteinIC.ICAtom" title="Permalink to this definition"></a></dt>
+<dd><p>Internal coordinate atom class. Used for building the ProteinIC (internal coordinate protein).</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="chilife.ProteinIC.ICAtom.name">
+<span class="sig-name descname"><span class="pre">name</span></span><a class="headerlink" href="#chilife.ProteinIC.ICAtom.name" title="Permalink to this definition"></a></dt>
+<dd><p>Atom name</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><em>str</em></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="chilife.ProteinIC.ICAtom.atype">
+<span class="sig-name descname"><span class="pre">atype</span></span><a class="headerlink" href="#chilife.ProteinIC.ICAtom.atype" title="Permalink to this definition"></a></dt>
+<dd><p>Atom type</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><em>str</em></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="chilife.ProteinIC.ICAtom.index">
+<span class="sig-name descname"><span class="pre">index</span></span><a class="headerlink" href="#chilife.ProteinIC.ICAtom.index" title="Permalink to this definition"></a></dt>
+<dd><p>Atom number</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><em>int</em></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="chilife.ProteinIC.ICAtom.resn">
+<span class="sig-name descname"><span class="pre">resn</span></span><a class="headerlink" href="#chilife.ProteinIC.ICAtom.resn" title="Permalink to this definition"></a></dt>
+<dd><p>Name of the residue that the atom belongs to</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><em>str</em></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="chilife.ProteinIC.ICAtom.resi">
+<span class="sig-name descname"><span class="pre">resi</span></span><a class="headerlink" href="#chilife.ProteinIC.ICAtom.resi" title="Permalink to this definition"></a></dt>
+<dd><p>The residue index/number that the atom belongs to</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><em>int</em></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="chilife.ProteinIC.ICAtom.atom_names">
+<span class="sig-name descname"><span class="pre">atom_names</span></span><a class="headerlink" href="#chilife.ProteinIC.ICAtom.atom_names" title="Permalink to this definition"></a></dt>
+<dd><p>The names of the atoms that define the Bond-Angle-Torsion coordinates of the atom</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><em>tuple</em></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="chilife.ProteinIC.ICAtom.bond_idx">
+<span class="sig-name descname"><span class="pre">bond_idx</span></span><a class="headerlink" href="#chilife.ProteinIC.ICAtom.bond_idx" title="Permalink to this definition"></a></dt>
+<dd><p>Index of the coordinate atom bonded to this atom</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><em>int</em></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="chilife.ProteinIC.ICAtom.bond">
+<span class="sig-name descname"><span class="pre">bond</span></span><a class="headerlink" href="#chilife.ProteinIC.ICAtom.bond" title="Permalink to this definition"></a></dt>
+<dd><p>Distance of the bond in angstroms</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><em>float</em></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="chilife.ProteinIC.ICAtom.angle_idx">
+<span class="sig-name descname"><span class="pre">angle_idx</span></span><a class="headerlink" href="#chilife.ProteinIC.ICAtom.angle_idx" title="Permalink to this definition"></a></dt>
+<dd><p>Index of the atom that creates an angle with this atom and the bonded atom.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><em>int</em></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="chilife.ProteinIC.ICAtom.angle">
+<span class="sig-name descname"><span class="pre">angle</span></span><a class="headerlink" href="#chilife.ProteinIC.ICAtom.angle" title="Permalink to this definition"></a></dt>
+<dd><p>The value of the angle between this atom, the bonded atom and the angle atom in radians.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><em>float</em></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="chilife.ProteinIC.ICAtom.dihedral_idx">
+<span class="sig-name descname"><span class="pre">dihedral_idx</span></span><a class="headerlink" href="#chilife.ProteinIC.ICAtom.dihedral_idx" title="Permalink to this definition"></a></dt>
+<dd><p>The index of the atom that defines the dihedral with this atom, the bonded atom and the angled atom.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><em>int</em></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="chilife.ProteinIC.ICAtom.dihedral">
+<span class="sig-name descname"><span class="pre">dihedral</span></span><a class="headerlink" href="#chilife.ProteinIC.ICAtom.dihedral" title="Permalink to this definition"></a></dt>
+<dd><p>The value of the dihedral angle defined above in radians.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><em>float</em></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="chilife.ProteinIC.ICAtom.dihederal_resi">
+<span class="sig-name descname"><span class="pre">dihederal_resi</span></span><a class="headerlink" href="#chilife.ProteinIC.ICAtom.dihederal_resi" title="Permalink to this definition"></a></dt>
+<dd><p>The residues index of the residue that the dihedral angle belongs to. Note that this is not necessarily the same
+residue as the atom, e.g. the location of the nitrogen atom of the i+1 residue often defines the phi dihedral
+angle of the ith residue.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><em>int</em></p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="chilife.ProteinIC.ProteinIC">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">ProteinIC</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">zmats</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">zmat_idxs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">atom_dict</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ICs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#chilife.ProteinIC.ProteinIC" title="Permalink to this definition"></a></dt>
+<dd><p>A class for protein internal coordinates.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="chilife.ProteinIC.ProteinIC.zmats">
+<span class="sig-name descname"><span class="pre">zmats</span></span><a class="headerlink" href="#chilife.ProteinIC.ProteinIC.zmats" title="Permalink to this definition"></a></dt>
+<dd><p>Dictionary of Z-matrices of the molecule. Each entry corresponds to a contiguous segment of bonded atoms.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><em>dict</em>[np.ndarray]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="chilife.ProteinIC.ProteinIC.zmat_idxs">
+<span class="sig-name descname"><span class="pre">zmat_idxs</span></span><a class="headerlink" href="#chilife.ProteinIC.ProteinIC.zmat_idxs" title="Permalink to this definition"></a></dt>
+<dd><p>Dictionary of Z-matrix indices.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><em>dict</em>[np.ndarray]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="chilife.ProteinIC.ProteinIC.atom_dict">
+<span class="sig-name descname"><span class="pre">atom_dict</span></span><a class="headerlink" href="#chilife.ProteinIC.ProteinIC.atom_dict" title="Permalink to this definition"></a></dt>
+<dd><p>Nested dictionaries containing indices of the atoms that define the coordinates (bond, angle dihedral) objects.
+Nesting pattern: [coord_type][chain][resi, stem][name] where coord_type is one of ‘bond’, ‘angle’ or ‘dihedral’,
+chain is the chainid, resi is the residue number, stem is a tuple of the names of the 3 atoms preceding the atom
+coordinate being defined.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><em>dict</em></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="chilife.ProteinIC.ProteinIC.ICS">
+<span class="sig-name descname"><span class="pre">ICS</span></span><a class="headerlink" href="#chilife.ProteinIC.ProteinIC.ICS" title="Permalink to this definition"></a></dt>
+<dd><p>Nested dictionaries containing AtomIC objects. Nesting pattern: [chain][resi][stem][name] where chain is the
+chainid, resi is the residue number, stem is a tuple of the names of the 3 atoms preceding the atom coordinate
+being defined.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><em>dict</em></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="chilife.ProteinIC.ProteinIC.atoms">
+<span class="sig-name descname"><span class="pre">atoms</span></span><a class="headerlink" href="#chilife.ProteinIC.ProteinIC.atoms" title="Permalink to this definition"></a></dt>
+<dd><p>List of AtomIC objects making up the protein in order of their indices.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>np.ndarray[AtomIC]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="chilife.ProteinIC.ProteinIC.atom_types">
+<span class="sig-name descname"><span class="pre">atom_types</span></span><a class="headerlink" href="#chilife.ProteinIC.ProteinIC.atom_types" title="Permalink to this definition"></a></dt>
+<dd><p>Array of atom types (elements) corresponding to the atom indices.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>np.ndarray</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="chilife.ProteinIC.ProteinIC.atom_names">
+<span class="sig-name descname"><span class="pre">atom_names</span></span><a class="headerlink" href="#chilife.ProteinIC.ProteinIC.atom_names" title="Permalink to this definition"></a></dt>
+<dd><p>Array of atom names corresponding to the atom indices.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>np.ndarray</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="chilife.ProteinIC.ProteinIC.resis">
+<span class="sig-name descname"><span class="pre">resis</span></span><a class="headerlink" href="#chilife.ProteinIC.ProteinIC.resis" title="Permalink to this definition"></a></dt>
+<dd><p>Ordered array of residue numbers.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>np.ndarray</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="chilife.ProteinIC.ProteinIC.resnames">
+<span class="sig-name descname"><span class="pre">resnames</span></span><a class="headerlink" href="#chilife.ProteinIC.ProteinIC.resnames" title="Permalink to this definition"></a></dt>
+<dd><p>Dictionary mapping residue numbers to their residue names.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><em>dict</em>[<em>int</em>]:str</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="chilife.ProteinIC.ProteinIC.chains">
+<span class="sig-name descname"><span class="pre">chains</span></span><a class="headerlink" href="#chilife.ProteinIC.ProteinIC.chains" title="Permalink to this definition"></a></dt>
+<dd><p>Array of chainids</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>np.ndarray</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="chilife.ProteinIC.ProteinIC.bonded_pairs">
+<span class="sig-name descname"><span class="pre">bonded_pairs</span></span><a class="headerlink" href="#chilife.ProteinIC.ProteinIC.bonded_pairs" title="Permalink to this definition"></a></dt>
+<dd><p>Array of index pairs corresponding to atoms that are bonded.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>np.ndarray</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="chilife.ProteinIC.ProteinIC.perturbed">
+<span class="sig-name descname"><span class="pre">perturbed</span></span><a class="headerlink" href="#chilife.ProteinIC.ProteinIC.perturbed" title="Permalink to this definition"></a></dt>
+<dd><p>Indicates if any internal coordinates have changed since the last time cartesian coordinates were calculated.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><em>bool</em></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="chilife.ProteinIC.ProteinIC.dihedral_defs">
+<span class="sig-name descname"><span class="pre">dihedral_defs</span></span><a class="headerlink" href="#chilife.ProteinIC.ProteinIC.dihedral_defs" title="Permalink to this definition"></a></dt>
+<dd><p>List of major side chain and backbone dihedral definitions as defined by user defined and supported residues.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><em>list</em></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="chilife.ProteinIC.ProteinIC.collect_dih_list">
+<span class="sig-name descname"><span class="pre">collect_dih_list</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">List</span></span></span><a class="headerlink" href="#chilife.ProteinIC.ProteinIC.collect_dih_list" title="Permalink to this definition"></a></dt>
+<dd><p>Returns a list of all heavy atom dihedrals as defined by preexisting and user defined rotamer libraries.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>List of all heavy atom dihedrals. Each element of the list contains a tuple with an int corresponding to the
+residue number and a list of dihedral definitions corresponding to the dihedrals of the residue.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><em>List</em>[<em>Tuple</em>[<em>int</em>, <em>List</em>[<em>str</em>]]]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="chilife.ProteinIC.ProteinIC.copy">
+<span class="sig-name descname"><span class="pre">copy</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#chilife.ProteinIC.ProteinIC.copy" title="Permalink to this definition"></a></dt>
+<dd><p>Create a deep copy of an ProteinIC instance</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="chilife.ProteinIC.ProteinIC.from_ICatoms">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">from_ICatoms</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ICs</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#chilife.ProteinIC.ProteinIC.from_ICatoms" title="Permalink to this definition"></a></dt>
+<dd><p>Constructs a ProteinIC object from a collection of internal coords of atoms.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>ICs</strong> (<em>dict</em>) – dictionary of dicts, of dicts containing ICAtom objects. Top dict specifies chain, middle dict specifies
+residue and bottom dict holds ICAtom objects.</p></li>
+<li><p><strong>**kwargs</strong> (<em>dict</em>) – <p>Aditional arguments.</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">chain_operators</span></code> : Dictionary of tranlation vectors and rotation matrices that can transform chains from the
+internal coordinate frame to a global coordinate frame.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">bonded_pairs</span></code> : Array of atom index pairs indicating which atoms are bonded</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">nonbonded_pairs</span></code> : Array of atom index pairs indicating which atoms are not bonded</p></li>
+</ul>
+</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A protein internal coords object</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="#chilife.ProteinIC.ProteinIC" title="chilife.ProteinIC.ProteinIC"><em>ProteinIC</em></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="chilife.ProteinIC.ProteinIC.get_dihedral">
+<span class="sig-name descname"><span class="pre">get_dihedral</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">resi</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">atom_list</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">_SupportsArray</span><span class="p"><span class="pre">[</span></span><span class="pre">dtype</span><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">_NestedSequence</span><span class="p"><span class="pre">[</span></span><span class="pre">_SupportsArray</span><span class="p"><span class="pre">[</span></span><span class="pre">dtype</span><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">bool</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">complex</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">bytes</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">_NestedSequence</span><span class="p"><span class="pre">[</span></span><span class="pre">bool</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">complex</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">bytes</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">chain</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#chilife.ProteinIC.ProteinIC.get_dihedral" title="Permalink to this definition"></a></dt>
+<dd><p>Get the dihedral angle(s) of one or more atom sets at the specified residue. Dihedral angles are returned in
+radians</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>resi</strong> (<em>int</em>) – Residue number of the site being altered</p></li>
+<li><p><strong>atom_list</strong> (<em>ArrayLike</em>) – Names or array of names of atoms involved in the dihedral(s)</p></li>
+<li><p><strong>chain</strong> (<em>int</em><em>, </em><em>str</em>) – Chain identifier. required if there is more than one chain in the protein. Default value = None</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>angles</strong> – Array of dihedral angles corresponding to the atom sets in atom list.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>numpy.ndarray</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="chilife.ProteinIC.ProteinIC.get_resi_dihs">
+<span class="sig-name descname"><span class="pre">get_resi_dihs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">resi</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#chilife.ProteinIC.ProteinIC.get_resi_dihs" title="Permalink to this definition"></a></dt>
+<dd><p>Gets the list of heavy atom dihedral definitions for the provided residue as defined by preexisting and user
+defined rotamer ensemble.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>resi</strong> (<em>int</em>) – Index of the residue whose dihedrals will be returned</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>dihedral_defs</strong> – Lists of atom names defining the dihedrals of residue <code class="docutils literal notranslate"><span class="pre">resi</span></code>.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><em>List</em>[<em>List</em>[<em>str</em>]]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="chilife.ProteinIC.ProteinIC.has_clashes">
+<span class="sig-name descname"><span class="pre">has_clashes</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">distance</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1.5</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">bool</span></span></span><a class="headerlink" href="#chilife.ProteinIC.ProteinIC.has_clashes" title="Permalink to this definition"></a></dt>
+<dd><p>Checks for an internal clash between non-bonded atoms.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>distance</strong> (<em>float</em>) – Minimum distance allowed between non-bonded atoms in angstroms. (Default value = 1.5).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="chilife.ProteinIC.ProteinIC.save_pdb">
+<span class="sig-name descname"><span class="pre">save_pdb</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">filename</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mode</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'w'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#chilife.ProteinIC.ProteinIC.save_pdb" title="Permalink to this definition"></a></dt>
+<dd><p>Save a pdb structure file from a ProteinIC object</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>filename</strong> (<em>str</em>) – Name of file to save</p></li>
+<li><p><strong>mode</strong> (<em>str</em>) – file open mode (Default value = “w”)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="chilife.ProteinIC.ProteinIC.set_dihedral">
+<span class="sig-name descname"><span class="pre">set_dihedral</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dihedrals</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">_SupportsArray</span><span class="p"><span class="pre">[</span></span><span class="pre">dtype</span><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">_NestedSequence</span><span class="p"><span class="pre">[</span></span><span class="pre">_SupportsArray</span><span class="p"><span class="pre">[</span></span><span class="pre">dtype</span><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">bool</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">complex</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">bytes</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">_NestedSequence</span><span class="p"><span class="pre">[</span></span><span class="pre">bool</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">complex</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">bytes</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">resi</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">atom_list</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">_SupportsArray</span><span class="p"><span class="pre">[</span></span><span class="pre">dtype</span><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">_NestedSequence</span><span class="p"><span class="pre">[</span></span><span class="pre">_SupportsArray</span><span class="p"><span class="pre">[</span></span><span class="pre">dtype</span><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">bool</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">complex</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">bytes</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">_NestedSequence</span><span class="p"><span class="pre">[</span></span><span class="pre">bool</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">complex</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">bytes</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">chain</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#chilife.ProteinIC.ProteinIC.set_dihedral" title="Permalink to this definition"></a></dt>
+<dd><p>Set one or more dihedral angles of a single residue in internal coordinates for the atoms defined in atom
+list.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>dihedrals</strong> (<em>float</em><em>, </em><em>ArrayLike</em>) – Angle or array of angles to set the dihedral(s) to.</p></li>
+<li><p><strong>resi</strong> (<em>int</em>) – Residue number of the site being altered</p></li>
+<li><p><strong>atom_list</strong> (<em>ArrayLike</em>) – Names or array of names of atoms involved in the dihedral(s)</p></li>
+<li><p><strong>chain</strong> (<em>int</em><em>, </em><em>str</em><em>, </em><em>optional</em>) – Chain containing the atoms that are defined by the dihedrals that are being set. Only necessary when there
+is more than one chain in the proteinIC object.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>self</strong> – ProteinIC object with new dihedral angle(s)</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="#chilife.ProteinIC.ProteinIC" title="chilife.ProteinIC.ProteinIC"><em>ProteinIC</em></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="chilife.ProteinIC.ProteinIC.shift_resnum">
+<span class="sig-name descname"><span class="pre">shift_resnum</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">delta</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#chilife.ProteinIC.ProteinIC.shift_resnum" title="Permalink to this definition"></a></dt>
+<dd><p>Shift all residue numbers of the proteinIC object by some integer, <code class="docutils literal notranslate"><span class="pre">delta</span></code> .</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>delta</strong> (<em>int</em>) – Integer by which you wish to shift the residue numbers of the ProteinIC object. Can be positive or
+negative.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="chilife.ProteinIC.ProteinIC.to_cartesian">
+<span class="sig-name descname"><span class="pre">to_cartesian</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#chilife.ProteinIC.ProteinIC.to_cartesian" title="Permalink to this definition"></a></dt>
+<dd><p>Convert internal coordinates into cartesian coordinates.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>coords_array</strong> – Array of cartesian coordinates corresponding to ICAtom list atoms</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>np.ndarray</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="chilife.ProteinIC.ProteinIC.to_site">
+<span class="sig-name descname"><span class="pre">to_site</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">p</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">_SupportsArray</span><span class="p"><span class="pre">[</span></span><span class="pre">dtype</span><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">_NestedSequence</span><span class="p"><span class="pre">[</span></span><span class="pre">_SupportsArray</span><span class="p"><span class="pre">[</span></span><span class="pre">dtype</span><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">bool</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">complex</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">bytes</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">_NestedSequence</span><span class="p"><span class="pre">[</span></span><span class="pre">bool</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">complex</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">bytes</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">method</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'bisect'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#chilife.ProteinIC.ProteinIC.to_site" title="Permalink to this definition"></a></dt>
+<dd><p>Move the ProteinIC object to a site defined by <code class="docutils literal notranslate"><span class="pre">p</span></code> . Usually <code class="docutils literal notranslate"><span class="pre">p</span></code> Will be the coordinates of the N, CA, C
+backbone atoms. Alignment to this sight will be done by aligning the first residues (the internal coordinate
+frame) to the coordinates of <code class="docutils literal notranslate"><span class="pre">p</span></code> using the provided method.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>p</strong> (<em>ArrayLike</em>) – Three 3D cartesian coordinates defining the site to move the ProteinIC object to.</p></li>
+<li><p><strong>method</strong> (<em>str</em>) – Alignment method to use. See <a class="reference internal" href="alignments.html"><span class="doc">Alignment Methods</span></a> .</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="chilife.ProteinIC.ProteinIC.chain_operators">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">chain_operators</span></span><a class="headerlink" href="#chilife.ProteinIC.ProteinIC.chain_operators" title="Permalink to this definition"></a></dt>
+<dd><p>A set of coordinate transformations that can orient multiple chains that are not covalently linked. e.g.
+structures with missing residues or protein complexes. The <code class="docutils literal notranslate"><span class="pre">chain_operator</span></code> property is a dictionary mapping
+chainIDs to a sub-dictionary containing a translation vector, <code class="docutils literal notranslate"><span class="pre">ori</span></code>  and rotation matrix <code class="docutils literal notranslate"><span class="pre">mx</span></code> that will
+transform the protein coordinates from tie internal coordinate frame to some global frame.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><em>dict</em></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="chilife.ProteinIC.ProteinIC.coords">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">coords</span></span><a class="headerlink" href="#chilife.ProteinIC.ProteinIC.coords" title="Permalink to this definition"></a></dt>
+<dd><p>The cartesian coordinates of the protein</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>np.ndarray</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="chilife.ProteinIC.ProteinIC.nonbonded_pairs">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">nonbonded_pairs</span></span><a class="headerlink" href="#chilife.ProteinIC.ProteinIC.nonbonded_pairs" title="Permalink to this definition"></a></dt>
+<dd><p>Array of atom index pairs of atoms that are not bonded</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>np.ndarray</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="chilife.ProteinIC.get_ICAtom">
+<span class="sig-name descname"><span class="pre">get_ICAtom</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mol</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Atom</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dihedral</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ixmap</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#chilife.ProteinIC.ICAtom" title="chilife.ProteinIC.ICAtom"><span class="pre">ICAtom</span></a></span></span><a class="headerlink" href="#chilife.ProteinIC.get_ICAtom" title="Permalink to this definition"></a></dt>
+<dd><p>Construct internal coordinates for an atom given that atom is linked to an MDAnalysis Universe.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>mol</strong> (<em>mda.core.groups.Atom</em>) – Atom group object containing the atom of interest and the preceding atoms that define the dihedral.</p>
+</dd>
+</dl>
+<dl class="simple">
+<dt>dihedral<span class="classifier">List[int]</span></dt><dd><p>Dihedral defining the coordination of the atom being constructred</p>
+</dd>
+<dt>offset<span class="classifier">int</span></dt><dd><p>Index offset used to construct internal coordinates for separate chains.</p>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Atom with internal coordinates.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference internal" href="#chilife.ProteinIC.ICAtom" title="chilife.ProteinIC.ICAtom"><em>ICAtom</em></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="chilife.ProteinIC.get_ICResidues">
+<span class="sig-name descname"><span class="pre">get_ICResidues</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ICAtoms</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#chilife.ProteinIC.ICAtom" title="chilife.ProteinIC.ICAtom"><span class="pre">ICAtom</span></a><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Dict</span></span></span><a class="headerlink" href="#chilife.ProteinIC.get_ICResidues" title="Permalink to this definition"></a></dt>
+<dd><p>Create a collection of ICAtoms grouped by residue. This function will create a dictionary where the keys are
+residues and the values are the lists of ICAtoms of that residues.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>ICAtoms</strong> (<em>List</em><em>[</em><a class="reference internal" href="#chilife.ProteinIC.ICAtom" title="chilife.ProteinIC.ICAtom"><em>ICAtom</em></a><em>]</em>) – List of internal coordinate atoms  to seperate into groups</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>residues</strong> – Dictionary where the keys are residues and the values are the lists of ICAtoms of that residues.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><em>Dict</em></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="chilife.ProteinIC.get_all_n_pred">
+<span class="sig-name descname"><span class="pre">get_all_n_pred</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">G</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">DiGraph</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">node</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#chilife.ProteinIC.get_all_n_pred" title="Permalink to this definition"></a></dt>
+<dd><p>Get all possible permutations of <code class="docutils literal notranslate"><span class="pre">n</span></code> (or less) predecessors of <code class="docutils literal notranslate"><span class="pre">node</span></code> of the directed graph <code class="docutils literal notranslate"><span class="pre">G</span></code> .</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>G</strong> (<em>networkx.DiGraph</em>) – Directed graph containing <code class="docutils literal notranslate"><span class="pre">node</span></code>.</p></li>
+<li><p><strong>node</strong> (<em>int</em>) – Node you wish to find all predecessors of.</p></li>
+<li><p><strong>n</strong> (<em>int</em>) – Max number of predecessors to find.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>preds</strong> – List of lists containing all permutations of <code class="docutils literal notranslate"><span class="pre">n</span></code> predecessors of <code class="docutils literal notranslate"><span class="pre">node</span></code> of <code class="docutils literal notranslate"><span class="pre">G</span></code> .</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><em>List</em>[<em>List</em>[<em>int</em>]]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="chilife.ProteinIC.get_internal_coords">
+<span class="sig-name descname"><span class="pre">get_internal_coords</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mol</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Universe</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">AtomGroup</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">preferred_dihedrals</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bonds</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">_SupportsArray</span><span class="p"><span class="pre">[</span></span><span class="pre">dtype</span><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">_NestedSequence</span><span class="p"><span class="pre">[</span></span><span class="pre">_SupportsArray</span><span class="p"><span class="pre">[</span></span><span class="pre">dtype</span><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">bool</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">complex</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">bytes</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">_NestedSequence</span><span class="p"><span class="pre">[</span></span><span class="pre">bool</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">complex</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">bytes</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#chilife.ProteinIC.ProteinIC" title="chilife.ProteinIC.ProteinIC"><span class="pre">ProteinIC</span></a></span></span><a class="headerlink" href="#chilife.ProteinIC.get_internal_coords" title="Permalink to this definition"></a></dt>
+<dd><p>Gather a list of internal coordinate atoms ( <code class="docutils literal notranslate"><span class="pre">ICAtom</span></code> ) from and MDAnalysis <code class="docutils literal notranslate"><span class="pre">Universe</span></code> of <code class="docutils literal notranslate"><span class="pre">AtomGroup</span></code> and
+create a <code class="docutils literal notranslate"><span class="pre">ProteinIC</span></code> object from them. If <code class="docutils literal notranslate"><span class="pre">preferred_dihedrals</span></code> is passed then any atom that can be defineid by
+a dihedral present in <code class="docutils literal notranslate"><span class="pre">preferred_dihedrals</span></code> will be.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>mol</strong> (<em>MDAnalysis.Universe</em><em>, </em><em>MDAnalysis.AtomGroup</em>) – Molecule to convert into internal coords.</p></li>
+<li><p><strong>resname</strong> (<em>str</em>) – Residue name (3-letter code) of any non-canonical or otherwise unsupported amino acid that should be included in
+the ProteinIC object.</p></li>
+<li><p><strong>preferred_dihedrals</strong> (<em>list</em>) – Atom names of  preffered dihedral definitions to be used in the bond-angle-torsion coordinate system. Often
+used to specify dihedrals of user defined or unsupported amino acids that the user wishes to directly interact
+with.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>An <code class="docutils literal notranslate"><span class="pre">ProteinIC</span></code> object of the supplied molecule.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="#chilife.ProteinIC.ProteinIC" title="chilife.ProteinIC.ProteinIC"><em>ProteinIC</em></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="chilife.ProteinIC.get_n_pred">
+<span class="sig-name descname"><span class="pre">get_n_pred</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">G</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">DiGraph</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">node</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inner</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#chilife.ProteinIC.get_n_pred" title="Permalink to this definition"></a></dt>
+<dd><p>Given a directed graph, <code class="docutils literal notranslate"><span class="pre">G</span></code> and a <code class="docutils literal notranslate"><span class="pre">node</span></code> , find the <code class="docutils literal notranslate"><span class="pre">n</span></code> predecessors of <code class="docutils literal notranslate"><span class="pre">node</span></code> and
+return them as a list. The returned list will include <code class="docutils literal notranslate"><span class="pre">node</span></code> and be of length <code class="docutils literal notranslate"><span class="pre">n</span> <span class="pre">+</span> <span class="pre">1</span></code> . For pathways with less
+than <code class="docutils literal notranslate"><span class="pre">n</span></code> predecessors the function will return all predecessors.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>G</strong> (<em>networkx.DiGraph</em>) – The directed graph containing <code class="docutils literal notranslate"><span class="pre">node</span></code> .</p></li>
+<li><p><strong>node</strong> (<em>int</em>) – The node of <code class="docutils literal notranslate"><span class="pre">G</span></code> for which you would like the predecessors of.</p></li>
+<li><p><strong>n</strong> (<em>int</em>) – The number of predecessors to find.</p></li>
+<li><p><strong>inner</strong> – (Default value = False)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>predecessors</strong> – List of nodes that come before <code class="docutils literal notranslate"><span class="pre">node</span></code>.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><em>List</em>[<em>int</em>]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="chilife.ProteinIC.ic_mx">
+<span class="sig-name descname"><span class="pre">ic_mx</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">p</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">_SupportsArray</span><span class="p"><span class="pre">[</span></span><span class="pre">dtype</span><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">_NestedSequence</span><span class="p"><span class="pre">[</span></span><span class="pre">_SupportsArray</span><span class="p"><span class="pre">[</span></span><span class="pre">dtype</span><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">bool</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">complex</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">bytes</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">_NestedSequence</span><span class="p"><span class="pre">[</span></span><span class="pre">bool</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">complex</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">bytes</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">_SupportsArray</span><span class="p"><span class="pre">[</span></span><span class="pre">dtype</span><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">_NestedSequence</span><span class="p"><span class="pre">[</span></span><span class="pre">_SupportsArray</span><span class="p"><span class="pre">[</span></span><span class="pre">dtype</span><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">bool</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">complex</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">bytes</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">_NestedSequence</span><span class="p"><span class="pre">[</span></span><span class="pre">bool</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">complex</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">bytes</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">_SupportsArray</span><span class="p"><span class="pre">[</span></span><span class="pre">dtype</span><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">_NestedSequence</span><span class="p"><span class="pre">[</span></span><span class="pre">_SupportsArray</span><span class="p"><span class="pre">[</span></span><span class="pre">dtype</span><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">bool</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">complex</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">bytes</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">_NestedSequence</span><span class="p"><span class="pre">[</span></span><span class="pre">bool</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">complex</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">bytes</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#chilife.ProteinIC.ic_mx" title="Permalink to this definition"></a></dt>
+<dd><p>Calculates a rotation matrix and translation to transform a set of atoms to global coordinate frame from a local
+coordinated frame defined by <code class="docutils literal notranslate"><span class="pre">p</span></code>. This function is a wrapper to quickly and easily transform cartesian
+coordinates, made from internal coordinates, to their appropriate location in the global frame.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>p</strong> (<em>ArrayLike</em>) – Coordinates of the three atoms defining the local coordinate frame of the IC object</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p><strong>rotation_matrix</strong> (<em>np.ndarray</em>) – Rotation  matrix to rotate from the internal coordinate frame to the global frame</p></li>
+<li><p><strong>origin</strong> (<em>np.ndarray</em>) – New origin position in 3 dimensional space</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
 </section>
 
 
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="spin_label.html" class="btn btn-neutral float-left" title="SpinLabel" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="rotamer_libraries.html" class="btn btn-neutral float-left" title="Rotamer Libraries" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
         <a href="utils.html" class="btn btn-neutral float-right" title="Utils" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 

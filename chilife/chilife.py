@@ -436,7 +436,7 @@ def repack(
 def create_library(
         libname: str,
         pdb: str,
-        dihedral_atoms: List[List[str]],
+        dihedral_atoms: List[List[str]] = [],
         site: int = 1,
         resname: str = None,
         dihedrals: ArrayLike = None,

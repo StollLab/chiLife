@@ -43,8 +43,8 @@ import chilife as xl
 MBP = xl.fetch('1omp', save=True)
 
 # Create Spin lables
-SL1 = xl.SpinLabel('R1C', site=20, chain='A', protein=MBP)
-SL2 = xl.SpinLabel('R1C', site=238, chain='A', protein=MBP)
+SL1 = xl.SpinLabel('R1M', site=20, chain='A', protein=MBP)
+SL2 = xl.SpinLabel('R1M', site=238, chain='A', protein=MBP)
 
 # Calculate distribution
 r = np.linspace(0, 100, 256)
@@ -102,10 +102,10 @@ import chilife as xl
 MBP = xl.fetch('1omp')
 
 # Create a SpinLabel object using the MTSSLWizard 'Accessible Volume' Approach
-SL1 = xl.SpinLabel.from_wizard('R1C', site=20, chain='A', protein=MBP)
+SL1 = xl.SpinLabel.from_wizard('R1M', site=20, chain='A', protein=MBP)
 
 # Create a SpinLabel object by sampling off-rotamer dihedral conformations using the rotamer library as a prior 
-SL2 = xl.SpinLabel('R1C', site=238, chain='A', sample=2000, protein=MBP)
+SL2 = xl.SpinLabel('R1M', site=238, chain='A', sample=2000, protein=MBP)
 
 # Create a SpinLabel object from a ProEPR.repack trajectory
 traj, de = xl.repack(SL1, SL2, protein=MBP)
@@ -140,7 +140,7 @@ the most probable spin label conformer. This can be done easily with the `mutate
 import chilife as xl
 
 MBP = xl.fetch('1omp')
-SL = xl.SpinLabel('R1C', 238, protein=MBP)
+SL = xl.SpinLabel('R1M', 238, protein=MBP)
 MBP_S238R1 = xl.mutate(MBP, SL)
 xl.save('MBP_S238R1.pdb', MBP_S238R1)
 ```
@@ -148,8 +148,8 @@ xl.save('MBP_S238R1.pdb', MBP_S238R1)
 chiLife can actually mutate several sites at once, and can mutate canonical amino acids as well.
 
 ```python
-SL1 = xl.SpinLabel('R1C', 20, protein=MBP)
-SL2 = xl.SpinLabel('R1C', 238, protein=MBP)
+SL1 = xl.SpinLabel('R1M', 20, protein=MBP)
+SL2 = xl.SpinLabel('R1M', 238, protein=MBP)
 L284V = xl.RotamerEnsemble('VAL', 284, protein=MBP)
 ```
 

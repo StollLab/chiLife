@@ -11,11 +11,16 @@ class IntrinsicLabel:
         Parameters
         ----------
         atom_selection : MDAnalysis.AtomGroup, chiLife.System
-            Group of atoms constituting the intrinsic label
+            Group of atoms constituting the intrinsic label. These selections can consist of multiple residues, which
+            can be useful in the case of ions with multiple coordinating residues
 
-        spin_atoms
+        spin_atoms : str, list, tuple, array, dict, MDAnalysis.AtomGroup
             Atoms of the intrinsic label that host the unpaired electron density. Can be a single atom name, a
             list/tuple/array of atom names or a dictionary mapping atom names to their relative populations.
+            ``spin_atoms `` can also be an ``MDAnalysis.AtomGroup`` object derived from the same MDAnalysis.Universe
+            as the ``atom_selection`` keyword argument. Use of an ``AtomGroup`` is particularly useful when there is
+            spin density is distributed on several atoms with the same name on different residues within the
+            ``IntrinsicLabel``.
         """
         self._selection = atom_selection
         self._coords = atom_selection.positions.copy()[None, :, :]

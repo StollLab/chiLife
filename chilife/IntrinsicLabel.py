@@ -1,15 +1,18 @@
 import numpy as np
+from .protein_utils import FreeAtom
 
 
 class IntrinsicLabel:
 
-    def __init__(self, atom_selection, spin_atoms=None):
+    def __init__(self, res, atom_selection, spin_atoms=None, name='IntrinsicLabel'):
         """
         A helper object to assign spin density to part of a protein that is already present, e.g. metal ligands.
         IntrinsicLabels can be used with the :func:`~chilife.chilife.distance_distribution` function
 
         Parameters
         ----------
+        res : str
+            3-character identifier of desired residue, e.g. NC2 (Native Cu(II)).
         atom_selection : MDAnalysis.AtomGroup, chiLife.System
             Group of atoms constituting the intrinsic label. These selections can consist of multiple residues, which
             can be useful in the case of ions with multiple coordinating residues
@@ -26,7 +29,13 @@ class IntrinsicLabel:
         self._coords = atom_selection.positions.copy()[None, :, :]
         self.coords = self._coords
         self.atom_names = atom_selection.names.copy()
+        self.atom_types = atom_selection.types
+        self.name = name
+        self.label = res
+        self.res = res
 
+
+        self.chain = "".join(set(atom_selection.segids))
         self.weights = np.array([1])
         if isinstance(spin_atoms, (list, tuple, np.ndarray)):
             self.spin_atoms = np.asarray(spin_atoms)
@@ -40,10 +49,14 @@ class IntrinsicLabel:
         else:
             raise RuntimeError("spin_atoms must contain a string, a list/tuple/array of strings, a dict")
 
-        sa_mask = np.isin(self.spin_atoms, self.atom_names)
+        self.site = atom_selection.select_atoms(f'name {self.spin_atoms[np.argmax(self.spin_weights)]}').resnums[0]
+        sa_mask = np.isin(self.atom_names, self.spin_atoms,)
 
         self.spin_idx = np.argwhere(sa_mask)
         self.spin_idx.shape = -1
+
+        self.atoms = [FreeAtom(atom.name, atom.type, idx, atom.resname, atom.resnum, atom.position)
+                      for idx, atom in enumerate(self._selection.atoms)]
 
     @property
     def spin_coords(self):

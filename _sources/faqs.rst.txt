@@ -114,3 +114,28 @@ This will result in a surface representation with the weight of each rotamer map
 surface.
 
 
+I opened 2 PDBs with labels in PyMol but it only shows labels for one of them
+------------------------------------------------------------------------------
+There is a good chance that the labels have the same object name in the two files and one is being overwritten when the
+second is loaded. You can alter the label name before saving, e.g.
+
+.. code-block:: python
+
+    omp = xl.fetch('1omp')
+    anf = xl.fetch('1anf')
+
+    # These labels will have the same name because they label the same site but they are different conformers
+    SL1 = xl.Spinlabel('R1M', 41, omp)
+    SL2 = xl.Spinlabel('R1M', 41, anf)
+
+    # Add identifier 'holo' to the name of the second label before saving
+    SL2.name += '_holo'
+
+    # Saved files will now open in the same pymol window with both labels present
+    xl.save(omp, SL1)
+    xl.save(anf, SL2)
+
+Why don't my label stay attached to my protein when I align it in pymol?
+-------------------------------------------------------------------------------
+The labels are saved as separate objects in the PDB and will not move with the protein object it is associated with.
+While you can move 

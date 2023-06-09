@@ -12,6 +12,8 @@
     <script src="_static/js/html5shiv.min.js"></script>
   <![endif]-->
   
+        <script src="_static/jquery.js"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
         <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
         <script src="_static/doctools.js"></script>
         <script src="_static/sphinx_highlight.js"></script>
@@ -58,6 +60,8 @@
 <li class="toctree-l2"><a class="reference internal" href="#how-do-i-tell-chilife-where-i-store-my-personal-rotamer-libraries">How do I tell chiLife where I store my personal rotamer libraries?</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#how-do-i-emulate-mmm-and-mtsslwizard-behavior">How do I emulate MMM and MTSSLWizard behavior?</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#how-do-i-view-my-rotamer-spin-label-ensembles">How do I view my rotamer/spin label ensembles?</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#i-opened-2-pdbs-with-labels-in-pymol-but-it-only-shows-labels-for-one-of-them">I opened 2 PDBs with labels in PyMol but it only shows labels for one of them</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#why-don-t-my-label-stay-attached-to-my-protein-when-i-align-it-in-pymol">Why don’t my label stay attached to my protein when I align it in pymol?</a></li>
 </ul>
 </li>
 </ul>
@@ -190,6 +194,31 @@ set transparency, 0.5
 </div>
 <p>This will result in a surface representation with the weight of each rotamer mapped to the color intensity of the
 surface.</p>
+</section>
+<section id="i-opened-2-pdbs-with-labels-in-pymol-but-it-only-shows-labels-for-one-of-them">
+<h2>I opened 2 PDBs with labels in PyMol but it only shows labels for one of them<a class="headerlink" href="#i-opened-2-pdbs-with-labels-in-pymol-but-it-only-shows-labels-for-one-of-them" title="Permalink to this heading"></a></h2>
+<p>There is a good chance that the labels have the same object name in the two files and one is being overwritten when the
+second is loaded. You can alter the label name before saving, e.g.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">omp</span> <span class="o">=</span> <span class="n">xl</span><span class="o">.</span><span class="n">fetch</span><span class="p">(</span><span class="s1">&#39;1omp&#39;</span><span class="p">)</span>
+<span class="n">anf</span> <span class="o">=</span> <span class="n">xl</span><span class="o">.</span><span class="n">fetch</span><span class="p">(</span><span class="s1">&#39;1anf&#39;</span><span class="p">)</span>
+
+<span class="c1"># These labels will have the same name because they label the same site but they are different conformers</span>
+<span class="n">SL1</span> <span class="o">=</span> <span class="n">xl</span><span class="o">.</span><span class="n">Spinlabel</span><span class="p">(</span><span class="s1">&#39;R1M&#39;</span><span class="p">,</span> <span class="mi">41</span><span class="p">,</span> <span class="n">omp</span><span class="p">)</span>
+<span class="n">SL2</span> <span class="o">=</span> <span class="n">xl</span><span class="o">.</span><span class="n">Spinlabel</span><span class="p">(</span><span class="s1">&#39;R1M&#39;</span><span class="p">,</span> <span class="mi">41</span><span class="p">,</span> <span class="n">anf</span><span class="p">)</span>
+
+<span class="c1"># Add identifier &#39;holo&#39; to the name of the second label before saving</span>
+<span class="n">SL2</span><span class="o">.</span><span class="n">name</span> <span class="o">+=</span> <span class="s1">&#39;_holo&#39;</span>
+
+<span class="c1"># Saved files will now open in the same pymol window with both labels present</span>
+<span class="n">xl</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">omp</span><span class="p">,</span> <span class="n">SL1</span><span class="p">)</span>
+<span class="n">xl</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">anf</span><span class="p">,</span> <span class="n">SL2</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="why-don-t-my-label-stay-attached-to-my-protein-when-i-align-it-in-pymol">
+<h2>Why don’t my label stay attached to my protein when I align it in pymol?<a class="headerlink" href="#why-don-t-my-label-stay-attached-to-my-protein-when-i-align-it-in-pymol" title="Permalink to this heading"></a></h2>
+<p>The labels are saved as separate objects in the PDB and will not move with the protein object it is associated with.
+While you can move</p>
 </section>
 </section>
 

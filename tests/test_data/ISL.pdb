@@ -1,0 +1,19 @@
+HEADER IntrinsicLabel
+MODEL 0
+ATOM      0  N   TYX A  59      21.846  19.954  15.905  1.00  1.00           N  
+ATOM      1  CA  TYX A  59      21.079  21.149  16.251  1.00  1.00           C  
+ATOM      2  C   TYX A  59      20.142  21.590  15.149  1.00  1.00           C  
+ATOM      3  O   TYX A  59      19.499  22.645  15.321  1.00  1.00           O  
+ATOM      4  CB  TYX A  59      22.085  22.254  16.581  1.00  1.00           C  
+ATOM      5  CG  TYX A  59      22.945  21.951  17.785  1.00  1.00           C  
+ATOM      6 CD1  TYX A  59      24.272  21.544  17.644  1.00  1.00           C  
+ATOM      7 CD2  TYX A  59      22.437  22.157  19.065  1.00  1.00           C  
+ATOM      8 CE1  TYX A  59      25.052  21.285  18.776  1.00  1.00           C  
+ATOM      9 CE2  TYX A  59      23.204  21.907  20.192  1.00  1.00           C  
+ATOM     10  CZ  TYX A  59      24.517  21.470  20.030  1.00  1.00           C  
+ATOM     11  OH  TYX A  59      25.248  21.302  21.191  1.00  1.00           O  
+TER
+ENDMDL
+HEADER IntrinsicLabel_density
+ATOM      0 NEN  TYX A  59      24.021  21.638  19.355  1.00  1.00           N  
+TER

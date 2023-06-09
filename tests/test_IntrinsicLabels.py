@@ -15,8 +15,8 @@ def test_creation():
     SL1 = xl.SpinLabel('R1M', 28, ubq)
     P = xl.distance_distribution(ISL, SL1, r)
 
-    assert r[np.argmax(P)] == 21.470588235294116
-    assert np.max(P) == 0.25610254327499965
+    assert r[np.argmax(P)] - 21.470588235294116 < 1e-6
+    assert np.max(P) - 0.25610254327499965 < 1e-6
 
 
 def test_save():

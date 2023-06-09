@@ -16,6 +16,7 @@ import chilife
 from .RotamerEnsemble import RotamerEnsemble
 from .SpinLabel import SpinLabel
 from .dRotamerEnsemble import dRotamerEnsemble
+from .IntrinsicLabel import IntrinsicLabel
 from .Protein import MolecularSystem
 from .ProteinIC import ProteinIC
 
@@ -263,7 +264,7 @@ def save(
         Object(s) to save. Includes RotamerEnsemble, SpinLabels, dRotamerEnsembles, proteins, or path to protein pdb.
         Can add as many as desired, except for path, for which only one can be given.
     protein_path : str, Path
-        Path to a pdb file to use as the protein object.
+        The Path to a pdb file to use as the protein object.
     **kwargs :
         Additional arguments to pass to ``write_labels``
 
@@ -289,7 +290,6 @@ def save(
 
         tmolecules[mcls[0]].append(mol)
     molecules = tmolecules
-
 
     # Ensure only one protein path was provided (for now)
     protein_path = [] if protein_path is None else [protein_path]
@@ -453,11 +453,11 @@ def write_labels(pdb_file: TextIO, *args: SpinLabel, KDE: bool = True, sorted: b
             sites = np.concatenate([np.ones(len(label.RE1.atoms), dtype=int) * int(label.site1),
                                     np.ones(len(label.RE2.atoms), dtype=int) * int(label.site2)])
         else:
-            sites = np.ones(len(label.atoms), dtype=int) * int(label.site)
+            sites = [atom.resi for atom in label.atoms]
         for mdl, (conformer, weight) in enumerate(
                 zip(label.coords[sorted_index], norm_weights[sorted_index])
         ):
-            pdb_file.write("MODEL {}\n".format(mdl))
+            pdb_file.write(f"MODEL {mdl}\n")
 
             [
                 pdb_file.write(
@@ -485,7 +485,7 @@ def write_labels(pdb_file: TextIO, *args: SpinLabel, KDE: bool = True, sorted: b
         if not np.any(label.spin_centers):
             continue
 
-        pdb_file.write(f"HEADER {label.name}_density\n".format(label.label, k + 1))
+        pdb_file.write(f"HEADER {label.name}_density\n")
         spin_centers = np.atleast_2d(label.spin_centers)
 
         if KDE and len(spin_centers) > 5:
@@ -519,6 +519,7 @@ def write_labels(pdb_file: TextIO, *args: SpinLabel, KDE: bool = True, sorted: b
 
 molecule_class = {RotamerEnsemble: 'rotens',
                   dRotamerEnsemble: 'rotens',
+                  IntrinsicLabel: 'rotens',
                   mda.Universe: 'molcart',
                   mda.AtomGroup: 'molcart',
                   MolecularSystem: 'molcart',

@@ -20,7 +20,7 @@ class RotamerEnsemble:
     Parameters
     ----------
     res : string
-    3-character name of desired residue, e.g. R1A.
+        3-character name of desired residue, e.g. R1A.
     site : int
         Protein residue number to attach library to.
     protein : MDAnalysis.Universe, MDAnalysis.AtomGroup

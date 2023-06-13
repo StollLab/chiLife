@@ -1,8 +1,8 @@
 # chiLife
-chiLife (or χLife) is a python module for modeling non-canonical amino acid side chain ensembles, primarily site 
+chiLife (or χLife) is a python package for modeling non-canonical amino acid side chain ensembles, primarily site 
 directed spin labels (SDSLs), and using those ensembles to predict experimental results. The goal of chiLife is to provide a 
 simple, flexible and interoperable python interface to protein side chain ensemble modeling, allowing for rapid 
-development of custom analysis and modeling pipelines. Simplicity is facilitated by the use of `RotamerEnsemble` and 
+development of custom analysis and modeling pipelines.  This is facilitated by the use of `RotamerEnsemble` and 
 `SpinLabel` objects with standard interfaces for all supported side chain types, side chain modeling methods and 
 protein modeling methods. Flexibility is achieved by allowing users to create and use custom `RotamerEnsemble` and 
 `SpinLabel` objects as well as custom side chain modeling methods. Interoperability sought by interactions with other 
@@ -43,8 +43,8 @@ import chilife as xl
 MBP = xl.fetch('1omp', save=True)
 
 # Create Spin lables
-SL1 = xl.SpinLabel('R1C', site=20, chain='A', protein=MBP)
-SL2 = xl.SpinLabel('R1C', site=238, chain='A', protein=MBP)
+SL1 = xl.SpinLabel('R1M', site=20, chain='A', protein=MBP)
+SL2 = xl.SpinLabel('R1M', site=238, chain='A', protein=MBP)
 
 # Calculate distribution
 r = np.linspace(0, 100, 256)
@@ -102,10 +102,10 @@ import chilife as xl
 MBP = xl.fetch('1omp')
 
 # Create a SpinLabel object using the MTSSLWizard 'Accessible Volume' Approach
-SL1 = xl.SpinLabel.from_wizard('R1C', site=20, chain='A', protein=MBP)
+SL1 = xl.SpinLabel.from_wizard('R1M', site=20, chain='A', protein=MBP)
 
 # Create a SpinLabel object by sampling off-rotamer dihedral conformations using the rotamer library as a prior 
-SL2 = xl.SpinLabel('R1C', site=238, chain='A', sample=2000, protein=MBP)
+SL2 = xl.SpinLabel('R1M', site=238, chain='A', sample=2000, protein=MBP)
 
 # Create a SpinLabel object from a ProEPR.repack trajectory
 traj, de = xl.repack(SL1, SL2, protein=MBP)
@@ -140,7 +140,7 @@ the most probable spin label conformer. This can be done easily with the `mutate
 import chilife as xl
 
 MBP = xl.fetch('1omp')
-SL = xl.SpinLabel('R1C', 238, protein=MBP)
+SL = xl.SpinLabel('R1M', 238, protein=MBP)
 MBP_S238R1 = xl.mutate(MBP, SL)
 xl.save('MBP_S238R1.pdb', MBP_S238R1)
 ```
@@ -148,8 +148,8 @@ xl.save('MBP_S238R1.pdb', MBP_S238R1)
 chiLife can actually mutate several sites at once, and can mutate canonical amino acids as well.
 
 ```python
-SL1 = xl.SpinLabel('R1C', 20, protein=MBP)
-SL2 = xl.SpinLabel('R1C', 238, protein=MBP)
+SL1 = xl.SpinLabel('R1M', 20, protein=MBP)
+SL2 = xl.SpinLabel('R1M', 238, protein=MBP)
 L284V = xl.RotamerEnsemble('VAL', 284, protein=MBP)
 ```
 
@@ -197,7 +197,7 @@ forthcoming chiLife rotamer library repository.
 User defined labels can be constructed from a single state pdb file or a multi-state PDB file. If constructed from a 
 single state pdb file a list of dihedral angles and weights can be passed via the `dihedrals` and `weigts` keyword
 arguments. For each set of dihedral angles, chiLife create a rotamer and store the whole library using the specified 
-name. Alternatively using a multi-state PDB file can add some additional information, such as isomeric heterogenity of 
+name. Alternatively using a multi-state PDB file can add some additional information, such as isomeric heterogeneity of 
 the rotamer library, which will be maintained by chiLife.
 
-For more information on how to use chiLife as a python module, see [examples](#examples/)
+For more information on how to use chiLife as a python module, see [examples](https://stolllab.github.io/chiLife/examples.html)

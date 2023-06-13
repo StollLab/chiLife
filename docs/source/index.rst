@@ -8,11 +8,11 @@
     
     chilife
     rotamer_ensemble
-    spin_label
+    rotamer_libraries
     protein
     utils
     examples
-
+    faqs
 
 Indices and tables
 ==================

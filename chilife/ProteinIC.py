@@ -250,7 +250,7 @@ class ProteinIC:
         if coords.shape != self._coords.shape:
             raise ValueError('the coordinate array supplied does not match the ProteinIC object coords array')
         if len(self.zmats) > 1:
-            raise NotImplementedError('ProteinIC does not currently support cartesian coordinate assignemnt for '
+            raise NotImplementedError('ProteinIC does not currently support cartesian coordinate assignment for '
                                       'multichain structures.')
         chain = self.chains[0]
         for idx, coord in enumerate(coords):
@@ -458,10 +458,10 @@ class ProteinIC:
 
         Parameters
         ----------
-ond        p : ArrayLike
+        p : ArrayLike
             Three 3D cartesian coordinates defining the site to move the ProteinIC object to.
         method : str
-            Alignment method to use. See :mod:`Alignment Methods <chiLife.superimpositions>` .
+            Alignment method to use. See :doc:`Alignment Methods <alignments>` .
 
         """
         p1, p2, p3 = p
@@ -963,7 +963,7 @@ def get_internal_coords(
                     dihedrals[didx] = dihedral
 
         if not present and preferred_dihedrals != []:
-            raise ValueError(f'There is no dihedral `{dihe}` in the provided protien. Perhaps there is typo or the '
+            raise ValueError(f'There is no dihedral `{dihe}` in the provided protein. Perhaps there is typo or the '
                              f'atoms are not sorted correctly')
 
     idxstop = [i for i, sub in enumerate(dihedrals) if len(sub) == 1]

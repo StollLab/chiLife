@@ -401,17 +401,14 @@ def write_protein(pdb_file: TextIO, protein: Union[mda.Universe, mda.AtomGroup])
 
 def write_ic(pdbfile: TextIO, ic: chilife.ProteinIC) -> None:
     """
-    Write a chilife.ProteinIC internal coordinates object to a pdb file.
-      Parameters
+    Write a :class:`chilife.ProteinIC` internal coordinates object to a pdb file.
+
+    Parameters
     ----------
-    file : TextIO
+    pdbfile : TextIO
         open file or io object.
     ic: chilife.ProteinIC
         chiLife internal coordinates object.
-
-    Returns
-    -------
-    None
     """
     pdbfile.write('MODEL\n')
     for atom, coord in zip(ic.atoms, ic.coords):

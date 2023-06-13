@@ -16,6 +16,7 @@ from scipy.spatial import cKDTree
 #   Feature: Add from_mda class method.
 
 class MolecularSystem:
+    """Base class for molecular systems"""
 
     def __getattr__(self, item):
         if item == 'trajectory':
@@ -115,6 +116,7 @@ class MolecularSystem:
 
 
 class Protein(MolecularSystem):
+    """Protein object"""
     def __init__(
             self,
             atomids: np.ndarray,

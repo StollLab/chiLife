@@ -128,3 +128,42 @@ def test_get_zmat_idxs():
     idxs, stem, idx = R1A_IC.get_zmat_idxs(1, ['CE', 'SD', 'SG', 'CB'], 1)
     assert stem == ('SD', 'SG', 'CB')
     assert idx == 0
+
+def test_phi_idxs():
+
+    # Still need to test chain
+
+    idxs = ICs.phi_idxs(range(4, 11,))
+    vals = ICs.zmats[1][idxs, -1]
+    ans = [ICs.get_dihedral(i, ('C', 'N', 'CA', 'C')) for i in range(4, 11)]
+
+    np.testing.assert_almost_equal(vals, ans)
+
+    idx = ICs.phi_idxs(1)
+    assert np.isnan(ICs.zmats[1][idx, -1])
+
+
+def test_psi_idxs():
+
+    # Still need to test chain
+
+    idxs = ICs.psi_idxs(range(4, 11,))
+    vals = ICs.zmats[1][idxs, -1]
+    ans = [ICs.get_dihedral(i, ('N', 'CA', 'C', 'N')) for i in range(4, 11)]
+
+    np.testing.assert_almost_equal(vals, ans)
+
+    idx = ICs.psi_idxs(76)
+    assert idx == []
+
+
+def test_chi_idxs():
+    idxs = ICs.chi_idxs(range(4, 11, ))
+    idxs = np.concatenate(idxs)
+
+    vals = ICs.zmats[1][idxs, -1]
+    ans = np.array([-1.0589305, -3.1378433, -3.0641198,  1.338909 , -1.1897472,
+                     1.2340594,  1.7094074,  3.0752275, -2.8944212, -3.0027205,
+                    -3.040881 ])
+
+    np.testing.assert_almost_equal(vals, ans)

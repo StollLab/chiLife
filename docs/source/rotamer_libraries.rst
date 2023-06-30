@@ -42,16 +42,16 @@ The fastest and simplest way to develop a rotamer "library" is to create a PDB f
 rotamer attached to a protein backbone. This can be done with several molecular modeling applications like PyMol,
 Avogadro, OpenBabel, etc. Ideally the rotamer's geometry is optimized before passing it to chiLife, either with a
 molecular mechanics forcefield like MMFF94, or better yet by DFT with an application like ORCA or Gaussian. For example,
-we could create a completely fictional spin label that we will call "NSL":
+we could create a "library" of the bio-orthogonal label developed by Kugele et al, NOBA:
 
-.. image:: _static/mono_NSL.png
+.. image:: _static/mono_NOBA.png
 
 Once a PDB structure is generated it can be added by passing the rotlib name and pdb file to the
 :func:`~chilife.chilife.create_library` function:
 
 ..  code-block::
 
-    xl.create_library('NSL', 'NSL.pdb')
+    xl.create_library('NBA', 'NOBA.pdb')
 
 .. note::
     All labels in a pdb file passed to :func:`~chilife.chilife.create_rotlib` must have the backbone atoms named using
@@ -67,6 +67,26 @@ To allow our side chain a little flexibility we can tell chiLife what the mobile
 
 Defining Mobile Dihedrals
 --------------------------
+
+Most spin labels will have several side chain dihedral angles, some of which will be relatively fixed due to strong
+constraints (e.g. rings) and others that will be free to rotate (e.g. χ4 and χ5 of R1) allowing for alternate
+conformational states (rotamers).
+
+.. image:: _static/fixed_and_flex_dihedrals.png
+
+Because the potential energy differences between rotameric states are generally far lower than bond or angle
+distortions, rotations about dihedral angles generally account for the vast majority of label conformational diversity.
+chiLife models this conformational diversity by fixing bond lengths and bond angles while allowing rotations about a
+user defined subset of dihedrals. Without knowing anything about the potential energy surface of the
+
+Rotation about the dihedral angles are generally the lowest energy pathways to
+rotamers that accommodate internal or external clashes. For long, flexible labels like R1, many conformational states will be so close
+in free energy that sever
+Accordingly the vast majority of conformational diversty of a spin label comes from
+
+
+
+Mobile dihedrals are defined using the ``dihedral_atoms`` keyword argument.
 
 Setting Rotamer Dihedrals
 -------------------------

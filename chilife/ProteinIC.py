@@ -657,7 +657,9 @@ class ProteinIC:
         idxs =  np.argwhere((self.atom_names == 'C')).flatten()
         if resnums is not None:
             idxs = [idx for idx in idxs if self.atoms[idx].resi in np.atleast_1d(resnums)]
-
+        idxs = np.asarray(idxs)
+        if len(idxs) > 0:
+            idxs = idxs[~np.isnan(self.zmats[chain][idxs, 2])]
         return idxs
 
     def psi_idxs(self, resnums: ArrayLike = None, chain: Union[int, str] = None):
@@ -682,7 +684,9 @@ class ProteinIC:
         if resnums is not None:
             resnums = np.atleast_1d(resnums) + 1
             idxs = [idx for idx in idxs if self.atoms[idx].resi in resnums]
-
+        idxs = np.asarray(idxs)
+        if len(idxs) > 0:
+            idxs = idxs[~np.isnan(self.zmats[chain][idxs, 2])]
         return idxs
 
     def chi_idxs(self, resnums: ArrayLike = None, chain: Union[int, str] = None):
@@ -724,6 +728,9 @@ class ProteinIC:
 
         return chi_idxs
 
+    def bb_idxs(self,  resnums: ArrayLike = None, chain: Union[int, str] = None):
+        return np.concatenate((self.phi_idxs(resnums, chain), self.psi_idxs(resnums, chain)))
+
     def _check_chain(self, chain):
         if chain is None and len(self.ICs) == 1:
             chain = list(self.ICs.keys())[0]
@@ -732,6 +739,7 @@ class ProteinIC:
             raise ValueError("You must specify the protein chain")
 
         return chain
+
 
 @dataclass
 class ICAtom:

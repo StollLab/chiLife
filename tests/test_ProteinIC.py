@@ -140,7 +140,7 @@ def test_phi_idxs():
     np.testing.assert_almost_equal(vals, ans)
 
     idx = ICs.phi_idxs(1)
-    assert np.isnan(ICs.zmats[1][idx, -1])
+    assert len(idx) == 0
 
 
 def test_psi_idxs():
@@ -154,7 +154,7 @@ def test_psi_idxs():
     np.testing.assert_almost_equal(vals, ans)
 
     idx = ICs.psi_idxs(76)
-    assert idx == []
+    assert len(idx) == 0
 
 
 def test_chi_idxs():

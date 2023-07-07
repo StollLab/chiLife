@@ -711,7 +711,8 @@ class RotamerEnsemble:
 
         self.weights *= np.exp(-scores / (chilife.GAS_CONST * self.temp) / np.exp(-scores).sum())
         self.weights /= self.weights.sum()
-        self.trim_rotamers()
+        if self._do_trim:
+            self.trim_rotamers()
 
     def _objective(self, dihedrals, ic1, dummy):
         """
@@ -831,7 +832,8 @@ class RotamerEnsemble:
         logging.info(f"Relative partition function: {self.partition:.3}")
 
         # Remove low-weight rotamers from ensemble
-        self.trim_rotamers()
+        if self._do_trim:
+            self.trim_rotamers()
 
     def save_pdb(self, name: str = None) -> None:
         """
@@ -1217,6 +1219,7 @@ def assign_defaults(kwargs):
         "energy_func": chilife.get_lj_rep,
         "_minimize": kwargs.pop('minimize', False),
         "min_method": 'L-BFGS-B',
+        "_do_trim": kwargs.pop('trim', True),
         "trim_tol": 0.005,
     }
 

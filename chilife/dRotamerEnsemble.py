@@ -38,6 +38,7 @@ class dRotamerEnsemble:
         self._minimize = kwargs.pop("minimize", True)
         self.min_method = kwargs.pop('min_method', 'L-BFGS-B')
         self.trim_tol = kwargs.pop('trim_tol', 0.005)
+        self._do_trim = kwargs.pop('trim', True)
         self.eval_clash = kwargs.pop("eval_clash", True)
         self.energy_func = kwargs.setdefault("energy_func", chilife.get_lj_energy)
         self.temp = kwargs.setdefault("temp", 298)
@@ -486,7 +487,8 @@ class dRotamerEnsemble:
         logging.info(f"Relative partition function: {self.partition:.3}")
 
         # Remove low-weight rotamers from ensemble
-        self.trim_rotamers()
+        if self._do_trim:
+            self.trim_rotamers()
 
     def __len__(self):
         """Return the length of the rotamer library (number of rotamers)"""

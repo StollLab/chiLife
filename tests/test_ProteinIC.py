@@ -156,6 +156,21 @@ def test_psi_idxs():
     idx = ICs.psi_idxs(76)
     assert len(idx) == 0
 
+def test_phi_psi_idxs_multichain():
+    prot = xl.fetch('1a2w').select_atoms('protein')
+    ICs = xl.get_internal_coords(prot)
+
+    with pytest.raises(ValueError):
+        ICs.psi_idxs(10)
+
+    with pytest.raises(ValueError):
+        ICs.psi_idxs(10)
+
+    A = ICs.psi_idxs(10, chain=2)
+    B = ICs.phi_idxs(10, chain=2)
+
+    assert A[0] == 80
+    assert B[0] == 71
 
 def test_chi_idxs():
     idxs = ICs.chi_idxs(range(4, 11, ))

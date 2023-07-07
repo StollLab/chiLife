@@ -82,6 +82,7 @@ class ProteinIC:
         """
         self.zmats = zmats
         self.zmat_idxs = zmat_idxs
+        self.atom_chains = np.concatenate([[key] * len(zmats[key]) for key in zmats])
         self.atom_dict = atom_dict
         self.ICs = ICs
         self.atoms = np.asarray(kwargs['atoms']) if 'atoms' in kwargs else np.array([ic for chain in self.ICs.values()
@@ -654,9 +655,10 @@ class ProteinIC:
             Array of indices corresponding to the phi dihedral angles of the selected residues on the chain
         """
         chain = self._check_chain(chain)
-        idxs =  np.argwhere((self.atom_names == 'C')).flatten()
+        idxs =  np.argwhere((self.atom_names == 'C') * (self.atom_chains == chain)).flatten()
         if resnums is not None:
-            idxs = [idx for idx in idxs if self.atoms[idx].resi in np.atleast_1d(resnums)]
+            resnums = np.atleast_1d(resnums)
+            idxs = [self.atoms[idx].index for idx in idxs if (self.atoms[idx].resi in resnums)]
         idxs = np.asarray(idxs)
         if len(idxs) > 0:
             idxs = idxs[~np.isnan(self.zmats[chain][idxs, 2])]
@@ -683,8 +685,9 @@ class ProteinIC:
         idxs = np.argwhere((self.atom_names == 'N')).flatten()
         if resnums is not None:
             resnums = np.atleast_1d(resnums) + 1
-            idxs = [idx for idx in idxs if self.atoms[idx].resi in resnums]
+            idxs = [self.atoms[idx].index for idx in idxs if (self.atoms[idx].resi in resnums)]
         idxs = np.asarray(idxs)
+
         if len(idxs) > 0:
             idxs = idxs[~np.isnan(self.zmats[chain][idxs, 2])]
         return idxs
@@ -713,9 +716,8 @@ class ProteinIC:
         """
         chain = self._check_chain(chain)
         chi_idxs = []
-        finished = False
         active_resnums = resnums if resnums is not None else self.resis.copy()
-
+        
         max_len = 0
         for res in active_resnums:
             defs = dihedral_defs[self.resnames[res]]

@@ -44,7 +44,7 @@ def clash_only(func):
         forgive = kwargs.get("forgive", 1)
         _protein = kwargs.pop('protein', None)
 
-        if isinstance(system, (chilife.RotamerEnsemble, chilife.dSpinLabel)):
+        if isinstance(system, (chilife.RotamerEnsemble, chilife.dRotamerEnsemble)):
             if system.protein is None and _protein is not None:
                 system.protein = _protein
 

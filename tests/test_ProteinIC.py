@@ -182,3 +182,16 @@ def test_chi_idxs():
                     -3.040881 ])
 
     np.testing.assert_almost_equal(vals, ans)
+
+def test_ic_pref_dihe():
+
+    mol = mda.Universe('test_data/test_ic_pref_dihe.pdb', in_memory=True)
+    dih = [['N', 'CA', 'CB', 'CB2'],
+           ['CA', 'CB', 'CB2', 'NG'],
+           ['ND', 'CE3', 'CZ3', 'C31']]
+
+    IC = xl.get_internal_coords(mol, preferred_dihedrals=dih)
+    IC.set_dihedral(np.pi / 2, 1, ['ND', 'CE3', 'CZ3', 'C31'])
+
+    sister_dihe_atom_coords = IC.coords[IC.atom_names == 'C36'].flat
+    np.testing.assert_almost_equal( sister_dihe_atom_coords, [2.14953486, -3.40647599, -0.93880627])

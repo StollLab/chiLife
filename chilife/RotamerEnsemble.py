@@ -1,4 +1,6 @@
+import inspect
 from copy import deepcopy
+from functools import partial
 from pathlib import Path
 import logging
 import numpy as np
@@ -703,10 +705,10 @@ class RotamerEnsemble:
         """
         self.current_weight = weight
 
-    def minimize(self):
+    def minimize(self, callback=None):
         dummy = self.copy()
 
-        scores = np.array([self._min_one(i, ic, dummy) for i, ic in enumerate(self.internal_coords)])
+        scores = np.array([self._min_one(i, ic, dummy, callback=callback) for i, ic in enumerate(self.internal_coords)])
         scores -= scores.min()
 
         self.weights *= np.exp(-scores / (chilife.GAS_CONST * self.temp) / np.exp(-scores).sum())
@@ -751,7 +753,7 @@ class RotamerEnsemble:
         energy = external_energy.sum() + internal_energy.sum()
         return energy
 
-    def _min_one(self, i, ic, dummy):
+    def _min_one(self, i, ic, dummy, callback=None):
         """
         Perform a single minimization on a member of the underlying rotamer library in dihedral space.
 
@@ -770,13 +772,18 @@ class RotamerEnsemble:
             The final minimized "energy" of the objective function plus a modifier based on the deviations from the
             parent rotamer in the rotamer library.
         """
+        if callback is not None:
+            if 'i' in inspect.signature(callback).parameters:
+                callback = partial(callback, i=i)
 
         d0 = ic.get_dihedral(1, self.dihedral_atoms)
 
         lb = d0 - np.deg2rad(40)
         ub = d0 + np.deg2rad(40)  #
         bounds = np.c_[lb, ub]
-        xopt = opt.minimize(self._objective, x0=d0, args=(ic, dummy), bounds=bounds, method=self.min_method)
+        xopt = opt.minimize(self._objective, x0=d0, args=(ic, dummy),
+                            bounds=bounds, method=self.min_method,
+                            callback=callback)
         self._coords[i] = ic.coords[self.ic_mask]
         tors = d0 - xopt.x
         tors = np.arctan2(np.sin(tors), np.cos(tors))

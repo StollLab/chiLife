@@ -1103,6 +1103,11 @@ def get_internal_coords(
                     didx = np.argwhere(atom_idxs == dihedral[-1]).flatten()[0]
                     dihedrals[didx] = dihedral
 
+                    # also change any other dependent dihedrals
+                    for dihe_idxs in dihedrals[dihedral[-2]:]:
+                        if dihe_idxs[1] == dihedral[1] and dihe_idxs[2] == dihedral[2]:
+                            dihe_idxs[0] = dihedral[0]
+
         if not present and preferred_dihedrals != []:
             raise ValueError(f'There is no dihedral `{dihe}` in the provided protein. Perhaps there is typo or the '
                              f'atoms are not sorted correctly')

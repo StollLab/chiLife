@@ -128,3 +128,57 @@ def test_get_zmat_idxs():
     idxs, stem, idx = R1A_IC.get_zmat_idxs(1, ['CE', 'SD', 'SG', 'CB'], 1)
     assert stem == ('SD', 'SG', 'CB')
     assert idx == 0
+
+def test_phi_idxs():
+
+    # Still need to test chain
+
+    idxs = ICs.phi_idxs(range(4, 11,))
+    vals = ICs.zmats[1][idxs, -1]
+    ans = [ICs.get_dihedral(i, ('C', 'N', 'CA', 'C')) for i in range(4, 11)]
+
+    np.testing.assert_almost_equal(vals, ans)
+
+    idx = ICs.phi_idxs(1)
+    assert len(idx) == 0
+
+
+def test_psi_idxs():
+
+    # Still need to test chain
+
+    idxs = ICs.psi_idxs(range(4, 11,))
+    vals = ICs.zmats[1][idxs, -1]
+    ans = [ICs.get_dihedral(i, ('N', 'CA', 'C', 'N')) for i in range(4, 11)]
+
+    np.testing.assert_almost_equal(vals, ans)
+
+    idx = ICs.psi_idxs(76)
+    assert len(idx) == 0
+
+def test_phi_psi_idxs_multichain():
+    prot = xl.fetch('1a2w').select_atoms('protein')
+    ICs = xl.get_internal_coords(prot)
+
+    with pytest.raises(ValueError):
+        ICs.psi_idxs(10)
+
+    with pytest.raises(ValueError):
+        ICs.psi_idxs(10)
+
+    A = ICs.psi_idxs(10, chain=2)
+    B = ICs.phi_idxs(10, chain=2)
+
+    assert A[0] == 80
+    assert B[0] == 71
+
+def test_chi_idxs():
+    idxs = ICs.chi_idxs(range(4, 11, ))
+    idxs = np.concatenate(idxs)
+
+    vals = ICs.zmats[1][idxs, -1]
+    ans = np.array([-1.0589305, -3.1378433, -3.0641198,  1.338909 , -1.1897472,
+                     1.2340594,  1.7094074,  3.0752275, -2.8944212, -3.0027205,
+                    -3.040881 ])
+
+    np.testing.assert_almost_equal(vals, ans)

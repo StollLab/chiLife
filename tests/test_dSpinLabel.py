@@ -141,3 +141,14 @@ def test_no_min():
     for conf in SL2.coords:
         # Decimal = 1 because bisect alignment does not place exactly by definition
         np.testing.assert_almost_equal(conf[bb_idx], bb_coords, decimal=1)
+
+
+def test_trim_false():
+    SL1 = xl.dSpinLabel('DHC', (28, 32), gb1, trim=False)
+    SL3 = xl.dSpinLabel('DHC', (28, 32), gb1, eval_clash=False)
+
+    assert len(SL1) == len(SL3)
+    most_probable = np.sort(SL1.weights)[::-1][:len(SL2)]
+    most_probable /= most_probable.sum()
+    np.testing.assert_almost_equal(SL2.weights, most_probable)
+    assert np.any(np.not_equal(SL1.weights, SL3.weights))

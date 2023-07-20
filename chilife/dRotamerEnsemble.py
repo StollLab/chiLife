@@ -3,6 +3,8 @@ from copy import deepcopy
 from itertools import combinations
 import logging
 import warnings
+import inspect
+from functools import partial
 from pathlib import Path
 
 import numpy as np
@@ -240,9 +242,9 @@ class dRotamerEnsemble:
 
         chilife.save(name, self.RE1, self.RE2)
 
-    def minimize(self):
+    def minimize(self, callback=None):
 
-        scores = [self._min_one(i, ic1, ic2) for i, (ic1, ic2) in
+        scores = [self._min_one(i, ic1, ic2, callback=callback) for i, (ic1, ic2) in
                   enumerate(zip(self.RE1.internal_coords, self.RE2.internal_coords))]
 
         scores = np.asarray(scores)
@@ -291,7 +293,11 @@ class dRotamerEnsemble:
 
         return score
 
-    def _min_one(self, i, ic1, ic2):
+    def _min_one(self, i, ic1, ic2, callback=None):
+        if callback is not None:
+            if 'i' in inspect.signature(callback).parameters:
+                callback = partial(callback, i=i)
+
 
         d0 = np.concatenate([ic1.get_dihedral(1, self.RE1.dihedral_atoms),
                              ic2.get_dihedral(1, self.RE2.dihedral_atoms)])
@@ -299,7 +305,9 @@ class dRotamerEnsemble:
         lb = d0 - np.pi  # np.deg2rad(40)
         ub = d0 + np.pi  # np.deg2rad(40) #
         bounds = np.c_[lb, ub]
-        xopt = opt.minimize(self._objective, x0=d0, args=(ic1, ic2), bounds=bounds, method=self.min_method)
+        xopt = opt.minimize(self._objective, x0=d0, args=(ic1, ic2),
+                            bounds=bounds, method=self.min_method,
+                            callback=callback)
         self.RE1._coords[i] = ic1.coords[self.RE1.H_mask]
         self.RE2._coords[i] = ic2.coords[self.RE2.H_mask]
         tors = d0 - xopt.x

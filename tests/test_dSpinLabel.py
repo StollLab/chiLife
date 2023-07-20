@@ -152,3 +152,16 @@ def test_trim_false():
     most_probable /= most_probable.sum()
     np.testing.assert_almost_equal(SL2.weights, most_probable)
     assert np.any(np.not_equal(SL1.weights, SL3.weights))
+
+def test_dmin_callback():
+    vals = []
+    ivals = []
+    def my_callback(val, i):
+        vals.append(val)
+        ivals.append(i)
+
+    SL1 = xl.dRotamerEnsemble('DHC', (28, 32), gb1, minimize=False)
+    SL1.minimize(callback=my_callback)
+
+    assert len(vals) > 0
+    assert len(ivals) > 0

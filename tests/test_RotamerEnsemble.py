@@ -382,3 +382,16 @@ def test_trim_false():
     most_probable /= most_probable.sum()
     np.testing.assert_almost_equal(rot1.weights, most_probable)
     assert np.any(np.not_equal(rot2.weights, rot3.weights))
+
+def test_min_callback():
+    vals = []
+    ivals = []
+    def my_callback(val, i):
+        vals.append(val)
+        ivals.append(i)
+
+    SL1 = chilife.RotamerEnsemble('ARG', 28, ubq)
+    SL1.minimize(callback=my_callback)
+
+    assert len(vals) > 0
+    assert len(ivals) > 0

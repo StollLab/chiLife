@@ -23,7 +23,7 @@ class PostInstall(install):
 
 setup(
     name='chilife',
-    version='0.1.10-1',
+    version='0.1.10-2',
     python_requires='>=3.8',
     packages=['chilife'],
     package_data={'chilife': ['data/*', 'data/*/*', 'data/*/*/*']},

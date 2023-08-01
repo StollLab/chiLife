@@ -3,7 +3,7 @@ from setuptools.command.install import install
 from pathlib import Path
 import shutil
 
-with open('README.md', 'r') as f:
+with open('README.md', 'r', encoding='utf8') as f:
     readme = f.read()
 
 
@@ -23,7 +23,7 @@ class PostInstall(install):
 
 setup(
     name='chilife',
-    version='0.1.10',
+    version='0.1.10-2',
     python_requires='>=3.8',
     packages=['chilife'],
     package_data={'chilife': ['data/*', 'data/*/*', 'data/*/*/*']},
@@ -48,7 +48,7 @@ setup(
     keywords=['Spin label', 'EPR', 'DEER', 'PELDOR', 'Side chain'],
     description='A package for modeling non-canonical amino acid side chain ensembles.',
     long_description=readme,
-    long_description_content_type = 'text/markdown',
+    long_description_content_type='text/markdown',
     cmdclass={'install': PostInstall},
     classifiers=['License :: OSI Approved :: GNU General Public License v3 (GPLv3)',
                  'Programming Language :: Python :: 3.8',

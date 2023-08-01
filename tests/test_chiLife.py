@@ -446,3 +446,14 @@ def test_chilife_mplstyle():
         assert test_file.exists()
 
     plt.style.use('chiLife')
+
+
+def test_repack_with_custom_rotlib():
+    np.random.seed(0)
+
+    XYZ41 = chilife.SpinLabel('XYZ', 41, omp, rotlib='test_data/usr_rtlb/XYZ_rotlib.npz')
+
+    traj, dE = chilife.repack(omp, XYZ41, repetitions=50, temp=298, off_rotamer=True, repack_radius=10)
+    T4L131R9R = chilife.SpinLabel.from_trajectory(traj, 41, burn_in=5, spin_atoms=XYZ41.spin_atoms)
+
+    assert len(T4L131R9R) > 1

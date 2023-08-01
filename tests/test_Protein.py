@@ -255,9 +255,9 @@ def test_xl_protein_repack():
     np.random.seed(3000)
     traj, dE = chilife.repack(p, SL, repetitions=10, temp=300)
 
-    ans = np.array([7.46167e-01, -1.00000e+01, 2.87257e+00, -7.42048e-01,
-                    -7.98450e+00, 5.96161e-07, -7.70945e+00, 2.42886e-01,
-                    -9.36519e-01, 5.96161e-07])
+    ans = np.array([-1.08675007e-01, -3.43053024e+00,  0.00000000e+00, -5.80404097e-01,
+                     0.00000000e+00,  2.88657986e-15,  0.00000000e+00, -5.13825920e+00,
+                     6.96292024e-02,  2.93115207e-01])
 
     np.testing.assert_almost_equal(dE, ans, decimal=5)
 

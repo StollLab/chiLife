@@ -395,3 +395,15 @@ def test_min_callback():
 
     assert len(vals) > 0
     assert len(ivals) > 0
+
+def test_copy():
+    pass
+
+def test_copy_custom_lib():
+    XYZ41 = chilife.SpinLabel('XYZ', 28, ubq, rotlib='test_data/usr_rtlb/XYZ_rotlib.npz')
+    x2 = XYZ41.copy()
+    x2.coords.shape == XYZ41.coords.shape
+    # for key in ['_coords', ]
+
+
+

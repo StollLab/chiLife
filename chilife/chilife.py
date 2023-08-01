@@ -320,9 +320,7 @@ def repack(
     protein = mutate(protein, *spin_labels, **kwargs).atoms
 
     # Determine the residues near the spin label that will be repacked
-    repack_residues = protein.select_atoms(
-        f"(around {repack_radius} {spin_label_str} ) or {spin_label_str}"
-    ).residues
+    repack_residues = protein.select_atoms(f"around {repack_radius} {spin_label_str}").residues
 
     repack_res_kwargs = spin_labels[0].input_kwargs
     repack_res_kwargs['eval_clash'] = False
@@ -332,13 +330,12 @@ def repack(
         if res.resname not in ["GLY", "ALA"]
            and res.resname in chilife.SUPPORTED_RESIDUES
     ]
+    repack_residue_libraries += list(spin_labels)
 
     # Create new labeled protein construct to fill in any missing atoms of repack residues
     protein = mutate(protein, *repack_residue_libraries, **kwargs).atoms
 
-    repack_residues = protein.select_atoms(
-        f"(around {repack_radius} {spin_label_str} ) " f"or {spin_label_str}"
-    ).residues
+    repack_residues = protein.select_atoms(f"around {repack_radius} {spin_label_str}").residues
 
     repack_residue_libraries = [
         RotamerEnsemble.from_mda(res, **repack_res_kwargs)
@@ -346,13 +343,17 @@ def repack(
         if res.resname not in ["GLY", "ALA"]
            and res.resname in chilife.SUPPORTED_RESIDUES
     ]
+    repack_residue_libraries += [RotamerEnsemble(RL.res, RL.site, protein, rotlib=RL._rotlib, **repack_res_kwargs)
+                                    for RL in spin_labels]
 
     traj = np.empty((repetitions, *protein.positions.shape))
     deltaEs = []
 
     sample_freq = np.array(
-        [len(res._weights) for res in repack_residue_libraries], dtype=np.float64
+        [len(res.dihedral_atoms) for res in repack_residue_libraries], dtype=np.float64
     )
+    mean = sample_freq[sample_freq > 1].mean()
+    sample_freq[sample_freq == 1] = mean
     sample_freq /= sample_freq.sum()
 
     count = 0

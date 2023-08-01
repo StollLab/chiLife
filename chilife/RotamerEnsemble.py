@@ -118,6 +118,7 @@ class RotamerEnsemble:
 
         self.ic_mask = [np.argwhere(self.internal_coords[0].atom_names == a).flat[0] for a in self.atom_names]
         self._lib_coords = self._coords.copy()
+        self._lib_dihedrals = self._dihedrals.copy()
         self._lib_IC = self.internal_coords
 
         if self.clash_radius is None:
@@ -414,17 +415,16 @@ class RotamerEnsemble:
         new_copy : chilife.RotamerEnsemble
             A deep copy of the original RotamerLibrary
         """
-        new_copy = self._base_copy(rotlib)
-
+        new_copy = self._base_copy(self._rotlib)
         for item in self.__dict__:
             if isinstance(item, np.ndarray):
                 new_copy.__dict__[item] = self.__dict__[item].copy()
-            if item != "protein":
+            elif item not in  ("protein", '_lib_IC', '_rotlib', 'internal_coords'):
                 new_copy.__dict__[item] = deepcopy(self.__dict__[item])
             elif self.__dict__[item] is None:
                 new_copy.protein = None
             else:
-                new_copy.protein = self.protein
+                new_copy.__dict__[item] = self.__dict__[item]
 
         if site is not None:
             new_copy.site = site
@@ -932,11 +932,12 @@ class RotamerEnsemble:
         lib['internal_coords'] = [a.copy() for a in lib['internal_coords']]
 
         # Modify library to be appropriately used with self.__dict__.update
-        lib['_coords'] = lib.pop('coords')
-        lib['_dihedrals'] = lib.pop('dihedrals')
+        self._rotlib = {key: value.copy() if hasattr(value, 'copy') else value for key, value in lib.items()}
+
+        lib['_coords'] = lib.pop('coords').copy()
+        lib['_dihedrals'] = lib.pop('dihedrals').copy()
         if 'skews' not in lib:
             lib['skews'] = None
-
         return lib
 
     def protein_setup(self):

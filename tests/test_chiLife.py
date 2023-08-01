@@ -456,6 +456,4 @@ def test_repack_with_custom_rotlib():
     traj, dE = chilife.repack(omp, XYZ41, repetitions=50, temp=298, off_rotamer=True, repack_radius=10)
     T4L131R9R = chilife.SpinLabel.from_trajectory(traj, 41, burn_in=5, spin_atoms=XYZ41.spin_atoms)
 
-    chilife.save('traj.pdb', T4L131R9R, omp)
-
     assert len(T4L131R9R) > 1

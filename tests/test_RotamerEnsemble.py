@@ -396,14 +396,16 @@ def test_min_callback():
     assert len(vals) > 0
     assert len(ivals) > 0
 
-def test_copy():
-    pass
 
 def test_copy_custom_lib():
     XYZ41 = chilife.SpinLabel('XYZ', 28, ubq, rotlib='test_data/usr_rtlb/XYZ_rotlib.npz')
     x2 = XYZ41.copy()
-    x2.coords.shape == XYZ41.coords.shape
-    # for key in ['_coords', ]
 
+
+def test_from_wizard_custom_rotlib():
+    np.random.seed(0)
+    A28NBA = chilife.SpinLabel.from_wizard('TES', 28, ubq, rotlib='test_data/usr_rtlb/NBA_rotlib.npz')
+    ans = np.load('test_data/from_wiz_cust.npy')
+    np.testing.assert_almost_equal(A28NBA.coords, ans, decimal=5)
 
 

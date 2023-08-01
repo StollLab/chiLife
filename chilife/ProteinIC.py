@@ -477,8 +477,6 @@ class ProteinIC:
             IC_idx_array, ICArray = self.zmat_idxs[segid], self.zmats[segid]
             cart_coords = _ic_to_cart(IC_idx_array, ICArray)
 
-
-
             # Apply chain operations if any exist
             if self.has_chain_operators:
                 cart_coords = cart_coords @ self.chain_operators[segid]["mx"] + self.chain_operators[segid]["ori"]

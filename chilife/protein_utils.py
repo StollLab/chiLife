@@ -893,7 +893,8 @@ def sort_pdb(pdbfile: Union[str, List[str], List[List[str]]],
 
             else:
                 # Calculate the shared topology and force it
-                min_bonds_list = get_min_topol(lines[start_idxs[0]:end_idxs[0]], forced_bonds=bonds)
+                atom_lines = [lines[s:e] for s, e in zip(start_idxs, end_idxs)]
+                min_bonds_list = get_min_topol(atom_lines, forced_bonds=bonds)
                 idxs = _sort_pdb_lines(lines[start_idxs[0]:end_idxs[0]], bonds=min_bonds_list, index=True, **kwargs)
 
             if isinstance(idxs, tuple):

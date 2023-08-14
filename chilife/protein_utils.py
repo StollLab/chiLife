@@ -754,6 +754,7 @@ def guess_bonds(coords: ArrayLike, atom_types: ArrayLike) -> np.ndarray:
     bonds : np.ndarray
         An array of the atom index pairs corresponding to the atom pairs that are thought ot form bonds.
     """
+    atom_types = np.array([a.title() for a in atom_types])
     kdtree = cKDTree(coords)
     pairs = kdtree.query_pairs(4., output_type='ndarray')
     pair_names = [tuple(x) for x in atom_types[pairs].tolist()]
@@ -892,7 +893,8 @@ def sort_pdb(pdbfile: Union[str, List[str], List[List[str]]],
 
             else:
                 # Calculate the shared topology and force it
-                min_bonds_list = get_min_topol(lines[start_idxs[0]:end_idxs[0]], forced_bonds=bonds)
+                atom_lines = [lines[s:e] for s, e in zip(start_idxs, end_idxs)]
+                min_bonds_list = get_min_topol(atom_lines, forced_bonds=bonds)
                 idxs = _sort_pdb_lines(lines[start_idxs[0]:end_idxs[0]], bonds=min_bonds_list, index=True, **kwargs)
 
             if isinstance(idxs, tuple):

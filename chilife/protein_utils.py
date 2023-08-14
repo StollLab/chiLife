@@ -754,6 +754,7 @@ def guess_bonds(coords: ArrayLike, atom_types: ArrayLike) -> np.ndarray:
     bonds : np.ndarray
         An array of the atom index pairs corresponding to the atom pairs that are thought ot form bonds.
     """
+    atom_types = np.array([a.title() for a in atom_types])
     kdtree = cKDTree(coords)
     pairs = kdtree.query_pairs(4., output_type='ndarray')
     pair_names = [tuple(x) for x in atom_types[pairs].tolist()]

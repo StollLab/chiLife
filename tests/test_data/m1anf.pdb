@@ -13,6 +13,7 @@ SOURCE   6 GENE: MALE
 KEYWDS    PERIPLASMIC BINDING PROTEIN, SUGAR TRANSPORT                          
 EXPDTA    X-RAY DIFFRACTION                                                     
 AUTHOR    J.C.SPURLINO,F.A.QUIOCHO                                              
+REVDAT   5   02-AUG-23 1ANF    1       HETSYN                                   
 REVDAT   4   29-JUL-20 1ANF    1       COMPND REMARK HETNAM LINK                
 REVDAT   4 2                   1       SITE   ATOM                              
 REVDAT   3   13-JUL-11 1ANF    1       VERSN                                    
@@ -474,6 +475,7 @@ SEQRES  29 A  370  GLN THR ARG ILE THR LYS
 HET    GLC  B   1      12                                                       
 HET    GLC  B   2      11                                                       
 HETNAM     GLC ALPHA-D-GLUCOPYRANOSE                                            
+HETSYN     GLC ALPHA-D-GLUCOSE; D-GLUCOSE; GLUCOSE                              
 FORMUL   2  GLC    2(C6 H12 O6)                                                 
 FORMUL   3  HOH   *104(H2 O)                                                    
 HELIX    1   1 TYR A   17  GLU A   28  1                                  12    

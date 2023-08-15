@@ -1289,7 +1289,7 @@ def get_possible_rotlibs(rotlib: str,
     for possible_file in possible_rotlibs:
         if possible_file.exists() and return_all:
                 rotlib.append(possible_file)
-        elif possible_file.exists():
+        elif possible_file.exists() and not possible_file.is_dir():
             rotlib = possible_file
             break
     else:

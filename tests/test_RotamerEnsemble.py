@@ -370,3 +370,42 @@ def test_sample_persists():
 
     np.testing.assert_allclose(x[0], y[0])
     assert x[1] == y[1]
+
+
+def test_trim_false():
+    rot1 = chilife.RotamerEnsemble('ARG', 28, ubq, eval_clash=True)
+    rot2 = chilife.RotamerEnsemble('ARG', 28, ubq, eval_clash=True, trim=False)
+    rot3 = chilife.RotamerEnsemble('ARG', 28, ubq)
+
+    assert len(rot2) == len(rot3)
+    most_probable = np.sort(rot2.weights)[::-1][:len(rot1)]
+    most_probable /= most_probable.sum()
+    np.testing.assert_almost_equal(rot1.weights, most_probable)
+    assert np.any(np.not_equal(rot2.weights, rot3.weights))
+
+def test_min_callback():
+    vals = []
+    ivals = []
+    def my_callback(val, i):
+        vals.append(val)
+        ivals.append(i)
+
+    SL1 = chilife.RotamerEnsemble('ARG', 28, ubq)
+    SL1.minimize(callback=my_callback)
+
+    assert len(vals) > 0
+    assert len(ivals) > 0
+
+
+def test_copy_custom_lib():
+    XYZ41 = chilife.SpinLabel('XYZ', 28, ubq, rotlib='test_data/usr_rtlb/XYZ_rotlib.npz')
+    x2 = XYZ41.copy()
+
+
+def test_from_wizard_custom_rotlib():
+    np.random.seed(0)
+    A28NBA = chilife.SpinLabel.from_wizard('TES', 28, ubq, rotlib='test_data/usr_rtlb/NBA_rotlib.npz')
+    ans = np.load('test_data/from_wiz_cust.npy')
+    np.testing.assert_almost_equal(A28NBA.coords, ans, decimal=5)
+
+

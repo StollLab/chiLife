@@ -1,4 +1,6 @@
+import inspect
 from copy import deepcopy
+from functools import partial
 from pathlib import Path
 import logging
 import numpy as np
@@ -116,6 +118,7 @@ class RotamerEnsemble:
 
         self.ic_mask = [np.argwhere(self.internal_coords[0].atom_names == a).flat[0] for a in self.atom_names]
         self._lib_coords = self._coords.copy()
+        self._lib_dihedrals = self._dihedrals.copy()
         self._lib_IC = self.internal_coords
 
         if self.clash_radius is None:
@@ -412,17 +415,16 @@ class RotamerEnsemble:
         new_copy : chilife.RotamerEnsemble
             A deep copy of the original RotamerLibrary
         """
-        new_copy = self._base_copy(rotlib)
-
+        new_copy = self._base_copy(self._rotlib)
         for item in self.__dict__:
             if isinstance(item, np.ndarray):
                 new_copy.__dict__[item] = self.__dict__[item].copy()
-            if item != "protein":
+            elif item not in  ("protein", '_lib_IC', '_rotlib', 'internal_coords'):
                 new_copy.__dict__[item] = deepcopy(self.__dict__[item])
             elif self.__dict__[item] is None:
                 new_copy.protein = None
             else:
-                new_copy.protein = self.protein
+                new_copy.__dict__[item] = self.__dict__[item]
 
         if site is not None:
             new_copy.site = site
@@ -703,15 +705,16 @@ class RotamerEnsemble:
         """
         self.current_weight = weight
 
-    def minimize(self):
+    def minimize(self, callback=None):
         dummy = self.copy()
 
-        scores = np.array([self._min_one(i, ic, dummy) for i, ic in enumerate(self.internal_coords)])
+        scores = np.array([self._min_one(i, ic, dummy, callback=callback) for i, ic in enumerate(self.internal_coords)])
         scores -= scores.min()
 
         self.weights *= np.exp(-scores / (chilife.GAS_CONST * self.temp) / np.exp(-scores).sum())
         self.weights /= self.weights.sum()
-        self.trim_rotamers()
+        if self._do_trim:
+            self.trim_rotamers()
 
     def _objective(self, dihedrals, ic1, dummy):
         """
@@ -750,7 +753,7 @@ class RotamerEnsemble:
         energy = external_energy.sum() + internal_energy.sum()
         return energy
 
-    def _min_one(self, i, ic, dummy):
+    def _min_one(self, i, ic, dummy, callback=None):
         """
         Perform a single minimization on a member of the underlying rotamer library in dihedral space.
 
@@ -769,13 +772,18 @@ class RotamerEnsemble:
             The final minimized "energy" of the objective function plus a modifier based on the deviations from the
             parent rotamer in the rotamer library.
         """
+        if callback is not None:
+            if 'i' in inspect.signature(callback).parameters:
+                callback = partial(callback, i=i)
 
         d0 = ic.get_dihedral(1, self.dihedral_atoms)
 
         lb = d0 - np.deg2rad(40)
         ub = d0 + np.deg2rad(40)  #
         bounds = np.c_[lb, ub]
-        xopt = opt.minimize(self._objective, x0=d0, args=(ic, dummy), bounds=bounds, method=self.min_method)
+        xopt = opt.minimize(self._objective, x0=d0, args=(ic, dummy),
+                            bounds=bounds, method=self.min_method,
+                            callback=callback)
         self._coords[i] = ic.coords[self.ic_mask]
         tors = d0 - xopt.x
         tors = np.arctan2(np.sin(tors), np.cos(tors))
@@ -831,7 +839,8 @@ class RotamerEnsemble:
         logging.info(f"Relative partition function: {self.partition:.3}")
 
         # Remove low-weight rotamers from ensemble
-        self.trim_rotamers()
+        if self._do_trim:
+            self.trim_rotamers()
 
     def save_pdb(self, name: str = None) -> None:
         """
@@ -923,11 +932,12 @@ class RotamerEnsemble:
         lib['internal_coords'] = [a.copy() for a in lib['internal_coords']]
 
         # Modify library to be appropriately used with self.__dict__.update
-        lib['_coords'] = lib.pop('coords')
-        lib['_dihedrals'] = lib.pop('dihedrals')
+        self._rotlib = {key: value.copy() if hasattr(value, 'copy') else value for key, value in lib.items()}
+
+        lib['_coords'] = lib.pop('coords').copy()
+        lib['_dihedrals'] = lib.pop('dihedrals').copy()
         if 'skews' not in lib:
             lib['skews'] = None
-
         return lib
 
     def protein_setup(self):
@@ -1217,6 +1227,7 @@ def assign_defaults(kwargs):
         "energy_func": chilife.get_lj_rep,
         "_minimize": kwargs.pop('minimize', False),
         "min_method": 'L-BFGS-B',
+        "_do_trim": kwargs.pop('trim', True),
         "trim_tol": 0.005,
     }
 

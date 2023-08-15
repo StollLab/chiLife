@@ -337,6 +337,25 @@ def save_pdb(name: Union[str, Path], atoms: ArrayLike, coords: ArrayLike, mode: 
             )
         f.write('ENDMDL\n')
 
+def write_atoms(f, atoms: ArrayLike, coords: ArrayLike) -> None:
+    """Save a single state pdb structure of the provided atoms and coords.
+
+    Parameters
+    ----------
+    f : IO object
+
+    atoms : ArrayLike
+        List of Atom objects to be saved
+    coords : ArrayLike
+        Array of atom coordinates corresponding to atoms
+    """
+
+    for atom, coord in zip(atoms, coords):
+        f.write(
+            f"ATOM  {atom.index + 1:5d} {atom.name:^4s} {atom.resn:3s} {'A':1s}{atom.resi:4d}    "
+            f"{coord[0]:8.3f}{coord[1]:8.3f}{coord[2]:8.3f}{1.0:6.2f}{1.0:6.2f}          {atom.atype:>2s}  \n"
+        )
+
 
 def get_missing_residues(
         protein: Union[MDAnalysis.Universe, MDAnalysis.AtomGroup],
@@ -735,6 +754,7 @@ def guess_bonds(coords: ArrayLike, atom_types: ArrayLike) -> np.ndarray:
     bonds : np.ndarray
         An array of the atom index pairs corresponding to the atom pairs that are thought ot form bonds.
     """
+    atom_types = np.array([a.title() for a in atom_types])
     kdtree = cKDTree(coords)
     pairs = kdtree.query_pairs(4., output_type='ndarray')
     pair_names = [tuple(x) for x in atom_types[pairs].tolist()]
@@ -873,7 +893,8 @@ def sort_pdb(pdbfile: Union[str, List[str], List[List[str]]],
 
             else:
                 # Calculate the shared topology and force it
-                min_bonds_list = get_min_topol(lines[start_idxs[0]:end_idxs[0]], forced_bonds=bonds)
+                atom_lines = [lines[s:e] for s, e in zip(start_idxs, end_idxs)]
+                min_bonds_list = get_min_topol(atom_lines, forced_bonds=bonds)
                 idxs = _sort_pdb_lines(lines[start_idxs[0]:end_idxs[0]], bonds=min_bonds_list, index=True, **kwargs)
 
             if isinstance(idxs, tuple):

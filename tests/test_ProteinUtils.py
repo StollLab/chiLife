@@ -1,5 +1,5 @@
 import os, hashlib
-import time
+import pickle
 from functools import partial
 import numpy as np
 import pytest
@@ -211,6 +211,18 @@ def test_get_min_topol():
            (71, 73), (71, 78), (71, 79), (72, 76), (72, 82), (72, 83), (74, 75), (74, 80), (74, 81)}
 
     assert min_bonds == ans
+
+
+def test_sort_nonuni_topol():
+    srtd = chilife.sort_pdb('test_data/test_nonuni_top.pdb', uniform_topology=False)
+
+    with open('test_data/nonuni_topol_ans.pkl', 'rb') as f:
+        ans = pickle.load(f)
+
+    for test_model, ans_model in zip(srtd, ans):
+        for test_line, ans_line in zip(test_model, ans_model):
+            assert test_line == ans_line
+
 
 
 # def test_preferred_dihedrals():

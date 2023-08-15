@@ -82,6 +82,7 @@ class ProteinIC:
         """
         self.zmats = zmats
         self.zmat_idxs = zmat_idxs
+        self.atom_chains = np.concatenate([[key] * len(zmats[key]) for key in zmats])
         self.atom_dict = atom_dict
         self.ICs = ICs
         self.atoms = np.asarray(kwargs['atoms']) if 'atoms' in kwargs else np.array([ic for chain in self.ICs.values()
@@ -402,11 +403,7 @@ class ProteinIC:
         if len(atom_list) == 0:
             return np.array([])
 
-        if chain is None and len(self.ICs) == 1:
-            chain = list(self.ICs.keys())[0]
-
-        elif chain is None and len(self.ICs) > 1:
-            raise ValueError("You must specify the protein chain")
+        chain = self._check_chain(chain)
 
         atom_list = np.atleast_2d(atom_list)
         dihedrals = []
@@ -425,6 +422,46 @@ class ProteinIC:
 
         return dihedrals[0] if len(dihedrals) == 1 else np.array(dihedrals)
 
+    def get_dihedral_idx(self, resi: int, atom_list: ArrayLike, chain: Union[int, str] = None):
+        """Get the dihedral angle(s) of one or more atom sets at the specified residue. Dihedral angles are returned in
+        radians
+
+        Parameters
+        ----------
+        resi : int
+            Residue number of the site being altered
+        atom_list : ArrayLike
+            Names or array of names of atoms involved in the dihedral(s)
+        chain : int, str
+             Chain identifier. required if there is more than one chain in the protein. Default value = None
+
+        Returns
+        -------
+        angles: numpy.ndarray
+            Array of dihedral angles corresponding to the atom sets in atom list.
+        """
+        if len(atom_list) == 0:
+            return np.array([])
+
+        chain = self._check_chain(chain)
+
+        atom_list = np.atleast_2d(atom_list)
+        idxs = []
+        for atoms in atom_list:
+            stem, stemr = tuple(atoms[2::-1]), tuple(atoms[1:])
+            if (resi, stem) in self.atom_dict['dihedrals'][chain]:
+                aidx = self.atom_dict['dihedrals'][chain][resi, stem][atoms[-1]]
+            elif (resi, stemr) in self.atom_dict['dihedrals'][chain]:
+                aidx = self.atom_dict['dihedrals'][chain][resi, stemr][atoms[0]]
+            else:
+                raise ValueError(
+                    f"Dihedral with atoms {atoms} not found in chain {chain} on resi {resi} internal coordinates:\n"
+                    + "\n".join([str(ic) for ic in self.ICs[chain][resi]])
+                )
+            idxs.append(aidx)
+
+        return idxs[0] if len(idxs) == 1 else np.array(idxs)
+
     def to_cartesian(self):
         """Convert internal coordinates into cartesian coordinates.
 
@@ -439,8 +476,6 @@ class ProteinIC:
 
             IC_idx_array, ICArray = self.zmat_idxs[segid], self.zmats[segid]
             cart_coords = _ic_to_cart(IC_idx_array, ICArray)
-
-
 
             # Apply chain operations if any exist
             if self.has_chain_operators:
@@ -600,6 +635,110 @@ class ProteinIC:
 
         self.resis = [key for i in self.ICs for key in self.ICs[i]]
 
+    def phi_idxs(self, resnums: ArrayLike = None, chain: Union[int, str] = None):
+        """
+        Method to return the Z-matrix indices of Phi backbone dihedrals
+
+        Parameters
+        ----------
+        resnums: int, ArrayLike[int]
+            Residues for which to return the Phi value index of the z-matrix
+
+        chain: int, str
+            Chain corresponding to the resnums of interest
+
+        Returns
+        -------
+        idxs: ndarray[int]
+            Array of indices corresponding to the phi dihedral angles of the selected residues on the chain
+        """
+        chain = self._check_chain(chain)
+        idxs =  np.argwhere((self.atom_names == 'C') * (self.atom_chains == chain)).flatten()
+        if resnums is not None:
+            resnums = np.atleast_1d(resnums)
+            idxs = [self.atoms[idx].index for idx in idxs if (self.atoms[idx].resi in resnums)]
+        idxs = np.asarray(idxs)
+        if len(idxs) > 0:
+            idxs = idxs[~np.isnan(self.zmats[chain][idxs, 2])]
+        return idxs
+
+    def psi_idxs(self, resnums: ArrayLike = None, chain: Union[int, str] = None):
+        """
+        Method to return the Z-matrix indices of Psi backbone dihedrals
+
+        Parameters
+        ----------
+        resnums: int, ArrayLike[int]
+            Residues for which to return the Psi value index of the z-matrix
+
+        chain: int, str
+            Chain corresponding to the resnums of interest
+
+        Returns
+        -------
+        idxs: ndarray[int]
+            Array of indices corresponding to the Psi dihedral angles of the selected residues on the chain
+        """
+        chain = self._check_chain(chain)
+        idxs = np.argwhere((self.atom_names == 'N')).flatten()
+        if resnums is not None:
+            resnums = np.atleast_1d(resnums) + 1
+            idxs = [self.atoms[idx].index for idx in idxs if (self.atoms[idx].resi in resnums)]
+        idxs = np.asarray(idxs)
+
+        if len(idxs) > 0:
+            idxs = idxs[~np.isnan(self.zmats[chain][idxs, 2])]
+        return idxs
+
+    def chi_idxs(self, resnums: ArrayLike = None, chain: Union[int, str] = None):
+        """
+         Create a list of index arrays corresponding the Z-matrix indices of flexible side chain (chi) dihedrals. Note
+         that only chi dihedrals defined in ``chilife.dihedral_defs`` will be  considered.
+
+        Parameters
+        ----------
+        resnums: int, ArrayLike[int]
+            Residues for which to return the Psi value index of the z-matrix
+
+        chain: int, str
+            Chain corresponding to the resnums of interest
+
+        Returns
+        -------
+        chi_idxs: List[np.ndarray]
+            list of arrays containing the indices of the z-matrix dihedrals corresponding to the chi dihedrals. Each
+            array in the list refers to a specific dihedral: ``[χ1, χ2, ... χn]``. because different residues will
+            have different numbers of chi dihedrals the arrays will not be the same size, but they can be concatenated
+            using numpy: ``chi_idxs = np.concatenate(IC.chi_idxs(...)))``.
+
+        """
+        chain = self._check_chain(chain)
+        chi_idxs = []
+        active_resnums = resnums if resnums is not None else self.resis.copy()
+        
+        max_len = 0
+        for res in active_resnums:
+            defs = dihedral_defs[self.resnames[res]]
+            if len(defs) > max_len:
+                max_len = len(defs)
+
+            chi_idxs.append(np.atleast_1d(self.get_dihedral_idx(res, defs, chain)))
+
+        chi_idxs = [[res[o] for res in chi_idxs if len(res) > o] for o in range(max_len)]
+
+        return chi_idxs
+
+    def bb_idxs(self,  resnums: ArrayLike = None, chain: Union[int, str] = None):
+        return np.concatenate((self.phi_idxs(resnums, chain), self.psi_idxs(resnums, chain)))
+
+    def _check_chain(self, chain):
+        if chain is None and len(self.ICs) == 1:
+            chain = list(self.ICs.keys())[0]
+
+        elif chain is None and len(self.ICs) > 1:
+            raise ValueError("You must specify the protein chain")
+
+        return chain
 
 
 @dataclass
@@ -961,6 +1100,11 @@ def get_internal_coords(
                     present = True
                     didx = np.argwhere(atom_idxs == dihedral[-1]).flatten()[0]
                     dihedrals[didx] = dihedral
+
+                    # also change any other dependent dihedrals
+                    for dihe_idxs in dihedrals[dihedral[-2]:]:
+                        if dihe_idxs[1] == dihedral[1] and dihe_idxs[2] == dihedral[2]:
+                            dihe_idxs[0] = dihedral[0]
 
         if not present and preferred_dihedrals != []:
             raise ValueError(f'There is no dihedral `{dihe}` in the provided protein. Perhaps there is typo or the '

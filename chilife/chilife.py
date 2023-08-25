@@ -505,6 +505,13 @@ def create_library(
     resi_selection = struct.select_atoms(f"resnum {site}")
     bonds = resi_selection.intra_bonds.indices
 
+    if not continuous_topol(resi_selection.indices, bonds):
+        raise RuntimeError("The  RotamerEnsemble does not seem to have a consistent and continuous bond topology over "
+                           "all states. Please check the input PDB and remove any states that do not have the "
+                           "expected bond topology. Alternatively, you can force certain bonds by adding CONECT "
+                           "information to the PDB file. See "
+                           "https://www.wwpdb.org/documentation/file-format-content/format33/sect10.html")
+
     # Convert loaded rotamer ensemble to internal coords
     internal_coords = [
         chilife.get_internal_coords(
@@ -639,7 +646,7 @@ def create_dlibrary(
         dihedral_error = False
 
     if dihedral_error:
-        raise ValueError(
+        raise RuntimeError(
             "dihedral_atoms must be a list of lists where each sublist contains the list of dihedral atoms"
             "for the i and i+{increment} side chains. Sublists can contain any amount of dihedrals but "
             "each dihedral should be defined by exactly four unique atom names that belong to the same "
@@ -676,6 +683,13 @@ def create_dlibrary(
     res1 += ovlp_selection
     res1_bonds = res1.intra_bonds.indices
 
+    if not continuous_topol(res1.indices, res1_bonds):
+        raise RuntimeError("The  dRotamerEnsemble does not seem to have a consistent and continuous bond topology over"
+                           " all states. Please check the input PDB and remove any states that do not have the "
+                           "expected bond topology. Alternatively, you can force certain bonds by adding CONECT "
+                           "information to the PDB file. See "
+                           "https://www.wwpdb.org/documentation/file-format-content/format33/sect10.html")
+
     IC1 = [chilife.get_internal_coords(res1, dihedral_atoms[0], res1_bonds)
            for ts in struct.trajectory]
 
@@ -683,6 +697,13 @@ def create_dlibrary(
     ovlp_selection.residues.resids = site2
     res2 += ovlp_selection
     res2_bonds = res2.intra_bonds.indices
+
+    if not continuous_topol(res1.indices, res1_bonds):
+        raise RuntimeError("The  dRotamerEnsemble does not seem to have a consistent and continuous bond topology over"
+                           " all states. Please check the input PDB and remove any states that do not have the "
+                           "expected bond topology. Alternatively, you can force certain bonds by adding CONECT "
+                           "information to the PDB file. See "
+                           "https://www.wwpdb.org/documentation/file-format-content/format33/sect10.html")
 
     IC2 = [chilife.get_internal_coords(res2, dihedral_atoms[1], res2_bonds, cap=cap_idxs)
            for ts in struct.trajectory]
@@ -693,7 +714,7 @@ def create_dlibrary(
         ic2.shift_resnum(-(site2 - 1))
         ic2.chain_operators = None
         if len(ic1.chains) > 1 or len(ic2.chains) > 1:
-            raise ValueError('The PDB of the label supplied appears to have a chain break. Please check your PDB and '
+            raise RuntimeError('The PDB of the label supplied appears to have a chain break. Please check your PDB and '
                              'make sure there are no chain breaks in the desired label and that there are no other '
                              'chains in the pdb file. If the error persists, check to be sure all atoms are the correct '
                              'element as chilife uses the elements to determine if atoms are bonded.')
@@ -1317,3 +1338,21 @@ def rotlib_info(rotlib: str):
 
     """
     pass
+
+
+def continuous_topol(atoms, bonds):
+    """
+
+    Parameters
+    ----------
+    atoms
+    bonds
+
+    Returns
+    -------
+
+    """
+    G = nx.Graph()
+    G.add_nodes_from(atoms)
+    G.add_edges_from(bonds)
+    return G.is_connected()

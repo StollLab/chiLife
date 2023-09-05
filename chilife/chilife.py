@@ -1355,4 +1355,4 @@ def continuous_topol(atoms, bonds):
     G = nx.Graph()
     G.add_nodes_from(atoms)
     G.add_edges_from(bonds)
-    return G.is_connected()
+    return nx.is_connected(G)

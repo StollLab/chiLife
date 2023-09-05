@@ -91,7 +91,7 @@ def test_mutate():
 
 
 def test_single_chain_error():
-    with pytest.raises(ValueError):
+    with pytest.raises(RuntimeError):
         xl.create_dlibrary(libname='___',
                            pdb='test_data/chain_broken_dlabel.pdb',
                            sites=(15, 17),

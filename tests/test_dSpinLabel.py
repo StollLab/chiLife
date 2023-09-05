@@ -165,3 +165,21 @@ def test_dmin_callback():
 
     assert len(vals) > 0
     assert len(ivals) > 0
+
+
+def test_dihedral_atoms():
+    ans = [['N', 'CA', 'CB', 'CG'],
+           ['CA', 'CB', 'CG', 'ND1'],
+           ['CD2', 'NE2', 'Cu1', 'O1'],
+           ['N', 'CA', 'CB', 'CG'],
+           ['CA', 'CB', 'CG', 'ND1'],
+           ['CD2', 'NE2', 'Cu1', 'O1']]
+
+    assert np.all(SL2.dihedral_atoms == ans)
+
+
+def test_dihedrals():
+    ans = np.array([[-2.97070555,  2.20229457, -2.5926639 , -1.21838379, -2.07361964, -2.74030998],
+                    [-2.94511378,  2.18546192, -2.59115287, -1.2207707 , -2.05741481, -2.73392102]])
+
+    np.testing.assert_almost_equal(SL2.dihedrals, ans)

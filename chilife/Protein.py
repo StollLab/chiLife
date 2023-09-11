@@ -131,7 +131,9 @@ class Protein(MolecularSystem):
             segs: np.ndarray,
             atypes: np.ndarray,
             charges: np.ndarray,
+            bonds: ArrayLike = None,
             name: str = 'Noname_Protein'
+
     ):
         self.protein = self
         self.atomids = atomids.copy()

@@ -1017,6 +1017,9 @@ def _sort_pdb_lines(lines, bonds=None, index=False, **kwargs) -> \
             graph = nx.Graph()
             graph.add_edges_from(pairs)
 
+            if root_idx not in graph.nodes:
+                root_idx = min(graph.nodes)
+
             # Start stemming from CA atom
             CA_edges = [edge[1] for edge in nx.bfs_edges(graph, root_idx) if edge[1] not in sorted_args]
 

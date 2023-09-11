@@ -80,6 +80,7 @@ class ProteinIC:
             - bonded_pairs
             - nonbonded_pairs
         """
+        # self.zmats = zmats if len(zmats.shape) == 3 else zmats[None, :, :]
         self.zmats = zmats
         self.zmat_idxs = zmat_idxs
         self.atom_chains = np.concatenate([[key] * len(zmats[key]) for key in zmats])

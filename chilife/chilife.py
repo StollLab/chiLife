@@ -207,10 +207,6 @@ def pair_dd(*args, r: ArrayLike, sigma: float = 1.0, use_spin_centers: bool = Tr
                 ljs.append(lj)
 
             ljs = np.concatenate(ljs)
-
-            lj = cdist(rot_coords1, rot_coords2)
-            lj = lj.reshape(nrot1, nat1, nrot2, nat2).transpose(0, 2, 1, 3)
-
             weights[-1], _ = reweight_rotamers(ljs.flatten(), SL1.temp, weights[-1])
 
     distances = np.concatenate(distances)

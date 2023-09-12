@@ -180,28 +180,38 @@ def pair_dd(*args, r: ArrayLike, sigma: float = 1.0, use_spin_centers: bool = Tr
         if dependent:
             nrot1, nrot2 = len(SL1), len(SL2)
             nat1, nat2 = len(SL1.side_chain_idx), len(SL2.side_chain_idx)
-
-            rot_coords1 = SL1.coords[:, SL1.side_chain_idx].reshape(-1, 3)
-            rot_coords2 = SL2.coords[:, SL2.side_chain_idx].reshape(-1, 3)
-            rsl = cdist(rot_coords1, rot_coords2)
-            rsl = rsl.reshape(nrot1, nat1, nrot2, nat2).transpose(0, 2, 1, 3)
             join_rmin = chilife.get_lj_rmin("join_protocol")[()]
             join_eps = chilife.get_lj_eps("join_protocol")[()]
 
             rmin_ij = join_rmin(SL1.rmin2, SL2.rmin2)
             eps_ij = join_eps(SL1.eps, SL2.eps)
 
-            lj = rmin_ij[None, None, ...] / rsl
-            lj = lj * lj * lj
-            lj = lj * lj
-            lj = lj * lj
+            rot_coords1 = SL1.coords[:, SL1.side_chain_idx]
+            rot_coords2 = SL2.coords[:, SL2.side_chain_idx].reshape(-1, 3)
 
-            # Cap
-            lj[lj > 10] = 10
-            # Rep only
-            E = eps_ij * (lj * lj)
-            E = E.sum(axis=(2, 3))
-            weights[-1], _ = reweight_rotamers(E.flatten(), SL1.temp, weights[-1])
+            ljs = []
+            for i, rots in enumerate(rot_coords1):
+                lj = cdist(rots, rot_coords2)
+                lj = lj.reshape(1, nat1, nrot2, nat2).transpose(0, 2, 1, 3)
+
+                lj = rmin_ij[None, None, ...] / lj
+                lj = lj * lj * lj
+                lj = lj * lj
+                lj = lj * lj
+
+                # Cap
+                lj[lj > 10] = 10
+                # Rep only
+                lj = eps_ij * (lj * lj)
+                lj = lj.sum(axis=(2, 3))
+                ljs.append(lj)
+
+            ljs = np.concatenate(ljs)
+
+            lj = cdist(rot_coords1, rot_coords2)
+            lj = lj.reshape(nrot1, nat1, nrot2, nat2).transpose(0, 2, 1, 3)
+
+            weights[-1], _ = reweight_rotamers(ljs.flatten(), SL1.temp, weights[-1])
 
     distances = np.concatenate(distances)
     weights = np.concatenate(weights)

@@ -100,6 +100,45 @@ def get_dihedral(p: ArrayLike) -> float:
 
     return dihedral
 
+def get_dihedrals(p1: ArrayLike, p2: ArrayLike, p3: ArrayLike, p4: ArrayLike) -> ArrayLike:
+    """Vectorized version of get_dihedral
+
+    Parameters
+    ----------
+    p1 : ArrayLike
+        Array containing coordinates of the first point in the dihedral.
+    p2 : ArrayLike
+        Array containing coordinates of the second point in the dihedral
+    p3 : ArrayLike
+        Array containing coordinates of the third point in the dihedral
+    p4 : ArrayLike
+        Array containing coordinates of the fourth point in the dihedral
+
+    Returns
+    -------
+    dihedrals : ArrayLike
+        Dihedral angles in radians.
+    """
+
+    # Define vectors from coordinates
+    b0 = p1 - p2
+    b1 = p3 - p2
+    b2 = p4 - p3
+
+    # Normalize dihedral bond vector
+    b1 /= np.linalg.norm(b1, axis=-1)[:, None]
+
+    # Calculate dihedral projections orthogonal to the bond vector
+    v = b0 - np.einsum('ij,ij->i', b0, b1)[:, None] * b1
+    w = b2 - np.einsum('ij,ij->i',b2, b1)[:, None] * b1
+
+    # Calculate angle between projections
+    x = np.einsum('ij,ij->i', v, w)
+    y = np.einsum('ij,ij->i', np.cross(b1, v, axis=-1), w)
+
+    dihedral = np.arctan2(y, x)
+
+    return dihedral
 
 def get_angle(p: ArrayLike) -> float:
     r"""Calculate the angle created by 3 points.
@@ -131,6 +170,36 @@ def get_angle(p: ArrayLike) -> float:
     angle = math.atan2(Y, X)
 
     return angle
+
+
+def get_angles(p1: ArrayLike, p2: ArrayLike, p3: ArrayLike) -> ArrayLike:
+    r"""Vectorized version of get_angle.
+
+    Parameters
+    ----------
+    p1: ArrayLike :
+        Array of first points in the angles.
+    p2: ArrayLike :
+        Array of second points in the angles.
+    p3: ArrayLike :
+        Array of third points in angle.
+
+
+    Returns
+    -------
+    angles : float
+        Array of anlges.
+
+    """
+    v1 = p1 - p2
+    v2 = p3 - p2
+    X =  np.einsum('ij,ij->i', v1, v2)
+    Y = np.cross(v1, v2, axis=-1)
+    Y = np.sqrt((Y * Y).sum(axis=-1))
+
+    angles = np.arctan2(Y, X)
+
+    return angles
 
 
 def set_dihedral(p: ArrayLike, angle: float, mobile: ArrayLike) -> ArrayLike:

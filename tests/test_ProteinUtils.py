@@ -224,6 +224,37 @@ def test_sort_nonuni_topol():
             assert test_line == ans_line
 
 
+def test_get_angle():
+    sel = ubq.select_atoms('resnum 23 and name N CA C')
+    ang = chilife.get_angle(sel.positions)
+    assert ang - np.deg2rad(110.30299155404542) < 1e-6
+
+
+def test_get_angles():
+    Ns = ubq.select_atoms('name N').positions
+    CAs = ubq.select_atoms('name CA').positions
+    Cs = ubq.select_atoms('name C').positions
+
+    angs = chilife.get_angles(Ns, CAs, Cs)
+    ans = [chilife.get_angle([N, CA, C]) for N, CA, C in zip(Ns, CAs, Cs)]
+    np.testing.assert_almost_equal(angs, ans)
+
+
+def test_get_dihedral():
+    sel = ubq.select_atoms('(resnum 23 and name N CA C) or (resnum 24 and name N)')
+    dihe = chilife.get_dihedral(sel.positions)
+    assert dihe - np.deg2rad(37.20999032936247) < 1e-6
+
+
+def test_get_diehdrals():
+    N1s = ubq.select_atoms('name N').positions[:-1]
+    CAs = ubq.select_atoms('name CA').positions[:-1]
+    Cs = ubq.select_atoms('name C').positions[:-1]
+    N2s = ubq.select_atoms('name N').positions[1:]
+
+    dihes = chilife.get_dihedrals(N1s, CAs, Cs, N2s)
+    ans = [chilife.get_dihedral([N1, CA, C, N2]) for N1, CA, C, N2 in zip(N1s, CAs, Cs, N2s)]
+    np.testing.assert_almost_equal(dihes, ans)
 
 # def test_preferred_dihedrals():
 #     dih = [['N', 'CA', 'CB', 'CB2'],

@@ -6,6 +6,11 @@ import chilife as xl
 
 pdbids = ["1ubq", "1a2w", '1az5']
 ubq = mda.Universe("test_data/1ubq.pdb", in_memory=True)
+mbp = mda.Universe("test_data/2klf.pdb", in_memory=True)
+
+ubqIC = xl.newProteinIC.from_protein(ubq)
+mbpIC = xl.newProteinIC.from_protein(mbp)
+
 ICs = xl.get_internal_coords(ubq)
 
 gd_kwargs = [
@@ -13,6 +18,40 @@ gd_kwargs = [
     {"resi": 28, "atom_list": [["C", "N", "CA", "C"], ["N", "CA", "C", "N"]]},
 ]
 gd_ans = [-1.1540443794802524, np.array([-1.15404438, -0.66532042])]
+
+
+def test_from_prot():
+
+    with np.load('test_data/ubq_zmats.npz') as f:
+        zmat_ans = f['zmat']
+        zmat_idx_ans = f['zmat_idxs']
+
+    np.testing.assert_equal(ubqIC.z_matrix_idxs, zmat_idx_ans)
+    np.testing.assert_almost_equal(ubqIC.trajectory.coordinates_array, zmat_ans)
+
+    for i, idxs in enumerate(ubqIC.z_matrix_idxs):
+        idxt = [val for val in idxs if val != -2147483648]
+        assert i == idxt[-1]
+
+
+def test_from_prot_traj():
+
+    with np.load('test_data/mbp_zmats.npz') as f:
+        zmat_ans = f['zmat']
+        zmat_idx_ans = f['zmat_idxs']
+
+    np.testing.assert_equal(mbpIC.z_matrix_idxs, zmat_idx_ans)
+    np.testing.assert_almost_equal(mbpIC.trajectory.coordinates_array, zmat_ans)
+
+
+def test_copy():
+    my_copy = ubqIC.copy()
+
+    assert np.all(my_copy.z_matrix_idxs == ubqIC.z_matrix_idxs)
+    assert my_copy.z_matrix_idxs is not ubqIC.z_matrix_idxs
+
+    assert np.all(ubqIC.trajectory.coordinates_array == my_copy.trajectory.coordinates_array)
+    assert ubqIC.trajectory.coordinates_array is not my_copy.trajectory.coordinates_array
 
 
 def test_save_pdb():

@@ -8,5 +8,6 @@ from .IntrinsicLabel import IntrinsicLabel
 from .SpinLabelTraj import *
 from .Protein import *
 from .ProteinIC import *
+from .new_ProteinIC import *
 from .protein_utils import *
 from .scoring import *

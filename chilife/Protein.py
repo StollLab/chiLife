@@ -4,6 +4,7 @@ import numbers
 import operator
 from functools import partial, update_wrapper
 from .protein_utils import sort_pdb
+from .Topology import Topology
 import numpy as np
 from numpy.typing import ArrayLike
 from scipy.spatial import cKDTree
@@ -150,6 +151,8 @@ class Protein(MolecularSystem):
         self.atypes = atypes.copy()
         self.charges = charges.copy()
         self._fname = name
+
+        self.topology = Topology(bonds) if bonds is not None else None
 
         self.ix = np.arange(len(self.atomids))
         self.mask = np.arange(len(self.atomids))
@@ -315,6 +318,7 @@ class Trajectory:
         self.protein = protein
         self.timestep = timestep
         self.coords = coordinates
+        self.coordinates_array = coordinates
         self._frame = 0
         self.time = np.arange(0, len(self.coords)) * self.timestep
 

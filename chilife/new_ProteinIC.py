@@ -165,33 +165,8 @@ class newProteinIC:
         chain_operators = []
 
         for i, ts in enumerate(protein.universe.trajectory):
-
-            bond_mask = ~(z_matrix_dihedrals[:, 1] == nan_int)
-            bond_values = protein.atoms[z_matrix_dihedrals[bond_mask, 1]].positions - \
-                          protein.atoms[z_matrix_dihedrals[bond_mask, 0]].positions
-            bond_values = np.linalg.norm(bond_values, axis=1)
-
-            angle_mask = ~(z_matrix_dihedrals[:, 2] == nan_int)
-            angle_values = [protein.atoms[z_matrix_dihedrals[angle_mask, i]].positions for i in range(3)]
-            angle_values = get_angles(*angle_values)
-
-            dihedral_mask = ~(z_matrix_dihedrals[:, 3] == nan_int)
-            dihedral_values = [protein.atoms[z_matrix_dihedrals[dihedral_mask, i]].positions for i in range(4)]
-            dihedral_values = get_dihedrals(*dihedral_values)
-
-            z_matrix_coordinates[i, bond_mask, 0] = bond_values
-            z_matrix_coordinates[i, angle_mask, 1] = angle_values
-            z_matrix_coordinates[i, dihedral_mask, 2] = dihedral_values
-
-            chain_operator = {}
-            for cidx in chain_operator_idxs:
-                chain_operator_def = z_matrix_dihedrals[cidx + 2]
-                if chain_operator_def[-1] == nan_int and chain_operator_def[-2] != nan_int:
-                    pos = protein.atoms.positions[chain_operator_def[:3]]
-                    mx, ori = ic_mx(*pos)
-                else:
-                    mx, ori = np.eye(3), protein.atoms.positions[cidx].copy()
-                chain_operator[cidx] = {'mx': mx, 'ori': ori}
+            z_matrix, chain_operator = get_z_matrix(protein.atoms.positions, z_matrix_dihedrals, chain_operator_idxs)
+            z_matrix_coordinates[i] = z_matrix
             chain_operators.append(chain_operator)
 
         return cls(z_matrix_coordinates, z_matrix_dihedrals, protein,
@@ -258,6 +233,42 @@ class newProteinIC:
             self.has_chain_operators = True
         self._chain_operators[self.trajectory.frame] = op
         self.perturbed = True
+
+    @property
+    def coords(self):
+        """np.ndarray : The cartesian coordinates of the protein"""
+        if (self._coords is None) or self.perturbed:
+            self._coords[self.trajectory.frame] = self.to_cartesian()
+            self.perturbed = False
+        return self._coords[self.trajectory.frame]
+
+    @coords.setter
+    def coords(self, val):
+        self.coords[self.trajectory.frame] = val
+        z_matrix, chain_operator = get_z_matrix(val, self.z_matrix_idxs, self.chain_operator_idxs)
+
+        self.trajectory.coordinates_array[self.trajectory.frame] = z_matrix
+        self.chain_operators[self.trajectory.frame] = chain_operator
+
+    @property
+    def atoms(self):
+        return self.protein.atoms
+
+    @property
+    def nonbonded(self):
+        """np.ndarray: Array of atom index pairs of atoms that are not bonded"""
+        if self._nonbonded is None and not (self.bonds is None or self.bonds.any() is None):
+            bonded_pairs = {(a, b) for a, b in self.bonds}
+            possible_bonds = itertools.combinations(range(len(self.atoms)), 2)
+            self._nonbonded = np.fromiter(
+                itertools.chain.from_iterable(
+                    nb for nb in possible_bonds if nb not in bonded_pairs), dtype=int)
+
+            self._nonbonded.shape = (-1, 2)
+
+        return self._nonbonded
+
+
 
 
 def reconfigure_cap(cap, atom_idxs, bonds):
@@ -338,7 +349,7 @@ def ic_mx(*p: ArrayLike) -> Tuple[ArrayLike, ArrayLike]:
     rotation_matrix : np.ndarray
         Rotation  matrix to rotate from the internal coordinate frame to the global frame
     origin : np.ndarray
-        New origin position in 3 dimensional space
+        New origin position in 3-dimensional space
     """
 
     p1, p2, p3 = p
@@ -361,3 +372,36 @@ def ic_mx(*p: ArrayLike) -> Tuple[ArrayLike, ArrayLike]:
     origin = p1
 
     return rotation_matrix, origin
+
+
+def get_z_matrix(coords, z_matrix_idxs, chain_operator_idxs=None, nan_int=-2147483648):
+    z_matrix = np.zeros((len(z_matrix_idxs), 3))
+    bond_mask = ~(z_matrix_idxs[:, 1] == nan_int)
+    bond_values = coords[z_matrix_idxs[bond_mask, 1]] - coords[z_matrix_idxs[bond_mask, 0]]
+    bond_values = np.linalg.norm(bond_values, axis=1)
+
+    angle_mask = ~(z_matrix_idxs[:, 2] == nan_int)
+    angle_values = [coords[z_matrix_idxs[angle_mask, i]] for i in range(3)]
+    angle_values = get_angles(*angle_values)
+
+    dihedral_mask = ~(z_matrix_idxs[:, 3] == nan_int)
+    dihedral_values = [coords[z_matrix_idxs[dihedral_mask, i]] for i in range(4)]
+    dihedral_values = get_dihedrals(*dihedral_values)
+
+    z_matrix[bond_mask, 0] = bond_values
+    z_matrix[angle_mask, 1] = angle_values
+    z_matrix[dihedral_mask, 2] = dihedral_values
+    if chain_operator_idxs is None:
+        return z_matrix
+
+    chain_operator = {}
+    for cidx in chain_operator_idxs:
+        chain_operator_def = z_matrix_idxs[cidx + 2]
+        if chain_operator_def[-1] == nan_int and chain_operator_def[-2] != nan_int:
+            pos = coords[chain_operator_def[:3]]
+            mx, ori = ic_mx(*pos)
+        else:
+            mx, ori = np.eye(3), coords[cidx].copy()
+        chain_operator[cidx] = {'mx': mx, 'ori': ori}
+
+    return z_matrix, chain_operator

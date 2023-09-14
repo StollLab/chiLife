@@ -19,6 +19,7 @@ from .dRotamerEnsemble import dRotamerEnsemble
 from .IntrinsicLabel import IntrinsicLabel
 from .Protein import MolecularSystem
 from .ProteinIC import ProteinIC
+from .new_ProteinIC import newProteinIC
 
 #                 ID    name   res  chain resnum      X     Y      Z      q      b              elem
 fmt_str = "ATOM  {:5d} {:^4s} {:3s} {:1s}{:4d}    {:8.3f}{:8.3f}{:8.3f}{:6.2f}{:6.2f}          {:>2s}  \n"
@@ -411,10 +412,10 @@ def write_ic(pdbfile: TextIO, ic: chilife.ProteinIC) -> None:
         chiLife internal coordinates object.
     """
     pdbfile.write('MODEL\n')
-    for atom, coord in zip(ic.atoms, ic.coords):
-        pdbfile.write(fmt_str.format(atom.index + 1, atom.name, atom.resn, 'A', atom.resi,
+    for i, (atom, coord) in enumerate(zip(ic.atoms, ic.coords)):
+        pdbfile.write(fmt_str.format(i + 1, atom.name, atom.resname, atom.segid, atom.resnum,
                                      coord[0], coord[1], coord[2],
-                                     1.0, 1.0, atom.atype))
+                                     1.0, 1.0, atom.type))
     pdbfile.write('ENDMDL\n')
 
 
@@ -520,7 +521,8 @@ molecule_class = {RotamerEnsemble: 'rotens',
                   mda.Universe: 'molcart',
                   mda.AtomGroup: 'molcart',
                   MolecularSystem: 'molcart',
-                  ProteinIC: 'molic'}
+                  ProteinIC: 'molic',
+                  newProteinIC: 'molic'}
 
 
 rotlib_formats = {1.0: (

@@ -57,8 +57,8 @@ def test_copy():
 def test_save_pdb():
     protein = mda.Universe("test_data/alphabetical_peptide.pdb").select_atoms("protein")
 
-    uni_ics = xl.get_internal_coords(protein)
-    uni_ics.save_pdb("test_data/postwrite_alphabet_peptide.pdb")
+    uni_ics = xl.newProteinIC.from_protein(protein)
+    xl.save("test_data/postwrite_alphabet_peptide.pdb", uni_ics)
 
     with open("test_data/postwrite_alphabet_peptide.pdb", "r") as f:
         test = hashlib.md5(f.read().encode("utf-8")).hexdigest()
@@ -73,7 +73,7 @@ def test_save_pdb():
 def test_to_site():
     backbone = ubq.select_atoms("resnum 28 and name N CA C").positions
     r1c = mda.Universe("../chilife/data/rotamer_libraries/residue_pdbs/R1C.pdb")
-    R1ic = xl.get_internal_coords(r1c)
+    R1ic = xl.newProteinIC.from_protein(r1c)
     R1ic.to_site(*backbone)
 
     np.testing.assert_almost_equal(R1ic.coords[1], backbone[1])
@@ -92,6 +92,7 @@ def test_get_internal_coordinates(pdbid):
 
     np.testing.assert_almost_equal(ICs.coords, protein.atoms.positions, decimal=4)
 
+
 def test_set_dihedral():
     ICs = xl.get_internal_coords(ubq)
     ICs.set_dihedral(
@@ -101,6 +102,7 @@ def test_set_dihedral():
     ans = mda.Universe("test_data/test_icset.pdb")
 
     np.testing.assert_almost_equal(ans.atoms.positions, ICs.coords, decimal=3)
+
 
 def test_set_dihedral2():
     lys = mda.Universe('../chilife/data/rotamer_libraries/residue_pdbs/lys.pdb')
@@ -154,7 +156,7 @@ def test_nonbonded():
     with open('test_data/ic_nb.pkl', 'rb') as f:
         nb_ans = pickle.load(f)
 
-    np.testing.assert_equal(ICs.nonbonded_pairs, nb_ans)
+    np.testing.assert_equal(ubqIC.nonbonded, nb_ans)
 
 
 def test_get_zmat_idxs():

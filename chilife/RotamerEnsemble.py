@@ -474,9 +474,7 @@ class RotamerEnsemble:
                                     [ic_backbone[1], CA[1]],
                                     [ic_backbone[2], C[1]]])
 
-        self.ic_ori, self.ic_mx = chilife.local_mx(
-            *ic_backbone, method=self.alignment_method
-        )
+        self.ic_ori, self.ic_mx = chilife.local_mx(*ic_backbone, method=self.alignment_method)
         m2m3 = self.ic_mx @ self.mx
         op = {}
         for segid in self.internal_coords[0].chain_operators:

@@ -84,6 +84,8 @@ class newProteinIC:
             else np.array([self.protein.positions for ts in self.protein.universe.trajectory])
         self._dihedral_defs = None
 
+
+
     @classmethod
     def from_protein(cls,
                      protein: Union[MDAnalysis.Universe, MDAnalysis.AtomGroup, MolecularSystem],
@@ -268,7 +270,22 @@ class newProteinIC:
 
         return self._nonbonded
 
+    def has_clashes(self, distance: float = 1.5) -> bool:
+        """Checks for an internal clash between non-bonded atoms.
 
+        Parameters
+        ----------
+        distance : float
+            Minimum distance allowed between non-bonded atoms in angstroms. (Default value = 1.5).
+
+        Returns
+        -------
+
+        """
+        diff = self.coords[self.nonbonded[:, 0]]- self.coords[self.nonbonded[:, 1]]
+        dist = np.linalg.norm(diff, axis=1)
+        has_clashes = np.any(dist < distance)
+        return has_clashes
 
 
 def reconfigure_cap(cap, atom_idxs, bonds):

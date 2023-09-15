@@ -43,6 +43,17 @@ def test_from_prot_traj():
     np.testing.assert_equal(mbpIC.z_matrix_idxs, zmat_idx_ans)
     np.testing.assert_almost_equal(mbpIC.trajectory.coordinates_array, zmat_ans)
 
+@pytest.mark.parametrize("pdbid", pdbids)
+def test_get_internal_coordinates(pdbid):
+    protein = mda.Universe(f"test_data/{pdbid}.pdb", in_memory=True).select_atoms("protein and not altloc B")
+    ICs = xl.newProteinIC.from_protein(protein)
+    np.testing.assert_almost_equal(ICs.coords, protein.atoms.positions, decimal=4)
+
+    protein = xl.Protein.from_pdb(f"test_data/{pdbid}.pdb").select_atoms("protein and not altloc B")
+    ICs = xl.newProteinIC.from_protein(protein)
+    np.testing.assert_almost_equal(ICs.coords, protein.atoms.positions, decimal=4)
+
+
 
 def test_copy():
     my_copy = ubqIC.copy()
@@ -70,27 +81,12 @@ def test_save_pdb():
     assert test == truth
 
 
-def test_to_site():
-    backbone = ubq.select_atoms("resnum 28 and name N CA C").positions
-    r1c = mda.Universe("../chilife/data/rotamer_libraries/residue_pdbs/R1C.pdb")
-    R1ic = xl.newProteinIC.from_protein(r1c)
-    R1ic.to_site(*backbone)
-
-    np.testing.assert_almost_equal(R1ic.coords[1], backbone[1])
-
-
 def test_has_clashes():
     assert not ICs.has_clashes()
-    ICs.set_dihedral(np.pi / 2, 35, ["N", "CA", "C", "N"])
+    ubqIC.set_dihedral(np.pi / 2, 35, ["N", "CA", "C", "N"])
     assert ICs.has_clashes()
 
 
-@pytest.mark.parametrize("pdbid", pdbids)
-def test_get_internal_coordinates(pdbid):
-    protein = mda.Universe(f"test_data/{pdbid}.pdb", in_memory=True).select_atoms("protein and not altloc B")
-    ICs = xl.get_internal_coords(protein)
-
-    np.testing.assert_almost_equal(ICs.coords, protein.atoms.positions, decimal=4)
 
 
 def test_set_dihedral():

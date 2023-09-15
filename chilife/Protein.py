@@ -3,6 +3,7 @@ import functools
 import numbers
 import operator
 from functools import partial, update_wrapper
+from .chilife import SUPPORTED_RESIDUES
 from .protein_utils import sort_pdb
 from .Topology import Topology
 import numpy as np
@@ -192,6 +193,7 @@ class Protein(MolecularSystem):
                                   'elem': self.atypes,
                                   'element': self.atypes,
 
+                                  'protein': np.isin(self.resnames, SUPPORTED_RESIDUES),
                                   '_len': self.n_atoms,
                                   }
 
@@ -373,148 +375,46 @@ class TrajectoryIterator:
 
 def process_statement(statement, logickws, subjectkws):
     sub_statements = parse_paren(statement)
-    unary_operators = (logickws['byres'], logickws['not'])
-    advanced_operators = (logickws['within'], logickws['around'])
 
     mask = np.ones(subjectkws['_len'], dtype=bool)
-    operation = logickws['and']
-    next_operation = None
+    operation = None
 
     for stat in sub_statements:
-        cont = False
-        stat_split = stat.split()
-
-        if stat_split[0] in logickws:
-            if len(stat_split) == 1:
-                if logickws[stat_split[0]] in unary_operators:
-                    _io = logickws[stat_split[0]]
-
-                    def toperation(a, b, operation, _io):
-                        return operation(a, _io(b))
-
-                    operation = functools.partial(toperation, operation=operation, _io=_io)
-                else:
-                    operation = logickws[stat_split[0]]
-
-                continue
-
-            elif operation in unary_operators:
-                _io = logickws[stat_split[0]]
-                operation = lambda a, b: operation(_io(a, b))
-
-            elif logickws[stat_split[0]] in unary_operators:
-                _io = logickws[stat_split[0]]
-
-                def toperation(a, b, operation, _io):
-                    return operation(a, _io(b))
-
-                operation = functools.partial(toperation, operation=operation, _io=_io)
-
-            elif logickws[stat_split[0]] in advanced_operators:
-                _io = logickws[stat_split[0]]
-                args = [stat_split.pop(i) for i in range(1, 1 + _io.nargs)]
-                _io = functools.partial(_io, *args)
-
-                def toperation(a, b, operation, _io):
-                    return operation(a, _io(b))
-
-                operation = functools.partial(toperation, operation=operation, _io=_io)
-
-            elif operation != None:
-                raise ValueError('Cannot have two logical operators in succession')
-
-            else:
-                operation = logickws[stat_split[0]]
-
-            stat_split = stat_split[1:]
-
-        elif stat.startswith('('):
-            cont = True
-            sub_out = process_statement(stat, logickws, subjectkws)
-
-        if len(stat_split) == 0:
+        if stat.startswith('('):
+            tmp = process_statement(stat, logickws, subjectkws)
+            mask = operation(mask, tmp) if operation else tmp
             continue
 
-        if stat_split[0] not in subjectkws and not cont:
-            raise ValueError(f"{stat_split[0]} is not a valid keyword. Please start expressions with valid keywords")
+        stat_split = stat.split()
+        subject = None
+        values = []
+        while len(stat_split) > 0:
 
-        if stat_split[0] in subjectkws:
-            finished = False
-            sub_out = np.ones(subjectkws['_len'], dtype=bool)
-            internal_operation = logickws['and']
-            next_internal_operation = None
-            while not finished:
-                if stat_split[0] in subjectkws:
-                    subject = subjectkws[stat_split.pop(0)]
-                    values = []
+            if stat_split[0] in subjectkws:
+                subject = subjectkws[stat_split.pop(0)]
+                values = []
 
-                elif stat_split[0] in logickws:
-                    if logickws[stat_split[0]] in unary_operators:
-                        _io = logickws[stat_split[0]]
+            elif stat_split[0] in logickws:
+                if subject is not None:
+                    values = np.array(values, dtype=subject.dtype)
+                    tmp = process_sub_statement(subject, values)
+                    subject, values = None, []
+                    mask = operation(mask, tmp) if operation else tmp
 
-                        def toperation(a, b, operation, _io):
-                            return operation(a, _io(b))
+                # Get next operation
+                operation, stat_split = build_operator(stat_split, logickws)
 
-                        internal_operation = functools.partial(toperation, operation=internal_operation, _io=_io)
-                        stat_split = stat_split[1:]
-                        continue
-                    else:
-                        raise ValueError('Cannot have two logical operators in succession unless the second one is '
-                                         '`not`')
-                else:
-                    raise ValueError(f'{stat_split[0]} is not a valid keyword')
+            else:
+                values += parse_value(stat_split.pop(0))
 
-                for i, val in enumerate(stat_split):
+        if (subject is not None) and not values:
+            raise RuntimeError('selection must start with a selection keyword')
 
-                    if logickws.get(val, None) in advanced_operators:
-                        _io = logickws[val]
-                        args = [stat_split.pop(j) for j in range(i + 1, i + 1 + _io.nargs)]
-                        _io = functools.partial(_io, *args)
-
-                        def toperation(a, b, operation, _io):
-                            return operation(a, _io(b))
-
-                        next_internal_operation = functools.partial(toperation, operation=operation, _io=_io)
-                        stat_split = stat_split[i + 1:]
-                        if stat_split == []:
-                            next_operation = next_internal_operation
-                            next_internal_operation = None
-                        break
-
-                    elif val in logickws:
-                        next_internal_operation = logickws[val]
-                        stat_split = stat_split[i + 1:]
-                        if stat_split == []:
-                            next_operation = next_internal_operation
-                            next_internal_operation = None
-                        break
-                    elif '-' in val:
-                        start, stop = [int(x) for x in val.split('-')]
-                        values += list(range(start, stop + 1))
-                    elif ':' in val:
-                        start, stop = [int(x) for x in val.split(':')]
-                        values += list(range(start, stop + 1))
-                    else:
-                        values.append(val)
-                else:
-                    finished = True
-
-                values = np.array(values, dtype=subject.dtype)
-                tmp = np.isin(subject, values)
-                sub_out = internal_operation(sub_out, tmp)
-
-                internal_operation = next_internal_operation
-                next_internal_operation = None
-                if internal_operation is None:
-                    finished = True
-
-        if operation is None:
-            print(stat)
-            raise ValueError('Need an operation between two selections')
-
-        mask = operation(mask, sub_out)
-        operation = next_operation
-        next_operation = None
+        elif (subject is not None) and values:
+            values = np.array(values, dtype=subject.dtype)
+            tmp = process_sub_statement(subject, values)
+            mask = operation(mask, tmp) if operation else tmp
+            operation = None
 
     return mask
 
@@ -548,7 +448,84 @@ def parse_paren(string):
     if len(results) == 1 and results[0].startswith('('):
         results = parse_paren(results[0][1:-1])
 
+    if stack != 0 :
+        raise RuntimeError('The provided statement is missing a parenthesis or has an '
+                           'extra one.')
     return results
+
+def check_operation(operation, stat_split, logickws):
+    advanced_operators = (logickws['within'], logickws['around'], logickws['byres'])
+    if operation in advanced_operators:
+        outer_operation = logickws['and']
+        args = [stat_split.pop(i) for i in range(1, 1 + operation.nargs)]
+        operation = functools.partial(operation, *args)
+
+
+        def toperation(a, b, outer_operation, _io):
+            return outer_operation(a, _io(b))
+
+        operation = functools.partial(toperation, outer_operation=outer_operation, _io=operation)
+
+    return operation
+
+
+def build_operator(stat_split, logickws):
+    operation = logickws['and']
+    unary_operators = (logickws['not'], logickws['byres'])
+    binary_operators = (logickws['and'], logickws['or'])
+    advanced_operators = (logickws['within'], logickws['around'])
+
+    while _io := logickws.get(stat_split[0], False):
+
+        if _io in unary_operators:
+            def toperation(a, b, operation, _io):
+                return operation(a, _io(b))
+
+            operation = functools.partial(toperation, operation=operation, _io=_io)
+            stat_split = stat_split[1:]
+
+        elif _io in advanced_operators:
+            stat_split = stat_split[1:]
+            args = [stat_split.pop(0) for i in range(_io.nargs)]
+            _io = functools.partial(_io, *args)
+
+            def toperation(a, b, operation, _io):
+                return operation(a, _io(b))
+
+            operation = functools.partial(toperation, operation=operation, _io=_io)
+
+        elif _io in binary_operators:
+            if operation != logickws['and']:
+                raise RuntimeError('Cannot have two binary logical operators in succession')
+            operation = _io
+            stat_split = stat_split[1:]
+
+        if len(stat_split) == 0:
+            break
+
+    return operation, stat_split
+
+
+def parse_value(value):
+    return_value = []
+    if '-' in value:
+        start, stop = [int(x) for x in value.split('-')]
+        return_value += list(range(start, stop + 1))
+    elif ':' in value:
+        start, stop = [int(x) for x in value.split(':')]
+        return_value += list(range(start, stop + 1))
+    else:
+        return_value.append(value)
+
+    return return_value
+
+
+def process_sub_statement(subject, values):
+
+    if subject.dtype == bool:
+        return subject
+
+    return np.isin(subject, values)
 
 
 class AtomSelection(MolecularSystem):
@@ -711,7 +688,7 @@ class Residue(MolecularSystem):
         prev = np.unique(prev[prev > 0])
         resnums = np.unique(self.atoms.resnums)
         sel = self.protein.select_atoms(f"(resnum {' '.join(str(r) for r in resnums)} and name N CA C) or "
-                                        f"(resnum {' '.join(str(r) for r in prev)} and name C))")
+                                        f"(resnum {' '.join(str(r) for r in prev)} and name C)")
         return sel if len(sel) == 4 else None
 
     def psi_selection(self):
@@ -719,7 +696,7 @@ class Residue(MolecularSystem):
         nex = np.unique(nex[nex <= self.protein.resnums.max()])
         resnums = np.unique(self.resnums)
         sel = self.protein.select_atoms(f"(resnum {' '.join(str(r) for r in resnums)} and name N CA C) or "
-                                        f"(resnum {' '.join(str(r) for r in nex)} and name N))")
+                                        f"(resnum {' '.join(str(r) for r in nex)} and name N)")
         return sel if len(sel) == 4 else None
 
 
@@ -754,6 +731,5 @@ def within(distance, mask, protein):
     out_mask[results] = True
     out_mask = out_mask * ~mask
     return out_mask
-
 
 within.nargs = 1

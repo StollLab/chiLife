@@ -101,16 +101,16 @@ class newProteinIC:
         # Explicit passing of bonds means no other  bonds will be considered.
         if bonds is not None:
             bonds = bonds.copy()
-        # Otherwise use bonds defined by the protein object
-        elif hasattr(protein, 'bonds'):
-            bonds = protein.bonds
+        # # Otherwise use bonds defined by the protein object
+        # elif hasattr(protein, 'bonds'):
+        #     bonds = protein.bonds
         # Guess the bonds as a last resort
         else:
             # Add selection's lowest index in case the user is selecting a subset of atoms from a larger system.
-            bonds = guess_bonds(protein.positions, protein.types) + protein[0].ix
+            bonds = guess_bonds(protein.positions, protein.types)
 
         # Keep track of atom indexes in parent protein object in case atoms come from a larger system
-        atom_idxs = protein.ix.tolist()
+        atom_idxs = np.arange(len(protein.atoms))
 
         # Remove cap atoms for atom_idxs
         cap = kwargs.get('cap', [])
@@ -119,30 +119,27 @@ class newProteinIC:
 
         topology = Topology(atom_idxs, bonds)
         z_matrix_dihedrals = topology.get_zmatrix_dihedrals()
-        z_mat_map = {k[-1]: i for i, k in enumerate(z_matrix_dihedrals)}
+        # z_mat_map = {k[-1]: i for i, k in enumerate(z_matrix_dihedrals)}
 
         if preferred_dihedrals:
             present = False
             for dihe in preferred_dihedrals:
 
                 # Get the indices of the atom being defined by the preferred dihedral
-                preferred_idx = np.argwhere(protein.names == dihe[-1]).flatten()
-                u_idx_of_interest = protein[preferred_idx].ix
-                idx_of_interest = np.argwhere(np.isin(atom_idxs, u_idx_of_interest)).flatten()
-
-                for idx, uidx in zip(idx_of_interest, u_idx_of_interest):
+                idx_of_interest = np.argwhere(protein.names == dihe[-1]).flatten()
+                for idx in idx_of_interest:
                     # Check if it is already in use
-                    if np.all(protein.universe.atoms[z_matrix_dihedrals[idx]].names == dihe):
+                    if np.all(protein.atoms[z_matrix_dihedrals[idx]].names == dihe):
                         present = True
                         continue
 
                     # Check for alternative dihedral definitions that satisfy the preferred dihedral
-                    for p in topology.dihedrals_by_atoms[uidx]:
-                        if np.all(protein.universe.atoms[p].names == dihe):
+                    for p in topology.dihedrals_by_atoms[idx]:
+                        if np.all(protein.atoms[p].names == dihe):
                             dihedral = [a for a in p]
                             break
                     else:
-                        dihedral = [uidx]
+                        dihedral = [idx]
 
                     # If an alternative is found, replace it in the dihedral list.
                     if len(dihedral) == 4:
@@ -151,10 +148,11 @@ class newProteinIC:
 
                         # also change any other dependent dihedrals
                         for dihe_idxs in topology.dihedrals_by_bonds[tuple(dihedral[1:3])]:
-                            zmidx = z_mat_map[dihe_idxs[-1]]
+                            zmidx = dihe_idxs[-1]
                             tmp = z_matrix_dihedrals[zmidx]
                             if all(a == b for a, b in zip(tmp[1:3], dihedral[1:3])):
                                 z_matrix_dihedrals[zmidx, 0] = dihedral[0]
+
             if not present and preferred_dihedrals != []:
                 raise ValueError(f'There is no dihedral `{dihe}` in the provided protein. Perhaps there is typo or the '
                                  f'atoms are not sorted correctly')
@@ -326,6 +324,7 @@ def zmatrix_idxs_to_local(zmatrix_idxs):
         new_zmatrix_idxs.append(d)
 
     return np.array(new_zmatrix_idxs).astype(int)
+
 
 def get_chainbreak_idxs(z_matrix_idxs, nan_int=-2147483648):
     """

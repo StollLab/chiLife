@@ -193,7 +193,7 @@ class Protein(MolecularSystem):
                                   'elem': self.atypes,
                                   'element': self.atypes,
 
-                                  'protein': np.isin(self.resnames, SUPPORTED_RESIDUES),
+                                  'protein': np.isin(self.resnames, list(SUPPORTED_RESIDUES)),
                                   '_len': self.n_atoms,
                                   }
 
@@ -223,11 +223,11 @@ class Protein(MolecularSystem):
         if isinstance(lines[0], str):
             lines = [lines]
 
-        PDB_data = [(line[:6].strip(), int(line[6:11]), line[12:16].strip(), line[16:17].strip(),
+        PDB_data = [(line[:6].strip(), i, line[12:16].strip(), line[16:17].strip(),
                      line[17:20].strip(), line[21:22].strip(), int(line[22:26]), line[26:27].strip(),
                      (float(line[30:38]), float(line[38:46]), float(line[46:54])), float(line[54:60]),
                      float(line[60:66]), line[72:73].strip(), line[76:78].strip(), line[78:80].strip())
-                    for line in lines[0]]
+                    for i, line in enumerate(lines[0])]
 
         pdb_dict = {key: np.array(data) for key, data in zip(keys, zip(*PDB_data)) if key != "skip"}
         trajectory = [pdb_dict.pop('coords')]
@@ -407,10 +407,7 @@ def process_statement(statement, logickws, subjectkws):
             else:
                 values += parse_value(stat_split.pop(0))
 
-        if (subject is not None) and not values:
-            raise RuntimeError('selection must start with a selection keyword')
-
-        elif (subject is not None) and values:
+        if subject is not None:
             values = np.array(values, dtype=subject.dtype)
             tmp = process_sub_statement(subject, values)
             mask = operation(mask, tmp) if operation else tmp
@@ -619,7 +616,7 @@ class SegmentSelection(MolecularSystem):
         self.protein = protein
 
         first_ix = np.nonzero(np.r_[1, np.diff(protein.segixs)[:-1]])
-        self.first_ix = np.array([ix for ix in first_ix if protein.segixs[ix] in protein.segixs[self.mask]])
+        self.first_ix = np.array([ix for ix in first_ix if protein.segixs[ix] in protein.segixs[self.mask]], dtype=int)
 
         self.segids = protein.segids[self.first_ix].flatten()
         self.chains = protein.chains[self.first_ix].flatten()

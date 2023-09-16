@@ -42,6 +42,7 @@ class Topology:
                 for i, elem in enumerate(hold):
                     zmatrix_dihedrals.append(hold[:i + 1])
                 hold = []
+
             runner_ups = []
             for dihe in self.dihedrals_by_atoms[key]:
                 if dihe[0] < dihe[1] < dihe[2] < dihe[3]:

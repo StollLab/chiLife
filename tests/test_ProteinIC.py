@@ -43,6 +43,7 @@ def test_from_prot_traj():
     np.testing.assert_equal(mbpIC.z_matrix_idxs, zmat_idx_ans)
     np.testing.assert_almost_equal(mbpIC.trajectory.coordinates_array, zmat_ans)
 
+
 @pytest.mark.parametrize("pdbid", pdbids)
 def test_get_internal_coordinates(pdbid):
     protein = mda.Universe(f"test_data/{pdbid}.pdb", in_memory=True).select_atoms("protein and not altloc B")
@@ -52,7 +53,6 @@ def test_get_internal_coordinates(pdbid):
     protein = xl.Protein.from_pdb(f"test_data/{pdbid}.pdb").select_atoms("protein and not altloc B")
     ICs = xl.newProteinIC.from_protein(protein)
     np.testing.assert_almost_equal(ICs.coords, protein.atoms.positions, decimal=4)
-
 
 
 def test_copy():

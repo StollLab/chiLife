@@ -932,7 +932,6 @@ def sort_pdb(pdbfile: Union[str, List[str], List[List[str]]],
     lines : List[str], List[List[str]]
         Sorted list of strings corresponding to the ATOM entries of a PDB file.
     """
-
     if isinstance(pdbfile, (str, Path)):
         with open(pdbfile, "r") as f:
             lines = f.readlines()
@@ -951,7 +950,8 @@ def sort_pdb(pdbfile: Union[str, List[str], List[List[str]]],
 
         # Use connect information for bonds if present
         if connect != [] and bonds == set():
-            bonds, _, _ = parse_connect(connect)
+            connect, _, _ = parse_connect(connect)
+            kwargs['additional_bonds'] = kwargs.get('additional_bonds', set()) | connect
 
         # If it's a multi-state pdb...
         if start_idxs != []:
@@ -1001,6 +1001,7 @@ def _sort_pdb_lines(lines, bonds=None, index=False, **kwargs) -> \
         Additional keyword arguments.
         return_bonds : bool
             Return bond indices as well, usually only used when letting the function guess the bonds.
+        additional_bonds: set(tuple(int))
 
     Returns
     -------
@@ -1029,7 +1030,8 @@ def _sort_pdb_lines(lines, bonds=None, index=False, **kwargs) -> \
     else:
         bonds = guess_bonds(coords, atypes)
         presort_bonds = set(tuple(sorted((b1, b2))) for b1, b2 in bonds)
-
+        if kwargs.get('additional_bonds', set()) != set():
+            presort_bonds.union(kwargs['additional_bonds'])
     # get residue groups
     chain, resi = lines[0][21], int(lines[0][22:26].strip())
     start = 0

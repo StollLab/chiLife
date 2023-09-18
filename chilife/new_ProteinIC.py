@@ -1,5 +1,6 @@
 import itertools
 import logging
+from collections import defaultdict
 from dataclasses import dataclass
 from typing import List, Union, Dict, Tuple
 
@@ -13,6 +14,8 @@ from .Topology import Topology
 from .protein_utils import dihedral_defs, save_pdb, local_mx, global_mx, get_angles, get_dihedrals, guess_bonds
 from .numba_utils import _ic_to_cart
 
+
+nan_int = -2147483648
 
 class newProteinIC:
     """
@@ -66,25 +69,40 @@ class newProteinIC:
         """
         # Internal coords
         self.protein = protein.atoms if isinstance(protein, MDAnalysis.Universe) else protein
+        self.atoms = self.protein.atoms
+        self.names = self.atoms.names
         self.trajectory = Trajectory(z_matrix, self)
         self.z_matrix_idxs = z_matrix_idxs
-        self._chain_operator_idxs = kwargs.get('chain_operator_idxs', None)
-        self._chain_operators = kwargs.get('chain_operators', None)
-
+        self.chain_operator_idxs = kwargs.get('chain_operator_idxs', None)
+        self.chain_operators = kwargs.get('chain_operators', None)
+        self.chains = protein.segments.segids
+        self._chain_segs = [[a, b] for a, b in zip(self.chain_operator_idxs,
+                                                   self.chain_operator_idxs[1:] + [len(self.z_matrix_idxs)])]
         # Topology
         self.bonds = kwargs['bonds'] if 'bonds' in kwargs else \
             guess_bonds(protein.positions, protein.types)
         self._nonbonded = kwargs.get('nonbonded', None)
         self.topology = kwargs['topology'] if 'topology' in kwargs else \
-            Topology(np.arange(len(self.protein.atoms)), self.bonds)
+            Topology(np.arange(len(self.atoms)), self.bonds)
+
+        self.non_nan_idxs = kwargs.get('non_nan_idxs', None)
+        if self.non_nan_idxs is None:
+            self.non_nan_idxs = np.argwhere(~np.any(self.z_matrix_idxs == nan_int, axis=1)).flatten()
+
+        self.chain_res_name_map = kwargs.get('chain_res_name_map', defaultdict(list))
+        if self.chain_res_name_map == {}:
+            idxs, b2s, b1s,  _ = self.z_matrix_idxs[self.non_nan_idxs].T
+            chains = self.atoms[b2s].segids
+            resnums = self.atoms[b2s].resnums
+            [self.chain_res_name_map[(chain, res, b1, b2)].append(idx)
+                   for chain, res, b1, b2, idx in
+                       zip(chains, resnums, self.atoms[b1s].names, self.atoms[b2s].names, idxs)]
+
+            self.chain_res_name_map = {k: v for k, v in self.chain_res_name_map.items()}
 
         # Misc
         self.perturbed = False
-        self._coords = kwargs['coords'] if 'coords' in kwargs \
-            else np.array([self.protein.positions for ts in self.protein.universe.trajectory])
         self._dihedral_defs = None
-
-
 
     @classmethod
     def from_protein(cls,
@@ -159,7 +177,6 @@ class newProteinIC:
 
         z_matrix_coordinates = np.zeros((len(protein.universe.trajectory), len(z_matrix_dihedrals), 3))
         z_matrix_dihedrals = zmatrix_idxs_to_local(z_matrix_dihedrals)
-        nan_int = -2147483648
 
         chain_operator_idxs = get_chainbreak_idxs(z_matrix_dihedrals)
         chain_operators = []
@@ -180,9 +197,10 @@ class newProteinIC:
                   'chain_operator_idxs': self._chain_operator_idxs,
                   'bonds': self.bonds,
                   'nonbonded': self._nonbonded,
-                  'coords': self._coords.copy(),
                   'topology': self.topology,
-                  'protein': self.protein}
+                  'protein': self.protein,
+                  'non_nan_idxs': self.non_nan_idxs,
+                  'chain_res_name_map': self.chain_res_name_map}
 
         return newProteinIC(z_matrix, z_matrix_idxs, **kwargs)
 
@@ -229,30 +247,45 @@ class newProteinIC:
 
             op = {idx: {"ori": np.array([0, 0, 0]), "mx": np.identity(3)}for idx in self._chain_operator_idxs}
             self.has_chain_operators = False
+            self._chain_operators = op
         else:
             self.has_chain_operators = True
-        self._chain_operators[self.trajectory.frame] = op
+            if isinstance(op, dict):
+                self._chain_operators[self.trajectory.frame] = op
+            elif isinstance(op, list):
+                if len(op) == len(self.trajectory):
+                    self._chain_operators = op
+                elif len(op) == 1:
+                    self._chain_operators = op[0]
+                else:
+                    raise RuntimeError('chain operators must be set to \n'
+                                       '    1) a dict to set the chain operators for a single frame \n'
+                                       '    2) a list of dicts the same length of the trajectory to set chain operators'
+                                       'for each frame\n'
+                                       '    3) a list with one dict to set all all frames to the same chain operator.')
+
         self.perturbed = True
+
+    @property
+    def z_matrix(self):
+        return self.trajectory.coordinates_array[self.trajectory.frame]
 
     @property
     def coords(self):
         """np.ndarray : The cartesian coordinates of the protein"""
-        if (self._coords is None) or self.perturbed:
-            self._coords[self.trajectory.frame] = self.to_cartesian()
+        if (self.protein.positions is None) or self.perturbed:
+            self.protein.positions = self.to_cartesian()
             self.perturbed = False
-        return self._coords[self.trajectory.frame]
+
+        return self.protein.positions
 
     @coords.setter
     def coords(self, val):
-        self.coords[self.trajectory.frame] = val
+        self.protein.positions = val
         z_matrix, chain_operator = get_z_matrix(val, self.z_matrix_idxs, self.chain_operator_idxs)
 
         self.trajectory.coordinates_array[self.trajectory.frame] = z_matrix
         self.chain_operators[self.trajectory.frame] = chain_operator
-
-    @property
-    def atoms(self):
-        return self.protein.atoms
 
     @property
     def nonbonded(self):
@@ -268,6 +301,72 @@ class newProteinIC:
 
         return self._nonbonded
 
+    def to_cartesian(self):
+        cart_coords = _ic_to_cart(self.z_matrix_idxs[:, 1:], self.z_matrix)
+
+        # Apply chain operations if any exist
+        if self.has_chain_operators:
+            for start, end in self._chain_segs:
+                op = self.chain_operators[start]
+                cart_coords[start:end] = cart_coords[start:end] @ op["mx"] + op["ori"]
+
+        return cart_coords
+
+    def set_dihedral(
+            self,
+            dihedrals: Union[float, ArrayLike],
+            resi: int,
+            atom_list: ArrayLike,
+            chain: Union[int, str] = None
+    ):
+        """Set one or more dihedral angles of a single residue in internal coordinates for the atoms defined in atom
+        list.
+
+        Parameters
+        ----------
+        dihedrals : float, ArrayLike
+            Angle or array of angles to set the dihedral(s) to.
+        resi : int
+            Residue number of the site being altered
+        atom_list : ArrayLike
+            Names or array of names of atoms involved in the dihedral(s)
+        chain : int, str, optional
+            Chain containing the atoms that are defined by the dihedrals that are being set. Only necessary when there
+            is more than one chain in the proteinIC object.
+
+        Returns
+        -------
+        self : ProteinIC
+            ProteinIC object with new dihedral angle(s)
+        """
+
+        self.perturbed = True
+
+        if chain is None and len(self.chains) == 1:
+            chain = self.chains[0]
+        elif chain is None and len(self.chains) > 1:
+            raise ValueError("You must specify the protein chain")
+
+        dihedrals = np.atleast_1d(dihedrals)
+        atom_list = np.atleast_2d(atom_list)
+        for i, (dihedral, atoms) in enumerate(zip(dihedrals, atom_list)):
+            if (tag := (chain, resi, atoms[1], atoms[2])) not in self.chain_res_name_map:
+                raise RuntimeError(f'{atoms} is not a recognized dihedrals of residue {resi}. Please make sure you '
+                                   f'have the correct residue number and atom names.')
+
+            pert_idxs = self.chain_res_name_map[tag]
+            for idx in pert_idxs:
+                protein_atom_names = self.names[self.z_matrix_idxs[idx][::-1]]
+                if tuple(protein_atom_names) == tuple(atoms):
+                    delta = self.z_matrix[idx, 2] - dihedral
+                    break
+            else:
+                raise RuntimeError('')
+
+            self.trajectory.coords[self.trajectory.frame, pert_idxs, 2] -= delta
+
+        return self
+
     def has_clashes(self, distance: float = 1.5) -> bool:
         """Checks for an internal clash between non-bonded atoms.
 
@@ -280,7 +379,7 @@ class newProteinIC:
         -------
 
         """
-        diff = self.coords[self.nonbonded[:, 0]]- self.coords[self.nonbonded[:, 1]]
+        diff = self.coords[self.nonbonded[:, 0]] - self.coords[self.nonbonded[:, 1]]
         dist = np.linalg.norm(diff, axis=1)
         has_clashes = np.any(dist < distance)
         return has_clashes
@@ -320,8 +419,8 @@ def zmatrix_idxs_to_local(zmatrix_idxs):
     for d in zmatrix_idxs:
         d = [idxmap[di] for di in d]
         if (dl := len(d)) < 4:
-            d += [np.nan for i in range(4 - dl)]
-        new_zmatrix_idxs.append(d)
+            d = [np.nan for i in range(4 - dl)] + d
+        new_zmatrix_idxs.append(d[::-1])
 
     return np.array(new_zmatrix_idxs).astype(int)
 
@@ -414,7 +513,7 @@ def get_z_matrix(coords, z_matrix_idxs, chain_operator_idxs=None, nan_int=-21474
     for cidx in chain_operator_idxs:
         chain_operator_def = z_matrix_idxs[cidx + 2]
         if chain_operator_def[-1] == nan_int and chain_operator_def[-2] != nan_int:
-            pos = coords[chain_operator_def[:3]]
+            pos = coords[chain_operator_def[:3]][::-1]
             mx, ori = ic_mx(*pos)
         else:
             mx, ori = np.eye(3), coords[cidx].copy()

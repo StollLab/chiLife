@@ -82,22 +82,18 @@ def test_save_pdb():
 
 
 def test_has_clashes():
-    assert not ICs.has_clashes()
-    ubqIC.set_dihedral(np.pi / 2, 35, ["N", "CA", "C", "N"])
-    assert ICs.has_clashes()
-
-
+    local_ubqIC = ubqIC.copy()
+    assert not local_ubqIC.has_clashes()
+    local_ubqIC.set_dihedral(np.pi / 2, 35, ["N", "CA", "C", "N"])
+    assert local_ubqIC.has_clashes()
 
 
 def test_set_dihedral():
-    ICs = xl.get_internal_coords(ubq)
-    ICs.set_dihedral(
-        [-np.pi / 2, np.pi / 2], 72, [["C", "N", "CA", "C"], ["N", "CA", "C", "N"]]
-    )
+    local_ubqIC = ubqIC.copy()
+    local_ubqIC.set_dihedral([-np.pi / 2, np.pi / 2], 72, [["C", "N", "CA", "C"], ["N", "CA", "C", "N"]])
 
     ans = mda.Universe("test_data/test_icset.pdb")
-
-    np.testing.assert_almost_equal(ans.atoms.positions, ICs.coords, decimal=3)
+    np.testing.assert_almost_equal(ans.atoms.positions, local_ubqIC.coords, decimal=3)
 
 
 def test_set_dihedral2():

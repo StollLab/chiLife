@@ -25,5 +25,11 @@ def test_get_dihedral_defs():
 
 
 def test_construction():
-    top = Topology(ubq.atoms.ix, bonds)
-    pass
+    top = Topology(ubq, bonds)
+    for key, val in top.dihedrals_by_resnum.items():
+        names = tuple(ubq.atoms[idx].name for idx in val)
+        resnum = ubq.atoms[val[-1]].resnum
+        chain = ubq.atoms[val[-1]].segid
+        assert chain == key[0]
+        assert resnum == key[1]
+        assert names == key[2:]

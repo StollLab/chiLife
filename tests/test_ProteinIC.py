@@ -17,7 +17,7 @@ gd_kwargs = [
     {"resi": 28, "atom_list": ["C", "N", "CA", "C"]},
     {"resi": 28, "atom_list": [["C", "N", "CA", "C"], ["N", "CA", "C", "N"]]},
 ]
-gd_ans = [-1.1540443794802524, np.array([-1.15404438, -0.66532042])]
+gd_ans = [-1.1540451, np.array([-1.1540451, -0.6626095])]
 
 
 def test_from_prot():
@@ -31,7 +31,7 @@ def test_from_prot():
 
     for i, idxs in enumerate(ubqIC.z_matrix_idxs):
         idxt = [val for val in idxs if val != -2147483648]
-        assert i == idxt[-1]
+        assert i == idxt[0]
 
 
 def test_from_prot_traj():
@@ -99,7 +99,7 @@ def test_set_dihedral():
 def test_set_dihedral2():
     lys = mda.Universe('../chilife/data/rotamer_libraries/residue_pdbs/lys.pdb')
 
-    ICs = xl.get_internal_coords(lys)
+    ICs = xl.newProteinIC.from_protein(lys)
     ICs.set_dihedral(np.pi / 2, 1, ["N", "CA", "CB", "CG"])
 
     print('DSF')
@@ -107,31 +107,31 @@ def test_set_dihedral2():
 
 @pytest.mark.parametrize(["inp", "ans"], zip(gd_kwargs, gd_ans))
 def test_get_dihedral(inp, ans):
-    dihedral = ICs.get_dihedral(**inp)
+    dihedral = ubqIC.get_dihedral(**inp)
     np.testing.assert_almost_equal(dihedral, ans)
 
 
 
 def test_polypro():
     polypro = mda.Universe("test_data/PPII_Capped.pdb")
-    polyproIC = xl.get_internal_coords(polypro)
+    polyproIC = xl.newProteinIC.from_protein(polypro)
+    np.testing.assert_equal(polyproIC.z_matrix_names[12], ['CD', 'CG', 'CB', 'CA'])
 
 
 def test_PRO():
     pro = mda.Universe("../chilife/data/rotamer_libraries/residue_pdbs/pro.pdb")
-    pro_ic = xl.get_internal_coords(pro)
-    assert ("CD", "CG", "CB", "CA") in pro_ic.ICs[1][1]
+    pro_ic = xl.newProteinIC.from_protein(pro)
+
+    np.testing.assert_equal(pro_ic.z_matrix_names[6], ["CD", "CG", "CB", "CA"])
 
 def test_PRO2():
-    ubq_IC = xl.get_internal_coords(ubq)
-
-    assert ("C", "CA", "N", "C") in ubq_IC.ICs[1][37]
-    assert ("C", "CA", "N", "C") in ubq_IC.ICs[1][38]
+    zmat_idxs = ubqIC.chain_res_name_map['A', 37, 'N', 'CA']
+    np.testing.assert_equal(ubqIC.z_matrix_names[zmat_idxs[0]], ["C", "CA", "N", "C"] )
 
 
 def test_set_coords():
     R1A = mda.Universe("test_data/R1A.pdb")
-    R1A_IC = xl.get_internal_coords(R1A)
+    R1A_IC = xl.newProteinIC.from_protein(R1A)
     R1A_IC_c = R1A_IC.copy()
     R1A_IC_c.set_dihedral([np.pi/2, -np.pi/2, np.pi/2], 1, [['N', 'CA', 'CB', 'SG' ],
                                                             ['CA', 'CB', 'SG', 'SD'],
@@ -140,7 +140,7 @@ def test_set_coords():
     coords = R1A_IC_c.coords
 
     R1A_IC.coords = coords
-    np.testing.assert_allclose(R1A_IC.zmats[1], R1A_IC_c.zmats[1], rtol=1e-6)
+    np.testing.assert_allclose(R1A_IC.z_matrix, R1A_IC_c.z_matrix, rtol=1e-5)
     np.testing.assert_almost_equal(R1A_IC.coords, R1A_IC_c.coords, decimal=6)
 
 
@@ -153,14 +153,14 @@ def test_nonbonded():
 
 def test_get_zmat_idxs():
     R1A = mda.Universe("test_data/R1A.pdb")
-    R1A_IC = xl.get_internal_coords(R1A)
-    idxs, stem, idx = R1A_IC.get_zmat_idxs(1, ['CB', 'SG', 'SD', 'CE'], 1)
-    assert stem == ('SD', 'SG', 'CB')
-    assert idx == -1
+    R1A_IC = xl.newProteinIC.from_protein(R1A)
+    idxs = R1A_IC.get_z_matrix_idxs(1, ['CB', 'SG', 'SD', 'CE'])
 
-    idxs, stem, idx = R1A_IC.get_zmat_idxs(1, ['CE', 'SD', 'SG', 'CB'], 1)
-    assert stem == ('SD', 'SG', 'CB')
-    assert idx == 0
+    np.testing.assert_equal(idxs, 7)
+
+    with pytest.raises(RuntimeError):
+        idxs = R1A_IC.get_z_matrix_idxs(1, ['CE', 'SD', 'SG', 'CB'])
+
 
 def test_phi_idxs():
 

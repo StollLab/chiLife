@@ -7,8 +7,12 @@ import igraph as ig
 
 class Topology:
 
-    def __init__(self, atoms, bonds, **kwargs):
-        self.atoms = atoms
+    def __init__(self, mol, bonds, **kwargs):
+
+        mol = mol.atoms
+        self.atoms = mol.atoms
+        self.names = self.atoms.names
+        self.atom_idxs = np.arange(len(mol))
         self.bonds = bonds
 
         self.graph = kwargs.get('graph', self._make_graph())
@@ -17,23 +21,24 @@ class Topology:
 
         self.dihedrals_by_bonds = {}
         self.dihedrals_by_atoms = {}
+        self.dihedrals_by_resnum = {}
 
         for dihe in self.dihedrals:
             b, c, e = dihe[1:]
-            if (b, c) not in self.dihedrals_by_bonds:
-                self.dihedrals_by_bonds[b, c] = [dihe]
-            else:
-                self.dihedrals_by_bonds[b, c].append(dihe)
+            bc_list = self.dihedrals_by_bonds.setdefault((b, c), [])
+            bc_list.append(dihe)
 
-            if e not in self.dihedrals_by_atoms:
-                self.dihedrals_by_atoms[e] = [dihe]
-            else:
-                self.dihedrals_by_atoms[e].append(dihe)
+            e_list = self.dihedrals_by_atoms.setdefault(e, [])
+            e_list.append(dihe)
+            n1, n2, n3, n4 = self.names[list(dihe)]
+            r1 = self.atoms[e].resnum
+            c1 = self.atoms[e].segid
+            self.dihedrals_by_resnum[c1, r1, n1, n2, n3, n4] = dihe
 
     def get_zmatrix_dihedrals(self):
         zmatrix_dihedrals = []
         hold = []
-        for key in self.atoms:
+        for key in self.atom_idxs:
             if key not in self.dihedrals_by_atoms:
                 hold.append(key)
                 continue
@@ -58,7 +63,7 @@ class Topology:
 
 
     def _make_graph(self):
-        return ig.Graph(n=len(self.atoms), edges=self.bonds)
+        return ig.Graph(n=len(self.atom_idxs), edges=self.bonds)
 
 
 def get_angle_defs(graph: ig.Graph) -> Tuple[Tuple[int, int, int]]:

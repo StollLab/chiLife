@@ -73,6 +73,7 @@ class newProteinIC:
         self.names = self.atoms.names
         self.trajectory = Trajectory(z_matrix, self)
         self.z_matrix_idxs = z_matrix_idxs
+        self.z_matrix_names = [self.names[[x for x in y if x != nan_int]] for y in z_matrix_idxs]
         self.chain_operator_idxs = kwargs.get('chain_operator_idxs', None)
         self.chain_operators = kwargs.get('chain_operators', None)
         self.chains = protein.segments.segids
@@ -83,7 +84,7 @@ class newProteinIC:
             guess_bonds(protein.positions, protein.types)
         self._nonbonded = kwargs.get('nonbonded', None)
         self.topology = kwargs['topology'] if 'topology' in kwargs else \
-            Topology(np.arange(len(self.atoms)), self.bonds)
+            Topology(protein, self.bonds)
 
         self.non_nan_idxs = kwargs.get('non_nan_idxs', None)
         if self.non_nan_idxs is None:
@@ -135,7 +136,7 @@ class newProteinIC:
         if cap:
             atom_idxs = reconfigure_cap(cap, atom_idxs, bonds)
 
-        topology = Topology(atom_idxs, bonds)
+        topology = Topology(protein, bonds)
         z_matrix_dihedrals = topology.get_zmatrix_dihedrals()
         # z_mat_map = {k[-1]: i for i, k in enumerate(z_matrix_dihedrals)}
 
@@ -342,10 +343,7 @@ class newProteinIC:
 
         self.perturbed = True
 
-        if chain is None and len(self.chains) == 1:
-            chain = self.chains[0]
-        elif chain is None and len(self.chains) > 1:
-            raise ValueError("You must specify the protein chain")
+        chain = self._check_chain(chain)
 
         dihedrals = np.atleast_1d(dihedrals)
         atom_list = np.atleast_2d(atom_list)
@@ -356,7 +354,7 @@ class newProteinIC:
 
             pert_idxs = self.chain_res_name_map[tag]
             for idx in pert_idxs:
-                protein_atom_names = self.names[self.z_matrix_idxs[idx][::-1]]
+                protein_atom_names = self.z_matrix_names[idx][::-1]
                 if tuple(protein_atom_names) == tuple(atoms):
                     delta = self.z_matrix[idx, 2] - dihedral
                     break
@@ -366,6 +364,86 @@ class newProteinIC:
             self.trajectory.coords[self.trajectory.frame, pert_idxs, 2] -= delta
 
         return self
+
+    def get_dihedral(self, resi: int, atom_list: ArrayLike, chain: Union[int, str] = None):
+        """Get the dihedral angle(s) of one or more atom sets at the specified residue. Dihedral angles are returned in
+        radians
+
+        Parameters
+        ----------
+        resi : int
+            Residue number of the site being altered
+        atom_list : ArrayLike
+            Names or array of names of atoms involved in the dihedral(s)
+        chain : int, str
+             Chain identifier. required if there is more than one chain in the protein. Default value = None
+
+        Returns
+        -------
+        angles: numpy.ndarray
+            Array of dihedral angles corresponding to the atom sets in atom list.
+        """
+        if len(atom_list) == 0:
+            return np.array([])
+
+        chain = self._check_chain(chain)
+
+        atom_list = np.atleast_2d(atom_list)
+        dihedral_idxs = []
+        for atoms in atom_list:
+            if (tag := (chain, resi, *atoms)) not in self.topology.dihedrals_by_resnum:
+                raise RuntimeError(f'{atoms} is not a recognized dihedral of chain {chain} and residue {resi}. Please '
+                                   f'make sure you have the correct residue number and atom names. Note that chilife '
+                                   f'considers dihedrals as directional so you may want to try the reverse dihedral.')
+
+            dihedral_idxs.append(list(self.topology.dihedrals_by_resnum[tag]))
+        dihedral_idxs = np.array(dihedral_idxs).T
+        dihedral_values = self.coords[dihedral_idxs]
+        dihedrals = get_dihedrals(*dihedral_values)
+        return dihedrals[0] if len(dihedrals) == 1 else dihedrals
+
+    def get_z_matrix_idxs(self, resi: int, atom_list: ArrayLike, chain: Union[int, str] = None):
+        """Get the z-matrix indices of the dihedral angle(s) defined by ``atom_list`` and the specified residue and
+        chain. Dihedral angles are returned in radians.
+
+        Parameters
+        ----------
+        resi : int
+            Residue number of the site being altered
+        atom_list : ArrayLike
+            Names or array of names of atoms involved in the dihedral(s)
+        chain : int, str
+             Chain identifier. required if there is more than one chain in the protein. Default value = None
+
+        Returns
+        -------
+        dihedral_idxs: numpy.ndarray
+            Array of dihedral angles corresponding to the atom sets in atom list.
+        """
+
+        if len(atom_list) == 0:
+            return np.array([])
+
+        chain = self._check_chain(chain)
+
+        atom_list = np.atleast_2d(atom_list)
+        idxs = []
+        for atoms in atom_list:
+            if (tag := (chain, resi, atoms[1], atoms[2])) not in self.chain_res_name_map:
+                raise RuntimeError(f'{atoms} is not a recognized dihedral of chain {chain} and residue {resi}. Please '
+                                   f'make sure you have the correct residue number and atom names. Note that chilife '
+                                   f'considers dihedrals as directional so you may want to try the reverse dihedral.')
+
+            pert_idxs = self.chain_res_name_map[tag]
+            for idx in pert_idxs:
+                protein_atom_names = self.z_matrix_names[idx][::-1]
+                if tuple(protein_atom_names) == tuple(atoms):
+                    idxs.append(idx)
+                    break
+            else:
+                raise RuntimeError('')
+
+        return idxs[0] if len(idxs) == 1 else np.array(idxs)
 
     def has_clashes(self, distance: float = 1.5) -> bool:
         """Checks for an internal clash between non-bonded atoms.
@@ -383,6 +461,15 @@ class newProteinIC:
         dist = np.linalg.norm(diff, axis=1)
         has_clashes = np.any(dist < distance)
         return has_clashes
+
+    def _check_chain(self, chain):
+        if chain is None and len(self.chains) == 1:
+            chain = self.chains[0]
+
+        elif chain is None and len(self.chains) > 1:
+            raise ValueError("You must specify the protein chain")
+
+        return chain
 
 
 def reconfigure_cap(cap, atom_idxs, bonds):

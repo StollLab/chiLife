@@ -67,13 +67,19 @@ class newProteinIC:
         Parameters
         ----------
         """
-        # Internal coords
+        # Internal coords and atom info
         self.protein = protein.atoms if isinstance(protein, MDAnalysis.Universe) else protein
         self.atoms = self.protein.atoms
-        self.names = self.atoms.names
+        self.atom_names = self.atoms.names
+        self.atom_chains = self.atoms.segids
+        self.atom_resnums = self.atoms.resnums
+        self.atom_types = self.atoms.types
+        self.atom_resnames = self.atoms.resnames
+        self.resnums = self.atoms.residues.resnums
+        self.resnames = self.atoms.residues.resnames
         self.trajectory = Trajectory(z_matrix, self)
         self.z_matrix_idxs = z_matrix_idxs
-        self.z_matrix_names = [self.names[[x for x in y if x != nan_int]] for y in z_matrix_idxs]
+        self.z_matrix_names = np.array([self.atom_names[[x for x in y if x != nan_int]].tolist() for y in z_matrix_idxs])
         self.chain_operator_idxs = kwargs.get('chain_operator_idxs', None)
         self.chain_operators = kwargs.get('chain_operators', None)
         self.chains = protein.segments.segids
@@ -96,8 +102,8 @@ class newProteinIC:
             chains = self.atoms[b2s].segids
             resnums = self.atoms[b2s].resnums
             [self.chain_res_name_map[(chain, res, b1, b2)].append(idx)
-                   for chain, res, b1, b2, idx in
-                       zip(chains, resnums, self.atoms[b1s].names, self.atoms[b2s].names, idxs)]
+             for chain, res, b1, b2, idx in
+             zip(chains, resnums, self.atom_names[b1s], self.atom_names[b2s], idxs)]
 
             self.chain_res_name_map = {k: v for k, v in self.chain_res_name_map.items()}
 
@@ -154,7 +160,7 @@ class newProteinIC:
 
                     # Check for alternative dihedral definitions that satisfy the preferred dihedral
                     for p in topology.dihedrals_by_atoms[idx]:
-                        if np.all(protein.atoms[p].names == dihe):
+                        if np.all(protein.atoms[list(p)].names == dihe):
                             dihedral = [a for a in p]
                             break
                     else:
@@ -170,7 +176,7 @@ class newProteinIC:
                             zmidx = dihe_idxs[-1]
                             tmp = z_matrix_dihedrals[zmidx]
                             if all(a == b for a, b in zip(tmp[1:3], dihedral[1:3])):
-                                z_matrix_dihedrals[zmidx, 0] = dihedral[0]
+                                z_matrix_dihedrals[zmidx][0] = dihedral[0]
 
             if not present and preferred_dihedrals != []:
                 raise ValueError(f'There is no dihedral `{dihe}` in the provided protein. Perhaps there is typo or the '
@@ -471,6 +477,107 @@ class newProteinIC:
 
         return chain
 
+    def phi_idxs(self, resnums: ArrayLike = None, chain: Union[int, str] = None):
+        """
+        Method to return the Z-matrix indices of Phi backbone dihedrals
+
+        Parameters
+        ----------
+        resnums: int, ArrayLike[int]
+            Residues for which to return the Phi value index of the z-matrix
+
+        chain: int, str
+            Chain corresponding to the resnums of interest
+
+        Returns
+        -------
+        idxs: ndarray[int]
+            Array of indices corresponding to the phi dihedral angles of the selected residues on the chain
+        """
+        chain = self._check_chain(chain)
+        mask = (self.atom_names == 'C') * (self.atom_chains == chain)
+        if resnums is not None:
+            resnums = np.atleast_1d(resnums)
+            mask *= np.isin(self.atom_resnums, resnums)
+
+        idxs = np.argwhere(mask).flatten()
+
+        return idxs
+
+    def psi_idxs(self, resnums: ArrayLike = None, chain: Union[int, str] = None):
+        """
+        Method to return the Z-matrix indices of Psi backbone dihedrals
+
+        Parameters
+        ----------
+        resnums: int, ArrayLike[int]
+            Residues for which to return the Psi value index of the z-matrix
+
+        chain: int, str
+            Chain corresponding to the resnums of interest
+
+        Returns
+        -------
+        idxs: ndarray[int]
+            Array of indices corresponding to the Psi dihedral angles of the selected residues on the chain
+        """
+        chain = self._check_chain(chain)
+        mask = (self.atom_names == 'N') * (self.atom_chains == chain)
+        if resnums is not None:
+            resnums = np.atleast_1d(resnums) + 1
+            mask *= np.isin(self.atom_resnums, resnums)
+
+        idxs = np.argwhere(mask).flatten()
+
+        return idxs
+
+    def chi_idxs(self, resnums: ArrayLike = None, chain: Union[int, str] = None):
+        """
+         Create a list of index arrays corresponding the Z-matrix indices of flexible side chain (chi) dihedrals. Note
+         that only chi dihedrals defined in ``chilife.dihedral_defs`` will be  considered.
+
+        Parameters
+        ----------
+        resnums: int, ArrayLike[int]
+            Residues for which to return the Psi value index of the z-matrix
+
+        chain: int, str
+            Chain corresponding to the resnums of interest
+
+        Returns
+        -------
+        chi_idxs: List[np.ndarray]
+            list of arrays containing the indices of the z-matrix dihedrals corresponding to the chi dihedrals. Each
+            array in the list refers to a specific dihedral: ``[χ1, χ2, ... χn]``. because different residues will
+            have different numbers of chi dihedrals the arrays will not be the same size, but they can be concatenated
+            using numpy: ``chi_idxs = np.concatenate(IC.chi_idxs(...)))``.
+
+        """
+        chain = self._check_chain(chain)
+        mask = self.atom_chains == chain
+        mask *= ~np.isin(self.atom_names,['N', 'CA', 'C', 'O']) * (self.atom_types != 'H')
+
+        if resnums is not None:
+            mask *= np.isin(self.atom_resnums, resnums)
+        else:
+            resnums = self.resnums
+
+        chi_idxs = []
+        for resnum in resnums:
+            res_chi_idxs = []
+            taken = []
+            tmask = (self.atom_resnums == resnum) * mask
+            for idx in np.argwhere(tmask).flat:
+                ddef_names = self.z_matrix_names[idx]
+                ddef_idxs = self.z_matrix_idxs[idx]
+                not_cycle = len(self.topology.graph.get_all_simple_paths(ddef_idxs[1], ddef_idxs[2], 8)) < 2
+                if (ddef_names[1] != 'CA') and (ddef_idxs[1] not in taken) and not_cycle:
+                    res_chi_idxs.append(idx)
+                    taken.append(ddef_idxs[1])
+
+            chi_idxs.append(res_chi_idxs)
+
+        return chi_idxs
 
 def reconfigure_cap(cap, atom_idxs, bonds):
     for idx in cap:

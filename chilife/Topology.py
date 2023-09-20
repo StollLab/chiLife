@@ -11,7 +11,7 @@ class Topology:
 
         mol = mol.atoms
         self.atoms = mol.atoms
-        self.names = self.atoms.names
+        self.atom_names = self.atoms.names
         self.atom_idxs = np.arange(len(mol))
         self.bonds = bonds
 
@@ -30,9 +30,9 @@ class Topology:
 
             e_list = self.dihedrals_by_atoms.setdefault(e, [])
             e_list.append(dihe)
-            n1, n2, n3, n4 = self.names[list(dihe)]
-            r1 = self.atoms[e].resnum
-            c1 = self.atoms[e].segid
+            n1, n2, n3, n4 = self.atom_names[list(dihe)]
+            r1 = self.atoms[c].resnum
+            c1 = self.atoms[c].segid
             self.dihedrals_by_resnum[c1, r1, n1, n2, n3, n4] = dihe
 
     def get_zmatrix_dihedrals(self):

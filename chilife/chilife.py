@@ -675,7 +675,7 @@ def create_dlibrary(
 
     cap_idxs = list(sorted(cap_idxs))
     ovlp_selection = struct.atoms[cap_idxs]
-    csts = ovlp_selection.names
+    csts = ovlp_selection.atom_names
     csts = csts.astype('U4')
 
     ovlp_selection.residues.resnums = site1

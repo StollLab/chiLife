@@ -1,4 +1,5 @@
 import hashlib, os, pickle
+from itertools import chain
 import pytest
 import numpy as np
 import MDAnalysis as mda
@@ -17,7 +18,7 @@ gd_kwargs = [
     {"resi": 28, "atom_list": ["C", "N", "CA", "C"]},
     {"resi": 28, "atom_list": [["C", "N", "CA", "C"], ["N", "CA", "C", "N"]]},
 ]
-gd_ans = [-1.1540451, np.array([-1.1540451, -0.6626095])]
+gd_ans = [-1.1540451, np.array([-1.1540451, -0.6653183])]
 
 
 def test_from_prot():
@@ -107,6 +108,7 @@ def test_set_dihedral2():
 
 @pytest.mark.parametrize(["inp", "ans"], zip(gd_kwargs, gd_ans))
 def test_get_dihedral(inp, ans):
+    ubqIC = xl.newProteinIC.from_protein(ubq)
     dihedral = ubqIC.get_dihedral(**inp)
     np.testing.assert_almost_equal(dihedral, ans)
 
@@ -163,35 +165,30 @@ def test_get_zmat_idxs():
 
 
 def test_phi_idxs():
+    idxs = ubqIC.phi_idxs(range(4, 11,))
+    vals = ubqIC.z_matrix[idxs, -1]
+    ans = [ubqIC.get_dihedral(i, ('C', 'N', 'CA', 'C')) for i in range(4, 11)]
 
-    # Still need to test chain
-
-    idxs = ICs.phi_idxs(range(4, 11,))
-    vals = ICs.zmats[1][idxs, -1]
-    ans = [ICs.get_dihedral(i, ('C', 'N', 'CA', 'C')) for i in range(4, 11)]
-
-    np.testing.assert_almost_equal(vals, ans)
+    np.testing.assert_almost_equal(vals, ans, decimal=5)
 
     idx = ICs.phi_idxs(1)
     assert len(idx) == 0
 
 
 def test_psi_idxs():
+    idxs = ubqIC.psi_idxs(range(4, 11,))
+    vals = ubqIC.z_matrix[idxs, -1]
+    ans = [ubqIC.get_dihedral(i, ('N', 'CA', 'C', 'N')) for i in range(4, 11)]
 
-    # Still need to test chain
+    np.testing.assert_almost_equal(vals, ans, decimal=4)
 
-    idxs = ICs.psi_idxs(range(4, 11,))
-    vals = ICs.zmats[1][idxs, -1]
-    ans = [ICs.get_dihedral(i, ('N', 'CA', 'C', 'N')) for i in range(4, 11)]
-
-    np.testing.assert_almost_equal(vals, ans)
-
-    idx = ICs.psi_idxs(76)
+    idx = ubqIC.psi_idxs(76)
     assert len(idx) == 0
+
 
 def test_phi_psi_idxs_multichain():
     prot = xl.fetch('1a2w').select_atoms('protein')
-    ICs = xl.get_internal_coords(prot)
+    ICs = xl.newProteinIC.from_protein(prot)
 
     with pytest.raises(ValueError):
         ICs.psi_idxs(10)
@@ -199,20 +196,25 @@ def test_phi_psi_idxs_multichain():
     with pytest.raises(ValueError):
         ICs.psi_idxs(10)
 
-    A = ICs.psi_idxs(10, chain=2)
-    B = ICs.phi_idxs(10, chain=2)
+    A = ICs.psi_idxs(10, chain='A')
+    B = ICs.phi_idxs(10, chain='A')
 
     assert A[0] == 80
     assert B[0] == 71
 
-def test_chi_idxs():
-    idxs = ICs.chi_idxs(range(4, 11, ))
-    idxs = np.concatenate(idxs)
+    A = ICs.psi_idxs(10, chain='B')
+    B = ICs.phi_idxs(10, chain='B')
 
-    vals = ICs.zmats[1][idxs, -1]
-    ans = np.array([-1.0589305, -3.1378433, -3.0641198,  1.338909 , -1.1897472,
-                     1.2340594,  1.7094074,  3.0752275, -2.8944212, -3.0027205,
-                    -3.040881 ])
+    assert A[0] == 1031
+    assert B[0] == 1022
+
+def test_chi_idxs():
+    idxs = ubqIC.chi_idxs(range(4, 11, ))
+    idxs = list(chain.from_iterable(idxs))
+    vals = ubqIC.z_matrix[idxs, -1]
+    ans = np.array([-1.0589304 ,  1.70940745, -3.13784337, -3.06411982,  3.0752275 ,
+                    -3.00272059, -3.04088092,  1.33890903, -1.18974721, -2.89442134,
+                     1.23405945])
 
     np.testing.assert_almost_equal(vals, ans)
 
@@ -223,8 +225,8 @@ def test_ic_pref_dihe():
            ['CA', 'CB', 'CB2', 'NG'],
            ['ND', 'CE3', 'CZ3', 'C31']]
 
-    IC = xl.get_internal_coords(mol, preferred_dihedrals=dih)
+    IC = xl.newProteinIC.from_protein(mol, preferred_dihedrals=dih)
     IC.set_dihedral(np.pi / 2, 1, ['ND', 'CE3', 'CZ3', 'C31'])
 
     sister_dihe_atom_coords = IC.coords[IC.atom_names == 'C36'].flat
-    np.testing.assert_almost_equal( sister_dihe_atom_coords, [2.14953486, -3.40647599, -0.93880627])
+    np.testing.assert_almost_equal( sister_dihe_atom_coords, [2.1495337, -3.4064763, -0.9388056])

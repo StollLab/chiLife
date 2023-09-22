@@ -82,9 +82,10 @@ flexible.
 
 .. image:: _static/define_dihedrals.png
 
-And tell chiLife about them:
+And tell chiLife about them
 
-..  code-block::
+..  code-block:: python
+
     # Atom names as defined in the PDB file.
     dihedral_defs = [['N', 'CA', 'CB', 'CG'],
                      ['CA', 'CB', 'CB2', 'CG'],
@@ -92,66 +93,86 @@ And tell chiLife about them:
                      ['C01', 'C11', 'C12', 'N12'],
                      ['C12', 'N12', 'C13', 'C14'],
                      ['N12', 'C13', 'C14', 'C15']]
-
     xl.create_library('TSP', 'TSP.pdb', dihedral_atoms=dihedral_defs)
 
 Now our library can be used to perform accessible volume sampling!
 
-..  code-block::
+..  code-block:: python
+
     MBP = xl.fetch('1anf')
     SL1 = xl.RotamerEnsemble('TSP', 278, MBP, sample=10000, eval_clash=True) # eval_clash=False by default for RotamerEnsembles
     SL2 = xl.RotamerEnsemble('TSP', 322, MBP, sample=10000, eval_clash=True)
 
 .. image:: _static/MBP_E278TSP_E322TSP.png
 
+
 Defining Spin-atoms and Their Weights
 --------------------------------------
 
 Note that we created :class:`~chilife.RotamerEnsemble` objects and not :class:`~chilife.SpinLabel` objects. This is
-because we have not told chiLife which atom(s) hold the unpaired electron density. We can tell chiLife approximatly
+because we have not told chiLife which atom(s) hold the unpaired electron density. We can tell chiLife approximately
 where this unpaired electron density lives in several ways using the `spin_atoms` keyword argument of the
 :func:`~chilife.chilife.create_rotlib` function. We could approximate all the spin density to be on the Nitrogen or
-oxygen of the nitroxide ring:
+oxygen of the nitroxide ring
 
-..  code-block::
+..  code-block:: python
+
     xl.create_library('TSP', 'TSP.pdb', dihedral_atoms=dihedral_defs, spin_atoms='N1')
     xl.create_library('TSP', 'TSP.pdb', dihedral_atoms=dihedral_defs, spin_atoms='O1')
     # Atom names as defined in the PDB file
 
 or equally distributed between 'N1' and 'O1' by passing a list:
 
-..  code-block::
+..  code-block:: python
+
     xl.create_library('TSP', 'TSP.pdb', dihedral_atoms=dihedral_defs, spin_atoms=['N1', 'O1'])
 
 or with user defined proportions by using a dict:
 
-..  code-block::
+..  code-block:: python
+
     xl.create_library('TSP', 'TSP.pdb', dihedral_atoms=dihedral_defs, spin_atoms={'N1': 0.4, 'O1': 0.6})
 
-Which would apply 40% of the unpaired electron density on the nitrogen and 60% on the oxygen.
-
-With
-
-
-
-
-Rotation about the dihedral angles are generally the lowest energy pathways to
-rotamers that accommodate internal or external clashes. For long, flexible labels like R1, many conformational states will be so close
-in free energy that sever
-Accordingly the vast majority of conformational diversty of a spin label comes from
+Which would apply 40% of the unpaired electron density on the nitrogen and 60% on the oxygen. When calculating distance
+distributions chiLife will use the weighted centroid of the spin spin centers to calculate distances, however in
+circumstances of highly delocalized spin the ``use_spin_centers=True`` keyword arguments can be passed to
+:func:`~chilife.chilife.distance_distribution` and individual spin atom distances will be will be used for distance
+measurements.
 
 
+Using a predefined rotamer libraries
+------------------------------------
 
-Mobile dihedrals are defined using the ``dihedral_atoms`` keyword argument.
+While the accessible volume method has been shown to be a powerful modeling method for predicting spin-spin distance
+distributions it is relatively slow compared to the rotamer library method and does not take into account the energetic
+preference of different conformations.
+***************************************************************************
+There are two ways you can
 
-Setting Rotamer Dihedrals
+First using an array of dihedral values
+
+second using a multistate pdb
+
+.. tip:: chiLife can utilize structures with more conformational diversity just dihedral, bond angle and bond diversity.
+As long as two structures hae a shared sub-topology chiLife will accept them as two possible rotamers of the same
+structure. This includes stereoisomers and
+
+
+Setting Rotamer Weights
 -------------------------
+Of course, different conformations also have different energetic values and therefore different frequencies of
+observance. While chiLife accounts for energetic penalties of clashes when attaching a RotamerEnsemble to a proteins
+site, each individual rotamer in the library can be given a weight approximating the observance frequency based off of
+the internal energy of the rotamer.
+
 
 Setting Dihedral Variances for Off Rotamer Sampling
 ----------------------------------------------------
 
-Setting Rotamer Weights
------------------------
+
+.. tip:: Using the accessible volume method with rotamer libraries will apply dihedral sampling to all rotamers of the
+library. This allows for some additional variation in bond length and bond angles that may be present in the rotamer
+library. It is also a great way to include sterioisomers when performing accessible volume sampling.
 
 
 Using Custom Rotlibs

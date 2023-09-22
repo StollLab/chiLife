@@ -71,8 +71,8 @@ def distance_distribution(
         The standard deviation of the normal distribution used in convolution with the distance histogram, in angstrom.
         Default is 1.
     use_spin_centers : bool
-        If False, distances are computed between spin centers. If True, distances are computed by summing over
-        the distributed spin density on spin-bearing atoms on the labels.
+        If False, distances are computed between the weighted centroids of the spin atoms. If True, distances are
+        computed by summing over the distributed spin density on spin-bearing atoms on the labels.
     dependent: bool
         Consider the (clash) effects of spin label rotamers on each other.
     uq : bool

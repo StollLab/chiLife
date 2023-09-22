@@ -402,11 +402,7 @@ def repack(
             acount += 1
             # Metropolis-Hastings criteria
 
-            if (
-                    E1 < DummyLabel.E0
-                    or np.exp(-deltaE / KT[temp[bidx]]) > np.random.rand()
-            ):
-
+            if (E1 < DummyLabel.E0 or np.exp(-deltaE / KT[temp[bidx]]) > np.random.rand()):
                 deltaEs.append(deltaE)
                 try:
                     protein.atoms[DummyLabel.mask].positions = coords

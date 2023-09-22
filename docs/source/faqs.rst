@@ -138,4 +138,8 @@ second is loaded. You can alter the label name before saving, e.g.
 Why don't my label stay attached to my protein when I align it in pymol?
 -------------------------------------------------------------------------------
 The labels are saved as separate objects in the PDB and will not move with the protein object it is associated with.
-While you can move 
+You can realign rotamer ensembles with the protein using the pymol align command: e.g. ``align S238R1M, 1omp and resi
+238 and name N+CA+C``. This alignment works well enough for visualizing the rotamer ensemble but is tedious and does
+not work at all for the density objects. In general it is preferable to use pre-aligned structures or perform the
+alignment with python before spin labeling. Examples of aligning sturcures with MDAnalysis can be found in the
+`MDAnalysis documentation <https://docs.mdanalysis.org/stable/documentation_pages/analysis/align.html>`_.

@@ -19,7 +19,6 @@ from .dRotamerEnsemble import dRotamerEnsemble
 from .IntrinsicLabel import IntrinsicLabel
 from .Protein import MolecularSystem
 from .ProteinIC import ProteinIC
-from .new_ProteinIC import newProteinIC
 
 #                 ID    name   res  chain resnum      X     Y      Z      q      b              elem
 fmt_str = "ATOM  {:5d} {:^4s} {:3s} {:1s}{:4d}    {:8.3f}{:8.3f}{:8.3f}{:6.2f}{:6.2f}          {:>2s}  \n"
@@ -80,6 +79,12 @@ def read_rotlib(rotlib: Union[Path, BinaryIO] = None) -> Dict:
 
     """
     with np.load(rotlib, allow_pickle=True) as files:
+        if files['format_version'] <= 1.1:
+            raise RuntimeError('The rotlib that was provided is an old version that is not compatible with your '
+                               'version of chiLife. You can either remake the rotlib, or use the update_rotlib.py '
+                               'script provided in the chilife scripts directory to update this rotamer library to the '
+                               'new format.')
+
         lib = dict(files)
 
     del lib["allow_pickle"]
@@ -521,8 +526,7 @@ molecule_class = {RotamerEnsemble: 'rotens',
                   mda.Universe: 'molcart',
                   mda.AtomGroup: 'molcart',
                   MolecularSystem: 'molcart',
-                  ProteinIC: 'molic',
-                  newProteinIC: 'molic'}
+                  ProteinIC: 'molic'}
 
 
 rotlib_formats = {1.0: (
@@ -540,5 +544,5 @@ rotlib_formats = {1.0: (
 )}
 
 rotlib_formats[1.1] = *rotlib_formats[1.0], 'description', 'comment', 'reference'
-
+rotlib_formats[1.2] = rotlib_formats[1.0]
 

@@ -1,4 +1,4 @@
-import os, hashlib
+import os, hashlib, pickle
 import numpy as np
 import pytest
 import chilife
@@ -354,3 +354,39 @@ def test_setattr2():
     asel.resnames = 'TES'
     assert np.all(asel.resnames == 'TES')
     assert np.all(prot2.resnames[mask] == 'TES')
+
+
+def test_pickle():
+    mol = Protein.from_pdb('test_data/PPII_Capped.pdb')
+    with open('tmp.pkl', 'wb') as f:
+        pickle.dump(mol, f)
+
+    del mol
+    with open('tmp.pkl', 'rb') as f:
+        mol = pickle.load(f)
+
+    ans = Protein.from_pdb('test_data/PPII_Capped.pdb')
+
+    assert mol is not ans
+
+    np.testing.assert_equal(mol.names, ans.names)
+    np.testing.assert_equal(mol.resnames, ans.resnames)
+    np.testing.assert_equal(mol.coords, ans.coords)
+
+
+def test_pickle_selection():
+    mol = Protein.from_pdb('test_data/PPII_Capped.pdb').atoms
+    with open('tmp.pkl', 'wb') as f:
+        pickle.dump(mol, f)
+
+    del mol
+    with open('tmp.pkl', 'rb') as f:
+        mol = pickle.load(f)
+
+    ans = Protein.from_pdb('test_data/PPII_Capped.pdb').atoms
+
+    assert mol is not ans
+
+    np.testing.assert_equal(mol.names, ans.names)
+    np.testing.assert_equal(mol.resnames, ans.resnames)
+    np.testing.assert_equal(mol.coords, ans.coords)

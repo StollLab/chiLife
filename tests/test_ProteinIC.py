@@ -9,10 +9,9 @@ pdbids = ["1ubq", "1a2w", '1az5']
 ubq = mda.Universe("test_data/1ubq.pdb", in_memory=True)
 mbp = mda.Universe("test_data/2klf.pdb", in_memory=True)
 
-ubqIC = xl.newProteinIC.from_protein(ubq)
-mbpIC = xl.newProteinIC.from_protein(mbp)
+ubqIC = xl.ProteinIC.from_protein(ubq)
+mbpIC = xl.ProteinIC.from_protein(mbp)
 
-ICs = xl.get_internal_coords(ubq)
 
 gd_kwargs = [
     {"resi": 28, "atom_list": ["C", "N", "CA", "C"]},
@@ -230,3 +229,21 @@ def test_ic_pref_dihe():
 
     sister_dihe_atom_coords = IC.coords[IC.atom_names == 'C36'].flat
     np.testing.assert_almost_equal( sister_dihe_atom_coords, [2.1495337, -3.4064763, -0.9388056])
+
+
+def test_pickle():
+    mol1 = mda.Universe('test_data/PPII_Capped.pdb', in_memory=True)
+    mol2 = xl.Protein.from_pdb('test_data/PPII_Capped.pdb')
+    for mol in (mol1, mol2):
+        prot2 = mol
+
+        with open('tmp.pkl', 'wb') as f:
+            pickle.dump(prot2, f)
+
+        del prot2
+        del mol
+        with open('tmp.pkl', 'rb') as f:
+            prot2 = pickle.load(f)
+
+        print('test here')
+

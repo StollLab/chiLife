@@ -1,14 +1,13 @@
 from __future__ import annotations
-import functools
 import numbers
 import operator
 from functools import partial, update_wrapper
-from .chilife import SUPPORTED_RESIDUES
 from .protein_utils import sort_pdb
 from .Topology import Topology
 import numpy as np
 from numpy.typing import ArrayLike
 from scipy.spatial import cKDTree
+import chilife
 
 
 # TODO:
@@ -23,8 +22,9 @@ class MolecularSystem:
     """Base class for molecular systems"""
 
     def __getattr__(self, key):
-
-        if key not in key in self.__dict__['protein'].__dict__:
+        if 'protein' not in self.__dict__:
+            self.__getattribute__(key)
+        elif key not in self.__dict__['protein'].__dict__:
             self.protein.__getattribute__(key)
         elif key == 'trajectory':
             return self.protein.trajectory
@@ -189,6 +189,8 @@ class Protein(MolecularSystem):
             resixs.append(np.ones(dif, dtype=int) * i)
 
         self.resixs = np.concatenate(resixs)
+        if np.all(self.chains == ''):
+            self.chains = 'A'
         self.segixs = np.array([ord(x) - 65 for x in self.chains])
         self._Atoms = np.array([Atom(self, i) for i in range(self.n_atoms)])
 
@@ -216,7 +218,7 @@ class Protein(MolecularSystem):
                                   'elem': self.atypes,
                                   'element': self.atypes,
 
-                                  'protein': np.isin(self.resnames, list(SUPPORTED_RESIDUES)),
+                                  'protein': np.isin(self.resnames, list(chilife.SUPPORTED_RESIDUES)),
                                   '_len': self.n_atoms,
                                   }
 
@@ -478,13 +480,13 @@ def check_operation(operation, stat_split, logickws):
     if operation in advanced_operators:
         outer_operation = logickws['and']
         args = [stat_split.pop(i) for i in range(1, 1 + operation.nargs)]
-        operation = functools.partial(operation, *args)
+        operation = partial(operation, *args)
 
 
         def toperation(a, b, outer_operation, _io):
             return outer_operation(a, _io(b))
 
-        operation = functools.partial(toperation, outer_operation=outer_operation, _io=operation)
+        operation = partial(toperation, outer_operation=outer_operation, _io=operation)
 
     return operation
 
@@ -501,18 +503,18 @@ def build_operator(stat_split, logickws):
             def toperation(a, b, operation, _io):
                 return operation(a, _io(b))
 
-            operation = functools.partial(toperation, operation=operation, _io=_io)
+            operation = partial(toperation, operation=operation, _io=_io)
             stat_split = stat_split[1:]
 
         elif _io in advanced_operators:
             stat_split = stat_split[1:]
             args = [stat_split.pop(0) for i in range(_io.nargs)]
-            _io = functools.partial(_io, *args)
+            _io = partial(_io, *args)
 
             def toperation(a, b, operation, _io):
                 return operation(a, _io(b))
 
-            operation = functools.partial(toperation, operation=operation, _io=_io)
+            operation = partial(toperation, operation=operation, _io=_io)
 
         elif _io in binary_operators:
             if operation != logickws['and']:
@@ -550,7 +552,12 @@ def process_sub_statement(subject, values):
 
 class AtomSelection(MolecularSystem):
 
-    def __new__(cls, protein, mask):
+    def __new__(cls, *args):
+        if len(args) == 2:
+            protein, mask = args
+        else:
+            return object.__new__(cls)
+
         if isinstance(mask, int):
             return Atom(protein, mask)
         else:
@@ -755,5 +762,6 @@ def within(distance, mask, protein):
     out_mask[results] = True
     out_mask = out_mask * ~mask
     return out_mask
+
 
 within.nargs = 1

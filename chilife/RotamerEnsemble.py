@@ -316,7 +316,7 @@ class RotamerEnsemble:
                'internal_coords': ICs,
                'weights': weights,
                'atom_types': res.types.copy(),
-               'atom_names': res.atom_names.copy(),
+               'atom_names': res.names.copy(),
                'dihedral_atoms': dihedral_defs,
                'dihedrals': np.rad2deg(dihedrals),
                '_dihedrals': dihedrals.copy(),

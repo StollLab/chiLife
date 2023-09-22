@@ -50,39 +50,39 @@ def test_parse_paren5():
 
 def test_select_or():
     m1 = prot.select_atoms('name CA or name CB')
-    ans_mask = (prot.atom_names == 'CA') + (prot.atom_names == 'CB')
+    ans_mask = (prot.names == 'CA') + (prot.names == 'CB')
 
     np.testing.assert_allclose(m1.mask, np.argwhere(ans_mask).T[0])
-    assert np.all(np.isin(m1.atom_names, ['CA', 'CB']))
+    assert np.all(np.isin(m1.names, ['CA', 'CB']))
     mm = np.ones(prot.n_atoms, dtype=bool)
     mm[m1.mask] = False
-    assert not np.any(np.isin(prot.atom_names[mm], ['CA', 'CB']))
+    assert not np.any(np.isin(prot.names[mm], ['CA', 'CB']))
 
 
 def test_select_and_or_and():
     m1 = prot.select_atoms('(resnum 32 and name CA) or (resnum 33 and name CB)')
-    ans_mask = (prot.resnums == 32) * (prot.atom_names == 'CA') + (prot.resnums == 33) * (prot.atom_names == 'CB')
+    ans_mask = (prot.resnums == 32) * (prot.names == 'CA') + (prot.resnums == 33) * (prot.names == 'CB')
 
     np.testing.assert_almost_equal(m1.mask, np.argwhere(ans_mask).T[0])
-    assert np.all(np.isin(m1.atom_names, ['CA', 'CB']))
+    assert np.all(np.isin(m1.names, ['CA', 'CB']))
     assert np.all(np.isin(m1.resnums, [32, 33]))
 
 
 def test_select_and_not():
     m1 = prot.select_atoms('resnum 32 and not name CA')
-    ans_mask = (prot.resnums == 32) * (prot.atom_names != 'CA')
+    ans_mask = (prot.resnums == 32) * (prot.names != 'CA')
 
     np.testing.assert_almost_equal(m1.mask, np.argwhere(ans_mask).T[0])
-    assert not np.any(np.isin(m1.atom_names, ['CA']))
+    assert not np.any(np.isin(m1.names, ['CA']))
     assert np.all(np.isin(m1.resnums, [32]))
 
 
 def test_select_name_and_resname():
     m1 = prot.select_atoms("name CB and resname PRO")
-    ans_mask = (prot.atom_names == 'CB') * (prot.resnames == 'PRO')
+    ans_mask = (prot.names == 'CB') * (prot.resnames == 'PRO')
 
     np.testing.assert_almost_equal(m1.mask, np.argwhere(ans_mask).T[0])
-    assert np.all(np.isin(m1.atom_names, ['CB']))
+    assert np.all(np.isin(m1.names, ['CB']))
     assert np.all(np.isin(m1.resnames, ['PRO']))
 
 
@@ -90,7 +90,7 @@ def test_select_complex():
     m1 = prot.select_atoms('resname LYS ARG PRO and (name CA or (type C and resname PRO)) or resnum 5')
 
     resnames = np.isin(prot.resnames, ['LYS', 'ARG', 'PRO'])
-    ca_or_c_pro = ((prot.atom_names == 'CA') + ((prot.atypes == 'C') * (prot.resnames == 'PRO')))
+    ca_or_c_pro = ((prot.names == 'CA') + ((prot.atypes == 'C') * (prot.resnames == 'PRO')))
     resnum5 = (prot.resnums == 5)
     ans_mask = resnames * ca_or_c_pro + resnum5
 
@@ -133,7 +133,7 @@ def test_around():
     asel = prot.select_atoms('around 5 resnum 5')
     mdasel = mda_prot.select_atoms('around 5 resnum 5')
 
-    assert np.all(np.sort(asel.atoms.atom_names) == np.sort(mdasel.atoms.atom_names))
+    assert np.all(np.sort(asel.atoms.names) == np.sort(mdasel.atoms.names))
     assert np.all(asel.atoms.residues.resnums == mdasel.atoms.residues.resnums)
 
 
@@ -322,7 +322,7 @@ def test_backbone_selection():
 def test_atom_sel_getitem():
     res = prot.residues[10].atoms[0:4]
     assert np.all(res.resnums == 11)
-    np.testing.assert_equal(res.atom_names, ['N', 'CA', 'C', 'O'])
+    np.testing.assert_equal(res.names, ['N', 'CA', 'C', 'O'])
 
 
 def test_residue_sel_getitem():
@@ -338,3 +338,19 @@ def test_copy():
     prot2 = prot.copy()
     np.testing.assert_equal(prot2.coords, prot.coords)
     assert prot2.coords is not prot
+
+def test_setattr1():
+    prot2 = prot.copy()
+    prot2.names = 'test'
+    assert np.all(prot2.names == 'test')
+
+
+def test_setattr2():
+    prot2 = prot.copy()
+
+    asel = prot2.select_atoms('resname ARG')
+    mask = np.argwhere(prot2.resnames == 'ARG').flatten()
+
+    asel.resnames = 'TES'
+    assert np.all(asel.resnames == 'TES')
+    assert np.all(prot2.resnames[mask] == 'TES')

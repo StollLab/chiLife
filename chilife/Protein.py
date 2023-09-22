@@ -16,15 +16,34 @@ from scipy.spatial import cKDTree
 #   Behavior: AtomSelections should have orders to be enforced when indexing.
 #   Performance enhancement: Find a faster way to retrieve coordinate data from trajectory @property seems to have
 #   Feature: Add from_mda class method.
+masked_properties = ('atomids', 'names', 'altlocs', 'resnames', 'resnums', 'chains', 'occupancies',
+                     'bs', 'segs', 'segids', 'atypes', 'charges', 'ix', 'resixs', 'segixs', '_Atoms')
 
 class MolecularSystem:
     """Base class for molecular systems"""
 
-    def __getattr__(self, item):
-        if item == 'trajectory':
+    def __getattr__(self, key):
+
+        if key not in key in self.__dict__['protein'].__dict__:
+            self.protein.__getattribute__(key)
+        elif key == 'trajectory':
             return self.protein.trajectory
+        elif key in masked_properties:
+            return np.squeeze(self.protein.__getattribute__(key)[self.mask])
         else:
-            return np.squeeze(self.protein.__getattribute__(item)[self.mask])
+            return self.protein.__getattribute__(key)
+
+    def __setattr__(self, key, value):
+        if key in ('protein', 'mask'):
+            super(MolecularSystem, self).__setattr__(key, value)
+        elif key not in self.__dict__['protein'].__dict__:
+            super(MolecularSystem, self).__setattr__(key, value)
+        elif key == 'trajectory':
+            self.protein.__dict__['trajectory'] = value
+        elif key in masked_properties:
+            self.protein.__getattribute__(key)[self.mask] = value
+        else:
+            super(MolecularSystem, self).__setattr__(key, value)
 
     def select_atoms(self, selstr):
         mask = process_statement(selstr, self.logic_keywords, self.protein_keywords)
@@ -104,6 +123,10 @@ class MolecularSystem:
     def types(self):
         return self.protein.atypes[self.mask]
 
+    @types.setter
+    def types(self, value):
+        self.protein.atypes[self.mask] = value
+
     @property
     def universe(self):
         return self.protein
@@ -139,7 +162,7 @@ class Protein(MolecularSystem):
     ):
         self.protein = self
         self.atomids = atomids.copy()
-        self.names = names.copy()
+        self.names = names.copy().astype('U4')
         self.altlocs = altlocs.copy()
         self.resnames = resnames.copy()
         self.resnums = resnums.copy()
@@ -584,6 +607,9 @@ class ResidueSelection(MolecularSystem):
         self.segids = protein.segids[self.first_ix].flatten()
         self.chains = protein.chains[self.first_ix].flatten()
 
+    def __setattr__(self, key, value):
+        self.__dict__[key] = value
+
     def __getitem__(self, item):
         resixs = np.unique(self.protein.resixs[self.mask])
         new_resixs = resixs[item]
@@ -642,10 +668,11 @@ class SegmentSelection(MolecularSystem):
 
 class Atom(MolecularSystem):
     def __init__(self, protein, mask):
+        self.__dict__['protein'] = protein
         self.index = mask
         self.mask = mask
 
-        self.protein = protein
+
         self.name = protein.names[self.index]
         self.altLoc = protein.altlocs[self.index]
         self.atype = protein.types[self.index]

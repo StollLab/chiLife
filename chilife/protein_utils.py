@@ -538,7 +538,7 @@ def mutate(
 
     # Unzip atom information into individual lists
     residx, atom_names, atom_types = zip(*atom_info)
-    segids = list(Counter(protein.residues.segids))
+    segids = protein.segments.segids
     # Allocate a new universe with the appropriate information
 
     if isinstance(protein, (mda.Universe, mda.AtomGroup)):
@@ -1114,6 +1114,8 @@ def make_mda_uni(anames: ArrayLike,
 
     if segids is None:
         segids = np.array(["ABCDEFGHIJKLMNOPQRSTUVWXYZ"[i] for i in range(len(np.unique(segindices)))])
+    elif len(segids) != len(np.unique(segindices)):
+        pass
 
     mda_uni = mda.Universe.empty(
         n_atoms,

@@ -361,6 +361,14 @@ class dRotamerEnsemble:
                                self.RE1.atom_types[self.cst_idx2]))
 
     @property
+    def dihedral_atoms(self):
+        return np.concatenate([self.RE1.dihedral_atoms, self.RE2.dihedral_atoms])
+
+    @property
+    def dihedrals(self):
+        return np.concatenate([self.RE1.dihedrals, self.RE2.dihedrals], axis=-1)
+
+    @property
     def centroid(self):
         return self.coords.mean(axis=(0, 1))
 

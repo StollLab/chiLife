@@ -180,28 +180,34 @@ def pair_dd(*args, r: ArrayLike, sigma: float = 1.0, use_spin_centers: bool = Tr
         if dependent:
             nrot1, nrot2 = len(SL1), len(SL2)
             nat1, nat2 = len(SL1.side_chain_idx), len(SL2.side_chain_idx)
-
-            rot_coords1 = SL1.coords[:, SL1.side_chain_idx].reshape(-1, 3)
-            rot_coords2 = SL2.coords[:, SL2.side_chain_idx].reshape(-1, 3)
-            rsl = cdist(rot_coords1, rot_coords2)
-            rsl = rsl.reshape(nrot1, nat1, nrot2, nat2).transpose(0, 2, 1, 3)
             join_rmin = chilife.get_lj_rmin("join_protocol")[()]
             join_eps = chilife.get_lj_eps("join_protocol")[()]
 
             rmin_ij = join_rmin(SL1.rmin2, SL2.rmin2)
             eps_ij = join_eps(SL1.eps, SL2.eps)
 
-            lj = rmin_ij[None, None, ...] / rsl
-            lj = lj * lj * lj
-            lj = lj * lj
-            lj = lj * lj
+            rot_coords1 = SL1.coords[:, SL1.side_chain_idx]
+            rot_coords2 = SL2.coords[:, SL2.side_chain_idx].reshape(-1, 3)
 
-            # Cap
-            lj[lj > 10] = 10
-            # Rep only
-            E = eps_ij * (lj * lj)
-            E = E.sum(axis=(2, 3))
-            weights[-1], _ = reweight_rotamers(E.flatten(), SL1.temp, weights[-1])
+            ljs = []
+            for i, rots in enumerate(rot_coords1):
+                lj = cdist(rots, rot_coords2)
+                lj = lj.reshape(1, nat1, nrot2, nat2).transpose(0, 2, 1, 3)
+
+                lj = rmin_ij[None, None, ...] / lj
+                lj = lj * lj * lj
+                lj = lj * lj
+                lj = lj * lj
+
+                # Cap
+                lj[lj > 10] = 10
+                # Rep only
+                lj = eps_ij * (lj * lj)
+                lj = lj.sum(axis=(2, 3))
+                ljs.append(lj)
+
+            ljs = np.concatenate(ljs)
+            weights[-1], _ = reweight_rotamers(ljs.flatten(), SL1.temp, weights[-1])
 
     distances = np.concatenate(distances)
     weights = np.concatenate(weights)
@@ -505,6 +511,13 @@ def create_library(
     resi_selection = struct.select_atoms(f"resnum {site}")
     bonds = resi_selection.intra_bonds.indices
 
+    if not continuous_topol(resi_selection.indices, bonds):
+        raise RuntimeError("The  RotamerEnsemble does not seem to have a consistent and continuous bond topology over "
+                           "all states. Please check the input PDB and remove any states that do not have the "
+                           "expected bond topology. Alternatively, you can force certain bonds by adding CONECT "
+                           "information to the PDB file. See "
+                           "https://www.wwpdb.org/documentation/file-format-content/format33/sect10.html")
+
     # Convert loaded rotamer ensemble to internal coords
     internal_coords = [
         chilife.get_internal_coords(
@@ -639,7 +652,7 @@ def create_dlibrary(
         dihedral_error = False
 
     if dihedral_error:
-        raise ValueError(
+        raise RuntimeError(
             "dihedral_atoms must be a list of lists where each sublist contains the list of dihedral atoms"
             "for the i and i+{increment} side chains. Sublists can contain any amount of dihedrals but "
             "each dihedral should be defined by exactly four unique atom names that belong to the same "
@@ -676,6 +689,13 @@ def create_dlibrary(
     res1 += ovlp_selection
     res1_bonds = res1.intra_bonds.indices
 
+    if not continuous_topol(res1.indices, res1_bonds):
+        raise RuntimeError("The  dRotamerEnsemble does not seem to have a consistent and continuous bond topology over"
+                           " all states. Please check the input PDB and remove any states that do not have the "
+                           "expected bond topology. Alternatively, you can force certain bonds by adding CONECT "
+                           "information to the PDB file. See "
+                           "https://www.wwpdb.org/documentation/file-format-content/format33/sect10.html")
+
     IC1 = [chilife.get_internal_coords(res1, dihedral_atoms[0], res1_bonds)
            for ts in struct.trajectory]
 
@@ -683,6 +703,13 @@ def create_dlibrary(
     ovlp_selection.residues.resids = site2
     res2 += ovlp_selection
     res2_bonds = res2.intra_bonds.indices
+
+    if not continuous_topol(res1.indices, res1_bonds):
+        raise RuntimeError("The  dRotamerEnsemble does not seem to have a consistent and continuous bond topology over"
+                           " all states. Please check the input PDB and remove any states that do not have the "
+                           "expected bond topology. Alternatively, you can force certain bonds by adding CONECT "
+                           "information to the PDB file. See "
+                           "https://www.wwpdb.org/documentation/file-format-content/format33/sect10.html")
 
     IC2 = [chilife.get_internal_coords(res2, dihedral_atoms[1], res2_bonds, cap=cap_idxs)
            for ts in struct.trajectory]
@@ -693,7 +720,7 @@ def create_dlibrary(
         ic2.shift_resnum(-(site2 - 1))
         ic2.chain_operators = None
         if len(ic1.chains) > 1 or len(ic2.chains) > 1:
-            raise ValueError('The PDB of the label supplied appears to have a chain break. Please check your PDB and '
+            raise RuntimeError('The PDB of the label supplied appears to have a chain break. Please check your PDB and '
                              'make sure there are no chain breaks in the desired label and that there are no other '
                              'chains in the pdb file. If the error persists, check to be sure all atoms are the correct '
                              'element as chilife uses the elements to determine if atoms are bonded.')
@@ -1289,7 +1316,7 @@ def get_possible_rotlibs(rotlib: str,
     for possible_file in possible_rotlibs:
         if possible_file.exists() and return_all:
                 rotlib.append(possible_file)
-        elif possible_file.exists():
+        elif possible_file.exists() and not possible_file.is_dir():
             rotlib = possible_file
             break
     else:
@@ -1317,3 +1344,21 @@ def rotlib_info(rotlib: str):
 
     """
     pass
+
+
+def continuous_topol(atoms, bonds):
+    """
+
+    Parameters
+    ----------
+    atoms
+    bonds
+
+    Returns
+    -------
+
+    """
+    G = nx.Graph()
+    G.add_nodes_from(atoms)
+    G.add_edges_from(bonds)
+    return nx.is_connected(G)

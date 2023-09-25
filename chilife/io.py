@@ -1,4 +1,5 @@
 from typing import Tuple, Dict, Union, BinaryIO, TextIO
+from numpy.typing import ArrayLike
 from collections import defaultdict
 from hashlib import sha256
 from pathlib import Path
@@ -519,6 +520,27 @@ def write_labels(pdb_file: TextIO, *args: SpinLabel, KDE: bool = True, sorted: b
         ]
 
         pdb_file.write("TER\n")
+
+def write_atoms(f, atoms: ArrayLike, coords: ArrayLike) -> None:
+    """Save a single state pdb structure of the provided atoms and coords.
+
+    Parameters
+    ----------
+    f : IO object
+
+    atoms : ArrayLike
+        List of Atom objects to be saved
+    coords : ArrayLike
+        Array of atom coordinates corresponding to atoms
+    """
+
+    for atom, coord in zip(atoms, coords):
+        f.write(
+            f"ATOM  {atom.index + 1:5d} {atom.name:^4s} {atom.resname:3s} {'A':1s}{atom.resnum:4d}    "
+            f"{coord[0]:8.3f}{coord[1]:8.3f}{coord[2]:8.3f}{1.0:6.2f}{1.0:6.2f}          {atom.atype:>2s}  \n"
+        )
+
+
 
 molecule_class = {RotamerEnsemble: 'rotens',
                   dRotamerEnsemble: 'rotens',

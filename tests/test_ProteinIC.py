@@ -242,8 +242,22 @@ def test_pickle():
 
         del prot2
         del mol
+
         with open('tmp.pkl', 'rb') as f:
             prot2 = pickle.load(f)
 
-        print('test here')
 
+def test_pickle():
+    mol1 = mda.Universe('test_data/PPII_Capped.pdb', in_memory=True).atoms
+    mol2 = xl.Protein.from_pdb('test_data/PPII_Capped.pdb').atoms
+    for mol in (mol1, mol2):
+        prot2 = mol
+
+        with open('tmp.pkl', 'wb') as f:
+            pickle.dump(prot2, f)
+
+        del prot2
+        del mol
+
+        with open('tmp.pkl', 'rb') as f:
+            prot2 = pickle.load(f)

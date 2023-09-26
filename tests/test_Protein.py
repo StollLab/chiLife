@@ -390,3 +390,21 @@ def test_pickle_selection():
     np.testing.assert_equal(mol.names, ans.names)
     np.testing.assert_equal(mol.resnames, ans.resnames)
     np.testing.assert_equal(mol.coords, ans.coords)
+
+
+def test_from_atomsel():
+    # MDAnalysis test
+    atomsel = mda_prot.select_atoms('resnum 30-150')
+    new_prot = Protein.from_atomsel(atomsel)
+
+    np.testing.assert_equal(new_prot.positions, atomsel.positions)
+    np.testing.assert_equal(new_prot.ix + 435, atomsel.ix)
+    assert len(new_prot.trajectory) == len(atomsel.universe.trajectory)
+
+    # chiLife Protein test
+    atomsel = prot.select_atoms('resnum 30-150')
+    new_prot = Protein.from_atomsel(atomsel)
+
+    np.testing.assert_equal(new_prot.positions, atomsel.positions)
+    np.testing.assert_equal(new_prot.ix + 435, atomsel.ix)
+    assert len(new_prot.trajectory) == len(atomsel.universe.trajectory)

@@ -322,6 +322,34 @@ class Protein(MolecularSystem):
         return cls(atomids, anames, altlocs, resnames, resnums, chains,
                    trajectory, occupancies, bs, segids, atypes, charges)
 
+    @classmethod
+    def from_atomsel(cls, atomsel, frames=None):
+        anames = atomsel.names
+        atypes = atomsel.types
+        resnames = atomsel.resnames
+        resnums = atomsel.resnums
+        ridx_map = {num: i for i, num in enumerate(np.unique(resnums))}
+        resindices = np.array([ridx_map[num] for num in resnums ])
+        segids = atomsel.segids
+        sidx_map = {num: i for i, num in enumerate(np.unique(segids))}
+        segindices = np.array([ridx_map[num] for num in resnums])
+
+        if frames is None:
+            trajectory = np.array([atomsel.positions for ts in atomsel.universe.trajectory])
+        else:
+            trajectory = []
+            for frame in frames:
+                atomsel.universe.trajectory[frame]
+                trajectory.append(atomsel.positions)
+
+            trajectory = np.array(trajectory)
+
+        return cls.from_arrays(anames, atypes, resnames, resindices, resnums, segindices, segids, trajectory)
+
+
+
+
+
     def copy(self):
         return Protein(
             atomids=self.atomids,

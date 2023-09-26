@@ -9,7 +9,7 @@ import numpy as np
 from numpy.typing import ArrayLike
 from .Protein import MolecularSystem, Trajectory, Protein
 from .Topology import Topology
-from .protein_utils import dihedral_defs, save_pdb, local_mx, global_mx, get_angles, get_dihedrals, guess_bonds
+from .protein_utils import get_angles, get_dihedrals, guess_bonds
 from .numba_utils import _ic_to_cart
 
 
@@ -196,7 +196,12 @@ class ProteinIC:
         """Create a deep copy of an ProteinIC instance"""
         z_matrix = self.trajectory.coordinates_array.copy()
         z_matrix_idxs = self.z_matrix_idxs.copy()
-        kwargs = {'chain_operators': self._chain_operators,
+        if isinstance(self._chain_operators, list):
+            chain_operators = [{k: v.copy() for k, v in co.items()} for co in self._chain_operators]
+        else:
+            chain_operators = {k: v.copy() for k, v in self._chain_operators.items()}
+
+        kwargs = {'chain_operators': chain_operators,
                   'chain_operator_idxs': self._chain_operator_idxs,
                   'bonds': self.bonds,
                   'nonbonded': self._nonbonded,

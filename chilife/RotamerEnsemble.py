@@ -927,7 +927,7 @@ class RotamerEnsemble:
             raise ValueError('The rotamer library does not contain all the required entries for the format version')
 
         # Deep copy (mutable)  internal coords.
-        lib['internal_coords'] = [a.copy() for a in lib['internal_coords']]
+        lib['internal_coords'] = lib['internal_coords'].copy()
 
         # Modify library to be appropriately used with self.__dict__.update
         self._rotlib = {key: value.copy() if hasattr(value, 'copy') else value for key, value in lib.items()}

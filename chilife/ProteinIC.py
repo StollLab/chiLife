@@ -1,15 +1,13 @@
 import itertools
 import logging
 from collections import defaultdict
-from dataclasses import dataclass
 from typing import List, Union, Dict, Tuple
 
-from memoization import cached, suppress_warnings
 import MDAnalysis
 import igraph as ig
 import numpy as np
 from numpy.typing import ArrayLike
-from .Protein import MolecularSystem, Trajectory
+from .Protein import MolecularSystem, Trajectory, Protein
 from .Topology import Topology
 from .protein_utils import dihedral_defs, save_pdb, local_mx, global_mx, get_angles, get_dihedrals, guess_bonds
 from .numba_utils import _ic_to_cart
@@ -66,7 +64,7 @@ class ProteinIC:
         ----------
         """
         # Internal coords and atom info
-        self.protein = protein.atoms if isinstance(protein, MDAnalysis.Universe) else protein
+        self.protein = Protein.from_atomsel(protein.atoms)
         self.atoms = self.protein.atoms
         self.atom_names = self.atoms.names
         self.atom_chains = self.atoms.segids
@@ -203,7 +201,7 @@ class ProteinIC:
                   'bonds': self.bonds,
                   'nonbonded': self._nonbonded,
                   'topology': self.topology,
-                  'protein': self.protein,
+                  'protein': self.protein.copy(),
                   'non_nan_idxs': self.non_nan_idxs,
                   'chain_res_name_map': self.chain_res_name_map}
 
@@ -499,7 +497,7 @@ class ProteinIC:
             mask *= np.isin(self.atom_resnums, resnums)
 
         idxs = np.argwhere(mask).flatten()
-
+        idxs = np.array([idx for idx in idxs if idx in self.non_nan_idxs])
         return idxs
 
     def psi_idxs(self, resnums: ArrayLike = None, chain: Union[int, str] = None):
@@ -556,6 +554,7 @@ class ProteinIC:
         mask *= ~np.isin(self.atom_names,['N', 'CA', 'C', 'O']) * (self.atom_types != 'H')
 
         if resnums is not None:
+            resnums = np.atleast_1d(resnums)
             mask *= np.isin(self.atom_resnums, resnums)
         else:
             resnums = self.resnums

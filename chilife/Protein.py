@@ -189,9 +189,11 @@ class Protein(MolecularSystem):
             resixs.append(np.ones(dif, dtype=int) * i)
 
         self.resixs = np.concatenate(resixs)
-        if np.all(self.chains == ''):
-            self.chains = 'A'
-        self.segixs = np.array([ord(x) - 65 for x in self.chains])
+        if np.all(self.chains == '') or np.all(self.chains == 'SYSTEM'):
+            self.segixs = np.array([ord('A') - 65 for x in self.chains])
+        else:
+            self.segixs = np.array([ord(x) - 65 for x in self.chains])
+
         self._Atoms = np.array([Atom(self, i) for i in range(self.n_atoms)])
 
         self._protein_keywords = {'id': self.atomids,
@@ -681,6 +683,9 @@ class SegmentSelection(MolecularSystem):
 
         self.segids = protein.segids[self.first_ix].flatten()
         self.chains = protein.chains[self.first_ix].flatten()
+
+    def __setattr__(self, key, value):
+        self.__dict__[key] = value
 
     def __getitem__(self, item):
         segixs = np.unique(self.protein.segixs[self.mask])

@@ -348,10 +348,6 @@ class Protein(MolecularSystem):
 
         return cls.from_arrays(anames, atypes, resnames, resindices, resnums, segindices, segids, trajectory)
 
-
-
-
-
     def copy(self):
         return Protein(
             atomids=self.atomids,
@@ -368,6 +364,9 @@ class Protein(MolecularSystem):
             charges=self.charges,
             name=self.names)
 
+    def load_new(self, coordinates):
+        self.trajectory.load_new(coordinates=coordinates)
+
 
 class Trajectory:
 
@@ -378,6 +377,10 @@ class Trajectory:
         self.coordinates_array = coordinates
         self._frame = 0
         self.time = np.arange(0, len(self.coords)) * self.timestep
+
+    def load_new(self, coordinates):
+        self.coords = coordinates
+        self.coordinates_array = coordinates
 
     def __getitem__(self, item):
         if isinstance(item, (slice, list, np.ndarray)):

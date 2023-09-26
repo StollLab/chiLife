@@ -75,9 +75,14 @@ class ProteinIC:
         self.resnames = self.atoms.residues.resnames
         self.trajectory = Trajectory(z_matrix, self)
         self.z_matrix_idxs = z_matrix_idxs
-        self.z_matrix_names = np.array([self.atom_names[[x for x in y if x >= 0]].tolist() for y in z_matrix_idxs])
+        self.z_matrix_names = np.array([self.atom_names[[x for x in y if x >= 0]].tolist() for y in z_matrix_idxs], dtype=object)
         self.chain_operator_idxs = kwargs.get('chain_operator_idxs', None)
-        self.chain_operators = kwargs.get('chain_operators', None)
+
+        if 'chain_operators' not in kwargs:
+            self.chain_operators = None
+        else:
+            self._chain_operators = kwargs['chain_operators']
+
         self.chains = protein.segments.segids
         self._chain_segs = [[a, b] for a, b in zip(self.chain_operator_idxs,
                                                    self.chain_operator_idxs[1:] + [len(self.z_matrix_idxs)])]
@@ -197,9 +202,9 @@ class ProteinIC:
         z_matrix = self.trajectory.coordinates_array.copy()
         z_matrix_idxs = self.z_matrix_idxs.copy()
         if isinstance(self._chain_operators, list):
-            chain_operators = [{k: v.copy() for k, v in co.items()} for co in self._chain_operators]
+            chain_operators = [{k: {k2: v2.copy() for k2, v2 in v.items()} for k, v in co.items()} for co in self._chain_operators]
         else:
-            chain_operators = {k: v.copy() for k, v in self._chain_operators.items()}
+            chain_operators = {k: {k2: v2.copy() for k2, v2 in v.items()} for k, v in self._chain_operators.items()}
 
         kwargs = {'chain_operators': chain_operators,
                   'chain_operator_idxs': self._chain_operator_idxs,
@@ -580,6 +585,23 @@ class ProteinIC:
             chi_idxs.append(res_chi_idxs)
 
         return chi_idxs
+
+    def __len__(self):
+        return len(self.trajectory)
+
+    def load_new(self, z_matrix):
+        self.trajectory.load_new(coordinates=z_matrix)
+        self.protein.load_new(coordinates=np.array([self.to_cartesian() for ts in self.trajectory]))
+
+    def use_subset(self, idxs):
+        self.trajectory.load_new(coordinates=self.trajectory.coordinates_array[idxs])
+        coords = []
+        for idx in idxs:
+            self.protein.trajectory[idx]
+            coords.append(self.protein.positions)
+
+        self.protein.load_new(coordinates=np.array(coords))
+
 
 def reconfigure_cap(cap, atom_idxs, bonds):
     for idx in cap:

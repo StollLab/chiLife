@@ -86,6 +86,7 @@ class RotamerEnsemble:
             site = 1
 
         self.site = int(site)
+        self.resnum = self.site
         self.protein = protein
         self.nataa = ""
         self.chain = chain if chain is not None else guess_chain(self.protein, self.site)
@@ -116,7 +117,7 @@ class RotamerEnsemble:
             self.atom_types = self.atom_types[self.H_mask]
             self.atom_names = self.atom_names[self.H_mask]
 
-        self.ic_mask = [np.argwhere(self.internal_coords[0].atom_names == a).flat[0] for a in self.atom_names]
+        self.ic_mask = [np.argwhere(self.internal_coords.atom_names == a).flat[0] for a in self.atom_names]
         self._lib_coords = self._coords.copy()
         self._lib_dihedrals = self._dihedrals.copy()
         self._lib_IC = self.internal_coords
@@ -466,7 +467,7 @@ class RotamerEnsemble:
          to"""
 
         # Update chain operators
-        ic_backbone = np.squeeze(self.internal_coords[0].coords[:3])
+        ic_backbone = np.squeeze(self.internal_coords.coords[:3])
 
         if self.alignment_method.__name__ == 'fit_alignment':
             N, CA, C = chilife.parse_backbone(self, kind="global")
@@ -477,25 +478,23 @@ class RotamerEnsemble:
         self.ic_ori, self.ic_mx = chilife.local_mx(*ic_backbone, method=self.alignment_method)
         m2m3 = self.ic_mx @ self.mx
         op = {}
-        for segid in self.internal_coords[0].chain_operators:
-            new_mx = self.internal_coords[0].chain_operators[segid]["mx"] @ m2m3
+
+        for segid in self.internal_coords.chain_operators:
+            new_mx = self.internal_coords.chain_operators[segid]["mx"] @ m2m3
             new_ori = (
-                self.internal_coords[0].chain_operators[segid]["ori"] - self.ic_ori
+                self.internal_coords.chain_operators[segid]["ori"] - self.ic_ori
             ) @ m2m3 + self.origin
             op[segid] = {"mx": new_mx, "ori": new_ori}
 
-        for IC in self.internal_coords:
-            IC.chain_operators = op
+        self.internal_coords.chain_operators = op
 
         # Update backbone conf
         alist = ["O"] if not self.use_H else ["H", 'O']
         for atom in alist:
-            mask = self.internal_coords[0].atom_names == atom
+            mask = self.internal_coords.atom_names == atom
             if any(mask) and self.protein is not None:
-
-                ICatom = self.internal_coords[0].atoms[self.internal_coords[0].atom_names == atom][0]
-                dihe_def = tuple(reversed(ICatom.atom_names))
-
+                idx = np.argwhere(self.internal_coords.atom_names == atom).flat[0]
+                dihe_def = self.internal_coords.z_matrix_names[idx]
                 p = self.protein.select_atoms(
                     f"segid {self.chain} and resnum {self.site} and name {' '.join(dihe_def)} and not altloc B"
                 ).positions
@@ -506,6 +505,7 @@ class RotamerEnsemble:
                     p = p[[0, 1, 2, HN_idx]]
                 elif len(p) == 3:
                     continue
+
                 if atom == 'H':
                     # Reorder
                     p = p[[2, 1, 0, 3]]
@@ -515,14 +515,13 @@ class RotamerEnsemble:
                 bond = np.linalg.norm(p[-1] - p[-2])
                 idx = np.squeeze(np.argwhere(mask))
 
-                if atom == 'O' and (1, ('CA', 'C', 'O')) in self.internal_coords[0].atom_dict['dihedrals'][1]:
-                    additional_idxs = list(self.internal_coords[0].atom_dict['dihedrals'][1][(1, ('CA', 'C', 'O'))].values())
+                if atom == 'O' and (tag := (self.chain, self.resnum, 'CA', 'C')) in self.internal_coords.chain_res_name_map:
+                    additional_idxs = self.internal_coords.chain_res_name_map[tag]
 
-                for IC in self.internal_coords:
-                    delta = IC.zmats[1][idx][2] - dihe
-                    IC.zmats[1][idx] = bond, ang, dihe
-                    if atom == "O" and 'additional_idxs' in locals():
-                        IC.zmats[1][additional_idxs, 2] -= delta
+                self.internal_coords.trajectory.coordinates_array[:, idx] = bond, ang, dihe
+                delta = self.internal_coords.trajectory.coordinates_array[:, idx, 2] - dihe
+                if atom == "O" and 'additional_idxs' in locals():
+                    self.internal_coords.trajectory.coordinates_array[:, additional_idxs, 2] -= delta
 
     def backbone_to_site(self):
         """Modify additional backbone atoms to match the backbone of the site that the RotamerEnsemble is being attached
@@ -807,7 +806,8 @@ class RotamerEnsemble:
             keep_idx = arg_sort_weights[:cutoff]
 
         if len(self.weights) == len(self.internal_coords):
-            self.internal_coords = [self.internal_coords[x] for x in keep_idx]
+            self.internal_coords.use_subset(keep_idx)
+
         self._coords = self._coords[keep_idx]
         self._dihedrals = self._dihedrals[keep_idx]
         self.weights = self.weights[keep_idx]
@@ -927,7 +927,7 @@ class RotamerEnsemble:
             raise ValueError('The rotamer library does not contain all the required entries for the format version')
 
         # Deep copy (mutable)  internal coords.
-        lib['internal_coords'] = lib['internal_coords'].copy()
+        lib['internal_coords'] = lib['internal_coords'].item().copy()
 
         # Modify library to be appropriately used with self.__dict__.update
         self._rotlib = {key: value.copy() if hasattr(value, 'copy') else value for key, value in lib.items()}
@@ -991,7 +991,7 @@ class RotamerEnsemble:
 
         if not hasattr(self, "_bonds"):
             icmask_map = {x: i for i, x in enumerate(self.ic_mask)}
-            self._bonds = np.array([(icmask_map[a], icmask_map[b]) for a, b in self.internal_coords[0].bonded_pairs
+            self._bonds = np.array([(icmask_map[a], icmask_map[b]) for a, b in self.internal_coords.bonds
                                    if a in icmask_map and b in icmask_map])
             
         return self._bonds

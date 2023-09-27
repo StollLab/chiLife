@@ -190,10 +190,10 @@ def test_mem_sample():
 
 def test_label_as_library():
     R1C = chilife.RotamerEnsemble("R1C", site=28, protein=ubq)
-    for ic in R1C.internal_coords:
-        np.testing.assert_almost_equal(
-            ic.coords[2], [38.73227962, 26.58109478, 12.6243569]
-        )
+    R1C_SL = chilife.SpinLabel("R1C", site=28, protein=ubq, eval_clash=False, trim=False)
+    np.testing.assert_equal(R1C.coords, R1C_SL.coords)
+    np.testing.assert_equal(R1C.weights, R1C_SL.weights)
+    np.testing.assert_equal(R1C.internal_coords.trajectory.coords, R1C_SL.internal_coords.trajectory.coords)
 
 
 def test_coord_setter0():

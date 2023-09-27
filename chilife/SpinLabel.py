@@ -189,7 +189,7 @@ class SpinLabel(RotamerEnsemble):
                 continue
 
             sample = sample[sidx, ...]
-            internal_sample = internal_sample[sidx]
+            internal_sample.use_frames(sidx)
             if protein is not None:
                 # Evaluate external clashes
                 dist = cdist(
@@ -209,19 +209,27 @@ class SpinLabel(RotamerEnsemble):
                 sidx = sidx[: to_find - i]
 
             coords[i: i + len(sidx)] = sample[sidx]
-            internal_coords.append(internal_sample[sidx])
+            internal_sample.use_frames(sidx)
+
+            internal_coords.append(internal_sample.trajectory.coordinates_array.copy())
             i += len(sidx)
 
             if i == to_find:
                 break
 
         coords = coords[coords.sum(axis=(1, 2)) != 0]
-        prelib.internal_coords = (
-            np.concatenate(internal_coords) if len(internal_coords) > 0 else []
-        )
-        prelib._dihedrals = np.rad2deg(
-            [IC.get_dihedral(1, prelib.dihedral_atoms) for IC in prelib.internal_coords]
-        )
+        z_matrix = np.concatenate(internal_coords) if len(internal_coords) > 0 else None
+        if z_matrix is not None:
+            internal_sample.trajectory.load_new(z_matrix)
+            prelib.internal_coords = internal_sample
+            prelib._dihedrals = np.rad2deg(
+                [prelib.internal_coords.get_dihedral(1, prelib.dihedral_atoms) for ts in
+                 prelib.internal_coords.trajectory]
+            )
+        else:
+            prelib.internal_coords = None
+            prelib._dihedrals = np.array([[]])
+
         prelib._coords = coords
         prelib.weights = np.ones(len(coords))
         prelib.weights /= prelib.weights.sum()

@@ -63,6 +63,9 @@ def test_copy():
 
     assert np.all(ubqIC.trajectory.coordinates_array == my_copy.trajectory.coordinates_array)
     assert ubqIC.trajectory.coordinates_array is not my_copy.trajectory.coordinates_array
+    for v1, v2 in zip(my_copy.chain_operators.values(), ubqIC.chain_operators.values()):
+        for v11, v22 in zip(v1.values(), v2.values()):
+            assert np.all(v11 == v22)
 
 
 def test_save_pdb():
@@ -261,3 +264,10 @@ def test_pickle():
 
         with open('tmp.pkl', 'rb') as f:
             prot2 = pickle.load(f)
+
+
+def test_load_new():
+    pass
+
+def test_use_frames():
+    pass

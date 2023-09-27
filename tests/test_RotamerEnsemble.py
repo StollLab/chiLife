@@ -33,7 +33,7 @@ def test_with_sample():
 
     with np.load('test_data/withsample.npz') as f:
         ans = {key: f[key] for key in f}
-
+    
     np.testing.assert_almost_equal(SL._coords, ans['coords'])
     np.testing.assert_almost_equal(SL.weights, ans['weights'])
     np.testing.assert_almost_equal(SL.dihedrals, ans['dihedrals'])

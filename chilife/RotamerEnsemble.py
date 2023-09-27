@@ -144,14 +144,14 @@ class RotamerEnsemble:
                 self._sample_size, off_rotamer=True, return_dihedrals=True
             )
 
-            self._dihedrals = np.asarray(
-                [IC.get_dihedral(1, self.dihedral_atoms) for IC in self.internal_coords]
-            )
             # Remove structures with internal clashes
             dist = np.linalg.norm(self._coords[:, self.aidx] - self._coords[:, self.bidx], axis=2)
             sidx = np.atleast_1d(np.squeeze(np.argwhere(np.all(dist > 2, axis=1))))
-            self.internal_coords = self.internal_coords[sidx]
-            self._dihedrals = np.rad2deg(self._dihedrals[sidx])
+            self.internal_coords.use_frames(sidx)
+            self._dihedrals = np.asarray(
+                [self.internal_coords.get_dihedral(1, self.dihedral_atoms) for ts in self.internal_coords.trajectory]
+            )
+            self._dihedrals = np.rad2deg(self._dihedrals)
             self._coords, self.weights = self._coords[sidx], self.weights[sidx]
 
         # Allocate variables for clash evaluations
@@ -616,7 +616,7 @@ class RotamerEnsemble:
             return self._coords, self.weights, self.internal_coords
         elif hasattr(self, "internal_coords"):
             returnables = self._off_rotamer_sample(idx, off_rotamer, **kwargs)
-            return [np.squeeze(x) for x in returnables]
+            return [np.squeeze(x) if isinstance(x, np.ndarray) else x for x in returnables]
 
         else:
             raise AttributeError(
@@ -649,7 +649,7 @@ class RotamerEnsemble:
         ICs : List[chilife.ProteinIC] (Optional)
             Internal coordinate (ProteinIC) objects of the rotamer(s).
         """
-        new_weight = 0
+
         # Use accessible volume sampling if only provided a single rotamer
         if len(self._weights) == 1 or np.all(np.isinf(self.sigmas)):
             new_dihedrals = np.random.random((len(idx), len(off_rotamer))) * 2 * np.pi
@@ -671,17 +671,16 @@ class RotamerEnsemble:
             new_weights = np.ones(len(idx))
 
         new_weights = self._weights[idx] * new_weights
-
-        ICs = [self._lib_IC[iidx].copy() for iidx in idx]
-        ICs = [IC.set_dihedral(new_dihedrals[i], 1, self.dihedral_atoms[off_rotamer]) for i, IC in enumerate(ICs)]
-
-        Zmat_idxs = np.array([IC.zmat_idxs[1] for IC in ICs])
-        Zmats = np.array([IC.zmats[1] for IC in ICs])
-        coords = batch_ic2cart(Zmat_idxs, Zmats)
-        mx, ori = ICs[0].chain_operators[1]["mx"], ICs[0].chain_operators[1]["ori"]
+        ICs = self._lib_IC.copy()
+        z_matrix = self._lib_IC.batch_set_dihedrals(idx, new_dihedrals, 1, self.dihedral_atoms[off_rotamer])
+        z_matrix_idxs = self._lib_IC.z_matrix_idxs
+        coords = batch_ic2cart(z_matrix_idxs[:, 1:], z_matrix)
+        mx, ori = self._lib_IC.chain_operators[0]["mx"], self._lib_IC.chain_operators[0]["ori"]
         coords = np.einsum("ijk,kl->ijl", coords, mx) + ori
-        for i, IC in enumerate(ICs):
-            IC._coords = coords[i]
+
+        ICs.trajectory.load_new(z_matrix)
+        ICs.protein.trajectory.load_new(coords)
+
         coords = coords[:, self.ic_mask]
 
         if kwargs.setdefault("return_dihedrals", False):
@@ -806,7 +805,7 @@ class RotamerEnsemble:
             keep_idx = arg_sort_weights[:cutoff]
 
         if len(self.weights) == len(self.internal_coords):
-            self.internal_coords.use_subset(keep_idx)
+            self.internal_coords.use_frames(keep_idx)
 
         self._coords = self._coords[keep_idx]
         self._dihedrals = self._dihedrals[keep_idx]
@@ -927,7 +926,7 @@ class RotamerEnsemble:
             raise ValueError('The rotamer library does not contain all the required entries for the format version')
 
         # Deep copy (mutable)  internal coords.
-        lib['internal_coords'] = lib['internal_coords'].item().copy()
+        lib['internal_coords'] = lib['internal_coords'].copy()
 
         # Modify library to be appropriately used with self.__dict__.update
         self._rotlib = {key: value.copy() if hasattr(value, 'copy') else value for key, value in lib.items()}

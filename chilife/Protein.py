@@ -381,6 +381,7 @@ class Trajectory:
     def load_new(self, coordinates):
         self.coords = coordinates
         self.coordinates_array = coordinates
+        self.time = np.arange(0, len(self.coords)) * self.timestep
 
     def __getitem__(self, item):
         if isinstance(item, (slice, list, np.ndarray)):

@@ -13,7 +13,7 @@ for pdb in residue_pdbs:
     with open(pdb, 'w') as f:
         f.writelines(srtd)
 
-    struct = mda.Universe(str(pdb))
-    ICs = chilife.get_internal_coords(struct)
+    struct = mda.Universe(str(pdb), in_memory=True)
+    ICs = chilife.ProteinIC.from_protein(struct)
     with open(pdb.stem + '_ic.pkl', 'wb') as f:
         pickle.dump(ICs, f)

@@ -92,7 +92,7 @@ def read_rotlib(rotlib: Union[Path, BinaryIO] = None) -> Dict:
 
     if "sigmas" not in lib:
         lib["sigmas"] = np.array([])
-
+    lib['internal_coords'] = lib['internal_coords'].item()
     lib["_rdihedrals"] = np.deg2rad(lib["dihedrals"])
     lib["_rsigmas"] = np.deg2rad(lib["sigmas"])
     lib['rotlib'] = str(lib['rotlib'])
@@ -127,6 +127,10 @@ def read_drotlib(rotlib: Path) -> Tuple[dict]:
             elif f[-12] == 'B':
                 with archive.open(f) as of:
                     libB = read_rotlib.__wrapped__(of)
+
+
+    libA['internal_coords'] = libA['internal_coords'].item()
+    libB['internal_coords'] = libB['internal_coords'].item()
 
     return libA, libB, csts
 
@@ -180,25 +184,28 @@ def read_bbdep(res: str, Phi: int, Psi: int) -> Dict:
 
         # Calculate cartesian coordinates for each rotamer
         coords = []
-        internal_coords = []
+        z_matrix = []
         for r in lib["dihedrals"]:
-            ICn = ICs.copy().set_dihedral(np.deg2rad(r), 1, atom_list=dihedral_atoms)
+            ICs.set_dihedral(np.deg2rad(r), 1, atom_list=dihedral_atoms)
+            z_matrix.append(ICs.z_matrix)
 
-            coords.append(ICn.to_cartesian())
-            internal_coords.append(ICn)
+        ICs.load_new(np.array(z_matrix))
+        internal_coords = ICs.copy()
+        coords = ICs.trajectory.coordinates_array
 
     else:
         lib["weights"] = np.array([1])
         lib["dihedrals"], lib["sigmas"], dihedral_atoms = [], [], []
         coords = [ICs.to_cartesian()]
-        internal_coords = [ICs.copy()]
+        internal_coords = ICs.copy()
 
     # Get origin and rotation matrix of local frame
     mask = np.in1d(atom_names, ["N", "CA", "C"])
-    ori, mx = chilife.local_mx(*coords[0][mask])
+    ori, mx = chilife.local_mx(*coords[0, mask])
 
     # Set coords in local frame and prepare output
     lib["coords"] = np.array([(coord - ori) @ mx for coord in coords])
+    internal_coords.protein.universe.load_new(lib["coords"])
     lib["internal_coords"] = internal_coords
     lib["atom_types"] = np.asarray(atom_types)
     lib["atom_names"] = np.asarray(atom_names)

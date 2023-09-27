@@ -80,7 +80,9 @@ class ProteinIC:
 
         if 'chain_operators' not in kwargs:
             self.chain_operators = None
+            self.has_chain_operators = False
         else:
+            self.has_chain_operators = True
             self._chain_operators = kwargs['chain_operators']
 
         self.chains = protein.segments.segids
@@ -285,6 +287,7 @@ class ProteinIC:
 
     @property
     def coords(self):
+        self.protein.trajectory[self.trajectory.frame]
         """np.ndarray : The cartesian coordinates of the protein"""
         if (self.protein.positions is None) or self.perturbed:
             self.protein.positions = self.to_cartesian()
@@ -294,6 +297,7 @@ class ProteinIC:
 
     @coords.setter
     def coords(self, val):
+        self.protein.trajectory[self.trajectory.frame]
         self.protein.positions = val
         z_matrix, chain_operator = get_z_matrix(val, self.z_matrix_idxs, self.chain_operator_idxs)
 
@@ -376,6 +380,61 @@ class ProteinIC:
             self.trajectory.coords[self.trajectory.frame, pert_idxs, 2] -= delta
 
         return self
+
+    def batch_set_dihedrals(
+            self,
+            idxs: ArrayLike,
+            dihedrals: ArrayLike,
+            resi: int,
+            atom_list: ArrayLike,
+            chain: Union[int, str] = None
+    ):
+        """Sets dihedral angles of a single residue in internal coordinates for the atoms defined in atom
+        list and in trajectory indices in idxs.
+
+        Parameters
+        ----------
+        idxs: ArrayLike
+            an array in indices corresponding to the progenitor structure in the ProteinIC trajectory.
+        dihedrals : ArrayLike
+            an array of angles for each idx in ``idxs`` and for each dihedral in ``atom_list``. Should have the shape
+            ``(len(idxs), len(atom_list))``
+        resi : int
+            Residue number of the site being altered
+        atom_list : ArrayLike
+            Names or array of names of atoms involved in the dihedrals
+        chain : int, str, optional
+            Chain containing the atoms that are defined by the dihedrals that are being set. Only necessary when there
+            is more than one chain in the proteinIC object.
+
+        Returns
+        -------
+        z_matrix : ArrayLike
+            the z_matrix for every frame in ``idxs`` with the new dihedral angel values defined in ``dihedrals``
+        """
+        chain = self._check_chain(chain)
+
+        dihedrals = np.atleast_2d(dihedrals).T
+        atom_list = np.atleast_2d(atom_list)
+        z_matrix = self.trajectory.coordinates_array[idxs]
+
+        for i, (values, atoms) in enumerate(zip(dihedrals, atom_list)):
+            if (tag := (chain, resi, atoms[1], atoms[2])) not in self.chain_res_name_map:
+                raise RuntimeError(f'{atoms} is not a recognized dihedrals of residue {resi}. Please make sure you '
+                                   f'have the correct residue number and atom names.')
+
+            pert_idxs = self.chain_res_name_map[tag]
+            for idx in pert_idxs:
+                protein_atom_names = self.z_matrix_names[idx][::-1]
+                if tuple(protein_atom_names) == tuple(atoms):
+                    deltas = z_matrix[:, idx, 2] - values
+                    break
+            else:
+                raise RuntimeError('')
+
+            z_matrix[:, pert_idxs, 2] -= deltas[:, None]
+
+        return z_matrix
 
     def get_dihedral(self, resi: int, atom_list: ArrayLike, chain: Union[int, str] = None):
         """Get the dihedral angle(s) of one or more atom sets at the specified residue. Dihedral angles are returned in
@@ -589,18 +648,14 @@ class ProteinIC:
     def __len__(self):
         return len(self.trajectory)
 
-    def load_new(self, z_matrix):
+    def load_new(self, z_matrix, op=None):
         self.trajectory.load_new(coordinates=z_matrix)
+        self.chain_operators = op
         self.protein.load_new(coordinates=np.array([self.to_cartesian() for ts in self.trajectory]))
 
-    def use_subset(self, idxs):
+    def use_frames(self, idxs):
         self.trajectory.load_new(coordinates=self.trajectory.coordinates_array[idxs])
-        coords = []
-        for idx in idxs:
-            self.protein.trajectory[idx]
-            coords.append(self.protein.positions)
-
-        self.protein.load_new(coordinates=np.array(coords))
+        self.protein.load_new(self.protein.trajectory.coordinates_array[idxs])
 
 
 def reconfigure_cap(cap, atom_idxs, bonds):

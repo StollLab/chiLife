@@ -486,7 +486,7 @@ class RotamerEnsemble:
             ) @ m2m3 + self.origin
             op[segid] = {"mx": new_mx, "ori": new_ori}
 
-        self.internal_coords.chain_operators = op
+        self.internal_coords._chain_operators = op
 
         # Update backbone conf
         alist = ["O"] if not self.use_H else ["H", 'O']
@@ -514,14 +514,15 @@ class RotamerEnsemble:
                 ang = chilife.get_angle(p[1:])
                 bond = np.linalg.norm(p[-1] - p[-2])
                 idx = np.squeeze(np.argwhere(mask))
-
-                if atom == 'O' and (tag := (self.chain, self.resnum, 'CA', 'C')) in self.internal_coords.chain_res_name_map:
+                chain = self.internal_coords.chains[0]
+                resnum = self.internal_coords.atoms[0].resnum
+                if atom == 'O' and (tag := (chain, resnum, 'C', 'CA')) in self.internal_coords.chain_res_name_map:
                     additional_idxs = self.internal_coords.chain_res_name_map[tag]
 
-                self.internal_coords.trajectory.coordinates_array[:, idx] = bond, ang, dihe
                 delta = self.internal_coords.trajectory.coordinates_array[:, idx, 2] - dihe
+                self.internal_coords.trajectory.coordinates_array[:, idx] = bond, ang, dihe
                 if atom == "O" and 'additional_idxs' in locals():
-                    self.internal_coords.trajectory.coordinates_array[:, additional_idxs, 2] -= delta
+                    self.internal_coords.trajectory.coordinates_array[:, additional_idxs, 2] -= delta[:, None]
 
     def backbone_to_site(self):
         """Modify additional backbone atoms to match the backbone of the site that the RotamerEnsemble is being attached

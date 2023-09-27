@@ -135,7 +135,7 @@ def read_drotlib(rotlib: Path) -> Tuple[dict]:
     return libA, libB, csts
 
 
-# @cached
+@cached
 def read_bbdep(res: str, Phi: int, Psi: int) -> Dict:
     """Read the Dunbrack rotamer library for the provided residue and backbone conformation.
 
@@ -187,7 +187,7 @@ def read_bbdep(res: str, Phi: int, Psi: int) -> Dict:
         z_matrix = []
         for r in lib["dihedrals"]:
             ICs.set_dihedral(np.deg2rad(r), 1, atom_list=dihedral_atoms)
-            z_matrix.append(ICs.z_matrix)
+            z_matrix.append(ICs.z_matrix.copy())
 
         ICs._chain_operators = ICs._chain_operators[0]
         ICs.load_new(np.array(z_matrix))
@@ -208,7 +208,6 @@ def read_bbdep(res: str, Phi: int, Psi: int) -> Dict:
     coords -= ori
 
     lib["coords"] = np.einsum('ijk,kl->ijl', coords, mx)
-    internal_coords.protein.universe.load_new(lib["coords"])
     lib["internal_coords"] = internal_coords
     lib["atom_types"] = np.asarray(atom_types)
     lib["atom_names"] = np.asarray(atom_names)

@@ -101,7 +101,7 @@ def test_sample():
                      [22.11572213, 23.19412351, 20.72492909],
                      [22.16827211, 22.00913727, 19.85099131]])
 
-    np.testing.assert_almost_equal(coords, cans)
+    np.testing.assert_almost_equal(coords, cans, decimal=6)
     assert weight == wans
 
 

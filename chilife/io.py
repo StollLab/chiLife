@@ -197,7 +197,7 @@ def read_bbdep(res: str, Phi: int, Psi: int) -> Dict:
     else:
         lib["weights"] = np.array([1])
         lib["dihedrals"], lib["sigmas"], dihedral_atoms = [], [], []
-        coords = [ICs.to_cartesian()]
+        coords = ICs.to_cartesian()[None, ...]
         internal_coords = ICs.copy()
 
     # Get origin and rotation matrix of local frame

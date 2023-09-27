@@ -196,10 +196,6 @@ def test_label_as_library():
     np.testing.assert_equal(R1C.internal_coords.trajectory.coords, R1C_SL.internal_coords.trajectory.coords)
 
 
-def test_coord_setter0():
-    R1C1 = chilife.RotamerEnsemble("R1C", site=28, protein=ubq)
-
-
 def test_coord_setter():
     R1C1 = chilife.RotamerEnsemble("R1C", site=28, protein=ubq)
     R1C2 = chilife.RotamerEnsemble("R1C", site=29, protein=ubq)
@@ -209,9 +205,17 @@ def test_coord_setter():
     np.testing.assert_allclose(R1C1.coords, R1C2.coords)
     np.testing.assert_allclose(R1C1.dihedrals, R1C2.dihedrals, rtol=1e-6)
 
+    for ic1, ic2 in zip(R1C1.internal_coords, R1C2.internal_coords):
+        assert np.max(np.abs(np.cos(ic1.z_matrix)- np.cos(ic2.z_matrix))) < 0.03
+
+    for ic1, ic2 in zip(R1C1.internal_coords, R1C2.internal_coords):
+        assert np.max(np.abs(ic1.coords - ic2.coords)) < 0.11
+
+
+
     for key in 'ori', 'mx':
-        np.testing.assert_allclose(R1C1.internal_coords[0].chain_operators[1][key],
-                                   R1C2.internal_coords[0].chain_operators[1][key])
+        np.testing.assert_almost_equal(R1C1.internal_coords.chain_operators[0][key],
+                                       R1C2.internal_coords.chain_operators[0][key])
 
 
 def test_coord_setter2():

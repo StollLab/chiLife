@@ -655,8 +655,27 @@ class ProteinIC:
         cart_coords = batch_ic2cart(self.z_matrix_idxs[:, 1:], z_matrix)
 
         if 'op' in kwargs:
+            op = kwargs['op']
             self.has_chain_operators = True
-            self._chain_operators = kwargs['op']
+            if isinstance(op, list):
+                OP0 = op[0]
+                for iop in op:
+                    scores = [np.abs(OP0[chain][key] - iop[chain][key]).max() for chain in iop for key in iop[chain]]
+                    if any( x > 1e-3 for x in scores):
+                        self._chain_operators = op
+                        break
+                else:
+                    self._chain_operators = op[0]
+
+            if isinstance(self._chain_operators, list):
+                for i, op in self._chain_operators:
+                    for start, stop in self._chain_segs:
+                        cart_coords[i, start:stop] = cart_coords[i, start:stop] @ op[start]['mx'] + op[start]['ori']
+            else:
+                for start, stop in self._chain_segs:
+                    mx = self.chain_operators[start]['mx']
+                    ori = self.chain_operators[start]['ori']
+                    cart_coords[:, start:stop] = np.einsum('ijk,kl->ijl', cart_coords[:, start:stop], mx) + ori
 
         elif isinstance(self._chain_operators, list):
             warnings.warn('You are loading in a new internal coordinate trajectory for an internal coordinates object '
@@ -681,6 +700,23 @@ class ProteinIC:
     def __iter__(self):
         for ts in self.trajectory:
             yield self
+
+    def set_cartesian_coords(self, coords, mask):
+        cpy = self.protein.trajectory.coordinates_array.copy()
+        cpy[:, mask] = coords
+
+        z_mats = []
+        ops = []
+        for submat in cpy:
+            z, op = get_z_matrix(submat, self.z_matrix_idxs, self.chain_operator_idxs)
+            z_mats.append(z)
+            ops.append(op)
+
+        z_mats = np.array(z_mats)
+        zcpy = self.trajectory.coordinates_array.copy()
+        zcpy[:, mask] = z_mats[:, mask]
+
+        self.load_new(zcpy, op=ops)
 
 
 def reconfigure_cap(cap, atom_idxs, bonds):

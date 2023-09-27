@@ -456,13 +456,12 @@ class RotamerEnsemble:
         N, CA, C = chilife.parse_backbone(self, kind="local")
         old_ori, ori_mx = chilife.local_mx(N, CA, C, method=self.alignment_method)
         self._coords -= old_ori
-        mx = ori_mx @ mx
+        cmx = ori_mx @ mx
 
-        self._coords = np.einsum("ijk,kl->ijl", self._coords, mx) + ori
+        self._coords = np.einsum("ijk,kl->ijl", self._coords, cmx) + ori
+        self.ICs_to_site(ori, mx)
 
-        self.ICs_to_site()
-
-    def ICs_to_site(self):
+    def ICs_to_site(self, cori, cmx):
         """ Modify the internal coordinates so that they are aligned with the site that the RotamerEnsemble is attached
          to"""
 
@@ -488,7 +487,7 @@ class RotamerEnsemble:
 
         self.internal_coords._chain_operators = op
         old_cartesian = self.internal_coords.protein.trajectory.coordinates_array
-        new_cartesian = np.einsum('ijk,kl->ijl', old_cartesian, op[0]['mx']) + op[0]['ori']
+        new_cartesian = np.einsum('ijk,kl->ijl', old_cartesian-self.ic_ori, m2m3) + self.backbone[1]
         self.internal_coords.protein.trajectory.load_new(new_cartesian)
 
         # Update backbone conf
@@ -980,7 +979,7 @@ class RotamerEnsemble:
 
         if self._minimize and self.eval_clash:
             raise RuntimeError('Both `minimize` and `eval_clash` options have been selected, but they are incompatible.'
-                               'Please select only on. Also note that minimize performs its own clash evaluations so '
+                               'Please select only one. Also note that minimize performs its own clash evaluations so '
                                'eval_clash is not necessary.')
         elif self.eval_clash:
             self.evaluate()
@@ -1086,21 +1085,10 @@ class RotamerEnsemble:
             raise ValueError('The number of atoms in the input array does not match the number of atoms of the residue')
 
         self._coords = coords
-        self.ICs_to_site()
+        self.internal_coords.set_cartesian_coords(coords, self.ic_mask)
 
-        if coords.shape[1] != len(self.internal_coords[0].coords):
-            tmp = np.array([np.empty_like(self.internal_coords[0].coords) for _ in coords])
-            tmp[:] = np.nan
-            tmp[:, self.ic_mask] = coords
-            coords = tmp
-
-        self.internal_coords = [self.internal_coords[0].copy() for _ in coords]
-        for ic, val in zip(self.internal_coords, coords):
-            ic.coords = val
-
-        self._dihedrals = np.rad2deg(
-            [IC.get_dihedral(1, self.dihedral_atoms) for IC in self.internal_coords]
-        )
+        # Check if they are all at the same site
+        self._dihedrals = np.rad2deg([ic.get_dihedral(1, self.dihedral_atoms) for ic in self.internal_coords])
 
         # Apply uniform weights
         self.weights = np.ones(len(self._dihedrals))

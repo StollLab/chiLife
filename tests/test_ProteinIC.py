@@ -269,10 +269,15 @@ def test_pickle():
 def test_chain_operators():
     LYS = mda.Universe('../chilife/data/rotamer_libraries/residue_pdbs/lys.pdb')
     pic = xl.ProteinIC.from_protein(LYS)
-    print(pic.chain_operators[0]['mx'])
-    print(pic.chain_operators[0]['ori'])
 
-    print()
+    mx = np.array([[0.38281548,  0.9238248,   0.],
+                   [0.92382485, -0.38281548,  0.],
+                   [0.,          0., -0.99999994]])
+    ori = np.array([-0.449, -3.572, -1.666])
+
+    np.testing.assert_almost_equal(pic.chain_operators[0]['mx'], mx)
+    np.testing.assert_almost_equal(pic.chain_operators[0]['ori'], ori)
+
 
 def test_load_new():
     pass

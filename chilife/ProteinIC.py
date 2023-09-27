@@ -670,7 +670,7 @@ class ProteinIC:
 
             for start, end in self._chain_segs:
                 op = self.chain_operators[start]
-                cart_coords[start:end] = np.einsum('ijk,kl->ijl', cart_coords[start:end], op['mx']) + op["ori"]
+                cart_coords[:, start:end] = np.einsum('ijk,kl->ijl', cart_coords[:, start:end], op['mx']) + op["ori"]
 
         self.protein.load_new(coordinates=cart_coords)
 

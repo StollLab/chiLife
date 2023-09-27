@@ -1,5 +1,6 @@
 import itertools
 import logging
+import warnings
 from collections import defaultdict
 from typing import List, Union, Dict, Tuple
 
@@ -10,7 +11,7 @@ from numpy.typing import ArrayLike
 from .Protein import MolecularSystem, Trajectory, Protein
 from .Topology import Topology
 from .protein_utils import get_angles, get_dihedrals, guess_bonds
-from .numba_utils import _ic_to_cart
+from .numba_utils import _ic_to_cart, batch_ic2cart
 
 
 class ProteinIC:
@@ -77,6 +78,7 @@ class ProteinIC:
         self.z_matrix_idxs = z_matrix_idxs
         self.z_matrix_names = np.array([self.atom_names[[x for x in y if x >= 0]].tolist() for y in z_matrix_idxs], dtype=object)
         self.chain_operator_idxs = kwargs.get('chain_operator_idxs', None)
+        self.has_chain_operators = bool(kwargs.get('chain_operator_idxs', None))
 
         if 'chain_operators' not in kwargs:
             self.chain_operators = None
@@ -648,10 +650,29 @@ class ProteinIC:
     def __len__(self):
         return len(self.trajectory)
 
-    def load_new(self, z_matrix, op=None):
+    def load_new(self, z_matrix, **kwargs):
         self.trajectory.load_new(coordinates=z_matrix)
-        self.chain_operators = op
-        self.protein.load_new(coordinates=np.array([self.to_cartesian() for ts in self.trajectory]))
+        cart_coords = batch_ic2cart(self.z_matrix_idxs[:, 1:], z_matrix)
+
+        if 'op' in kwargs:
+            self.has_chain_operators = True
+            self._chain_operators = kwargs['op']
+
+        elif isinstance(self._chain_operators, list):
+            warnings.warn('You are loading in a new internal coordinate trajectory for an internal coordinates object '
+                          'that has unique translations and rotations for each frame. These translations and rotations '
+                          'will be lost, which can be particularly detrimental for systems with multiple chains. New '
+                          'translations & rotations can be applied using the `co` keyword argument.')
+            self.chain_operators = None
+            self.has_chain_operators = False
+
+        elif isinstance(self._chain_operators, dict):
+
+            for start, end in self._chain_segs:
+                op = self.chain_operators[start]
+                cart_coords[start:end] = np.einsum('ijk,kl->ijl', cart_coords[start:end], op['mx']) + op["ori"]
+
+        self.protein.load_new(coordinates=cart_coords)
 
     def use_frames(self, idxs):
         self.trajectory.load_new(coordinates=self.trajectory.coordinates_array[idxs])

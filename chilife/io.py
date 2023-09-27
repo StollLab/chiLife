@@ -189,6 +189,7 @@ def read_bbdep(res: str, Phi: int, Psi: int) -> Dict:
             ICs.set_dihedral(np.deg2rad(r), 1, atom_list=dihedral_atoms)
             z_matrix.append(ICs.z_matrix)
 
+        ICs._chain_operators = ICs._chain_operators[0]
         ICs.load_new(np.array(z_matrix))
         internal_coords = ICs.copy()
         coords = ICs.trajectory.coordinates_array

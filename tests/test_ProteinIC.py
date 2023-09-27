@@ -266,6 +266,14 @@ def test_pickle():
             prot2 = pickle.load(f)
 
 
+def test_chain_operators():
+    LYS = mda.Universe('../chilife/data/rotamer_libraries/residue_pdbs/lys.pdb')
+    pic = xl.ProteinIC.from_protein(LYS)
+    print(pic.chain_operators[0]['mx'])
+    print(pic.chain_operators[0]['ori'])
+
+    print()
+
 def test_load_new():
     pass
 

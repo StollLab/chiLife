@@ -279,6 +279,23 @@ def test_chain_operators():
     np.testing.assert_almost_equal(pic.chain_operators[0]['ori'], ori)
 
 
+def test_iter():
+    zdata = []
+    cdata = []
+    for ic in mbpIC:
+        cdata.append(ic.coords.copy())
+        zdata.append(ic.z_matrix.copy())
+
+    zans = []
+    cans = []
+    for ts in mbpIC.trajectory:
+        cans.append(mbpIC.coords.copy())
+        zans.append(mbpIC.z_matrix.copy())
+
+    assert np.sum(np.abs(cdata[0] - cdata[1])) > 0
+    np.testing.assert_equal(cdata, cans)
+    np.testing.assert_equal(zdata, zans)
+
 def test_load_new():
     pass
 

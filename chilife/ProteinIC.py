@@ -678,6 +678,10 @@ class ProteinIC:
         self.trajectory.load_new(coordinates=self.trajectory.coordinates_array[idxs])
         self.protein.load_new(self.protein.trajectory.coordinates_array[idxs])
 
+    def __iter__(self):
+        for ts in self.trajectory:
+            yield self
+
 
 def reconfigure_cap(cap, atom_idxs, bonds):
     for idx in cap:

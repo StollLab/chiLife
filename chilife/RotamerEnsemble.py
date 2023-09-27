@@ -487,6 +487,9 @@ class RotamerEnsemble:
             op[segid] = {"mx": new_mx, "ori": new_ori}
 
         self.internal_coords._chain_operators = op
+        old_cartesian = self.internal_coords.protein.trajectory.coordinates_array
+        new_cartesian = np.einsum('ijk,kl->ijl', old_cartesian, op[0]['mx']) + op[0]['ori']
+        self.internal_coords.protein.trajectory.load_new(new_cartesian)
 
         # Update backbone conf
         alist = ["O"] if not self.use_H else ["H", 'O']

@@ -128,10 +128,6 @@ def read_drotlib(rotlib: Path) -> Tuple[dict]:
                 with archive.open(f) as of:
                     libB = read_rotlib.__wrapped__(of)
 
-
-    libA['internal_coords'] = libA['internal_coords'].item()
-    libB['internal_coords'] = libB['internal_coords'].item()
-
     return libA, libB, csts
 
 

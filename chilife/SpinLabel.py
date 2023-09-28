@@ -169,18 +169,12 @@ class SpinLabel(RotamerEnsemble):
         internal_coords = []
         i = 0
         if protein is not None:
-            protein_clash_idx = prelib.protein_tree.query_ball_point(
-                prelib.centroid(), 19.0
-            )
-            protein_clash_idx = [
-                idx for idx in protein_clash_idx if idx not in prelib.clash_ignore_idx
-            ]
+            protein_clash_idx = prelib.protein_tree.query_ball_point(prelib.centroid(), 19.0)
+            protein_clash_idx = [idx for idx in protein_clash_idx if idx not in prelib.clash_ignore_idx]
 
         a, b = [list(x) for x in zip(*prelib.non_bonded)]
         for _ in range(np.rint(to_try / to_find).astype(int)):
-            sample, _, internal_sample = prelib.sample(
-                n=to_find, off_rotamer=True, return_dihedrals=True
-            )
+            sample, _, internal_sample = prelib.sample(n=to_find, off_rotamer=True, return_dihedrals=True)
 
             # Evaluate internal clashes
             dist = np.linalg.norm(sample[:, a] - sample[:, b], axis=2)
@@ -221,11 +215,10 @@ class SpinLabel(RotamerEnsemble):
         z_matrix = np.concatenate(internal_coords) if len(internal_coords) > 0 else None
         if z_matrix is not None:
             internal_sample.trajectory.load_new(z_matrix)
+            internal_sample.set_cartesian_coords(coords, prelib.ic_mask)
+
             prelib.internal_coords = internal_sample
-            prelib._dihedrals = np.rad2deg(
-                [prelib.internal_coords.get_dihedral(1, prelib.dihedral_atoms) for ts in
-                 prelib.internal_coords.trajectory]
-            )
+            prelib._dihedrals = np.rad2deg([ic.get_dihedral(1, prelib.dihedral_atoms) for ic in prelib.internal_coords])
         else:
             prelib.internal_coords = None
             prelib._dihedrals = np.array([[]])

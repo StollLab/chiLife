@@ -87,15 +87,15 @@ class ProteinIC:
             self.has_chain_operators = True
             self._chain_operators = kwargs['chain_operators']
 
-        self.chains = protein.segments.segids
+        self.chains = self.protein.segments.segids
         self._chain_segs = [[a, b] for a, b in zip(self.chain_operator_idxs,
                                                    self.chain_operator_idxs[1:] + [len(self.z_matrix_idxs)])]
         # Topology
         self.bonds = kwargs['bonds'] if 'bonds' in kwargs else \
-            guess_bonds(protein.positions, protein.types)
+            guess_bonds(self.protein.positions, self.protein.types)
         self._nonbonded = kwargs.get('nonbonded', None)
         self.topology = kwargs['topology'] if 'topology' in kwargs else \
-            Topology(protein, self.bonds)
+            Topology(self.protein, self.bonds)
 
         self.non_nan_idxs = kwargs.get('non_nan_idxs', None)
         if self.non_nan_idxs is None:
@@ -719,6 +719,23 @@ class ProteinIC:
         zcpy[:, mask] = z_mats[:, mask]
 
         self.load_new(zcpy, op=ops)
+
+    def shift_resnum(self, delta: int):
+        self.resnums += delta
+        self.atom_resnums += delta
+        self.atoms.resnums += delta
+
+        self.chain_res_name_map = defaultdict(list)
+        idxs, b2s, b1s, _ = self.z_matrix_idxs[self.non_nan_idxs].T
+        chains = self.atoms[b2s].segids
+        resnums = self.atoms[b2s].resnums
+        [self.chain_res_name_map[(chain, res, b1, b2)].append(idx)
+         for chain, res, b1, b2, idx in
+         zip(chains, resnums, self.atom_names[b1s], self.atom_names[b2s], idxs)]
+
+        self.chain_res_name_map = {k: v for k, v in self.chain_res_name_map.items()}
+
+        self.topology.update_resnums()
 
 
 def reconfigure_cap(cap, atom_idxs, bonds):

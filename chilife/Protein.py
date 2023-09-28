@@ -64,10 +64,6 @@ class MolecularSystem:
         self.protein.fname = val
 
     @property
-    def atoms(self):
-        return self.select_atoms("")
-
-    @property
     def positions(self):
         return self.coords
 
@@ -237,6 +233,8 @@ class Protein(MolecularSystem):
                                 'byres': partial(byres, protein=self.protein),
                                 'within': update_wrapper(partial(within, protein=self.protein), within),
                                 'around': update_wrapper(partial(within, protein=self.protein), within)}
+
+        self.atoms = self.select_atoms("")
 
     @classmethod
     def from_pdb(cls, file_name):

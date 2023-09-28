@@ -61,10 +61,17 @@ class Topology:
 
         return zmatrix_dihedrals
 
-
     def _make_graph(self):
         return ig.Graph(n=len(self.atom_idxs), edges=self.bonds)
 
+    def update_resnums(self):
+        self.dihedrals_by_resnum = {}
+        for dihe in self.dihedrals:
+            c = dihe[2]
+            n1, n2, n3, n4 = self.atom_names[list(dihe)]
+            r1 = self.atoms[c].resnum
+            c1 = self.atoms[c].segid
+            self.dihedrals_by_resnum[c1, r1, n1, n2, n3, n4] = dihe
 
 def get_angle_defs(graph: ig.Graph) -> Tuple[Tuple[int, int, int]]:
     """

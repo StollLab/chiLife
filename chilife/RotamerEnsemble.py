@@ -303,11 +303,11 @@ class RotamerEnsemble:
 
         pi /= pi.sum()
         weights = pi
+        res = chilife.Protein.from_atomsel(res, frames=unique_idx)
+        ICs = chilife.ProteinIC.from_protein(res)
 
-        ICs = [chilife.get_internal_coords(res.atoms) for ts in traj.trajectory[unique_idx]]
 
-        for ic in ICs:
-            ic.shift_resnum(-(site - 1))
+        ICs.shift_resnum(-(site - 1))
 
         dihedrals = np.array([ic.get_dihedral(1, dihedral_defs) for ic in ICs])
         sigmas = kwargs.get('sigmas', np.array([]))

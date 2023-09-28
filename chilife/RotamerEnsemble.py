@@ -430,9 +430,9 @@ class RotamerEnsemble:
         """
         new_copy = self._base_copy(self._rotlib)
         for item in self.__dict__:
-            if isinstance(item, np.ndarray):
+            if isinstance(item, np.ndarray) or item == 'internal_coords':
                 new_copy.__dict__[item] = self.__dict__[item].copy()
-            elif item not in  ("protein", '_lib_IC', '_rotlib', 'internal_coords'):
+            elif item not in  ("protein", '_lib_IC', '_rotlib'):
                 new_copy.__dict__[item] = deepcopy(self.__dict__[item])
             elif self.__dict__[item] is None:
                 new_copy.protein = None
@@ -939,9 +939,6 @@ class RotamerEnsemble:
         # Perform a sanity check to ensure every necessary entry is present
         if isinstance(rotlib, Path) and not all(x in lib for x in chilife.rotlib_formats[lib['format_version']]):
             raise ValueError('The rotamer library does not contain all the required entries for the format version')
-
-        # Deep copy (mutable)  internal coords.
-        lib['internal_coords'] = lib['internal_coords'].copy()
 
         # Modify library to be appropriately used with self.__dict__.update
         self._rotlib = {key: value.copy() if hasattr(value, 'copy') else value for key, value in lib.items()}

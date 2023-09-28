@@ -406,6 +406,11 @@ def test_copy_custom_lib():
     XYZ41 = chilife.SpinLabel('XYZ', 28, ubq, rotlib='test_data/usr_rtlb/XYZ_rotlib.npz')
     x2 = XYZ41.copy()
 
+    assert x2 is not XYZ41
+    assert x2.coords is not XYZ41.coords
+    assert x2.internal_coords is not XYZ41.internal_coords
+    assert x2.weights is not XYZ41.weights
+
 
 def test_from_wizard_custom_rotlib():
     np.random.seed(0)

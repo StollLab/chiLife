@@ -179,12 +179,7 @@ def read_bbdep(res: str, Phi: int, Psi: int) -> Dict:
         dihedral_atoms = chilife.dihedral_defs[res][:nchi]
 
         # Calculate cartesian coordinates for each rotamer
-        coords = []
-        z_matrix = []
-        for r in lib["dihedrals"]:
-            ICs.set_dihedral(np.deg2rad(r), 1, atom_list=dihedral_atoms)
-            z_matrix.append(ICs.z_matrix.copy())
-
+        z_matrix = ICs.batch_set_dihedrals(np.zeros(len(lib['dihedrals']), dtype=int), lib['dihedrals'], 1, dihedral_atoms)
         ICs._chain_operators = ICs._chain_operators[0]
         ICs.load_new(np.array(z_matrix))
         internal_coords = ICs.copy()

@@ -10,3 +10,5 @@ from .Protein import *
 from .ProteinIC import *
 from .protein_utils import *
 from .scoring import *
+
+__version__ = '0.1.10-2'

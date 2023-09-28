@@ -1,4 +1,5 @@
 import inspect
+import warnings
 from copy import deepcopy
 from functools import partial
 from pathlib import Path
@@ -1101,18 +1102,20 @@ class RotamerEnsemble:
 
     @dihedrals.setter
     def dihedrals(self, dihedrals):
-        # TODO: Add warning about removing isomers
+
+        warnings.warn('WARNING: Setting dihedrals in this fashion will remove set all bond lengths and angles to that '
+                      'of the first rotamer in the library effectively removing stereo-isomers from the ensemble. It '
+                      'will also set all weights to .')
 
         dihedrals = dihedrals if dihedrals.ndim == 2 else dihedrals[None, :]
         if dihedrals.shape[1] != self.dihedrals.shape[1]:
             raise ValueError('The input array does not have the correct number of dihedrals')
 
         self._dihedrals = dihedrals
-        self.internal_coords = [self.internal_coords[0].copy().set_dihedral(np.deg2rad(dihedral),
-                                                                            1,
-                                                                            self.dihedral_atoms)
-                                for dihedral in dihedrals]
-        self._coords = np.array([ic.coords[self.ic_mask] for ic in self.internal_coords])
+        idxs = [0 for _ in range(len(dihedrals))]
+        z_matrix = self.internal_coords.batch_set_dihedrals(idxs, np.deg2rad(dihedrals), 1, self.dihedral_atoms)
+        self.internal_coords.load_new(z_matrix)
+        self._coords = self.internal_coords.protein.trajectory.coordinates_array.copy()[:, self.ic_mask]
         self.backbone_to_site()
 
         # Apply uniform weights

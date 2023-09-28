@@ -1,4 +1,5 @@
 import pickle, hashlib, os
+from time import perf_counter
 import numpy as np
 import pytest
 import MDAnalysis as mda
@@ -457,3 +458,21 @@ def test_repack_with_custom_rotlib():
     T4L131R9R = chilife.SpinLabel.from_trajectory(traj, 41, burn_in=5, spin_atoms=XYZ41.spin_atoms)
 
     assert len(T4L131R9R) > 1
+
+
+def test_rl_speed():
+
+    t1 = perf_counter()
+    for i in range(5):
+        SL = chilife.SpinLabel('R1M', 41, protein)
+    tSL  = perf_counter() - t1
+
+    t1 = perf_counter()
+    for i in range(5):
+        M = np.load('test_data/read.npy')
+        M = M @ M
+    tmm = perf_counter() - t1
+
+    ratio = tSL / tmm
+    print(ratio)
+    assert (ratio - 1.8) < 0.1

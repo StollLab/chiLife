@@ -230,6 +230,7 @@ def test_coord_setter2():
 def test_dihedral_setter():
     R1C1 = chilife.RotamerEnsemble("R1C", site=28, protein=ubq, sample=100)
     R1C2 = chilife.RotamerEnsemble("R1C", site=28, protein=ubq, sample=100)
+
     R1C1.dihedrals = R1C2.dihedrals
 
     np.testing.assert_allclose(R1C1.coords, R1C2.coords)

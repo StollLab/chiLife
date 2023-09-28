@@ -342,7 +342,11 @@ class RotamerEnsemble:
         kwargs.setdefault('eval_clash', False)
         return cls(resname, site, traj, chain, lib, **kwargs)
 
-    def to_rotlib(self, libname: str = None) -> None:
+    def to_rotlib(self,
+                  libname: str = None,
+                  description: str = None,
+                  comment: str = None,
+                  reference: str = None) -> None:
         """
         Save the current RotamerEnsemble as a RotamerLibrary
 
@@ -355,6 +359,10 @@ class RotamerEnsemble:
         if libname is None:
             libname = self.name
 
+        if description is None:
+            description = (f'Rotamer library made with chiLife version {chilife.__version__} using `to_rotlib` method'
+                           f'of a rotamer ensemble.')
+
         lib = {'rotlib': libname,
                'resname': self.res,
                'coords': self.coords,
@@ -366,7 +374,10 @@ class RotamerEnsemble:
                'dihedrals': self.dihedrals,
                'sigmas': self.sigmas,
                'type': 'chilife rotamer library',
-               'format_version': 1.0}
+               'description': description,
+               'comment': comment,
+               'reference': reference,
+               'format_version': 1.2}
 
         if hasattr(self, 'spin_atoms'):
             lib['spin_atoms'] = self.spin_atoms

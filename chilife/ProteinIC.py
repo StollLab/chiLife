@@ -702,7 +702,9 @@ class ProteinIC:
             yield self
 
     def set_cartesian_coords(self, coords, mask):
-        cpy = self.protein.trajectory.coordinates_array.copy()
+        nrots = len(coords)
+        cpy = np.tile(self.protein.trajectory.coordinates_array[0].copy(), (nrots, 1, 1))
+
         cpy[:, mask] = coords
 
         z_mats = []
@@ -713,7 +715,7 @@ class ProteinIC:
             ops.append(op)
 
         z_mats = np.array(z_mats)
-        zcpy = self.trajectory.coordinates_array.copy()
+        zcpy = np.tile(self.trajectory.coordinates_array[0].copy(), (nrots, 1, 1))
         zcpy[:, mask] = z_mats[:, mask]
 
         self.load_new(zcpy, op=ops)

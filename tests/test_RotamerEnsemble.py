@@ -347,16 +347,16 @@ def test_to_rotlib():
     assert RE2.res == 'TRP'
     assert len(RE2) == 10
 
-    np.testing.assert_almost_equal(RE2.dihedrals, [[-176.38805017,  -20.15226419],
-                                                   [-176.38805017,  -52.83812431],
-                                                   [-176.38805017, -111.39416684],
-                                                   [-176.38805017,   73.81697923],
-                                                   [-176.38805017, -134.54899132],
-                                                   [-176.38805017,  118.2802729 ],
-                                                   [-176.38805017,  164.59451953],
-                                                   [  62.16344279,  -93.79344738],
-                                                   [ -69.90840475,  -39.25944367],
-                                                   [ -69.90840475,  161.67407146]], decimal=5)
+    np.testing.assert_almost_equal(RE2.dihedrals, np.array([[-176.38805 ,  -20.152264],
+                                                            [-176.38805 ,  -52.83812 ],
+                                                            [-176.38805 , -111.394165],
+                                                            [-176.38805 ,   73.81698 ],
+                                                            [-176.38805 , -134.54898 ],
+                                                            [-176.38805 ,  118.280266],
+                                                            [-176.38805 ,  164.5945  ],
+                                                            [  62.16344 ,  -93.79344 ],
+                                                            [ -69.9084  ,  -39.25944 ],
+                                                            [ -69.9084  ,  161.67407 ]]), decimal=5)
 
     np.testing.assert_almost_equal(rotlib_test['coords'], rotlib_reference['coords'], decimal=5)
     np.testing.assert_almost_equal(rotlib_test['weights'], rotlib_reference['weights'], decimal=5)

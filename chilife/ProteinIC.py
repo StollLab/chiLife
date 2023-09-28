@@ -65,7 +65,11 @@ class ProteinIC:
         ----------
         """
         # Internal coords and atom info
-        self.protein = Protein.from_atomsel(protein.atoms)
+        if isinstance(protein, Protein):
+            self.protein = protein.copy()
+        else:
+            self.protein = Protein.from_atomsel(protein)
+
         self.atoms = self.protein.atoms
         self.atom_names = self.atoms.names
         self.atom_chains = self.atoms.segids
@@ -215,7 +219,7 @@ class ProteinIC:
                   'bonds': self.bonds,
                   'nonbonded': self._nonbonded,
                   'topology': self.topology,
-                  'protein': self.protein.copy(),
+                  'protein': self.protein,
                   'non_nan_idxs': self.non_nan_idxs,
                   'chain_res_name_map': self.chain_res_name_map}
 

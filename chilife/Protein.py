@@ -2,6 +2,9 @@ from __future__ import annotations
 import numbers
 import operator
 from functools import partial, update_wrapper
+
+import MDAnalysis
+
 from .protein_utils import sort_pdb
 from .Topology import Topology
 import numpy as np
@@ -190,6 +193,8 @@ class Protein(MolecularSystem):
         else:
             self.segixs = np.array([ord(x) - 65 for x in self.chains])
 
+        self.is_protein =  np.isin(self.resnames, list(chilife.SUPPORTED_RESIDUES))
+
         self._protein_keywords = {'id': self.atomids,
                                   'name': self.names,
                                   'altloc': self.altlocs,
@@ -214,7 +219,7 @@ class Protein(MolecularSystem):
                                   'elem': self.atypes,
                                   'element': self.atypes,
 
-                                  'protein': np.isin(self.resnames, list(chilife.SUPPORTED_RESIDUES)),
+                                  'protein': self.is_protein,
                                   '_len': self.n_atoms,
                                   }
 
@@ -322,6 +327,16 @@ class Protein(MolecularSystem):
 
     @classmethod
     def from_atomsel(cls, atomsel, frames=None):
+
+        if isinstance(atomsel, (MDAnalysis.AtomGroup, AtomSelection)):
+            U = atomsel.universe
+        elif isinstance(atomsel, MDAnalysis.Universe):
+            U = atomsel
+            atomsel = U.atoms
+
+        if frames is None:
+            frames = slice(0, len(U.trajectory))
+
         anames = atomsel.names
         atypes = atomsel.types
         resnames = atomsel.resnames
@@ -329,17 +344,14 @@ class Protein(MolecularSystem):
         ridx_map = {num: i for i, num in enumerate(np.unique(resnums))}
         resindices = np.array([ridx_map[num] for num in resnums ])
         segids = atomsel.segids
-        sidx_map = {num: i for i, num in enumerate(np.unique(segids))}
         segindices = np.array([ridx_map[num] for num in resnums])
 
-        if frames is None:
-            trajectory = np.array([atomsel.positions for ts in atomsel.universe.trajectory])
+        if hasattr(U.trajectory, 'coordinates_array'):
+            trajectory = U.trajectory.coordinates_array[frames, sorted(atomsel.ix), :]
         else:
             trajectory = []
-            for frame in frames:
-                atomsel.universe.trajectory[frame]
+            for ts in U.trajectory[frames]:
                 trajectory.append(atomsel.positions)
-
             trajectory = np.array(trajectory)
 
         return cls.from_arrays(anames, atypes, resnames, resindices, resnums, segindices, segids, trajectory)

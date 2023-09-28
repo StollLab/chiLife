@@ -190,8 +190,6 @@ class Protein(MolecularSystem):
         else:
             self.segixs = np.array([ord(x) - 65 for x in self.chains])
 
-        self._Atoms = np.array([Atom(self, i) for i in range(self.n_atoms)])
-
         self._protein_keywords = {'id': self.atomids,
                                   'name': self.names,
                                   'altloc': self.altlocs,
@@ -364,6 +362,12 @@ class Protein(MolecularSystem):
 
     def load_new(self, coordinates):
         self.trajectory.load_new(coordinates=coordinates)
+
+    @property
+    def _Atoms(self):
+        if not hasattr(self, '__Atoms'):
+            self.__Atoms = np.array([Atom(self, i) for i in range(self.n_atoms)])
+        return self.__Atoms
 
 
 class Trajectory:

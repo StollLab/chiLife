@@ -444,7 +444,10 @@ def get_missing_residues(
 
         # Check if there are any missing heavy atoms
         heavy_atoms = res.atoms.types[res.atoms.types != "H"]
-        if len(heavy_atoms) != cache.setdefault(res.resname, len(RotamerEnsemble(res.resname).atom_names)):
+        resn = res.resname
+
+        a = cache.setdefault(resn, len(RotamerEnsemble(resn).atom_names))
+        if len(heavy_atoms) != a:
             missing_residues.append(
                 RotamerEnsemble(
                     res.resname,

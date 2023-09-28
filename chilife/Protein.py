@@ -648,19 +648,14 @@ class ResidueSelection(MolecularSystem):
 
     def __init__(self, protein, mask):
 
-        resixs = np.unique(protein.resixs[mask])
+        resixs, self.first_ix = np.unique(protein.resixs[mask], return_index=True)
         self.mask = np.isin(protein.resixs, resixs)
         self.protein = protein
 
-        first_ix = np.nonzero(np.r_[1, np.diff(protein.resixs)[:-1]])[0]
-        self.first_ix = np.array([ix for ix in first_ix if
-                                  np.isin(protein.resixs[ix], protein.resixs[self.mask])],
-                                 dtype=int)
-
-        self.resnames = protein.resnames[self.first_ix].flatten()
-        self.resnums = protein.resnums[self.first_ix].flatten()
-        self.segids = protein.segids[self.first_ix].flatten()
-        self.chains = protein.chains[self.first_ix].flatten()
+        self.resnames = self.resnames[self.first_ix].flatten()
+        self.resnums = self.resnums[self.first_ix].flatten()
+        self.segids = self.segids[self.first_ix].flatten()
+        self.chains = self.chains[self.first_ix].flatten()
 
     def __setattr__(self, key, value):
         self.__dict__[key] = value
@@ -668,7 +663,7 @@ class ResidueSelection(MolecularSystem):
     def __getitem__(self, item):
         resixs = np.unique(self.protein.resixs[self.mask])
         new_resixs = resixs[item]
-        new_mask = np.argwhere(np.isin(self.protein.resixs, new_resixs))
+        new_mask = np.argwhere(np.isin(self.protein.resixs, new_resixs)).flatten()
 
         if np.issubdtype(type(item), int):
             return Residue(self.protein, new_mask)
@@ -692,15 +687,12 @@ class ResidueSelection(MolecularSystem):
 class SegmentSelection(MolecularSystem):
 
     def __init__(self, protein, mask):
-        seg_ixs = np.unique(protein.segixs[mask])
+        seg_ixs, self.first_ix = np.unique(protein.segixs[mask], return_index=True)
         self.mask = np.argwhere(np.isin(protein.segixs, seg_ixs)).T[0]
         self.protein = protein
 
-        first_ix = np.nonzero(np.r_[1, np.diff(protein.segixs)[:-1]])
-        self.first_ix = np.array([ix for ix in first_ix if protein.segixs[ix] in protein.segixs[self.mask]], dtype=int)
-
-        self.segids = protein.segids[self.first_ix].flatten()
-        self.chains = protein.chains[self.first_ix].flatten()
+        self.segids = self.segids[self.first_ix].flatten()
+        self.chains = self.chains[self.first_ix].flatten()
 
     def __setattr__(self, key, value):
         self.__dict__[key] = value
@@ -768,17 +760,23 @@ class Residue(MolecularSystem):
     def phi_selection(self):
         prev = self.atoms.resnums - 1
         prev = np.unique(prev[prev > 0])
-        resnums = np.unique(self.atoms.resnums)
-        sel = self.protein.select_atoms(f"(resnum {' '.join(str(r) for r in resnums)} and name N CA C) or "
-                                        f"(resnum {' '.join(str(r) for r in prev)} and name C)")
+
+        maskN_CA_C = self.mask[np.isin(self.names, ['N', 'CA', 'C'])]
+        maskC = np.argwhere(self.protein.resnums == prev).flatten()
+        maskC = maskC[self.protein.names[maskC] == 'C']
+        mask_phi = np.concatenate((maskC, maskN_CA_C))
+        sel = self.protein.atoms[mask_phi]
         return sel if len(sel) == 4 else None
 
     def psi_selection(self):
         nex = self.atoms.resnums + 1
         nex = np.unique(nex[nex <= self.protein.resnums.max()])
-        resnums = np.unique(self.resnums)
-        sel = self.protein.select_atoms(f"(resnum {' '.join(str(r) for r in resnums)} and name N CA C) or "
-                                        f"(resnum {' '.join(str(r) for r in nex)} and name N)")
+
+        maskN_CA_C = self.mask[np.isin(self.names, ['N', 'CA', 'C'])]
+        maskN = np.argwhere(self.protein.resnums == nex).flatten()
+        maskN = maskN[self.protein.names[maskN] == 'N']
+        mask_psi = np.concatenate((maskN, maskN_CA_C))
+        sel = self.protein.atoms[mask_psi]
         return sel if len(sel) == 4 else None
 
 

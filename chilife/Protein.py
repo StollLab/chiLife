@@ -19,7 +19,7 @@ import chilife
 #   Performance enhancement: Find a faster way to retrieve coordinate data from trajectory @property seems to have
 #   Feature: Add from_mda class method.
 masked_properties = ('atomids', 'names', 'altlocs', 'resnames', 'resnums', 'chains', 'occupancies',
-                     'bs', 'segs', 'segids', 'atypes', 'charges', 'ix', 'resixs', 'segixs', '_Atoms')
+                     'bs', 'segs', 'segids', 'atypes', 'charges', 'ix', 'resixs', 'segixs', '_Atoms', 'atoms')
 
 class MolecularSystem:
     """Base class for molecular systems"""
@@ -31,6 +31,8 @@ class MolecularSystem:
             self.protein.__getattribute__(key)
         elif key == 'trajectory':
             return self.protein.trajectory
+        elif key == 'atoms':
+            return self.protein.__getattribute__(key)[self.mask]
         elif key in masked_properties:
             return np.squeeze(self.protein.__getattribute__(key)[self.mask])
         else:
@@ -193,7 +195,10 @@ class Protein(MolecularSystem):
         else:
             self.segixs = np.array([ord(x) - 65 for x in self.chains])
 
-        self.is_protein =  np.isin(self.resnames, list(chilife.SUPPORTED_RESIDUES))
+        uidx, uidxidx, nuidxs = np.unique(self.resixs, return_index=True, return_inverse=True)
+        resnames = self.resnames[uidx]
+        truth = np.array([res in chilife.SUPPORTED_RESIDUES for res in resnames])
+        self.is_protein = truth[nuidxs]
 
         self._protein_keywords = {'id': self.atomids,
                                   'name': self.names,
@@ -237,7 +242,7 @@ class Protein(MolecularSystem):
                                 'within': update_wrapper(partial(within, protein=self.protein), within),
                                 'around': update_wrapper(partial(within, protein=self.protein), within)}
 
-        self.atoms = self.select_atoms("")
+        self.atoms = AtomSelection(self, self.mask)
 
     @classmethod
     def from_pdb(cls, file_name):
@@ -648,9 +653,11 @@ class ResidueSelection(MolecularSystem):
 
     def __init__(self, protein, mask):
 
-        resixs, self.first_ix = np.unique(protein.resixs[mask], return_index=True)
-        self.mask = np.isin(protein.resixs, resixs)
+        resixs = np.unique(protein.resixs[mask])
+        self.mask = np.argwhere(np.isin(protein.resixs, resixs)).flatten()
         self.protein = protein
+
+        _, self.first_ix = np.unique(protein.resixs[self.mask], return_index=True)
 
         self.resnames = self.resnames[self.first_ix].flatten()
         self.resnums = self.resnums[self.first_ix].flatten()
@@ -687,9 +694,11 @@ class ResidueSelection(MolecularSystem):
 class SegmentSelection(MolecularSystem):
 
     def __init__(self, protein, mask):
-        seg_ixs, self.first_ix = np.unique(protein.segixs[mask], return_index=True)
-        self.mask = np.argwhere(np.isin(protein.segixs, seg_ixs)).T[0]
+        seg_ixs = np.unique(protein.segixs[mask])
+        self.mask = np.argwhere(np.isin(protein.segixs, seg_ixs)).flatten()
         self.protein = protein
+
+        _, self.first_ix = np.unique(protein.segixs[self.mask], return_index=True)
 
         self.segids = self.segids[self.first_ix].flatten()
         self.chains = self.chains[self.first_ix].flatten()

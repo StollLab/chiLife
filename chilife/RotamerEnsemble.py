@@ -941,7 +941,7 @@ class RotamerEnsemble:
             raise ValueError('The rotamer library does not contain all the required entries for the format version')
 
         # Modify library to be appropriately used with self.__dict__.update
-        self._rotlib = {key: value.copy() if hasattr(value, 'copy') else value for key, value in lib.items()}
+        self._rotlib = {key: value.copy() if hasattr(value, 'copy') and key != 'internal_coords' else value for key, value in lib.items()}
 
         lib['_coords'] = lib.pop('coords').copy()
         lib['_dihedrals'] = lib.pop('dihedrals').copy()

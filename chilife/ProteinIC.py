@@ -71,16 +71,16 @@ class ProteinIC:
             self.protein = Protein.from_atomsel(protein)
 
         self.atoms = self.protein.atoms
-        self.atom_names = self.atoms.names
-        self.atom_chains = self.atoms.segids
-        self.atom_resnums = self.atoms.resnums
-        self.atom_types = self.atoms.types
-        self.atom_resnames = self.atoms.resnames
-        self.resnums = self.atoms.residues.resnums
-        self.resnames = self.atoms.residues.resnames
+        self.atom_names = self.protein.names
+        self.atom_chains = self.protein.segids
+        self.atom_resnums = self.protein.resnums
+        self.atom_types = self.protein.types
+        self.atom_resnames = self.protein.resnames
+        uresid, uresidx = np.unique(self.protein.resixs, return_index=True)
+        self.resnums = self.atom_resnums[uresidx]
+        self.resnames = self.atom_resnames[uresidx]
         self.trajectory = Trajectory(z_matrix, self)
         self.z_matrix_idxs = z_matrix_idxs
-        self.z_matrix_names = np.array([self.atom_names[[x for x in y if x >= 0]].tolist() for y in z_matrix_idxs], dtype=object)
         self.chain_operator_idxs = kwargs.get('chain_operator_idxs', None)
         self.has_chain_operators = bool(kwargs.get('chain_operator_idxs', None))
 
@@ -91,7 +91,7 @@ class ProteinIC:
             self.has_chain_operators = True
             self._chain_operators = kwargs['chain_operators']
 
-        self.chains = self.protein.segments.segids
+        self.chains = np.unique(self.atom_chains)
         self._chain_segs = [[a, b] for a, b in zip(self.chain_operator_idxs,
                                                    self.chain_operator_idxs[1:] + [len(self.z_matrix_idxs)])]
         # Topology
@@ -741,6 +741,13 @@ class ProteinIC:
 
         self.topology.update_resnums()
 
+    @property
+    def z_matrix_names(self):
+        if not hasattr(self, '_z_matrix_names'):
+            self._z_matrix_names = np.array([self.atom_names[[x for x in y if x >= 0]].tolist()
+                                             for y in self.z_matrix_idxs], dtype=object)
+
+        return self._z_matrix_names
 
 def reconfigure_cap(cap, atom_idxs, bonds):
     for idx in cap:

@@ -251,7 +251,7 @@ def test_create_library():
     )
 
     SL = chilife.SpinLabel('___', 238, protein)
-    np.testing.assert_allclose(SL.spin_centers, np.array([[-24.44447989, 15.0841676, 14.75408798]]))
+    np.testing.assert_allclose(SL.spin_centers, np.array([[-24.444481,  15.084166,  14.754087]]))
 
     struct = mda.Universe('test_data/trt_sorted.pdb')
     pos = struct.atoms[:3].positions

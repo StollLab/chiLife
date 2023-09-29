@@ -47,11 +47,11 @@ def test_from_prot_traj():
 @pytest.mark.parametrize("pdbid", pdbids)
 def test_get_internal_coordinates(pdbid):
     protein = mda.Universe(f"test_data/{pdbid}.pdb", in_memory=True).select_atoms("protein and not altloc B")
-    ICs = xl.ProteinIC.from_protein(protein)
+    ICs = xl.ProteinIC.from_protein(protein, ignore_water=False)
     np.testing.assert_almost_equal(ICs.coords, protein.atoms.positions, decimal=4)
 
     protein = xl.Protein.from_pdb(f"test_data/{pdbid}.pdb").select_atoms("protein and not altloc B")
-    ICs = xl.ProteinIC.from_protein(protein)
+    ICs = xl.ProteinIC.from_protein(protein, ignore_water=False)
     np.testing.assert_almost_equal(ICs.coords, protein.atoms.positions, decimal=4)
 
 

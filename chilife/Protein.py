@@ -245,13 +245,27 @@ class Protein(MolecularSystem):
         self.atoms = AtomSelection(self, self.mask)
 
     @classmethod
-    def from_pdb(cls, file_name):
+    def from_pdb(cls, file_name, sort_atoms=False):
         """reads a pdb file and returns a Protein object"""
 
         keys = ["skip", "atomids", "names", "altlocs", "resnames", "chains", "resnums",
                 "skip", "coords", "occupancies", "bs", "segs", "atypes", "charges"]
+        if sort_atoms:
+            lines = sort_pdb(file_name)
+        else:
+            with open(file_name, 'r') as f:
+                lines = f.readlines()
 
-        lines = sort_pdb(file_name)
+            lines = [line for line in lines if line.startswith(('MODEL', 'ENDMDL', 'ATOM', 'HETATM'))]
+            start_idxs, end_idxs = [],  []
+            for i, line in enumerate(lines):
+                if line.startswith('MODEL'):
+                    start_idxs.append(i + 1)
+                elif line.startswith("ENDMDL"):
+                    end_idxs.append(i)
+
+            if len(start_idxs) > 0:
+                lines = [lines[start:end] for start, end in zip(start_idxs, end_idxs)]
 
         if isinstance(lines[0], str):
             lines = [lines]
@@ -352,7 +366,7 @@ class Protein(MolecularSystem):
         segindices = np.array([ridx_map[num] for num in resnums])
 
         if hasattr(U.trajectory, 'coordinates_array'):
-            trajectory = U.trajectory.coordinates_array[frames, sorted(atomsel.ix), :]
+            trajectory = U.trajectory.coordinates_array[frames][:, sorted(atomsel.ix), :]
         else:
             trajectory = []
             for ts in U.trajectory[frames]:
@@ -784,7 +798,7 @@ class Residue(MolecularSystem):
         maskN_CA_C = self.mask[np.isin(self.names, ['N', 'CA', 'C'])]
         maskN = np.argwhere(self.protein.resnums == nex).flatten()
         maskN = maskN[self.protein.names[maskN] == 'N']
-        mask_psi = np.concatenate((maskN, maskN_CA_C))
+        mask_psi = np.concatenate((maskN_CA_C, maskN))
         sel = self.protein.atoms[mask_psi]
         return sel if len(sel) == 4 else None
 

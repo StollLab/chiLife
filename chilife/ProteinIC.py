@@ -167,6 +167,10 @@ class ProteinIC:
                         present = True
                         continue
 
+                    if idx not in topology.dihedrals_by_atoms:
+                        dihedral = [idx]
+                        continue
+
                     # Check for alternative dihedral definitions that satisfy the preferred dihedral
                     for p in topology.dihedrals_by_atoms[idx]:
                         if np.all(protein.atoms[list(p)].names == dihe):
@@ -727,7 +731,6 @@ class ProteinIC:
     def shift_resnum(self, delta: int):
         self.resnums += delta
         self.atom_resnums += delta
-        self.atoms.resnums += delta
 
         self.chain_res_name_map = defaultdict(list)
         idxs, b2s, b1s, _ = self.z_matrix_idxs[self.non_nan_idxs].T

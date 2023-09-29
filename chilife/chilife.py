@@ -515,30 +515,21 @@ def create_library(
                            "https://www.wwpdb.org/documentation/file-format-content/format33/sect10.html")
 
     # Convert loaded rotamer ensemble to internal coords
-    internal_coords = [
-        chilife.get_internal_coords(
-            resi_selection,
-            preferred_dihedrals=dihedral_atoms,
-            bonds=bonds
-        )
-        for _ in struct.trajectory
-    ]
+    internal_coords = chilife.ProteinIC.from_protein(resi_selection,
+                                                     preferred_dihedrals=dihedral_atoms,
+                                                     bonds=bonds)
+    internal_coords.shift_resnum(-(site - 1))
+    internal_coords.chain_operators = None
 
-    # set residue number to 1 and remove chain operators so all rotamers are in the ic coordinate frame
-    for ic in internal_coords:
-        ic.shift_resnum(-(site - 1))
-        ic.chain_operators = None
-        if len(ic.chains) > 1:
-            raise ValueError('The PDB of the label supplied appears to have a chain break. Please check your PDB and '
-                             'make sure there are no chain breaks in the desired label and that there are no other '
-                             'chains in the pdb file. If the error persists, check to be sure all atoms are the correct '
-                             'element as chilife uses the elements to determine if atoms are bonded.')
+    if len(internal_coords.chains) > 1:
+        raise ValueError('The PDB of the label supplied appears to have a chain break. Please check your PDB and '
+                         'make sure there are no chain breaks in the desired label and that there are no other '
+                         'chains in the pdb file. If the error persists, check to be sure all atoms are the correct '
+                         'element as chilife uses the elements to determine if atoms are bonded.')
 
     # If multi-state pdb extract dihedrals from pdb
     if dihedrals is None:
-        dihedrals = np.rad2deg(
-            [ic.get_dihedral(1, dihedral_atoms) for ic in internal_coords]
-        )
+        dihedrals = np.rad2deg([ic.get_dihedral(1, dihedral_atoms) for ic in internal_coords])
 
     if dihedrals.shape == (len(dihedrals),):
         dihedrals.shape = (len(dihedrals), 1)
@@ -677,7 +668,7 @@ def create_dlibrary(
 
     cap_idxs = list(sorted(cap_idxs))
     ovlp_selection = struct.atoms[cap_idxs]
-    csts = ovlp_selection.atom_names
+    csts = ovlp_selection.names
     csts = csts.astype('U4')
 
     ovlp_selection.residues.resnums = site1
@@ -829,7 +820,7 @@ def pre_add_library(
 def prep_restype_savedict(
         libname: str,
         resname: str,
-        internal_coords: List[ProteinIC],
+        internal_coords: ProteinIC,
         weights: ArrayLike,
         dihedrals: ArrayLike,
         dihedral_atoms: ArrayLike,
@@ -875,10 +866,8 @@ def prep_restype_savedict(
         Dictionary of all the data needed to build a RotamerEnsemble.
     """
     # Extract coordinates and transform to the local frame
-    bb_atom_idx = [
-        i for i, atom in enumerate(internal_coords[0].atoms) if atom.name in ["N", "CA", "C"]
-    ]
-    coords = internal_coords[0].coords.copy()
+    bb_atom_idx = np.argwhere(np.isin(internal_coords.atom_names, ('N', 'CA', 'C'))).flatten()
+    coords = internal_coords.coords.copy()
     ori, mx = local_mx(*coords[bb_atom_idx])
     coords = (coords - ori) @ mx
 
@@ -890,22 +879,18 @@ def prep_restype_savedict(
         if coords.ndim == 2:
             coords = np.expand_dims(coords, axis=0)
 
-    atom_types = np.array([atom.atype for atom in internal_coords[0].atoms])
-    atom_names = np.array([atom.name for atom in internal_coords[0].atoms])
+    atom_types = internal_coords.atom_types.copy()
+    atom_names = internal_coords.atom_names.copy()
 
     if np.any(np.isnan(coords)):
         idxs = np.argwhere(np.isnan(np.sum(coords, axis=(1, 2)))).T[0]
         adxs = np.argwhere(np.isnan(np.sum(coords, axis=(0, 2)))).T[0]
         adxs = atom_names[adxs]
 
-        print(internal_coords[0].atom_dict['dihedrals'][1][(5, ('O3', 'Cu1', 'NE2'))])
-        print(internal_coords[0].zmats[1].shape)
-        print(internal_coords[0].get_dihedral(5, ['NE2', 'Cu1', 'O3', 'C11']))
-        print(internal_coords[4].coords)
-
         raise ValueError(
             f'Coords of rotamer {" ".join((str(idx) for idx in idxs))} at atoms {" ".join((str(idx) for idx in adxs))} '
-            f'cannot be converted to internal coords')
+            f'cannot be converted to internal coords because there is a chain break in this roatmer. Either enforce '
+            f'bonds explicitly by adding CONECT information to the PDB or fix the structure(s)')
 
     save_dict = {'rotlib': libname,
                  'resname': resname,
@@ -933,7 +918,7 @@ def prep_restype_savedict(
         save_dict.update(spin_atoms)
 
     save_dict['type'] = 'chilife rotamer library'
-    save_dict['format_version'] = 1.1
+    save_dict['format_version'] = 1.2
 
     return save_dict
 

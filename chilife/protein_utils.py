@@ -995,7 +995,9 @@ def _sort_pdb_lines(lines, bonds=None, index=False, **kwargs) -> \
         A set of tuples containing pars of indices corresponding to the atoms bound to in lines.
     """
 
-    lines = [line for line in lines if line.startswith(("ATOM", "HETATM"))]
+    waters = [line for line in lines if line[17:20] in ('SOL', 'HOH')]
+    water_idx = [idx for idx, line in enumerate(lines) if line[17:20] in ('SOL', 'HOH')]
+    lines = [line for line in lines if line.startswith(("ATOM", "HETATM")) and line[17:20] not in ('SOL', 'HOH')]
     n_atoms = len(lines)
     index_key = {line[6:11]: i for i, line in enumerate(lines)}
 
@@ -1119,11 +1121,11 @@ def _sort_pdb_lines(lines, bonds=None, index=False, **kwargs) -> \
     # Return line indices if requested
     if index:
         str_lines = lines
-        lines = [index_key[line[6:11]] for line in lines]
+        lines = [index_key[line[6:11]] for line in lines] + water_idx
 
     # Otherwise make new indices
     else:
-        lines = [line[:6] + f"{i + 1:5d}" + line[11:] for i, line in enumerate(lines)]
+        lines = [line[:6] + f"{i + 1:5d}" + line[11:] for i, line in enumerate(lines)] + waters
 
     if kwargs.get('return_bonds', False):
         bonds = {tuple(sorted((idxmap[a], idxmap[b]))) for a, b in input_bonds}

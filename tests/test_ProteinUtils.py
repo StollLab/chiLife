@@ -24,8 +24,6 @@ def test_read_dunbrack(res):
 
     dlib = chilife.read_bbdep(res, -70, 90)
 
-    dlib_mx, dlib_ori = chilife.global_mx(*np.squeeze(dlib["coords"][0, :3]))
-    dlib["coords"] = np.einsum("ijk,kl->ijl", dlib["coords"], dlib_mx) + dlib_ori
 
     with np.load(f"test_data/{res}_{phi}_{psi}.npz", allow_pickle=True) as f:
         dlib_ans = {key: f[key] for key in f if key != "allow_pickle"}
@@ -61,7 +59,7 @@ def test_sort_pdb2():
 
     U = mda.Universe("test_data/SL_GGAGG_tmp.pdb", in_memory=True)
     os.remove("test_data/SL_GGAGG_tmp.pdb")
-    ICs = chilife.get_internal_coords(U, preferred_dihedrals=[["C", "N", "CA", "C"]])
+    ICs = chilife.ProteinIC.from_protein(U, preferred_dihedrals=[["C", "N", "CA", "C"]])
 
 
 def test_sort_H():

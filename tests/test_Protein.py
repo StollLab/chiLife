@@ -202,7 +202,7 @@ def test_ResidueSelection():
 
 
 def test_save_Protein():
-    p = chilife.Protein.from_pdb('test_data/1omp.pdb')
+    p = chilife.Protein.from_pdb('test_data/1omp.pdb', sort_atoms=True)
     p._fname = "my_protein"
     chilife.save('my_protein.pdb', p)
 
@@ -277,7 +277,7 @@ def test_same_as_mda():
 
 
 def test_xl_protein_mutate():
-    p = chilife.Protein.from_pdb('test_data/1omp.pdb')
+    p = chilife.Protein.from_pdb('test_data/1omp.pdb', sort_atoms=True)
     SL = chilife.SpinLabel('R1M', 238, p)
     pSL = chilife.mutate(p, SL)
     pSL._fname = 'test_mutate'

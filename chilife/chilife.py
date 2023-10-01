@@ -683,8 +683,7 @@ def create_dlibrary(
                            "information to the PDB file. See "
                            "https://www.wwpdb.org/documentation/file-format-content/format33/sect10.html")
 
-    IC1 = [chilife.get_internal_coords(res1, dihedral_atoms[0], res1_bonds)
-           for ts in struct.trajectory]
+    IC1 = chilife.ProteinIC.from_protein(res1, dihedral_atoms[0], res1_bonds)
 
     ovlp_selection.residues.resnums = site2
     ovlp_selection.residues.resids = site2
@@ -698,8 +697,7 @@ def create_dlibrary(
                            "information to the PDB file. See "
                            "https://www.wwpdb.org/documentation/file-format-content/format33/sect10.html")
 
-    IC2 = [chilife.get_internal_coords(res2, dihedral_atoms[1], res2_bonds, cap=cap_idxs)
-           for ts in struct.trajectory]
+    IC2 = chilife.ProteinIC.from_protein(res2, dihedral_atoms[1], res2_bonds, cap=cap_idxs)
 
     for ic1, ic2 in zip(IC1, IC2):
         ic1.shift_resnum(-(site1 - 1))

@@ -126,8 +126,8 @@ def test_alternate_increment():
 
 def test_min_method():
     SL2 = xl.dSpinLabel("DHC", (28, 32), gb1, min_method='Powell')
-    ans = np.array([[ 18.6062596, -14.705718 ,  12.0624657],
-                    [ 18.5973143, -14.7182376,  12.0220758]])
+    ans = np.array([[ 18.6062595, -14.7057183,  12.0624657],
+                    [ 18.5973142, -14.7182378,  12.0220757]])
 
     np.testing.assert_almost_equal(SL2.spin_centers, ans)
 

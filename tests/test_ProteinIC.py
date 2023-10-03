@@ -27,7 +27,7 @@ def test_from_prot():
         zmat_idx_ans = f['zmat_idxs']
 
     np.testing.assert_equal(ubqIC.z_matrix_idxs, zmat_idx_ans)
-    np.testing.assert_almost_equal(ubqIC.trajectory.coordinates_array, zmat_ans)
+    np.testing.assert_almost_equal(ubqIC.trajectory.coordinate_array, zmat_ans)
 
     for i, idxs in enumerate(ubqIC.z_matrix_idxs):
         idxt = [val for val in idxs if val != -2147483648]
@@ -41,7 +41,7 @@ def test_from_prot_traj():
         zmat_idx_ans = f['zmat_idxs']
 
     np.testing.assert_equal(mbpIC.z_matrix_idxs, zmat_idx_ans)
-    np.testing.assert_almost_equal(mbpIC.trajectory.coordinates_array, zmat_ans)
+    np.testing.assert_almost_equal(mbpIC.trajectory.coordinate_array, zmat_ans)
 
 
 @pytest.mark.parametrize("pdbid", pdbids)
@@ -61,8 +61,8 @@ def test_copy():
     assert np.all(my_copy.z_matrix_idxs == ubqIC.z_matrix_idxs)
     assert my_copy.z_matrix_idxs is not ubqIC.z_matrix_idxs
 
-    assert np.all(ubqIC.trajectory.coordinates_array == my_copy.trajectory.coordinates_array)
-    assert ubqIC.trajectory.coordinates_array is not my_copy.trajectory.coordinates_array
+    assert np.all(ubqIC.trajectory.coordinate_array == my_copy.trajectory.coordinate_array)
+    assert ubqIC.trajectory.coordinate_array is not my_copy.trajectory.coordinate_array
     for v1, v2 in zip(my_copy.chain_operators.values(), ubqIC.chain_operators.values()):
         for v11, v22 in zip(v1.values(), v2.values()):
             assert np.all(v11 == v22)

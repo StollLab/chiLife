@@ -84,6 +84,10 @@ class ProteinIC:
         self.chain_operator_idxs = kwargs.get('chain_operator_idxs', None)
         self.has_chain_operators = bool(kwargs.get('chain_operator_idxs', None))
 
+        self.chains = np.unique(self.atom_chains)
+        self._chain_segs = [[a, b] for a, b in zip(self.chain_operator_idxs,
+                                                   self.chain_operator_idxs[1:] + [len(self.z_matrix_idxs)])]
+
         if 'chain_operators' not in kwargs:
             self.chain_operators = None
             self.has_chain_operators = False
@@ -91,9 +95,7 @@ class ProteinIC:
             self.has_chain_operators = True
             self._chain_operators = kwargs['chain_operators']
 
-        self.chains = np.unique(self.atom_chains)
-        self._chain_segs = [[a, b] for a, b in zip(self.chain_operator_idxs,
-                                                   self.chain_operator_idxs[1:] + [len(self.z_matrix_idxs)])]
+
         # Topology
         self.bonds = kwargs['bonds'] if 'bonds' in kwargs else \
             guess_bonds(self.protein.positions, self.protein.types)
@@ -151,11 +153,18 @@ class ProteinIC:
         if cap:
             atom_idxs = reconfigure_cap(cap, atom_idxs, bonds)
 
+        # Remove bonds outside of selection
+        ibonds = bonds[np.all(np.isin(bonds, atom_idxs), axis=1)]
+        ixmap = {ix: i for i, ix in enumerate(atom_idxs)}
+
+        # renumber bonds to current selection
+        bonds = np.vectorize(ixmap.get)(ibonds)
+
         topology = Topology(protein, bonds)
         z_matrix_dihedrals = topology.get_zmatrix_dihedrals()
         # z_mat_map = {k[-1]: i for i, k in enumerate(z_matrix_dihedrals)}
 
-        if preferred_dihedrals:
+        if preferred_dihedrals is not None:
             present = False
             for dihe in preferred_dihedrals:
 
@@ -211,7 +220,7 @@ class ProteinIC:
 
     def copy(self):
         """Create a deep copy of an ProteinIC instance"""
-        z_matrix = self.trajectory.coordinates_array.copy()
+        z_matrix = self.trajectory.coordinate_array.copy()
         z_matrix_idxs = self.z_matrix_idxs.copy()
         if isinstance(self._chain_operators, list):
             chain_operators = [{k: {k2: v2.copy() for k2, v2 in v.items()} for k, v in co.items()} for co in self._chain_operators]
@@ -267,33 +276,39 @@ class ProteinIC:
         -------
         None
         """
+
+        error_message = 'chain operators must be set to \n' \
+                        '    1) a dict to set the chain operators for a single frame \n' \
+                        '    2) a list of dicts the same length of the trajectory to set chain operators' \
+                        'for each frame\n' \
+                        '    3) a list with one dict to set all all frames to the same chain operator.'
+
         if op is None:
             logging.info("No protein chain origins have been provided. All chains will start at [0, 0, 0]")
 
             op = {idx: {"ori": np.array([0, 0, 0]), "mx": np.identity(3)}for idx in self._chain_operator_idxs}
             self.has_chain_operators = False
             self._chain_operators = op
+            self.apply_chain_operators()
         else:
             self.has_chain_operators = True
             if isinstance(op, dict):
                 self._chain_operators[self.trajectory.frame] = op
-            elif isinstance(op, list):
-                if len(op) == len(self.trajectory):
-                    self._chain_operators = op
-                elif len(op) == 1:
-                    self._chain_operators = op[0]
-                else:
-                    raise RuntimeError('chain operators must be set to \n'
-                                       '    1) a dict to set the chain operators for a single frame \n'
-                                       '    2) a list of dicts the same length of the trajectory to set chain operators'
-                                       'for each frame\n'
-                                       '    3) a list with one dict to set all all frames to the same chain operator.')
-
-        self.perturbed = True
+                self.apply_chain_operators(self.trajectory.frame)
+            elif not isinstance(op, list):
+                raise RuntimeError(error_message)
+            elif len(op) == 1:
+                self._chain_operators = op[0]
+                self.apply_chain_operators()
+            elif len(op) == len(self.trajectory):
+                self._chain_operators = op
+                self.apply_chain_operators()
+            else:
+                raise RuntimeError(error_message)
 
     @property
     def z_matrix(self):
-        return self.trajectory.coordinates_array[self.trajectory.frame]
+        return self.trajectory.coordinate_array[self.trajectory.frame]
 
     @property
     def coords(self):
@@ -311,7 +326,7 @@ class ProteinIC:
         self.protein.positions = val
         z_matrix, chain_operator = get_z_matrix(val, self.z_matrix_idxs, self.chain_operator_idxs)
 
-        self.trajectory.coordinates_array[self.trajectory.frame] = z_matrix
+        self.trajectory.coordinate_array[self.trajectory.frame] = z_matrix
         self.chain_operators[self.trajectory.frame] = chain_operator
 
     @property
@@ -426,7 +441,7 @@ class ProteinIC:
 
         dihedrals = np.atleast_2d(dihedrals).T
         atom_list = np.atleast_2d(atom_list)
-        z_matrix = self.trajectory.coordinates_array[idxs]
+        z_matrix = self.trajectory.coordinate_array[idxs]
 
         for i, (values, atoms) in enumerate(zip(dihedrals, atom_list)):
             if (tag := (chain, resi, atoms[1], atoms[2])) not in self.chain_res_name_map:
@@ -661,29 +676,24 @@ class ProteinIC:
     def load_new(self, z_matrix, **kwargs):
         self.trajectory.load_new(coordinates=z_matrix)
         cart_coords = batch_ic2cart(self.z_matrix_idxs[:, 1:], z_matrix)
+        self.protein.trajectory.load_new(cart_coords)
 
         if 'op' in kwargs:
             op = kwargs['op']
             self.has_chain_operators = True
+
             if isinstance(op, list):
+                # check if all chain operators are virtually the same
                 OP0 = op[0]
                 for iop in op:
                     scores = [np.abs(OP0[chain][key] - iop[chain][key]).max() for chain in iop for key in iop[chain]]
                     if any( x > 1e-3 for x in scores):
-                        self._chain_operators = op
                         break
                 else:
-                    self._chain_operators = op[0]
+                    # if they are we only need the first copy of op
+                    op = [op[0]]
 
-            if isinstance(self._chain_operators, list):
-                for i, op in self._chain_operators:
-                    for start, stop in self._chain_segs:
-                        cart_coords[i, start:stop] = cart_coords[i, start:stop] @ op[start]['mx'] + op[start]['ori']
-            else:
-                for start, stop in self._chain_segs:
-                    mx = self.chain_operators[start]['mx']
-                    ori = self.chain_operators[start]['ori']
-                    cart_coords[:, start:stop] = np.einsum('ijk,kl->ijl', cart_coords[:, start:stop], mx) + ori
+                self.chain_operators = op
 
         elif isinstance(self._chain_operators, list):
             warnings.warn('You are loading in a new internal coordinate trajectory for an internal coordinates object '
@@ -692,18 +702,29 @@ class ProteinIC:
                           'translations & rotations can be applied using the `co` keyword argument.')
             self.chain_operators = None
             self.has_chain_operators = False
+        else:
+            self.apply_chain_operators()
 
+    def apply_chain_operators(self, idx=None):
+        idx = np.arange(len(self._chain_operators), dtype=int) if idx is None else idx
+        idx = np.atleast_1d(idx)
+
+        cart_coords = self.protein.trajectory.coordinate_array
+        if isinstance(self._chain_operators, list):
+            for i, op in zip(idx, self._chain_operators[idx]):
+                for start, stop in self._chain_segs:
+                    mx = self.chain_operators[start]['mx']
+                    ori = self.chain_operators[start]['ori']
+                    cart_coords[i, start:stop] = cart_coords[i, start:stop] @ mx + ori
         elif isinstance(self._chain_operators, dict):
-
             for start, end in self._chain_segs:
-                op = self.chain_operators[start]
-                cart_coords[:, start:end] = np.einsum('ijk,kl->ijl', cart_coords[:, start:end], op['mx']) + op["ori"]
-
-        self.protein.load_new(coordinates=cart_coords)
+                mx = self.chain_operators[start]['mx']
+                ori = self.chain_operators[start]['ori']
+                cart_coords[:, start:end] = np.einsum('ijk,kl->ijl', cart_coords[:, start:end], mx) + ori
 
     def use_frames(self, idxs):
-        self.trajectory.load_new(coordinates=self.trajectory.coordinates_array[idxs])
-        self.protein.load_new(self.protein.trajectory.coordinates_array[idxs])
+        self.trajectory.load_new(coordinates=self.trajectory.coordinate_array[idxs])
+        self.protein.load_new(self.protein.trajectory.coordinate_array[idxs])
 
     def __iter__(self):
         for ts in self.trajectory:
@@ -711,7 +732,7 @@ class ProteinIC:
 
     def set_cartesian_coords(self, coords, mask):
         nrots = len(coords)
-        cpy = np.tile(self.protein.trajectory.coordinates_array[0].copy(), (nrots, 1, 1))
+        cpy = np.tile(self.protein.trajectory.coordinate_array[0].copy(), (nrots, 1, 1))
 
         cpy[:, mask] = coords
 
@@ -723,7 +744,7 @@ class ProteinIC:
             ops.append(op)
 
         z_mats = np.array(z_mats)
-        zcpy = np.tile(self.trajectory.coordinates_array[0].copy(), (nrots, 1, 1))
+        zcpy = np.tile(self.trajectory.coordinate_array[0].copy(), (nrots, 1, 1))
         zcpy[:, mask] = z_mats[:, mask]
 
         self.load_new(zcpy, op=ops)

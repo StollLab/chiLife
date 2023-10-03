@@ -498,7 +498,7 @@ class RotamerEnsemble:
             op[segid] = {"mx": new_mx, "ori": new_ori}
 
         self.internal_coords._chain_operators = op
-        old_cartesian = self.internal_coords.protein.trajectory.coordinates_array
+        old_cartesian = self.internal_coords.protein.trajectory.coordinate_array
         new_cartesian = np.einsum('ijk,kl->ijl', old_cartesian-self.ic_ori, m2m3) + self.backbone[1]
         self.internal_coords.protein.trajectory.load_new(new_cartesian)
 
@@ -533,10 +533,10 @@ class RotamerEnsemble:
                 if atom == 'O' and (tag := (chain, resnum, 'C', 'CA')) in self.internal_coords.chain_res_name_map:
                     additional_idxs = self.internal_coords.chain_res_name_map[tag]
 
-                delta = self.internal_coords.trajectory.coordinates_array[:, idx, 2] - dihe
-                self.internal_coords.trajectory.coordinates_array[:, idx] = bond, ang, dihe
+                delta = self.internal_coords.trajectory.coordinate_array[:, idx, 2] - dihe
+                self.internal_coords.trajectory.coordinate_array[:, idx] = bond, ang, dihe
                 if atom == "O" and 'additional_idxs' in locals():
-                    self.internal_coords.trajectory.coordinates_array[:, additional_idxs, 2] -= delta[:, None]
+                    self.internal_coords.trajectory.coordinate_array[:, additional_idxs, 2] -= delta[:, None]
 
     def backbone_to_site(self):
         """Modify additional backbone atoms to match the backbone of the site that the RotamerEnsemble is being attached
@@ -686,17 +686,11 @@ class RotamerEnsemble:
             new_weights = np.ones(len(idx))
 
         new_weights = self._weights[idx] * new_weights
-        ICs = self._lib_IC.copy()
+
         z_matrix = self._lib_IC.batch_set_dihedrals(idx, new_dihedrals, 1, self.dihedral_atoms[off_rotamer])
-        z_matrix_idxs = self._lib_IC.z_matrix_idxs
-        coords = batch_ic2cart(z_matrix_idxs[:, 1:], z_matrix)
-        mx, ori = self._lib_IC.chain_operators[0]["mx"], self._lib_IC.chain_operators[0]["ori"]
-        coords = np.einsum("ijk,kl->ijl", coords, mx) + ori
-
-        ICs.trajectory.load_new(z_matrix)
-        ICs.protein.trajectory.load_new(coords)
-
-        coords = coords[:, self.ic_mask]
+        ICs = self.internal_coords.copy()
+        ICs.load_new(z_matrix)
+        coords = ICs.protein.trajectory.coordinate_array[:, self.ic_mask]
 
         if kwargs.setdefault("return_dihedrals", False):
             return coords, new_weights, ICs
@@ -820,6 +814,7 @@ class RotamerEnsemble:
             keep_idx = arg_sort_weights[:cutoff]
 
         if len(self.weights) == len(self.internal_coords):
+            self.internal_coords = self.internal_coords.copy()
             self.internal_coords.use_frames(keep_idx)
 
         self._coords = self._coords[keep_idx]
@@ -1094,6 +1089,7 @@ class RotamerEnsemble:
             raise ValueError('The number of atoms in the input array does not match the number of atoms of the residue')
 
         self._coords = coords
+        self.internal_coords = self.internal_coords.copy()
         self.internal_coords.set_cartesian_coords(coords, self.ic_mask)
 
         # Check if they are all at the same site
@@ -1122,8 +1118,9 @@ class RotamerEnsemble:
         self._dihedrals = dihedrals
         idxs = [0 for _ in range(len(dihedrals))]
         z_matrix = self.internal_coords.batch_set_dihedrals(idxs, np.deg2rad(dihedrals), 1, self.dihedral_atoms)
+        self.internal_coords = self.internal_coords.copy()
         self.internal_coords.load_new(z_matrix)
-        self._coords = self.internal_coords.protein.trajectory.coordinates_array.copy()[:, self.ic_mask]
+        self._coords = self.internal_coords.protein.trajectory.coordinate_array.copy()[:, self.ic_mask]
         self.backbone_to_site()
 
         # Apply uniform weights

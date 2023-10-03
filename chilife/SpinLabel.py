@@ -205,7 +205,7 @@ class SpinLabel(RotamerEnsemble):
             coords[i: i + len(sidx)] = sample[sidx]
             internal_sample.use_frames(sidx)
 
-            internal_coords.append(internal_sample.trajectory.coordinates_array.copy())
+            internal_coords.append(internal_sample.trajectory.coordinate_array.copy())
             i += len(sidx)
 
             if i == to_find:

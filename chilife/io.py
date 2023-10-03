@@ -183,7 +183,7 @@ def read_bbdep(res: str, Phi: int, Psi: int) -> Dict:
         ICs._chain_operators = ICs._chain_operators[0]
         ICs.load_new(np.array(z_matrix))
         internal_coords = ICs.copy()
-        coords = ICs.protein.trajectory.coordinates_array.copy()
+        coords = ICs.protein.trajectory.coordinate_array.copy()
 
     else:
         lib["weights"] = np.array([1])

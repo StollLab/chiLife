@@ -28,10 +28,21 @@ def test_add_dlabel():
 
     # Test that chain operators were reset
     libA, libB, csts = xl.read_drotlib('___ip4_drotlib.zip')
-    for lib in (libA, libB):
-        for ic in lib['internal_coords']:
-            np.testing.assert_almost_equal(ic.chain_operators[1]['ori'], np.zeros(3))
-            np.testing.assert_almost_equal(ic.chain_operators[1]['mx'], np.eye(3))
+
+    ori = libA['internal_coords'].chain_operators[0]['ori']
+    mx = libA['internal_coords'].chain_operators[0]['mx']
+    np.testing.assert_almost_equal(ori, np.array([2.326, 3.386, 0.719]))
+    np.testing.assert_almost_equal(mx, np.array([[-0.57492405,  0.34379116,  0.7424755 ],
+                                                 [ 0.29364535,  0.9336855 , -0.20494822],
+                                                 [-0.763698  ,  0.10019485, -0.6377509 ]]))
+
+
+    ori = libB['internal_coords'].chain_operators[0]['ori']
+    mx = libB['internal_coords'].chain_operators[0]['mx']
+    np.testing.assert_almost_equal(ori, np.array([ 1.85 , -4.041, -0.714]))
+    np.testing.assert_almost_equal(mx, np.array([[ 0.17330681, -0.18728311,  0.96689695],
+                                                 [ 0.6758051 ,  0.73676455,  0.02157617],
+                                                 [-0.71641624,  0.6496946 ,  0.25425318]]))
 
 
     os.remove('___ip4_drotlib.zip')

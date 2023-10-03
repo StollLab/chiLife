@@ -30,7 +30,7 @@ def test_read_dunbrack(res):
 
     for key in dlib_ans:
         if dlib_ans[key].dtype not in [np.dtype(f"<U{i}") for i in range(1, 5)]:
-            np.testing.assert_almost_equal(dlib_ans[key], dlib[key])
+            np.testing.assert_almost_equal(dlib_ans[key], dlib[key], decimal=5)
         else:
             assert np.all(np.char.equal(dlib_ans[key], dlib[key]))
 

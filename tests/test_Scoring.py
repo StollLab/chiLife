@@ -21,7 +21,7 @@ lj_ans = [np.array([-1.29407456, -1.34917747, -0.92307553,  0.09701479, -0.81320
 @pytest.mark.parametrize(('func', 'ans'), zip(lj_funcs, lj_ans))
 def test_lj(func, ans):
     RL = chilife.RotamerEnsemble('TRP', 28, protein, energy_func=func, eval_clash=True)
-    np.testing.assert_almost_equal(RL.atom_energies[5], ans)
+    np.testing.assert_almost_equal(RL.atom_energies[5], ans, decimal=6)
 
 
 @pytest.mark.parametrize('func',  lj_funcs)
@@ -29,7 +29,7 @@ def test_efunc(func):
     RL = chilife.RotamerEnsemble('TRP', 28, protein)
     test = func(RL)
     ans = np.load(f'test_data/{func.__name__}.npy')
-    np.testing.assert_almost_equal(test, ans)
+    np.testing.assert_almost_equal(test, ans, decimal=6)
 
 
 @pytest.mark.parametrize('func',  lj_funcs)

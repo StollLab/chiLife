@@ -169,7 +169,6 @@ class dRotamerEnsemble:
             libA, libB, csts = chilife.read_library(rotlib_path)
 
         elif isinstance(rotlib_path, list):
-            concatable = ['dihedrals', 'internal_coords']
 
             cctA, cctB, ccsts = {}, {}, {}
             libA, libB, csts = chilife.read_library(rotlib_path[0])
@@ -199,19 +198,21 @@ class dRotamerEnsemble:
                     cct.setdefault('coords', []).append(tlib['coords'][:, ixmap])
 
                     # Create new internal coords if they are defined differently
-                    lib_ic, tlib_ic = lib['internal_coords'][0], tlib['internal_coords'][0]
+                    lib_ic, tlib_ic = lib['internal_coords'], tlib['internal_coords']
                     if np.any(lib_ic.atom_names != tlib_ic.atom_names):
                         uni.load_new(cct['coords'][-1])
-                        ics = [chilife.get_internal_coords(uni, lib['dihedral_atoms'], lib_ic.bonded_pairs)
-                               for ts in uni.trajectory]
-                        tlib['internal_coords'] = ics
+                        tlib_ic = chilife.ProteinIC.from_protein(uni, lib['dihedral_atoms'], lib_ic.bonds)
 
-                    for field in concatable:
-                        cct.setdefault(field, []).append(tlib[field])
+                    tlib['zmats'] = tlib_ic.trajectory.coordinate_array
+                    cct.setdefault('dihedrals', []).append(tlib['dihedrals'])
+                    cct.setdefault('zmats', []).append(tlib['zmats'])
 
-                    for field in concatable + ['coords']:
-                        lib[field] = np.concatenate(cct[field])
+            for field in ('dihedrals', 'coords', 'zmats'):
+                libA[field] = np.concatenate(cctA[field])
+                libB[field] = np.concatenate(cctB[field])
 
+            libA['internal_coords'].load_new(libA.pop('zmats'))
+            libB['internal_coords'].load_new(libB.pop('zmats'))
             libA['weights'] = libB['weights'] = np.ones(len(libA['coords'])) / len(libA['coords'])
 
         self.csts = csts

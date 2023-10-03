@@ -250,16 +250,23 @@ def test_trajectory_iter():
 
 
 def test_xl_protein_repack():
-    p = chilife.Protein.from_pdb('test_data/1omp.pdb')
-    SL = chilife.SpinLabel('R1M', 238, p)
-    np.random.seed(3000)
-    traj, dE = chilife.repack(p, SL, repetitions=10, temp=300)
 
-    ans = np.array([-1.08675007e-01, -3.43053024e+00,  0.00000000e+00, -5.80404097e-01,
-                     0.00000000e+00,  2.88657986e-15,  0.00000000e+00, -5.13825920e+00,
-                     6.96292024e-02,  2.93115207e-01])
+    np.random.seed(1000)
+    protein = chilife.Protein.from_pdb("test_data/1ubq.pdb").select_atoms("protein")
+    SL = chilife.SpinLabel("R1C", site=28, protein=protein)
 
-    np.testing.assert_almost_equal(dE, ans, decimal=5)
+    traj1, deltaE1 = chilife.repack(protein, SL, repetitions=10, repack_radius=10)
+    traj2, deltaE2 = chilife.repack(protein, SL, repetitions=10, off_rotamer=True, repack_radius=10)
+
+    t1coords = traj1.universe.trajectory.coordinate_array
+    t2coords = traj2.universe.trajectory.coordinate_array
+
+    with np.load("test_data/repack_ans.npz") as f:
+        t1ans = f["traj1"]
+        t2ans = f["traj2"]
+
+    np.testing.assert_almost_equal(t1coords, t1ans, decimal=4)
+    np.testing.assert_almost_equal(t2coords, t2ans, decimal=4)
 
 
 def test_same_as_mda():

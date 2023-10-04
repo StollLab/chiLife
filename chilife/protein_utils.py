@@ -20,6 +20,7 @@ from .dRotamerEnsemble import dRotamerEnsemble
 
 import networkx as nx
 
+# TODO: Convert networkX dependency to iGraph
 
 def get_dihedral_rotation_matrix(theta: float, v: ArrayLike) -> ArrayLike:
     """Build a matrix that will rotate coordinates about a vector, v, by theta in radians.

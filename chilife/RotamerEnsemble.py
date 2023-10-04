@@ -16,6 +16,7 @@ import chilife
 from .numba_utils import batch_ic2cart
 from .alignment_methods import alignment_methods
 
+# TODO: Convert networkX dependency to iGraph
 
 class RotamerEnsemble:
     """Create new RotamerEnsemble object.

@@ -13,7 +13,7 @@ import scipy.optimize as opt
 import MDAnalysis as mda
 
 import chilife
-
+# TODO: Convert networkX dependency to iGraph
 
 class dRotamerEnsemble:
     backbone_atoms = ["H", "N", "CA", "HA", "C", "O"]

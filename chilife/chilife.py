@@ -7,9 +7,7 @@ from itertools import combinations, product
 from typing import Callable, Tuple, Union, List, Dict
 from unittest import mock
 
-import networkx as nx
 import igraph as ig
-
 from tqdm import tqdm
 
 import numpy as np

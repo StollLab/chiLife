@@ -206,12 +206,10 @@ def test_coord_setter():
     np.testing.assert_allclose(R1C1.dihedrals, R1C2.dihedrals, rtol=1e-6)
 
     for ic1, ic2 in zip(R1C1.internal_coords, R1C2.internal_coords):
-        assert np.max(np.abs(np.cos(ic1.z_matrix[R1C1.ic_mask])- np.cos(ic2.z_matrix[R1C2.ic_mask]))) < 0.03
+        assert np.max(np.abs(np.cos(ic1.z_matrix[R1C1.ic_mask]) - np.cos(ic2.z_matrix[R1C2.ic_mask]))) < 0.03
 
     for ic1, ic2 in zip(R1C1.internal_coords, R1C2.internal_coords):
         assert np.max(np.abs(ic1.coords[R1C1.ic_mask] - ic2.coords[R1C2.ic_mask])) < 0.11
-
-
 
     for key in 'ori', 'mx':
         np.testing.assert_almost_equal(R1C1.internal_coords.chain_operators[0][key],

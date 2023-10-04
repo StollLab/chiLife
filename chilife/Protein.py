@@ -366,7 +366,7 @@ class Protein(MolecularSystem):
         segindices = np.array([ridx_map[num] for num in resnums])
 
         if hasattr(U.trajectory, 'coordinate_array'):
-            trajectory = U.trajectory.coordinate_array[frames][:, sorted(atomsel.ix), :]
+            trajectory = U.trajectory.coordinate_array[frames][:, atomsel.ix, :]
         else:
             trajectory = []
             for ts in U.trajectory[frames]:

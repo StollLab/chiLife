@@ -8,6 +8,8 @@ import MDAnalysis
 import igraph as ig
 import numpy as np
 from numpy.typing import ArrayLike
+
+import chilife
 from .Protein import MolecularSystem, Trajectory, Protein
 from .Topology import Topology
 from .protein_utils import get_angles, get_dihedrals, guess_bonds
@@ -82,17 +84,15 @@ class ProteinIC:
         self.trajectory = Trajectory(z_matrix, self)
         self.z_matrix_idxs = z_matrix_idxs
         self.chain_operator_idxs = kwargs.get('chain_operator_idxs', None)
-        self.has_chain_operators = bool(kwargs.get('chain_operator_idxs', None))
+        self.has_chain_operators = bool(kwargs.get('chain_operators', None))
 
         self.chains = np.unique(self.atom_chains)
         self._chain_segs = [[a, b] for a, b in zip(self.chain_operator_idxs,
                                                    self.chain_operator_idxs[1:] + [len(self.z_matrix_idxs)])]
 
-        if 'chain_operators' not in kwargs:
+        if not self.has_chain_operators:
             self.chain_operators = None
-            self.has_chain_operators = False
         else:
-            self.has_chain_operators = True
             self._chain_operators = kwargs['chain_operators']
 
 
@@ -130,13 +130,24 @@ class ProteinIC:
                      **kwargs: Dict):
 
         if kwargs.get('ignore_water', True):
-            protein = protein.select_atoms("not (byres name OH2 or resname HOH)")
+            water_atoms = protein.select_atoms("byres (name OH2 or resname HOH)")
+            protein = protein.atoms[~np.isin(protein.atoms.ix, water_atoms.ix)]
         elif isinstance(protein, MDAnalysis.Universe):
             protein = protein.atoms
 
-        # Explicit passing of bonds means no other  bonds will be considered.
+        # Keep track of atom indexes in parent protein object in case atoms come from a larger system
+        atom_idxs = protein.atoms.ix
+
+        # Explicitly passing bonds means no other bonds will be used and that the bonds are using universe indices.
         if bonds is not None:
             bonds = bonds.copy()
+            ibonds = bonds[np.all(np.isin(bonds, atom_idxs), axis=1)]
+            ixmap = {ix: i for i, ix in enumerate(atom_idxs)}
+
+            # renumber bonds to current selection
+            bonds = np.vectorize(ixmap.get)(ibonds)
+            bonds = np.sort(bonds, axis=1)
+
         # # Otherwise use bonds defined by the protein object
         # elif hasattr(protein, 'bonds'):
         #     bonds = protein.bonds
@@ -145,21 +156,7 @@ class ProteinIC:
             # Add selection's lowest index in case the user is selecting a subset of atoms from a larger system.
             bonds = guess_bonds(protein.positions, protein.types)
 
-        # Keep track of atom indexes in parent protein object in case atoms come from a larger system
-        atom_idxs = np.arange(len(protein.atoms))
-
-        # Remove cap atoms for atom_idxs
-        cap = kwargs.get('cap', [])
-        if cap:
-            atom_idxs = reconfigure_cap(cap, atom_idxs, bonds)
-
         # Remove bonds outside of selection
-        ibonds = bonds[np.all(np.isin(bonds, atom_idxs), axis=1)]
-        ixmap = {ix: i for i, ix in enumerate(atom_idxs)}
-
-        # renumber bonds to current selection
-        bonds = np.vectorize(ixmap.get)(ibonds)
-
         topology = Topology(protein, bonds)
         z_matrix_dihedrals = topology.get_zmatrix_dihedrals()
         # z_mat_map = {k[-1]: i for i, k in enumerate(z_matrix_dihedrals)}
@@ -208,12 +205,15 @@ class ProteinIC:
         z_matrix_dihedrals = zmatrix_idxs_to_local(z_matrix_dihedrals)
 
         chain_operator_idxs = get_chainbreak_idxs(z_matrix_dihedrals)
-        chain_operators = []
 
+        chain_operators = []
         for i, ts in enumerate(protein.universe.trajectory):
             z_matrix, chain_operator = get_z_matrix(protein.atoms.positions, z_matrix_dihedrals, chain_operator_idxs)
             z_matrix_coordinates[i] = z_matrix
             chain_operators.append(chain_operator)
+
+        if not kwargs.get('use_chain_operators', True):
+            chain_operators = None
 
         return cls(z_matrix_coordinates, z_matrix_dihedrals, protein,
                    chain_operators=chain_operators, chain_operator_idxs=chain_operator_idxs)
@@ -713,14 +713,18 @@ class ProteinIC:
         if isinstance(self._chain_operators, list):
             for i, op in zip(idx, self._chain_operators[idx]):
                 for start, stop in self._chain_segs:
+                    current_mx, current_ori = chilife.ic_mx(*cart_coords[i, start:start+3])
                     mx = self.chain_operators[start]['mx']
                     ori = self.chain_operators[start]['ori']
-                    cart_coords[i, start:stop] = cart_coords[i, start:stop] @ mx + ori
+                    m2m3 = current_mx @ mx
+                    cart_coords[i, start:stop] = (cart_coords[i, start:stop] - current_ori) @ m2m3 + ori
         elif isinstance(self._chain_operators, dict):
             for start, end in self._chain_segs:
+                current_mx, current_ori = chilife.ic_mx(*cart_coords[0, start:start + 3])
                 mx = self.chain_operators[start]['mx']
                 ori = self.chain_operators[start]['ori']
-                cart_coords[:, start:end] = np.einsum('ijk,kl->ijl', cart_coords[:, start:end], mx) + ori
+                m2m3 = current_mx.T @ mx
+                cart_coords[:, start:end] = np.einsum('ijk,kl->ijl', cart_coords[:, start:end] - current_ori, m2m3) + ori
 
     def use_frames(self, idxs):
         self.trajectory.load_new(coordinates=self.trajectory.coordinate_array[idxs])
@@ -774,9 +778,7 @@ class ProteinIC:
         return self._z_matrix_names
 
 def reconfigure_cap(cap, atom_idxs, bonds):
-    for idx in cap:
-        if idx in atom_idxs:
-            atom_idxs.remove(idx)
+    atom_idxs = atom_idxs[~np.isin(atom_idxs, cap)]
 
     # Get bonds to all cap atoms
     sub_bonds = [tuple(bond) for bond in bonds if np.any(np.isin(bond, cap))]
@@ -795,8 +797,8 @@ def reconfigure_cap(cap, atom_idxs, bonds):
             bndidx = np.argwhere(mask).flat[0]
             bonds[bndidx] = edge
 
-    cap_idxs = [edge[1] for edge in edges]
-    atom_idxs += cap_idxs
+    cap_idxs = [edge[1] for edge in edges if edge[1] not in atom_idxs]
+    atom_idxs = np.concatenate((atom_idxs, cap_idxs))
 
     return atom_idxs
 

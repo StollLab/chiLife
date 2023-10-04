@@ -508,10 +508,8 @@ def create_library(
     struct, spin_atoms = pre_add_library(pdb, spin_atoms)
     resi_selection = struct.select_atoms(f"resnum {site}")
     bonds = resi_selection.intra_bonds.indices
-    ixmap = {ix: i for i, ix in enumerate(resi_selection.indices)}
-    bonds = np.vectorize(ixmap.get)(bonds)
 
-    if not continuous_topol(resi_selection.n_atoms, bonds):
+    if not continuous_topol(resi_selection, bonds):
         raise RuntimeError("The  RotamerEnsemble does not seem to have a consistent and continuous bond topology over "
                            "all states. Please check the input PDB and remove any states that do not have the "
                            "expected bond topology. Alternatively, you can force certain bonds by adding CONECT "
@@ -521,9 +519,9 @@ def create_library(
     # Convert loaded rotamer ensemble to internal coords
     internal_coords = chilife.ProteinIC.from_protein(resi_selection,
                                                      preferred_dihedrals=dihedral_atoms,
-                                                     bonds=bonds)
+                                                     bonds=bonds,
+                                                     use_chain_operators=False)
     internal_coords.shift_resnum(-(site - 1))
-    internal_coords.chain_operators = None
 
     if len(internal_coords.chains) > 1:
         raise ValueError('The PDB of the label supplied appears to have a chain break. Please check your PDB and '
@@ -547,7 +545,9 @@ def create_library(
                                       sigmas=sigmas, spin_atoms=spin_atoms,
                                       description=description, comment=comment,
                                       reference=reference)
-
+    backbone = save_dict['coords'][0, :3]
+    ori, mx = local_mx(*backbone)
+    save_dict['coords'] = np.einsum('ijk,kl->ijl', save_dict['coords'] - ori, mx)
     # Save rotamer library
     np.savez(Path().cwd() / f'{libname}_rotlib.npz', **save_dict, allow_pickle=True)
 
@@ -662,25 +662,28 @@ def create_dlibrary(
         terminal_atom_idx = max(struct.select_atoms(f'resnum {site} and name {" ".join(dh_atoms)}').ix)
         nodes.append(terminal_atom_idx)
 
-    G = nx.DiGraph(struct.bonds.indices.tolist())
-    linker = list({node for path in nx.all_simple_paths(G, *nodes) for node in path if node not in nodes})
-    G.remove_nodes_from(nodes)
+    bond_indices = struct.bonds.indices
+    graph = ig.Graph(n=np.max(bond_indices), edges=bond_indices, directed=True)
+    linker = list({node for path in graph.get_all_simple_paths(*nodes) for node in path if node not in nodes})
+
+    for node in nodes:
+        in_edges = [edge.tuple for edge in graph.vs[node].in_edges()]
+        graph.delete_edges(in_edges)
 
     cap_idxs = set()
     for node in linker:
-        cap_idxs |= {a for a in nx.dfs_postorder_nodes(G, node)}
+        cids, parents = graph.dfs(node)
+        cap_idxs |= set(cids)
 
-    cap_idxs = list(sorted(cap_idxs))
+    cap_idxs = list(cap_idxs)
     ovlp_selection = struct.atoms[cap_idxs]
     csts = ovlp_selection.names
     csts = csts.astype('U4')
 
     ovlp_selection.residues.resnums = site1
     ovlp_selection.residues.resids = site1
-    res1 += ovlp_selection
+    res1 += ovlp_selection[~np.isin(ovlp_selection.ix, res1.ix)]
     res1_bonds = res1.intra_bonds.indices
-    ixmap = {ix: i for i, ix in enumerate(res1.indices)}
-    res1_bonds = np.vectorize(ixmap.get)(res1_bonds)
 
     error_message = "The  dRotamerEnsemble does not seem to have a consistent and continuous bond topology over" \
                            " all states. Please check the input PDB and remove any states that do not have the " \
@@ -688,27 +691,23 @@ def create_dlibrary(
                            "information to the PDB file. See " \
                            "https://www.wwpdb.org/documentation/file-format-content/format33/sect10.html"
 
-    if not continuous_topol(res1.n_atoms, res1_bonds):
+    if not continuous_topol(res1, res1_bonds):
         raise RuntimeError(error_message)
 
-    IC1 = chilife.ProteinIC.from_protein(res1, dihedral_atoms[0], res1_bonds)
+    IC1 = chilife.ProteinIC.from_protein(res1, dihedral_atoms[0], res1_bonds, use_chain_operators=False)
 
     ovlp_selection.residues.resnums = site2
     ovlp_selection.residues.resids = site2
-    res2 += ovlp_selection
+    res2 += ovlp_selection[~np.isin(ovlp_selection.ix, res2.ix)]
     res2_bonds = res2.intra_bonds.indices
-    ixmap = {ix: i for i, ix in enumerate(res2.indices)}
-    res2_bonds = np.vectorize(ixmap.get)(res2_bonds)
 
-    if not continuous_topol(res2.n_atoms, res2_bonds):
+    if not continuous_topol(res2, res2_bonds):
         raise RuntimeError(error_message)
 
-    IC2 = chilife.ProteinIC.from_protein(res2, dihedral_atoms[1], res2_bonds, cap=cap_idxs)
+    IC2 = chilife.ProteinIC.from_protein(res2, dihedral_atoms[1], res2_bonds, use_chain_operators=False)
 
     IC1.shift_resnum(-(site1 - 1))
-    IC1.chain_operators = None
     IC2.shift_resnum(-(site2 - 1))
-    IC2.chain_operators = None
     if len(IC1.chains) > 1 or len(IC2.chains) > 1:
         raise RuntimeError('The PDB of the label supplied appears to have a chain break. Please check your PDB and '
                          'make sure there are no chain breaks in the desired label and that there are no other '
@@ -869,17 +868,11 @@ def prep_restype_savedict(
         Dictionary of all the data needed to build a RotamerEnsemble.
     """
     # Extract coordinates and transform to the local frame
-    bb_atom_idx = np.argwhere(np.isin(internal_coords.atom_names, ('N', 'CA', 'C'))).flatten()
-    coords = internal_coords.coords
-    ori, mx = local_mx(*coords[bb_atom_idx])
 
-    if len(internal_coords) > 1:
-        internal_coords.chain_operators = [{0: {'mx': mx, 'ori': ori}}]
-
-    elif len(dihedrals) > 1:
+    if len(dihedrals) > 1 and len(internal_coords) == 1:
         idxs = np.zeros(len(dihedrals), dtype=int)
         new_z_matrix = internal_coords.batch_set_dihedrals(idxs, dihedrals, resi, dihedral_atoms)
-        internal_coords.load_new(new_z_matrix, op={0: {'mx': mx, 'ori': ori}})
+        internal_coords.load_new(new_z_matrix)
 
     atom_types = internal_coords.atom_types.copy()
     atom_names = internal_coords.atom_names.copy()
@@ -1343,5 +1336,7 @@ def continuous_topol(atoms, bonds):
     -------
 
     """
-    G = ig.Graph(n=atoms, edges=bonds)
+    ixmap = {ix: i for i, ix in enumerate(atoms.ix)}
+    ibonds = np.vectorize(ixmap.get)(bonds)
+    G = ig.Graph(n=atoms.n_atoms, edges=ibonds)
     return G.is_connected()

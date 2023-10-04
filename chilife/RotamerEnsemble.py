@@ -490,17 +490,11 @@ class RotamerEnsemble:
         m2m3 = self.ic_mx @ self.mx
         op = {}
 
-        for segid in self.internal_coords.chain_operators:
-            new_mx = self.internal_coords.chain_operators[segid]["mx"] @ m2m3
-            new_ori = (
-                self.internal_coords.chain_operators[segid]["ori"] - self.ic_ori
-            ) @ m2m3 + self.origin
-            op[segid] = {"mx": new_mx, "ori": new_ori}
+        new_mx = self.internal_coords.chain_operators[0]["mx"] @ m2m3
+        new_ori = (self.internal_coords.chain_operators[0]["ori"] - self.ic_ori) @ m2m3 + self.origin
+        op[0] = {"mx": new_mx, "ori": new_ori}
 
-        self.internal_coords._chain_operators = op
-        old_cartesian = self.internal_coords.protein.trajectory.coordinate_array
-        new_cartesian = np.einsum('ijk,kl->ijl', old_cartesian-self.ic_ori, m2m3) + self.backbone[1]
-        self.internal_coords.protein.trajectory.load_new(new_cartesian)
+        self.internal_coords.chain_operators = [op]
 
         # Update backbone conf
         alist = ["O"] if not self.use_H else ["H", 'O']

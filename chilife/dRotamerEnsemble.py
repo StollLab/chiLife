@@ -256,7 +256,7 @@ class dRotamerEnsemble:
         if MSDmin > 0.1:
             warnings.warn(f'The minimum MSD of the cap is {MSD.min()}, this may result in distorted spin label. '
                           f'Check that the structures make sense.')
-
+        # TODO: Something messed up in internal coords chain operators. Must be from creating since  it doesnt happen with premade libs
         if MSDmin > 0.25:
             raise RuntimeError(f'chiLife was unable to connect residues {self.site1} and {self.site2} with {self.res}. '
                                f'Please double check that this is the intended labeling site. It is likely that these '

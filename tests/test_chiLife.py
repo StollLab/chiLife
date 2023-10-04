@@ -272,8 +272,8 @@ def test_single_chain_error():
                                 sites=(15, 17),
                                 dihedral_atoms=[[['N', 'CA', 'C13', 'C5'],
                                                  ['CA', 'C13', 'C5', 'C6']],
-                                                [['N', 'CA', 'C13', 'C5'],
-                                                 ['CA', 'C13', 'C5', 'C6']]],
+                                                [['N', 'CA', 'C12', 'C2'],
+                                                 ['CA', 'C12', 'C2', 'C3']]],
                                 spin_atoms='Cu1')
 
 

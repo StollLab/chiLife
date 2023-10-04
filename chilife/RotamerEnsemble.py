@@ -118,7 +118,7 @@ class RotamerEnsemble:
             self.atom_types = self.atom_types[self.H_mask]
             self.atom_names = self.atom_names[self.H_mask]
 
-        self.ic_mask = [np.argwhere(self.internal_coords.atom_names == a).flat[0] for a in self.atom_names]
+        self.ic_mask = np.argwhere(np.isin(self.internal_coords.atom_names, self.atom_names)).flatten()
         self._lib_coords = self._coords.copy()
         self._lib_dihedrals = self._dihedrals.copy()
         self._lib_IC = self.internal_coords

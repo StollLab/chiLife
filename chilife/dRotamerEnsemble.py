@@ -52,6 +52,17 @@ class dRotamerEnsemble:
 
         self.cst_idx1 = np.where(self.RE1.atom_names[None, :] == self.csts[:, None])[1]
         self.cst_idx2 = np.where(self.RE2.atom_names[None, :] == self.csts[:, None])[1]
+
+        _, idx1 = np.unique(self.cst_idx1, return_index=True)
+        _, idx2 = np.unique(self.cst_idx2, return_index=True)
+
+        self.cst_idx1 = self.cst_idx1[np.sort(idx1)]
+        self.cst_idx2 = self.cst_idx2[np.sort(idx2)]
+
+        for i in range(1, len(self.cst_idx2)):
+            if self.RE2.atom_names[self.cst_idx2[i]] == self.RE2.atom_names[self.cst_idx2[i-1]]:
+                self.cst_idx2[i - 1], self.cst_idx2[i] = self.cst_idx2[i], self.cst_idx2[i - 1]
+
         self.rl1mask = np.argwhere(~np.isin(self.RE1.atom_names, self.csts)).flatten()
         self.rl2mask = np.argwhere(~np.isin(self.RE2.atom_names, self.csts)).flatten()
 
@@ -359,7 +370,7 @@ class dRotamerEnsemble:
     def atom_types(self):
         return np.concatenate((self.RE1.atom_types[self.rl1mask],
                                self.RE2.atom_types[self.rl2mask],
-                               self.RE1.atom_types[self.cst_idx2]))
+                               self.RE1.atom_types[self.cst_idx1]))
 
     @property
     def dihedral_atoms(self):

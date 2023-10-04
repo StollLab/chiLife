@@ -28,7 +28,50 @@ def test_add_dlabel():
 
     # Test that chain operators were reset
     dSL = xl.dSpinLabel('___', (28, 32), protein)
-    libA, libB, csts = xl.read_drotlib('___ip4_drotlib.zip')
+
+    os.remove('___ip4_drotlib.zip')
+
+    spin_center_ans = np.array([[44.46482086, 25.11999893, 12.35381317],
+                                [44.35407639, 24.42422485, 11.61791611]])
+    Eans =np.array([-2.80119358, -2.33511906, -0.21797025, -6.21705528, -2.50485578,
+                    -7.42736075, 87.1990342 ,  0.93290375, -1.83151097, -1.18059185,
+                    -6.61134315, -6.70879944])
+
+    np.testing.assert_almost_equal(dSL.spin_centers, spin_center_ans)
+    np.testing.assert_almost_equal(dSL.atom_energies.sum(axis=1), Eans)
+
+def test_add_dlabel_shared_atom_names():
+    Energies = np.loadtxt("test_data/DHC.energies")[:, 1]
+    P = np.exp(-Energies / (xl.GAS_CONST * 298))
+    P /= P.sum()
+    xl.create_dlibrary(
+        "___",
+        "test_data/DHC.pdb",
+        sites=(2, 6),
+        weights=P,
+        dihedral_atoms=[
+            [["N", "CA", "CB", "CG"], ["CA", "CB", "CG", "ND1"]],
+            [["N", "CA", "CB", "CG"], ["CA", "CB", "CG", "ND1"]],
+        ],
+        spin_atoms=["Cu1"],
+    )
+
+    # Test that chain operators were reset
+    with pytest.raises(RuntimeError):
+        dSL = xl.dSpinLabel('___', (28, 32), protein)
+
+    dSL = xl.dSpinLabel('___', (28, 32), protein, minimize=False)
+
+    # Ensure cst idx are aligned
+    assert np.all(dSL.RE1.atom_names[dSL.cst_idx1] == dSL.RE2.atom_names[dSL.cst_idx2])
+
+    # And that the duplicate name atom sare not
+    test = np.linalg.norm(np.diff(dSL.RE1.coords[:, dSL.RE1.atom_names == 'ND1'], axis=1), axis=2)
+    ans = np.array([[6.650147 ],
+                    [6.6462107],
+                    [6.754248 ]])
+    np.testing.assert_almost_equal(test, ans)
+
     os.remove('___ip4_drotlib.zip')
 
 

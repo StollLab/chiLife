@@ -655,34 +655,45 @@ def create_dlibrary(
     res2 = struct.select_atoms(f'resnum {site2}')
 
     # Identify the cap based off of the user defined mobile dihedrals
-    nodes = []
+    last_bonds = []
     for i, res in enumerate((res1, res2)):
         site = res.resnums[0]
-        dh_atoms = [dihedral[1] for dihedral in dihedral_atoms[i]]
-        terminal_atom_idx = max(struct.select_atoms(f'resnum {site} and name {" ".join(dh_atoms)}').ix)
-        nodes.append(terminal_atom_idx)
+        dh_bonds = [dihedral[1:3] for dihedral in dihedral_atoms[i]]
+
+        dh_bond_idxs = []
+        for anames in dh_bonds:
+            asel = struct.select_atoms(f'resnum {site} and name {" ".join(anames)}')
+
+            # Sometimes dihedrals are defined with the bonded atom(s) on the other residue
+            if len(asel) < 2:
+                missing_name = anames[0] if asel.names[0] == anames[1] else anames[1]
+                other_site = res1.resnums[0] if i == 1 else res2.resnums[0]
+                asel += struct.select_atoms(f'resnum {other_site} and name {missing_name}')
+
+            dh_bond_idxs.append(asel.ix)
+        dh_bond_idxs = np.array(dh_bond_idxs)
+
+        last_bonds.append(dh_bond_idxs[np.argmax(dh_bond_idxs[:, 0])])
 
     bond_indices = struct.bonds.indices
-    graph = ig.Graph(n=np.max(bond_indices), edges=bond_indices, directed=True)
-    linker = list({node for path in graph.get_all_simple_paths(*nodes) for node in path if node not in nodes})
+    graph = ig.Graph(n=np.max(bond_indices), edges=bond_indices)
 
-    for node in nodes:
-        in_edges = [edge.tuple for edge in graph.vs[node].in_edges()]
-        graph.delete_edges(in_edges)
+    # disconnect the cap by cutting the rotatable bond of the dihedrals in each site
+    last_bonds = [tuple(bond) for bond in last_bonds]
+    graph.delete_edges(last_bonds)
 
-    cap_idxs = set()
-    for node in linker:
-        cids, parents = graph.dfs(node)
-        cap_idxs |= set(cids)
+    # Find all atoms in between the cut bonds
+    starts = [node[1] for node in last_bonds]
+    cap1_idxs, _ = graph.dfs(starts[0])
+    cap2_idxs, _ = graph.dfs(starts[1])
 
-    cap_idxs = list(cap_idxs)
-    ovlp_selection = struct.atoms[cap_idxs]
-    csts = ovlp_selection.names
+    ovlp1_selection = struct.atoms[cap1_idxs]
+    csts = ovlp1_selection.names
     csts = csts.astype('U4')
 
-    ovlp_selection.residues.resnums = site1
-    ovlp_selection.residues.resids = site1
-    res1 += ovlp_selection[~np.isin(ovlp_selection.ix, res1.ix)]
+    ovlp1_selection.residues.resnums = site1
+    ovlp1_selection.residues.resids = site1
+    res1 += ovlp1_selection[~np.isin(ovlp1_selection.ix, res1.ix)]
     res1_bonds = res1.intra_bonds.indices
 
     error_message = "The  dRotamerEnsemble does not seem to have a consistent and continuous bond topology over" \
@@ -696,9 +707,10 @@ def create_dlibrary(
 
     IC1 = chilife.ProteinIC.from_protein(res1, dihedral_atoms[0], res1_bonds, use_chain_operators=False)
 
-    ovlp_selection.residues.resnums = site2
-    ovlp_selection.residues.resids = site2
-    res2 += ovlp_selection[~np.isin(ovlp_selection.ix, res2.ix)]
+    ovlp2_selection = struct.atoms[cap2_idxs]
+    ovlp2_selection.residues.resnums = site2
+    ovlp2_selection.residues.resids = site2
+    res2 += ovlp2_selection[~np.isin(ovlp2_selection.ix, res2.ix)]
     res2_bonds = res2.intra_bonds.indices
 
     if not continuous_topol(res2, res2_bonds):

@@ -457,3 +457,8 @@ def test_repack_with_custom_rotlib():
     T4L131R9R = chilife.SpinLabel.from_trajectory(traj, 41, burn_in=5, spin_atoms=XYZ41.spin_atoms)
 
     assert len(T4L131R9R) > 1
+
+
+def test_rotlib_info():
+
+    chilife.rotlib_info('R1M')

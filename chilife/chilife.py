@@ -1328,23 +1328,79 @@ def get_possible_rotlibs(rotlib: str,
 
     # rotlib lists need to be sorted to prevent position mismatches for results with tests.
     if isinstance(rotlib, list):
+        rotlib = [rot for rot in rotlib if str(rot).endswith(extension)]
         rotlib = sorted(rotlib)
+    else:
+        rotlib = rotlib if str(rotlib).endswith(extension) else None
 
     return rotlib
 
 
-def rotlib_info(rotlib: str):
+def rotlib_info(rotlib: Union[str, Path]):
     """
     Display detailed information about the rotamer library.
 
     Parameters
     ----------
-    rotlib : str
+    rotlib : str, Path
         Name of the rotamer library to print the information of.
+    """
+    mono_rotlib = chilife.get_possible_rotlibs(rotlib, suffix='rotlib', extension='.npz', was_none=False, return_all=True)
+    bifunc_rotlib = chilife.get_possible_rotlibs(rotlib, suffix='drotlib', extension='.zip', was_none=False, return_all=True)
+
+    if (mono_rotlib is None) and (bifunc_rotlib is None):
+        print("No rotlib has been found with this name. Please make sure it is spelled correctly and that " /
+              "it includes the path to the file if it is not a directory specified by `chilife.add_rotlib_dir`")
+
+    if mono_rotlib is not None:
+        if len(mono_rotlib) > 1:
+            print('chiLife has found several mono-functional rotlibs that match the provided name:')
+        for lib_file in mono_rotlib:
+            _print_rotlib_info(lib_file)
+
+    if bifunc_rotlib is not None:
+        if len(bifunc_rotlib) > 1:
+            print('chiLife has found several bi-functional rotlibs that match the provided name:')
+        for lib_file in bifunc_rotlib:
+            _print_drotlib_info(lib_file)
+
+
+def _print_rotlib_info(lib_file):
+    lib = chilife.read_rotlib(lib_file)
+
+
+
+    print()
+    print("*"*80)
+    print(f"*Rotamer Library Name: {lib['rotlib']:>56}*")
+# f"""
+# ********************************************************************************
+# Rotamer Library Name: {lib['rotlib']}
+# File: {lib_file}
+# Description: {lib['description']}
+# Comment: {lib['comment']}
+#
+#
+#
+# Reference: {lib['reference']}
+# Format: {lib['format_version']}
+# ********************************************************************************
+# """
+#     )
+
+
+def _print_drotlib_info(lib_file):
+    lib = chilife.read_rotlib(lib_file)
+
+    f"""
+
+    Rotamer Library Name: {lib['rotlib']} 
+    File Name: 
+
+
+
 
     """
-    pass
-
 
 def continuous_topol(atoms, bonds):
     """

@@ -1,9 +1,10 @@
 from __future__ import annotations
-import tempfile, logging, os, rtoml, re
+import tempfile, logging, os, rtoml, re, textwrap
 import zipfile, shutil
 from copy import deepcopy
 from pathlib import Path
-from itertools import combinations, product
+from itertools import combinations, product, chain
+from collections import Counter
 from typing import Callable, Tuple, Union, List, Dict
 from unittest import mock
 
@@ -1367,40 +1368,62 @@ def rotlib_info(rotlib: Union[str, Path]):
 
 def _print_rotlib_info(lib_file):
     lib = chilife.read_rotlib(lib_file)
-
-
+    wrapper = textwrap.TextWrapper(width=80, subsequent_indent="    ", replace_whitespace=False, drop_whitespace=False)
 
     print()
     print("*"*80)
-    print(f"*Rotamer Library Name: {lib['rotlib']:>56}*")
-# f"""
-# ********************************************************************************
-# Rotamer Library Name: {lib['rotlib']}
-# File: {lib_file}
-# Description: {lib['description']}
-# Comment: {lib['comment']}
-#
-#
-#
-# Reference: {lib['reference']}
-# Format: {lib['format_version']}
-# ********************************************************************************
-# """
-#     )
+    print(f"*  Rotamer Library Name: {lib['rotlib']:>52}  *")
+    print("*"*80)
+    atom_counts = ", ".join(f"{key}: {val}" for key, val in Counter(lib['atom_types']).items())
 
+    myl = [wrapper.wrap(i) for i in (f"Rotamer Library Name: {lib['rotlib']}",
+                                     f"File: {lib_file}",
+                                     f"Description: {lib['description']}",
+                                     f"Comment: {lib['comment']}\n",
+                                     f"Length of library: {len(lib['weights'])}",
+                                     f"Dihedral definitions: ",
+                                     *[f'    {d}' for d in lib['dihedral_atoms']],
+                                     f"Spin atoms: {lib.get('spin_atoms')}",
+                                     f"Number of atoms: {atom_counts}\n",
+                                     f"Reference: {lib['reference']}",
+                                     f"chiLife rotlib format: {lib['format_version']}",
+                                     f"*"*80)]
+
+    print("\n".join(list(chain.from_iterable(myl))))
 
 def _print_drotlib_info(lib_file):
-    lib = chilife.read_rotlib(lib_file)
+    lib = chilife.read_drotlib(lib_file)
+    wrapper = textwrap.TextWrapper(width=80, subsequent_indent="    ", replace_whitespace=False, drop_whitespace=False)
 
-    f"""
+    libA, libB, csts = lib
+    libBmask = ~np.isin(libB['atom_names'], csts)
 
-    Rotamer Library Name: {lib['rotlib']} 
-    File Name: 
+    print()
+    print("*"*80)
+    print(f"*  Rotamer Library Name: {libA['rotlib']:>52}  *")
+    print("*"*80)
 
+    atypes = np.concatenate((libA['atom_types'], libB['atom_types'][libBmask]))
+    atom_counts = ", ".join(f"{key}: {val}" for key, val in Counter(atypes).items())
 
+    myl = [wrapper.wrap(i) for i in (f"Rotamer Library Name: {libA['rotlib']}",
+                                     f"File: {lib_file}",
+                                     f"Description: {libA['description']}",
+                                     f"Comment: {libA['comment']}\n",
+                                     f"Length of library: {len(libA['weights'])}",
+                                     f"Dihedral definitions: ",
+                                     f"  site 1:",
+                                     *[f'    {d}' for d in libA['dihedral_atoms']],
+                                     f"  site 2:",
+                                     *[f'    {d}' for d in libB['dihedral_atoms']],
+                                     f"Spin atoms: {libA['spin_atoms']}",
+                                     f"Number of atoms: {atom_counts}\n",
+                                     f"Reference: {libA['reference']}",
+                                     f"chiLife rotlib format: {libA['format_version']}",
+                                     f"*"*80)]
 
+    print("\n".join(list(chain.from_iterable(myl))))
 
-    """
 
 def continuous_topol(atoms, bonds):
     """

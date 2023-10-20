@@ -462,3 +462,4 @@ def test_repack_with_custom_rotlib():
 def test_rotlib_info():
 
     chilife.rotlib_info('R1M')
+    chilife.rotlib_info('DHC')

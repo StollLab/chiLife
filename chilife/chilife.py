@@ -1,9 +1,10 @@
 from __future__ import annotations
-import tempfile, logging, os, rtoml, re
+import tempfile, logging, os, rtoml, re, textwrap
 import zipfile, shutil
 from copy import deepcopy
 from pathlib import Path
-from itertools import combinations, product
+from itertools import combinations, product, chain
+from collections import Counter
 from typing import Callable, Tuple, Union, List, Dict
 from unittest import mock
 
@@ -1316,22 +1317,100 @@ def get_possible_rotlibs(rotlib: str,
 
     # rotlib lists need to be sorted to prevent position mismatches for results with tests.
     if isinstance(rotlib, list):
+        rotlib = [rot for rot in rotlib if str(rot).endswith(extension)]
         rotlib = sorted(rotlib)
+    else:
+        rotlib = rotlib if str(rotlib).endswith(extension) else None
 
     return rotlib
 
 
-def rotlib_info(rotlib: str):
+def rotlib_info(rotlib: Union[str, Path]):
     """
     Display detailed information about the rotamer library.
 
     Parameters
     ----------
-    rotlib : str
+    rotlib : str, Path
         Name of the rotamer library to print the information of.
-
     """
-    pass
+    mono_rotlib = chilife.get_possible_rotlibs(rotlib, suffix='rotlib', extension='.npz', was_none=False, return_all=True)
+    bifunc_rotlib = chilife.get_possible_rotlibs(rotlib, suffix='drotlib', extension='.zip', was_none=False, return_all=True)
+
+    if (mono_rotlib is None) and (bifunc_rotlib is None):
+        print("No rotlib has been found with this name. Please make sure it is spelled correctly and that " /
+              "it includes the path to the file if it is not a directory specified by `chilife.add_rotlib_dir`")
+
+    if mono_rotlib is not None:
+        if len(mono_rotlib) > 1:
+            print('chiLife has found several mono-functional rotlibs that match the provided name:')
+        for lib_file in mono_rotlib:
+            _print_rotlib_info(lib_file)
+
+    if bifunc_rotlib is not None:
+        if len(bifunc_rotlib) > 1:
+            print('chiLife has found several bi-functional rotlibs that match the provided name:')
+        for lib_file in bifunc_rotlib:
+            _print_drotlib_info(lib_file)
+
+
+def _print_rotlib_info(lib_file):
+    lib = chilife.read_rotlib(lib_file)
+    wrapper = textwrap.TextWrapper(width=80, subsequent_indent="    ", replace_whitespace=False, drop_whitespace=False)
+
+    print()
+    print("*"*80)
+    print(f"*  Rotamer Library Name: {lib['rotlib']:>52}  *")
+    print("*"*80)
+    atom_counts = ", ".join(f"{key}: {val}" for key, val in Counter(lib['atom_types']).items())
+
+    myl = [wrapper.wrap(i) for i in (f"Rotamer Library Name: {lib['rotlib']}",
+                                     f"File: {lib_file}",
+                                     f"Description: {lib['description']}",
+                                     f"Comment: {lib['comment']}\n",
+                                     f"Length of library: {len(lib['weights'])}",
+                                     f"Dihedral definitions: ",
+                                     *[f'    {d}' for d in lib['dihedral_atoms']],
+                                     f"Spin atoms: {lib.get('spin_atoms')}",
+                                     f"Number of atoms: {atom_counts}\n",
+                                     f"Reference: {lib['reference']}",
+                                     f"chiLife rotlib format: {lib['format_version']}",
+                                     f"*"*80)]
+
+    print("\n".join(list(chain.from_iterable(myl))))
+
+def _print_drotlib_info(lib_file):
+    lib = chilife.read_drotlib(lib_file)
+    wrapper = textwrap.TextWrapper(width=80, subsequent_indent="    ", replace_whitespace=False, drop_whitespace=False)
+
+    libA, libB, csts = lib
+    libBmask = ~np.isin(libB['atom_names'], csts)
+
+    print()
+    print("*"*80)
+    print(f"*  Rotamer Library Name: {libA['rotlib']:>52}  *")
+    print("*"*80)
+
+    atypes = np.concatenate((libA['atom_types'], libB['atom_types'][libBmask]))
+    atom_counts = ", ".join(f"{key}: {val}" for key, val in Counter(atypes).items())
+
+    myl = [wrapper.wrap(i) for i in (f"Rotamer Library Name: {libA['rotlib']}",
+                                     f"File: {lib_file}",
+                                     f"Description: {libA['description']}",
+                                     f"Comment: {libA['comment']}\n",
+                                     f"Length of library: {len(libA['weights'])}",
+                                     f"Dihedral definitions: ",
+                                     f"  site 1:",
+                                     *[f'    {d}' for d in libA['dihedral_atoms']],
+                                     f"  site 2:",
+                                     *[f'    {d}' for d in libB['dihedral_atoms']],
+                                     f"Spin atoms: {libA['spin_atoms']}",
+                                     f"Number of atoms: {atom_counts}\n",
+                                     f"Reference: {libA['reference']}",
+                                     f"chiLife rotlib format: {libA['format_version']}",
+                                     f"*"*80)]
+
+    print("\n".join(list(chain.from_iterable(myl))))
 
 
 def continuous_topol(atoms, bonds):

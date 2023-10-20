@@ -476,3 +476,9 @@ def test_rl_speed():
     ratio = tSL / tmm
     print(ratio)
     assert (ratio - 1.8) < 0.1
+
+    
+def test_rotlib_info():
+
+    chilife.rotlib_info('R1M')
+    chilife.rotlib_info('DHC')

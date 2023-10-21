@@ -40,7 +40,7 @@ setup(
                       'memoization>=0.3.1',
                       'argparse>=1.4.0',
                       'setuptools>=53.0.0',
-                      'networkx>=2.8',
+                      'igraph>=0.11.2',
                       'rtoml>=0.9.0'],
     url='https://github.com/StollLab/chiLife',
     project_urls = {'Source': 'https://github.com/StollLab/chiLife'},

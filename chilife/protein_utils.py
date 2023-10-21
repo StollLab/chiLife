@@ -18,9 +18,8 @@ from .numba_utils import get_sasa
 from .RotamerEnsemble import RotamerEnsemble
 from .dRotamerEnsemble import dRotamerEnsemble
 
-import networkx as nx
+import igraph as ig
 
-# TODO: Convert networkX dependency to iGraph
 
 def get_dihedral_rotation_matrix(theta: float, v: ArrayLike) -> ArrayLike:
     """Build a matrix that will rotate coordinates about a vector, v, by theta in radians.
@@ -1063,27 +1062,24 @@ def _sort_pdb_lines(lines, bonds=None, index=False, **kwargs) -> \
             bonds = np.asarray(bonds)
 
             # Get all nearest neighbors and sort by distance
-            try:
-                distances = np.linalg.norm(coords[start:stop][bonds[:, 0]] - coords[start:stop][bonds[:, 1]], axis=1)
-            except:
-                breakpoint()
+            distances = np.linalg.norm(coords[start:stop][bonds[:, 0]] - coords[start:stop][bonds[:, 1]], axis=1)
             distances = np.around(distances, decimals=3)
+
             idx_sort = np.lexsort((bonds[:, 0], bonds[:, 1], distances))
             pairs = bonds[idx_sort]
             pairs = [pair for pair in pairs if np.any(~np.isin(pair, sorted_args))]
 
-            graph = nx.Graph()
-            graph.add_edges_from(pairs)
+            graph = ig.Graph(edges=pairs)
 
-            if root_idx not in graph.nodes:
-                root_idx = min(graph.nodes)
+            if root_idx not in graph.vs.indices:
+                root_idx = min(graph.vs.indices)
 
             # Start stemming from CA atom
-            CA_edges = [edge[1] for edge in nx.bfs_edges(graph, root_idx) if edge[1] not in sorted_args]
+            CA_edges = [edge[1] for edge in bfs_edges(pairs, root_idx) if edge[1] not in sorted_args]
 
             # Check for disconnected parts of residue
-            if not nx.is_connected(graph):
-                for g in nx.connected_components(graph):
+            if not graph.is_connected():
+                for g in graph.connected_components():
                     if np.any([arg in g for arg in sorted_args]):
                         continue
                     CA_nodes = [idx for idx in CA_edges if atypes[start + idx] != 'H']
@@ -1091,9 +1087,9 @@ def _sort_pdb_lines(lines, bonds=None, index=False, **kwargs) -> \
                     near_root = cdist(coords[start:stop][CA_nodes], coords[start:stop][g_nodes]).argmin()
 
                     yidx = near_root % len(g_nodes)
-                    CA_edges += [g_nodes[yidx]] + [edge[1]
-                                                   for edge in nx.bfs_edges(graph, g_nodes[yidx])
-                                                   if edge[1] not in sorted_args]
+                    subnodes, _, _ = graph.bfs(g_nodes[yidx])
+                    CA_edges += list(subnodes)
+
         elif stop - start > n_heavy:
             # Assumes  non-heavy atoms come after the heavy atoms, which should be true because of the pre-sort
             CA_edges = list(range(n_heavy, n_heavy + (stop - start - len(sorted_args))))
@@ -1210,6 +1206,42 @@ def make_mda_uni(anames: ArrayLike,
     mda_uni.add_TopologyAttr(Segindices())
 
     return mda_uni
+
+
+def neighbors(edges, node):
+    nbs = []
+    for edge in edges:
+        if node not in edge:
+            continue
+        elif node == edge[0]:
+            nbs.append(edge[1])
+        elif node == edge[1]:
+            nbs.append(edge[0])
+    return nbs
+
+
+def bfs_edges(edges, root):
+    nodes = np.unique(edges)
+
+    depth_limit = len(nodes)
+    seen = {root}
+
+    n = len(nodes)
+    depth = 0
+    next_parents_children = [(root, neighbors(edges, root))]
+
+    while next_parents_children and depth < depth_limit:
+        this_parents_children = next_parents_children
+        next_parents_children = []
+        for parent, children in this_parents_children:
+            for child in children:
+                if child not in seen:
+                    seen.add(child)
+                    next_parents_children.append((child, neighbors(edges, child)))
+                    yield parent, child
+            if len(seen) == n:
+                return
+        depth += 1
 
 
 DATA_DIR = Path(__file__).parent.absolute() / "data/"

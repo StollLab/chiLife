@@ -789,6 +789,7 @@ def reconfigure_cap(cap, atom_idxs, bonds):
 
     G = ig.Graph(edges=bonds)
     nodes, _, parents = G.bfs(root)
+
     edges = [(parents[node], node) for node in nodes if node != root]
 
     for edge in edges:

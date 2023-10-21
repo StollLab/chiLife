@@ -8,7 +8,7 @@ import numpy as np
 from numpy.typing import ArrayLike
 from itertools import combinations
 from scipy.spatial import cKDTree
-import networkx as nx
+import igraph as ig
 from scipy.stats import skewnorm
 import scipy.optimize as opt
 import MDAnalysis as mda
@@ -16,7 +16,6 @@ import chilife
 from .numba_utils import batch_ic2cart
 from .alignment_methods import alignment_methods
 
-# TODO: Convert networkX dependency to iGraph
 
 class RotamerEnsemble:
     """Create new RotamerEnsemble object.
@@ -133,8 +132,8 @@ class RotamerEnsemble:
             np.isin(self.atom_names, RotamerEnsemble.backbone_atoms, invert=True)
         ).flatten()
 
-        self._graph = nx.Graph()
-        self._graph.add_edges_from(self.bonds)
+        self._graph = ig.Graph(edges=self.bonds)
+
         _, self.irmin_ij, self.ieps_ij, _ = chilife.prep_internal_clash(self)
         self.aidx, self.bidx = [list(x) for x in zip(*self.non_bonded)]
 
@@ -1010,8 +1009,9 @@ class RotamerEnsemble:
         have 1-n non-bonded interactions where `n=self._exclude_nb_interactions` . By default, 1-3 interactions are
         excluded"""
         if not hasattr(self, "_non_bonded"):
-            pairs = dict(nx.all_pairs_shortest_path(self._graph, self._exclude_nb_interactions - 1))
-            pairs = {(a, b) for a in pairs for b in pairs[a] if a < b}
+            pairs = {v.index: [path for path in self._graph.get_all_shortest_paths(v) if
+                           len(path) <= (self._exclude_nb_interactions)] for v in self._graph.vs}
+            pairs = {(a, c) for a in pairs for b in pairs[a] for c in b if a < c}
             all_pairs = set(combinations(range(len(self.atom_names)), 2))
             self._non_bonded = all_pairs - pairs
 

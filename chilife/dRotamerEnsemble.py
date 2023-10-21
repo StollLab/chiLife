@@ -1,4 +1,4 @@
-import networkx as nx
+import igraph as ig
 from copy import deepcopy
 from itertools import combinations
 import logging
@@ -13,7 +13,7 @@ import scipy.optimize as opt
 import MDAnalysis as mda
 
 import chilife
-# TODO: Convert networkX dependency to iGraph
+
 
 class dRotamerEnsemble:
     backbone_atoms = ["H", "N", "CA", "HA", "C", "O"]
@@ -76,8 +76,7 @@ class dRotamerEnsemble:
             f"resid {self.site1} {self.site2} and segid {self.chain} and not altloc B"
         )
 
-        self._graph = nx.Graph()
-        self._graph.add_edges_from(self.bonds)
+        self._graph = ig.Graph(edges=self.bonds)
 
         self.clash_radius = kwargs.setdefault("clash_radius", None)
         if self.clash_radius is None:
@@ -267,7 +266,7 @@ class dRotamerEnsemble:
         if MSDmin > 0.1:
             warnings.warn(f'The minimum MSD of the cap is {MSD.min()}, this may result in distorted spin label. '
                           f'Check that the structures make sense.')
-        # TODO: Something messed up in internal coords chain operators. Must be from creating since  it doesnt happen with premade libs
+
         if MSDmin > 0.25:
             raise RuntimeError(f'chiLife was unable to connect residues {self.site1} and {self.site2} with {self.res}. '
                                f'Please double check that this is the intended labeling site. It is likely that these '
@@ -467,8 +466,9 @@ class dRotamerEnsemble:
         """ list of indices of intra-label non-bonded atom pairs. Primarily used for internal clash evaluation when
         sampling the dihedral space"""
         if not hasattr(self, "_non_bonded"):
-            pairs = dict(nx.all_pairs_shortest_path(self._graph, self._exclude_nb_interactions - 1))
-            pairs = {(a, b) for a in pairs for b in pairs[a] if a < b}
+            pairs = {v.index: [path for path in self._graph.get_all_shortest_paths(v) if
+                           len(path) <= (self._exclude_nb_interactions)] for v in self._graph.vs}
+            pairs = {(a, c) for a in pairs for b in pairs[a] for c in b if a < c}
             all_pairs = set(combinations(range(len(self.atom_names)), 2))
             self._non_bonded = all_pairs - pairs
 

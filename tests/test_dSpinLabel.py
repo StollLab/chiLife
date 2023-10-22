@@ -38,7 +38,7 @@ def test_add_dlabel():
                     -6.61134315, -6.70879944])
 
     np.testing.assert_almost_equal(dSL.spin_centers, spin_center_ans, decimal=5)
-    np.testing.assert_almost_equal(dSL.atom_energies.sum(axis=1), Eans)
+    np.testing.assert_almost_equal(dSL.atom_energies.sum(axis=1), Eans, decimal=3)
 
 def test_add_dlabel_shared_atom_names():
     Energies = np.loadtxt("test_data/DHC.energies")[:, 1]

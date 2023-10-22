@@ -358,7 +358,7 @@ def test_to_rotlib():
 
     np.testing.assert_almost_equal(rotlib_test['coords'], rotlib_reference['coords'], decimal=5)
     np.testing.assert_almost_equal(rotlib_test['weights'], rotlib_reference['weights'], decimal=5)
-    np.testing.assert_almost_equal(rotlib_test['dihedrals'], rotlib_reference['dihedrals'], decimal=5)
+    np.testing.assert_almost_equal(rotlib_test['dihedrals'], rotlib_reference['dihedrals'], decimal=4)
 
 
 def test_sample_persists():

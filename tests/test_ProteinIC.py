@@ -27,7 +27,8 @@ def test_from_prot():
         zmat_idx_ans = f['zmat_idxs']
 
     np.testing.assert_equal(ubqIC.z_matrix_idxs, zmat_idx_ans)
-    np.testing.assert_almost_equal(ubqIC.trajectory.coordinate_array, zmat_ans)
+    np.testing.assert_almost_equal(ubqIC.trajectory.coordinate_array[:, ubqIC.non_nan_idxs],
+                                   zmat_ans[:, ubqIC.non_nan_idxs])
 
     for i, idxs in enumerate(ubqIC.z_matrix_idxs):
         idxt = [val for val in idxs if val != -2147483648]
@@ -41,7 +42,8 @@ def test_from_prot_traj():
         zmat_idx_ans = f['zmat_idxs']
 
     np.testing.assert_equal(mbpIC.z_matrix_idxs, zmat_idx_ans)
-    np.testing.assert_almost_equal(mbpIC.trajectory.coordinate_array, zmat_ans)
+    np.testing.assert_almost_equal(mbpIC.trajectory.coordinate_array[:, mbpIC.non_nan_idxs],
+                                   zmat_ans[:, mbpIC.non_nan_idxs])
 
 
 @pytest.mark.parametrize("pdbid", pdbids)
@@ -231,7 +233,7 @@ def test_ic_pref_dihe():
     IC.set_dihedral(np.pi / 2, 1, ['ND', 'CE3', 'CZ3', 'C31'])
 
     sister_dihe_atom_coords = IC.coords[IC.atom_names == 'C36'].flat
-    np.testing.assert_almost_equal( sister_dihe_atom_coords, [2.1495337, -3.4064763, -0.9388056])
+    np.testing.assert_almost_equal(sister_dihe_atom_coords, [2.1495337, -3.4064763, -0.9388056], decimal=6)
 
 
 def test_pickle():

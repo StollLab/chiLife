@@ -785,7 +785,7 @@ class Residue(MolecularSystem):
         prev = np.unique(prev[prev > 0])
 
         maskN_CA_C = self.mask[np.isin(self.names, ['N', 'CA', 'C'])]
-        maskC = np.argwhere(self.protein.resnums == prev).flatten()
+        maskC = np.argwhere(np.isin(self.protein.resnums, prev)).flatten()
         maskC = maskC[self.protein.names[maskC] == 'C']
         mask_phi = np.concatenate((maskC, maskN_CA_C))
         sel = self.protein.atoms[mask_phi]

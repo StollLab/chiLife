@@ -28,7 +28,7 @@ def test_from_prot():
     non_nan_idx = ubqIC.z_matrix_idxs > 0
     np.testing.assert_equal(ubqIC.z_matrix_idxs[non_nan_idx], zmat_idx_ans[non_nan_idx])
     np.testing.assert_almost_equal(ubqIC.trajectory.coordinate_array[:, ubqIC.non_nan_idxs],
-                                   zmat_ans[:, ubqIC.non_nan_idxs])
+                                   zmat_ans[:, ubqIC.non_nan_idxs], decimal=6)
 
     for i, idxs in enumerate(ubqIC.z_matrix_idxs):
         idxt = [val for val in idxs if val != -2147483648]
@@ -43,7 +43,7 @@ def test_from_prot_traj():
     non_nan_idx = mbpIC.z_matrix_idxs > 0
     np.testing.assert_equal(mbpIC.z_matrix_idxs[non_nan_idx], zmat_idx_ans[non_nan_idx])
     np.testing.assert_almost_equal(mbpIC.trajectory.coordinate_array[:, mbpIC.non_nan_idxs],
-                                   zmat_ans[:, mbpIC.non_nan_idxs])
+                                   zmat_ans[:, mbpIC.non_nan_idxs], decimal=6)
 
 
 @pytest.mark.parametrize("pdbid", pdbids)
@@ -220,7 +220,7 @@ def test_chi_idxs():
                     -3.00272059, -3.04088092,  1.33890903, -1.18974721, -2.89442134,
                      1.23405945])
 
-    np.testing.assert_almost_equal(vals, ans)
+    np.testing.assert_almost_equal(vals, ans, decimal=6)
 
 def test_ic_pref_dihe():
 

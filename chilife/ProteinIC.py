@@ -168,6 +168,11 @@ class ProteinIC:
                 # Get the indices of the atom being defined by the preferred dihedral
                 idx_of_interest = np.argwhere(protein.names == dihe[-1]).flatten()
                 for idx in idx_of_interest:
+
+                    # Skip dihedral defs of chain terminal atoms
+                    if len(z_matrix_dihedrals[idx]) != len(dihe):
+                        continue
+
                     # Check if it is already in use
                     if np.all(protein.atoms[z_matrix_dihedrals[idx]].names == dihe):
                         present = True

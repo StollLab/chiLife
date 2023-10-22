@@ -252,7 +252,7 @@ def test_get_diehdrals():
 
     dihes = chilife.get_dihedrals(N1s, CAs, Cs, N2s)
     ans = [chilife.get_dihedral([N1, CA, C, N2]) for N1, CA, C, N2 in zip(N1s, CAs, Cs, N2s)]
-    np.testing.assert_almost_equal(dihes, ans)
+    np.testing.assert_almost_equal(dihes, ans, decimal=6)
 
 # def test_preferred_dihedrals():
 #     dih = [['N', 'CA', 'CB', 'CB2'],

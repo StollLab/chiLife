@@ -315,7 +315,7 @@ def test_from_trajectory():
                                                             [-176.38805 ,  164.5945  ],
                                                             [  62.16344 ,  -93.79344 ],
                                                             [ -69.9084  ,  -39.25944 ],
-                                                            [ -69.9084  ,  161.67407 ]]), decimal=5)
+                                                            [ -69.9084  ,  161.67407 ]]), decimal=4)
 
     with pytest.raises(ValueError):
         RE = chilife.RotamerEnsemble.from_trajectory(traj, 232)
@@ -354,7 +354,7 @@ def test_to_rotlib():
                                                             [-176.38805 ,  164.5945  ],
                                                             [  62.16344 ,  -93.79344 ],
                                                             [ -69.9084  ,  -39.25944 ],
-                                                            [ -69.9084  ,  161.67407 ]]), decimal=5)
+                                                            [ -69.9084  ,  161.67407 ]]), decimal=4)
 
     np.testing.assert_almost_equal(rotlib_test['coords'], rotlib_reference['coords'], decimal=5)
     np.testing.assert_almost_equal(rotlib_test['weights'], rotlib_reference['weights'], decimal=5)

@@ -40,7 +40,8 @@ def test_from_prot_traj():
     with np.load('test_data/mbp_zmats.npz') as f:
         zmat_ans = f['zmat']
         zmat_idx_ans = f['zmat_idxs']
-    non_nan_idx = mbpIC.z_matrix_idxs > 0
+
+    non_nan_idx = mbpIC.z_matrix_idxs >= 0
     np.testing.assert_equal(mbpIC.z_matrix_idxs[non_nan_idx], zmat_idx_ans[non_nan_idx])
     np.testing.assert_almost_equal(mbpIC.trajectory.coordinate_array[:, mbpIC.non_nan_idxs],
                                    zmat_ans[:, mbpIC.non_nan_idxs], decimal=6)

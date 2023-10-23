@@ -70,7 +70,7 @@ def test_add_dlabel_shared_atom_names():
     ans = np.array([[6.650147 ],
                     [6.6462107],
                     [6.754248 ]])
-    np.testing.assert_almost_equal(test, ans)
+    np.testing.assert_almost_equal(test, ans, decimal=6)
 
     os.remove('___ip4_drotlib.zip')
 

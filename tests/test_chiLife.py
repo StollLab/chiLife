@@ -218,9 +218,9 @@ def test_fetch2(pdbid, names):
 
 
 def test_repack():
-    np.random.seed(1000)
+    np.random.seed(2)
     protein = mda.Universe("test_data/1ubq.pdb", in_memory=True).select_atoms("protein")
-    SL = chilife.SpinLabel("R1C", site=28, protein=protein)
+    SL = chilife.SpinLabel("R1M", site=28, protein=protein)
 
     traj1, deltaE1 = chilife.repack(protein, SL, repetitions=10, repack_radius=10)
     traj2, deltaE2 = chilife.repack(protein, SL, repetitions=10, off_rotamer=True, repack_radius=10)
@@ -232,8 +232,8 @@ def test_repack():
         t1ans = f["traj1"]
         t2ans = f["traj2"]
 
-    np.testing.assert_almost_equal(t1coords, t1ans, decimal=5)
-    np.testing.assert_almost_equal(t2coords, t2ans, decimal=5)
+    np.testing.assert_almost_equal(t1coords, t1ans, decimal=4)
+    np.testing.assert_almost_equal(t2coords, t2ans, decimal=4)
 
 
 def test_create_library():

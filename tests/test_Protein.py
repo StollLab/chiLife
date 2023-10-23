@@ -251,9 +251,9 @@ def test_trajectory_iter():
 
 def test_xl_protein_repack():
 
-    np.random.seed(1000)
+    np.random.seed(2)
     protein = chilife.Protein.from_pdb("test_data/1ubq.pdb").select_atoms("protein")
-    SL = chilife.SpinLabel("R1C", site=28, protein=protein)
+    SL = chilife.SpinLabel("R1M", site=28, protein=protein)
 
     traj1, deltaE1 = chilife.repack(protein, SL, repetitions=10, repack_radius=10)
     traj2, deltaE2 = chilife.repack(protein, SL, repetitions=10, off_rotamer=True, repack_radius=10)

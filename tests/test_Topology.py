@@ -4,6 +4,8 @@ from chilife.Topology import *
 from MDAnalysis.topology.guessers import guess_angles, guess_dihedrals
 
 ubq = xl.Protein.from_pdb('test_data/1ubq.pdb', sort_atoms=True)
+mbp = MDAnalysis.Universe("test_data/2klf.pdb", in_memory=True)
+
 ubqu = MDAnalysis.Universe('test_data/1ubq.pdb')
 bonds = xl.guess_bonds(ubq.coords, ubq.atypes)
 ubqu.add_bonds(bonds)
@@ -37,3 +39,10 @@ def test_construction():
         chain = ubq.atoms[val[-1]].segid
         assert chain == key[0]
 
+def test_get_z_matrix():
+    mbp_bonds = xl.guess_bonds(mbp.atoms.positions, mbp.atoms.names)
+    top = Topology(mbp, mbp_bonds)
+
+    test_idxs = top.get_zmatrix_dihedrals()
+    ans_idxs = np.load('test_data/top_idxs.npy', allow_pickle=True)
+    np.testing.assert_equal(test_idxs, ans_idxs)

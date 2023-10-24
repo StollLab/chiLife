@@ -16,8 +16,10 @@ def test_guess_bonds():
 
     ans = np.load('test_data/bonds.npy')
     ans_dist = np.load('test_data/bond_dist.npy')
-    np.testing.assert_equal(bonds, ans)
-    np.testing.assert_allclose(dist, ans_dist)
+    sorted_args = np.lexsort((ans[:, 0], ans[:, 1]))
+
+    np.testing.assert_equal(bonds, ans[sorted_args])
+    np.testing.assert_allclose(dist, ans_dist[sorted_args])
 
 @pytest.mark.parametrize('prot', [ubqu, mbp])
 def test_get_angle_defs(prot):
@@ -79,4 +81,5 @@ def test_dihedrals_by_atom():
 
     with open('test_data/dihedrals_by_atom.pkl', 'rb') as f:
         ans = pickle.load(f)
+
     assert top.dihedrals_by_atoms == ans

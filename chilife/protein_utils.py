@@ -817,8 +817,8 @@ def guess_bonds(coords: ArrayLike, atom_types: ArrayLike) -> np.ndarray:
 
     dist = np.linalg.norm(coords[a_atoms] - coords[b_atoms], axis=1)
     bonds = pairs[dist < bond_lengths]
-
-    return bonds
+    sorted_args = np.lexsort((bonds[:, 0], bonds[:,1]))
+    return bonds[sorted_args]
 
 
 def get_min_topol(lines: List[List[str]],

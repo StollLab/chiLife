@@ -10,7 +10,10 @@ mbp = MDAnalysis.Universe("test_data/2klf.pdb", in_memory=True)
 ubqu = MDAnalysis.Universe('test_data/1ubq.pdb')
 
 
-
+def test_guess_bonds():
+    bonds = xl.guess_bonds(mbp.atoms.positions, mbp.atoms.types)
+    ans = np.load('test_data/bonds.npy')
+    np.testing.assert_equal(bonds, ans)
 
 @pytest.mark.parametrize('prot', [ubqu, mbp])
 def test_get_angle_defs(prot):

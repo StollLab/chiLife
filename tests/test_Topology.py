@@ -51,6 +51,12 @@ def test_get_z_matrix():
 def test_dihedrals_by_atom():
     mbp_bonds = xl.guess_bonds(mbp.atoms.positions, mbp.atoms.names)
     top = Topology(mbp, mbp_bonds)
+
+    with open('test_data/mbp_dihedrals.pkl', 'rb') as f:
+        ans = pickle.load(f)
+
+    assert top.dihedrals == ans
+
     with open('test_data/dihedrals_by_atom.pkl', 'rb') as f:
         ans = pickle.load(f)
     assert top.dihedrals_by_atoms == ans

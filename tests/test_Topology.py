@@ -1,3 +1,4 @@
+import pickle
 import MDAnalysis
 import chilife as xl
 from chilife.Topology import *
@@ -46,3 +47,10 @@ def test_get_z_matrix():
     test_idxs = top.get_zmatrix_dihedrals()
     ans_idxs = np.load('test_data/top_idxs.npy', allow_pickle=True)
     np.testing.assert_equal(test_idxs, ans_idxs)
+
+def test_dihedrals_by_atom():
+    mbp_bonds = xl.guess_bonds(mbp.atoms.positions, mbp.atoms.names)
+    top = Topology(mbp, mbp_bonds)
+    with open('test_data/dihedrals_by_atom.pkl', 'rb') as f:
+        ans = pickle.load(f)
+    assert top.dihedrals_by_atoms == ans

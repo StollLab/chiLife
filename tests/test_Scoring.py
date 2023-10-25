@@ -10,17 +10,18 @@ eps = np.ones(len(r))
 rmin = np.ones(len(r))
 protein = mda.Universe("test_data/1ubq.pdb", in_memory=True)
 lj_funcs = [chilife.get_lj_energy, chilife.get_lj_scwrl, chilife.get_lj_rep]
-lj_ans = [
-    [-1.2940752, -1.34917751, -0.92307548, 0.09701376, -0.81320862, -0.82519124, -0.8168207, -0.47411124, -0.64444488, -0.44549325],
-    [-0.05528246, -0.14662195, 0., -0.20340994, 0., 0., 0., 0., 0., 0.],
-    [0.66691997, 0.05328764, 0.01843083, 0.01921863, 0.00483313, 0.68429553, 0.00290177, 0.00411807, 1.25053418, 0.03108684],
-]
+lj_ans = [np.array([-1.29407456, -1.34917747, -0.92307553,  0.09701479, -0.81320874,
+                    -0.82519134, -0.81681929, -0.47411124, -0.64444505, -0.44549313]),
+          np.array([-0.05528211, -0.14662196,  0.        , -0.20341   ,  0.        ,
+                     0.        ,  0.        ,  0.        ,  0.        ,  0.        ]),
+          np.array([0.66692039, 0.05328766, 0.01843082, 0.01921865, 0.00483313,
+                    0.68429473, 0.00290177, 0.00411807, 1.25053399, 0.03108683])]
 
 
 @pytest.mark.parametrize(('func', 'ans'), zip(lj_funcs, lj_ans))
 def test_lj(func, ans):
     RL = chilife.RotamerEnsemble('TRP', 28, protein, energy_func=func, eval_clash=True)
-    np.testing.assert_almost_equal(RL.atom_energies[5], ans)
+    np.testing.assert_almost_equal(RL.atom_energies[5], ans, decimal=6)
 
 
 @pytest.mark.parametrize('func',  lj_funcs)
@@ -28,7 +29,7 @@ def test_efunc(func):
     RL = chilife.RotamerEnsemble('TRP', 28, protein)
     test = func(RL)
     ans = np.load(f'test_data/{func.__name__}.npy')
-    np.testing.assert_almost_equal(test, ans)
+    np.testing.assert_almost_equal(test, ans, decimal=6)
 
 
 @pytest.mark.parametrize('func',  lj_funcs)

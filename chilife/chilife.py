@@ -8,7 +8,7 @@ from collections import Counter
 from typing import Callable, Tuple, Union, List, Dict
 from unittest import mock
 
-import networkx as nx
+import igraph as ig
 from tqdm import tqdm
 
 import numpy as np
@@ -403,11 +403,7 @@ def repack(
             acount += 1
             # Metropolis-Hastings criteria
 
-            if (
-                    E1 < DummyLabel.E0
-                    or np.exp(-deltaE / KT[temp[bidx]]) > np.random.rand()
-            ):
-
+            if (E1 < DummyLabel.E0 or np.exp(-deltaE / KT[temp[bidx]]) > np.random.rand()):
                 deltaEs.append(deltaE)
                 try:
                     protein.atoms[DummyLabel.mask].positions = coords
@@ -512,7 +508,7 @@ def create_library(
     resi_selection = struct.select_atoms(f"resnum {site}")
     bonds = resi_selection.intra_bonds.indices
 
-    if not continuous_topol(resi_selection.indices, bonds):
+    if not continuous_topol(resi_selection, bonds):
         raise RuntimeError("The  RotamerEnsemble does not seem to have a consistent and continuous bond topology over "
                            "all states. Please check the input PDB and remove any states that do not have the "
                            "expected bond topology. Alternatively, you can force certain bonds by adding CONECT "
@@ -520,30 +516,21 @@ def create_library(
                            "https://www.wwpdb.org/documentation/file-format-content/format33/sect10.html")
 
     # Convert loaded rotamer ensemble to internal coords
-    internal_coords = [
-        chilife.get_internal_coords(
-            resi_selection,
-            preferred_dihedrals=dihedral_atoms,
-            bonds=bonds
-        )
-        for _ in struct.trajectory
-    ]
+    internal_coords = chilife.ProteinIC.from_protein(resi_selection,
+                                                     preferred_dihedrals=dihedral_atoms,
+                                                     bonds=bonds,
+                                                     use_chain_operators=False)
+    internal_coords.shift_resnum(-(site - 1))
 
-    # set residue number to 1 and remove chain operators so all rotamers are in the ic coordinate frame
-    for ic in internal_coords:
-        ic.shift_resnum(-(site - 1))
-        ic.chain_operators = None
-        if len(ic.chains) > 1:
-            raise ValueError('The PDB of the label supplied appears to have a chain break. Please check your PDB and '
-                             'make sure there are no chain breaks in the desired label and that there are no other '
-                             'chains in the pdb file. If the error persists, check to be sure all atoms are the correct '
-                             'element as chilife uses the elements to determine if atoms are bonded.')
+    if len(internal_coords.chains) > 1:
+        raise ValueError('The PDB of the label supplied appears to have a chain break. Please check your PDB and '
+                         'make sure there are no chain breaks in the desired label and that there are no other '
+                         'chains in the pdb file. If the error persists, check to be sure all atoms are the correct '
+                         'element as chilife uses the elements to determine if atoms are bonded.')
 
     # If multi-state pdb extract dihedrals from pdb
     if dihedrals is None:
-        dihedrals = np.rad2deg(
-            [ic.get_dihedral(1, dihedral_atoms) for ic in internal_coords]
-        )
+        dihedrals = np.rad2deg([ic.get_dihedral(1, dihedral_atoms) for ic in internal_coords])
 
     if dihedrals.shape == (len(dihedrals),):
         dihedrals.shape = (len(dihedrals), 1)
@@ -557,7 +544,9 @@ def create_library(
                                       sigmas=sigmas, spin_atoms=spin_atoms,
                                       description=description, comment=comment,
                                       reference=reference)
-
+    backbone = save_dict['coords'][0, :3]
+    ori, mx = local_mx(*backbone)
+    save_dict['coords'] = np.einsum('ijk,kl->ijl', save_dict['coords'] - ori, mx)
     # Save rotamer library
     np.savez(Path().cwd() / f'{libname}_rotlib.npz', **save_dict, allow_pickle=True)
 
@@ -665,72 +654,82 @@ def create_dlibrary(
     res2 = struct.select_atoms(f'resnum {site2}')
 
     # Identify the cap based off of the user defined mobile dihedrals
-    nodes = []
+    last_bonds = []
     for i, res in enumerate((res1, res2)):
         site = res.resnums[0]
-        dh_atoms = [dihedral[1] for dihedral in dihedral_atoms[i]]
-        terminal_atom_idx = max(struct.select_atoms(f'resnum {site} and name {" ".join(dh_atoms)}').ix)
-        nodes.append(terminal_atom_idx)
+        dh_bonds = [dihedral[1:3] for dihedral in dihedral_atoms[i]]
 
-    G = nx.DiGraph(struct.bonds.indices.tolist())
-    linker = list({node for path in nx.all_simple_paths(G, *nodes) for node in path if node not in nodes})
-    G.remove_nodes_from(nodes)
+        dh_bond_idxs = []
+        for anames in dh_bonds:
+            asel = struct.select_atoms(f'resnum {site} and name {" ".join(anames)}')
 
-    cap_idxs = set()
-    for node in linker:
-        cap_idxs |= {a for a in nx.dfs_postorder_nodes(G, node)}
+            # Sometimes dihedrals are defined with the bonded atom(s) on the other residue
+            if len(asel) < 2:
+                missing_name = anames[0] if asel.names[0] == anames[1] else anames[1]
+                other_site = res1.resnums[0] if i == 1 else res2.resnums[0]
+                asel += struct.select_atoms(f'resnum {other_site} and name {missing_name}')
 
-    cap_idxs = list(sorted(cap_idxs))
-    ovlp_selection = struct.atoms[cap_idxs]
-    csts = ovlp_selection.names
+            dh_bond_idxs.append(asel.ix)
+        dh_bond_idxs = np.array(dh_bond_idxs)
+
+        last_bonds.append(dh_bond_idxs[np.argmax(dh_bond_idxs[:, 0])])
+
+    bond_indices = struct.bonds.indices
+    graph = ig.Graph(n=np.max(bond_indices), edges=bond_indices)
+
+    # disconnect the cap by cutting the rotatable bond of the dihedrals in each site
+    last_bonds = [tuple(bond) for bond in last_bonds]
+    graph.delete_edges(last_bonds)
+
+    # Find all atoms in between the cut bonds
+    starts = [node[1] for node in last_bonds]
+    cap1_idxs, _ = graph.dfs(starts[0])
+    cap2_idxs, _ = graph.dfs(starts[1])
+
+    ovlp1_selection = struct.atoms[cap1_idxs]
+    csts = ovlp1_selection.names
     csts = csts.astype('U4')
 
-    ovlp_selection.residues.resnums = site1
-    ovlp_selection.residues.resids = site1
-    res1 += ovlp_selection
+    ovlp1_selection.residues.resnums = site1
+    ovlp1_selection.residues.resids = site1
+    res1 += ovlp1_selection[~np.isin(ovlp1_selection.ix, res1.ix)]
     res1_bonds = res1.intra_bonds.indices
 
-    if not continuous_topol(res1.indices, res1_bonds):
-        raise RuntimeError("The  dRotamerEnsemble does not seem to have a consistent and continuous bond topology over"
-                           " all states. Please check the input PDB and remove any states that do not have the "
-                           "expected bond topology. Alternatively, you can force certain bonds by adding CONECT "
-                           "information to the PDB file. See "
-                           "https://www.wwpdb.org/documentation/file-format-content/format33/sect10.html")
+    error_message = "The  dRotamerEnsemble does not seem to have a consistent and continuous bond topology over" \
+                           " all states. Please check the input PDB and remove any states that do not have the " \
+                           "expected bond topology. Alternatively, you can force certain bonds by adding CONECT " \
+                           "information to the PDB file. See " \
+                           "https://www.wwpdb.org/documentation/file-format-content/format33/sect10.html"
 
-    IC1 = [chilife.get_internal_coords(res1, dihedral_atoms[0], res1_bonds)
-           for ts in struct.trajectory]
+    if not continuous_topol(res1, res1_bonds):
+        raise RuntimeError(error_message)
 
-    ovlp_selection.residues.resnums = site2
-    ovlp_selection.residues.resids = site2
-    res2 += ovlp_selection
+    IC1 = chilife.ProteinIC.from_protein(res1, dihedral_atoms[0], res1_bonds, use_chain_operators=False)
+
+    ovlp2_selection = struct.atoms[cap2_idxs]
+    ovlp2_selection.residues.resnums = site2
+    ovlp2_selection.residues.resids = site2
+    res2 += ovlp2_selection[~np.isin(ovlp2_selection.ix, res2.ix)]
     res2_bonds = res2.intra_bonds.indices
 
-    if not continuous_topol(res1.indices, res1_bonds):
-        raise RuntimeError("The  dRotamerEnsemble does not seem to have a consistent and continuous bond topology over"
-                           " all states. Please check the input PDB and remove any states that do not have the "
-                           "expected bond topology. Alternatively, you can force certain bonds by adding CONECT "
-                           "information to the PDB file. See "
-                           "https://www.wwpdb.org/documentation/file-format-content/format33/sect10.html")
+    if not continuous_topol(res2, res2_bonds):
+        raise RuntimeError(error_message)
 
-    IC2 = [chilife.get_internal_coords(res2, dihedral_atoms[1], res2_bonds, cap=cap_idxs)
-           for ts in struct.trajectory]
+    IC2 = chilife.ProteinIC.from_protein(res2, dihedral_atoms[1], res2_bonds, use_chain_operators=False)
 
-    for ic1, ic2 in zip(IC1, IC2):
-        ic1.shift_resnum(-(site1 - 1))
-        ic1.chain_operators = None
-        ic2.shift_resnum(-(site2 - 1))
-        ic2.chain_operators = None
-        if len(ic1.chains) > 1 or len(ic2.chains) > 1:
-            raise RuntimeError('The PDB of the label supplied appears to have a chain break. Please check your PDB and '
-                             'make sure there are no chain breaks in the desired label and that there are no other '
-                             'chains in the pdb file. If the error persists, check to be sure all atoms are the correct '
-                             'element as chilife uses the elements to determine if atoms are bonded.')
+    IC1.shift_resnum(-(site1 - 1))
+    IC2.shift_resnum(-(site2 - 1))
+    if len(IC1.chains) > 1 or len(IC2.chains) > 1:
+        raise RuntimeError('The PDB of the label supplied appears to have a chain break. Please check your PDB and '
+                         'make sure there are no chain breaks in the desired label and that there are no other '
+                         'chains in the pdb file. If the error persists, check to be sure all atoms are the correct '
+                         'element as chilife uses the elements to determine if atoms are bonded.')
 
     # If multi-state pdb extract rotamers from pdb
     if dihedrals is None:
         dihedrals = []
         for IC, resnum, dihedral_set in zip([IC1, IC2], [site1, site2], dihedral_atoms):
-            dihedrals.append([[ICi.get_dihedral(1, ddef) for ddef in dihedral_set] for ICi in IC])
+            dihedrals.append([ICi.get_dihedral(1, dihedral_set) for ICi in IC])
 
     if weights is None:
         weights = np.ones(len(IC1))
@@ -834,7 +833,7 @@ def pre_add_library(
 def prep_restype_savedict(
         libname: str,
         resname: str,
-        internal_coords: List[ProteinIC],
+        internal_coords: ProteinIC,
         weights: ArrayLike,
         dihedrals: ArrayLike,
         dihedral_atoms: ArrayLike,
@@ -880,37 +879,26 @@ def prep_restype_savedict(
         Dictionary of all the data needed to build a RotamerEnsemble.
     """
     # Extract coordinates and transform to the local frame
-    bb_atom_idx = [
-        i for i, atom in enumerate(internal_coords[0].atoms) if atom.name in ["N", "CA", "C"]
-    ]
-    coords = internal_coords[0].coords.copy()
-    ori, mx = local_mx(*coords[bb_atom_idx])
-    coords = (coords - ori) @ mx
 
-    if len(internal_coords) > 1:
-        coords = np.array([(IC.coords - ori) @ mx for IC in internal_coords])
-    elif len(dihedrals) > 1:
-        coords = np.array([internal_coords.set_dihedral(dihe, resi, dihedral_atoms) for dihe in dihedrals])
-    else:
-        if coords.ndim == 2:
-            coords = np.expand_dims(coords, axis=0)
+    if len(dihedrals) > 1 and len(internal_coords) == 1:
+        idxs = np.zeros(len(dihedrals), dtype=int)
+        new_z_matrix = internal_coords.batch_set_dihedrals(idxs, dihedrals, resi, dihedral_atoms)
+        internal_coords.load_new(new_z_matrix)
 
-    atom_types = np.array([atom.atype for atom in internal_coords[0].atoms])
-    atom_names = np.array([atom.name for atom in internal_coords[0].atoms])
+    atom_types = internal_coords.atom_types.copy()
+    atom_names = internal_coords.atom_names.copy()
 
+
+    coords = internal_coords.protein.trajectory.coordinate_array.copy()
     if np.any(np.isnan(coords)):
         idxs = np.argwhere(np.isnan(np.sum(coords, axis=(1, 2)))).T[0]
         adxs = np.argwhere(np.isnan(np.sum(coords, axis=(0, 2)))).T[0]
         adxs = atom_names[adxs]
 
-        print(internal_coords[0].atom_dict['dihedrals'][1][(5, ('O3', 'Cu1', 'NE2'))])
-        print(internal_coords[0].zmats[1].shape)
-        print(internal_coords[0].get_dihedral(5, ['NE2', 'Cu1', 'O3', 'C11']))
-        print(internal_coords[4].coords)
-
         raise ValueError(
             f'Coords of rotamer {" ".join((str(idx) for idx in idxs))} at atoms {" ".join((str(idx) for idx in adxs))} '
-            f'cannot be converted to internal coords')
+            f'cannot be converted to internal coords because there is a chain break in this roatmer. Either enforce '
+            f'bonds explicitly by adding CONECT information to the PDB or fix the structure(s)')
 
     save_dict = {'rotlib': libname,
                  'resname': resname,
@@ -938,7 +926,7 @@ def prep_restype_savedict(
         save_dict.update(spin_atoms)
 
     save_dict['type'] = 'chilife rotamer library'
-    save_dict['format_version'] = 1.1
+    save_dict['format_version'] = 1.2
 
     return save_dict
 
@@ -1437,7 +1425,7 @@ def continuous_topol(atoms, bonds):
     -------
 
     """
-    G = nx.Graph()
-    G.add_nodes_from(atoms)
-    G.add_edges_from(bonds)
-    return nx.is_connected(G)
+    ixmap = {ix: i for i, ix in enumerate(atoms.ix)}
+    ibonds = np.vectorize(ixmap.get)(bonds)
+    G = ig.Graph(n=atoms.n_atoms, edges=ibonds)
+    return G.is_connected()

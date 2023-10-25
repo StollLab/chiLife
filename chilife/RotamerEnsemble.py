@@ -1,4 +1,5 @@
 import inspect
+import warnings
 from copy import deepcopy
 from functools import partial
 from pathlib import Path
@@ -7,7 +8,7 @@ import numpy as np
 from numpy.typing import ArrayLike
 from itertools import combinations
 from scipy.spatial import cKDTree
-import networkx as nx
+import igraph as ig
 from scipy.stats import skewnorm
 import scipy.optimize as opt
 import MDAnalysis as mda
@@ -86,6 +87,7 @@ class RotamerEnsemble:
             site = 1
 
         self.site = int(site)
+        self.resnum = self.site
         self.protein = protein
         self.nataa = ""
         self.chain = chain if chain is not None else guess_chain(self.protein, self.site)
@@ -116,7 +118,7 @@ class RotamerEnsemble:
             self.atom_types = self.atom_types[self.H_mask]
             self.atom_names = self.atom_names[self.H_mask]
 
-        self.ic_mask = [np.argwhere(self.internal_coords[0].atom_names == a).flat[0] for a in self.atom_names]
+        self.ic_mask = np.argwhere(np.isin(self.internal_coords.atom_names, self.atom_names)).flatten()
         self._lib_coords = self._coords.copy()
         self._lib_dihedrals = self._dihedrals.copy()
         self._lib_IC = self.internal_coords
@@ -130,8 +132,8 @@ class RotamerEnsemble:
             np.isin(self.atom_names, RotamerEnsemble.backbone_atoms, invert=True)
         ).flatten()
 
-        self._graph = nx.Graph()
-        self._graph.add_edges_from(self.bonds)
+        self._graph = ig.Graph(edges=self.bonds)
+
         _, self.irmin_ij, self.ieps_ij, _ = chilife.prep_internal_clash(self)
         self.aidx, self.bidx = [list(x) for x in zip(*self.non_bonded)]
 
@@ -143,14 +145,14 @@ class RotamerEnsemble:
                 self._sample_size, off_rotamer=True, return_dihedrals=True
             )
 
-            self._dihedrals = np.asarray(
-                [IC.get_dihedral(1, self.dihedral_atoms) for IC in self.internal_coords]
-            )
             # Remove structures with internal clashes
             dist = np.linalg.norm(self._coords[:, self.aidx] - self._coords[:, self.bidx], axis=2)
             sidx = np.atleast_1d(np.squeeze(np.argwhere(np.all(dist > 2, axis=1))))
-            self.internal_coords = self.internal_coords[sidx]
-            self._dihedrals = np.rad2deg(self._dihedrals[sidx])
+            self.internal_coords.use_frames(sidx)
+            self._dihedrals = np.asarray(
+                [self.internal_coords.get_dihedral(1, self.dihedral_atoms) for ts in self.internal_coords.trajectory]
+            )
+            self._dihedrals = np.rad2deg(self._dihedrals)
             self._coords, self.weights = self._coords[sidx], self.weights[sidx]
 
         # Allocate variables for clash evaluations
@@ -301,11 +303,11 @@ class RotamerEnsemble:
 
         pi /= pi.sum()
         weights = pi
+        res = chilife.Protein.from_atomsel(res, frames=unique_idx)
+        ICs = chilife.ProteinIC.from_protein(res)
 
-        ICs = [chilife.get_internal_coords(res.atoms) for ts in traj.trajectory[unique_idx]]
 
-        for ic in ICs:
-            ic.shift_resnum(-(site - 1))
+        ICs.shift_resnum(-(site - 1))
 
         dihedrals = np.array([ic.get_dihedral(1, dihedral_defs) for ic in ICs])
         sigmas = kwargs.get('sigmas', np.array([]))
@@ -340,7 +342,11 @@ class RotamerEnsemble:
         kwargs.setdefault('eval_clash', False)
         return cls(resname, site, traj, chain, lib, **kwargs)
 
-    def to_rotlib(self, libname: str = None) -> None:
+    def to_rotlib(self,
+                  libname: str = None,
+                  description: str = None,
+                  comment: str = None,
+                  reference: str = None) -> None:
         """
         Save the current RotamerEnsemble as a RotamerLibrary
 
@@ -353,6 +359,10 @@ class RotamerEnsemble:
         if libname is None:
             libname = self.name
 
+        if description is None:
+            description = (f'Rotamer library made with chiLife version {chilife.__version__} using `to_rotlib` method'
+                           f'of a rotamer ensemble.')
+
         lib = {'rotlib': libname,
                'resname': self.res,
                'coords': self.coords,
@@ -364,7 +374,10 @@ class RotamerEnsemble:
                'dihedrals': self.dihedrals,
                'sigmas': self.sigmas,
                'type': 'chilife rotamer library',
-               'format_version': 1.0}
+               'description': description,
+               'comment': comment,
+               'reference': reference,
+               'format_version': 1.2}
 
         if hasattr(self, 'spin_atoms'):
             lib['spin_atoms'] = self.spin_atoms
@@ -417,9 +430,9 @@ class RotamerEnsemble:
         """
         new_copy = self._base_copy(self._rotlib)
         for item in self.__dict__:
-            if isinstance(item, np.ndarray):
+            if isinstance(item, np.ndarray) or item == 'internal_coords':
                 new_copy.__dict__[item] = self.__dict__[item].copy()
-            elif item not in  ("protein", '_lib_IC', '_rotlib', 'internal_coords'):
+            elif item not in  ("protein", '_lib_IC', '_rotlib'):
                 new_copy.__dict__[item] = deepcopy(self.__dict__[item])
             elif self.__dict__[item] is None:
                 new_copy.protein = None
@@ -455,18 +468,17 @@ class RotamerEnsemble:
         N, CA, C = chilife.parse_backbone(self, kind="local")
         old_ori, ori_mx = chilife.local_mx(N, CA, C, method=self.alignment_method)
         self._coords -= old_ori
-        mx = ori_mx @ mx
+        cmx = ori_mx @ mx
 
-        self._coords = np.einsum("ijk,kl->ijl", self._coords, mx) + ori
+        self._coords = np.einsum("ijk,kl->ijl", self._coords, cmx) + ori
+        self.ICs_to_site(ori, mx)
 
-        self.ICs_to_site()
-
-    def ICs_to_site(self):
+    def ICs_to_site(self, cori, cmx):
         """ Modify the internal coordinates so that they are aligned with the site that the RotamerEnsemble is attached
          to"""
 
         # Update chain operators
-        ic_backbone = np.squeeze(self.internal_coords[0].coords[:3])
+        ic_backbone = np.squeeze(self.internal_coords.coords[:3])
 
         if self.alignment_method.__name__ == 'fit_alignment':
             N, CA, C = chilife.parse_backbone(self, kind="global")
@@ -474,30 +486,23 @@ class RotamerEnsemble:
                                     [ic_backbone[1], CA[1]],
                                     [ic_backbone[2], C[1]]])
 
-        self.ic_ori, self.ic_mx = chilife.local_mx(
-            *ic_backbone, method=self.alignment_method
-        )
+        self.ic_ori, self.ic_mx = chilife.local_mx(*ic_backbone, method=self.alignment_method)
         m2m3 = self.ic_mx @ self.mx
         op = {}
-        for segid in self.internal_coords[0].chain_operators:
-            new_mx = self.internal_coords[0].chain_operators[segid]["mx"] @ m2m3
-            new_ori = (
-                self.internal_coords[0].chain_operators[segid]["ori"] - self.ic_ori
-            ) @ m2m3 + self.origin
-            op[segid] = {"mx": new_mx, "ori": new_ori}
 
-        for IC in self.internal_coords:
-            IC.chain_operators = op
+        new_mx = self.internal_coords.chain_operators[0]["mx"] @ m2m3
+        new_ori = (self.internal_coords.chain_operators[0]["ori"] - self.ic_ori) @ m2m3 + self.origin
+        op[0] = {"mx": new_mx, "ori": new_ori}
+
+        self.internal_coords.chain_operators = [op]
 
         # Update backbone conf
         alist = ["O"] if not self.use_H else ["H", 'O']
         for atom in alist:
-            mask = self.internal_coords[0].atom_names == atom
+            mask = self.internal_coords.atom_names == atom
             if any(mask) and self.protein is not None:
-
-                ICatom = self.internal_coords[0].atoms[self.internal_coords[0].atom_names == atom][0]
-                dihe_def = tuple(reversed(ICatom.atom_names))
-
+                idx = np.argwhere(self.internal_coords.atom_names == atom).flat[0]
+                dihe_def = self.internal_coords.z_matrix_names[idx]
                 p = self.protein.select_atoms(
                     f"segid {self.chain} and resnum {self.site} and name {' '.join(dihe_def)} and not altloc B"
                 ).positions
@@ -508,6 +513,7 @@ class RotamerEnsemble:
                     p = p[[0, 1, 2, HN_idx]]
                 elif len(p) == 3:
                     continue
+
                 if atom == 'H':
                     # Reorder
                     p = p[[2, 1, 0, 3]]
@@ -516,15 +522,15 @@ class RotamerEnsemble:
                 ang = chilife.get_angle(p[1:])
                 bond = np.linalg.norm(p[-1] - p[-2])
                 idx = np.squeeze(np.argwhere(mask))
+                chain = self.internal_coords.chains[0]
+                resnum = self.internal_coords.atoms[0].resnum
+                if atom == 'O' and (tag := (chain, resnum, 'C', 'CA')) in self.internal_coords.chain_res_name_map:
+                    additional_idxs = self.internal_coords.chain_res_name_map[tag]
 
-                if atom == 'O' and (1, ('CA', 'C', 'O')) in self.internal_coords[0].atom_dict['dihedrals'][1]:
-                    additional_idxs = list(self.internal_coords[0].atom_dict['dihedrals'][1][(1, ('CA', 'C', 'O'))].values())
-
-                for IC in self.internal_coords:
-                    delta = IC.zmats[1][idx][2] - dihe
-                    IC.zmats[1][idx] = bond, ang, dihe
-                    if atom == "O" and 'additional_idxs' in locals():
-                        IC.zmats[1][additional_idxs, 2] -= delta
+                delta = self.internal_coords.trajectory.coordinate_array[:, idx, 2] - dihe
+                self.internal_coords.trajectory.coordinate_array[:, idx] = bond, ang, dihe
+                if atom == "O" and 'additional_idxs' in locals():
+                    self.internal_coords.trajectory.coordinate_array[:, additional_idxs, 2] -= delta[:, None]
 
     def backbone_to_site(self):
         """Modify additional backbone atoms to match the backbone of the site that the RotamerEnsemble is being attached
@@ -619,7 +625,7 @@ class RotamerEnsemble:
             return self._coords, self.weights, self.internal_coords
         elif hasattr(self, "internal_coords"):
             returnables = self._off_rotamer_sample(idx, off_rotamer, **kwargs)
-            return [np.squeeze(x) for x in returnables]
+            return [np.squeeze(x) if isinstance(x, np.ndarray) else x for x in returnables]
 
         else:
             raise AttributeError(
@@ -652,7 +658,7 @@ class RotamerEnsemble:
         ICs : List[chilife.ProteinIC] (Optional)
             Internal coordinate (ProteinIC) objects of the rotamer(s).
         """
-        new_weight = 0
+
         # Use accessible volume sampling if only provided a single rotamer
         if len(self._weights) == 1 or np.all(np.isinf(self.sigmas)):
             new_dihedrals = np.random.random((len(idx), len(off_rotamer))) * 2 * np.pi
@@ -675,17 +681,10 @@ class RotamerEnsemble:
 
         new_weights = self._weights[idx] * new_weights
 
-        ICs = [self._lib_IC[iidx].copy() for iidx in idx]
-        ICs = [IC.set_dihedral(new_dihedrals[i], 1, self.dihedral_atoms[off_rotamer]) for i, IC in enumerate(ICs)]
-
-        Zmat_idxs = np.array([IC.zmat_idxs[1] for IC in ICs])
-        Zmats = np.array([IC.zmats[1] for IC in ICs])
-        coords = batch_ic2cart(Zmat_idxs, Zmats)
-        mx, ori = ICs[0].chain_operators[1]["mx"], ICs[0].chain_operators[1]["ori"]
-        coords = np.einsum("ijk,kl->ijl", coords, mx) + ori
-        for i, IC in enumerate(ICs):
-            IC._coords = coords[i]
-        coords = coords[:, self.ic_mask]
+        z_matrix = self._lib_IC.batch_set_dihedrals(idx, new_dihedrals, 1, self.dihedral_atoms[off_rotamer])
+        ICs = self.internal_coords.copy()
+        ICs.load_new(z_matrix)
+        coords = ICs.protein.trajectory.coordinate_array[:, self.ic_mask]
 
         if kwargs.setdefault("return_dihedrals", False):
             return coords, new_weights, ICs
@@ -809,7 +808,9 @@ class RotamerEnsemble:
             keep_idx = arg_sort_weights[:cutoff]
 
         if len(self.weights) == len(self.internal_coords):
-            self.internal_coords = [self.internal_coords[x] for x in keep_idx]
+            self.internal_coords = self.internal_coords.copy()
+            self.internal_coords.use_frames(keep_idx)
+
         self._coords = self._coords[keep_idx]
         self._dihedrals = self._dihedrals[keep_idx]
         self.weights = self.weights[keep_idx]
@@ -928,11 +929,8 @@ class RotamerEnsemble:
         if isinstance(rotlib, Path) and not all(x in lib for x in chilife.rotlib_formats[lib['format_version']]):
             raise ValueError('The rotamer library does not contain all the required entries for the format version')
 
-        # Deep copy (mutable)  internal coords.
-        lib['internal_coords'] = [a.copy() for a in lib['internal_coords']]
-
         # Modify library to be appropriately used with self.__dict__.update
-        self._rotlib = {key: value.copy() if hasattr(value, 'copy') else value for key, value in lib.items()}
+        self._rotlib = {key: value.copy() if hasattr(value, 'copy') and key != 'internal_coords' else value for key, value in lib.items()}
 
         lib['_coords'] = lib.pop('coords').copy()
         lib['_dihedrals'] = lib.pop('dihedrals').copy()
@@ -979,7 +977,7 @@ class RotamerEnsemble:
 
         if self._minimize and self.eval_clash:
             raise RuntimeError('Both `minimize` and `eval_clash` options have been selected, but they are incompatible.'
-                               'Please select only on. Also note that minimize performs its own clash evaluations so '
+                               'Please select only one. Also note that minimize performs its own clash evaluations so '
                                'eval_clash is not necessary.')
         elif self.eval_clash:
             self.evaluate()
@@ -993,7 +991,7 @@ class RotamerEnsemble:
 
         if not hasattr(self, "_bonds"):
             icmask_map = {x: i for i, x in enumerate(self.ic_mask)}
-            self._bonds = np.array([(icmask_map[a], icmask_map[b]) for a, b in self.internal_coords[0].bonded_pairs
+            self._bonds = np.array([(icmask_map[a], icmask_map[b]) for a, b in self.internal_coords.bonds
                                    if a in icmask_map and b in icmask_map])
             
         return self._bonds
@@ -1011,8 +1009,9 @@ class RotamerEnsemble:
         have 1-n non-bonded interactions where `n=self._exclude_nb_interactions` . By default, 1-3 interactions are
         excluded"""
         if not hasattr(self, "_non_bonded"):
-            pairs = dict(nx.all_pairs_shortest_path(self._graph, self._exclude_nb_interactions - 1))
-            pairs = {(a, b) for a in pairs for b in pairs[a] if a < b}
+            pairs = {v.index: [path for path in self._graph.get_all_shortest_paths(v) if
+                           len(path) <= (self._exclude_nb_interactions)] for v in self._graph.vs}
+            pairs = {(a, c) for a in pairs for b in pairs[a] for c in b if a < c}
             all_pairs = set(combinations(range(len(self.atom_names)), 2))
             self._non_bonded = all_pairs - pairs
 
@@ -1085,21 +1084,11 @@ class RotamerEnsemble:
             raise ValueError('The number of atoms in the input array does not match the number of atoms of the residue')
 
         self._coords = coords
-        self.ICs_to_site()
+        self.internal_coords = self.internal_coords.copy()
+        self.internal_coords.set_cartesian_coords(coords, self.ic_mask)
 
-        if coords.shape[1] != len(self.internal_coords[0].coords):
-            tmp = np.array([np.empty_like(self.internal_coords[0].coords) for _ in coords])
-            tmp[:] = np.nan
-            tmp[:, self.ic_mask] = coords
-            coords = tmp
-
-        self.internal_coords = [self.internal_coords[0].copy() for _ in coords]
-        for ic, val in zip(self.internal_coords, coords):
-            ic.coords = val
-
-        self._dihedrals = np.rad2deg(
-            [IC.get_dihedral(1, self.dihedral_atoms) for IC in self.internal_coords]
-        )
+        # Check if they are all at the same site
+        self._dihedrals = np.rad2deg([ic.get_dihedral(1, self.dihedral_atoms) for ic in self.internal_coords])
 
         # Apply uniform weights
         self.weights = np.ones(len(self._dihedrals))
@@ -1112,18 +1101,21 @@ class RotamerEnsemble:
 
     @dihedrals.setter
     def dihedrals(self, dihedrals):
-        # TODO: Add warning about removing isomers
+
+        warnings.warn('WARNING: Setting dihedrals in this fashion will remove set all bond lengths and angles to that '
+                      'of the first rotamer in the library effectively removing stereo-isomers from the ensemble. It '
+                      'will also set all weights to .')
 
         dihedrals = dihedrals if dihedrals.ndim == 2 else dihedrals[None, :]
         if dihedrals.shape[1] != self.dihedrals.shape[1]:
             raise ValueError('The input array does not have the correct number of dihedrals')
 
         self._dihedrals = dihedrals
-        self.internal_coords = [self.internal_coords[0].copy().set_dihedral(np.deg2rad(dihedral),
-                                                                            1,
-                                                                            self.dihedral_atoms)
-                                for dihedral in dihedrals]
-        self._coords = np.array([ic.coords[self.ic_mask] for ic in self.internal_coords])
+        idxs = [0 for _ in range(len(dihedrals))]
+        z_matrix = self.internal_coords.batch_set_dihedrals(idxs, np.deg2rad(dihedrals), 1, self.dihedral_atoms)
+        self.internal_coords = self.internal_coords.copy()
+        self.internal_coords.load_new(z_matrix)
+        self._coords = self.internal_coords.protein.trajectory.coordinate_array.copy()[:, self.ic_mask]
         self.backbone_to_site()
 
         # Apply uniform weights

@@ -1,4 +1,4 @@
-import os, hashlib
+import os, hashlib, pickle
 import numpy as np
 import pytest
 import chilife
@@ -202,7 +202,7 @@ def test_ResidueSelection():
 
 
 def test_save_Protein():
-    p = chilife.Protein.from_pdb('test_data/1omp.pdb')
+    p = chilife.Protein.from_pdb('test_data/1omp.pdb', sort_atoms=True)
     p._fname = "my_protein"
     chilife.save('my_protein.pdb', p)
 
@@ -250,16 +250,23 @@ def test_trajectory_iter():
 
 
 def test_xl_protein_repack():
-    p = chilife.Protein.from_pdb('test_data/1omp.pdb')
-    SL = chilife.SpinLabel('R1M', 238, p)
-    np.random.seed(3000)
-    traj, dE = chilife.repack(p, SL, repetitions=10, temp=300)
 
-    ans = np.array([-1.08675007e-01, -3.43053024e+00,  0.00000000e+00, -5.80404097e-01,
-                     0.00000000e+00,  2.88657986e-15,  0.00000000e+00, -5.13825920e+00,
-                     6.96292024e-02,  2.93115207e-01])
+    np.random.seed(2)
+    protein = chilife.Protein.from_pdb("test_data/1ubq.pdb").select_atoms("protein")
+    SL = chilife.SpinLabel("R1M", site=28, protein=protein)
 
-    np.testing.assert_almost_equal(dE, ans, decimal=5)
+    traj1, deltaE1 = chilife.repack(protein, SL, repetitions=10, repack_radius=10)
+    traj2, deltaE2 = chilife.repack(protein, SL, repetitions=10, off_rotamer=True, repack_radius=10)
+
+    t1coords = traj1.universe.trajectory.coordinate_array
+    t2coords = traj2.universe.trajectory.coordinate_array
+
+    with np.load("test_data/repack_ans.npz") as f:
+        t1ans = f["traj1"]
+        t2ans = f["traj2"]
+
+    np.testing.assert_almost_equal(t1coords, t1ans, decimal=4)
+    np.testing.assert_almost_equal(t2coords, t2ans, decimal=4)
 
 
 def test_same_as_mda():
@@ -277,7 +284,7 @@ def test_same_as_mda():
 
 
 def test_xl_protein_mutate():
-    p = chilife.Protein.from_pdb('test_data/1omp.pdb')
+    p = chilife.Protein.from_pdb('test_data/1omp.pdb', sort_atoms=True)
     SL = chilife.SpinLabel('R1M', 238, p)
     pSL = chilife.mutate(p, SL)
     pSL._fname = 'test_mutate'
@@ -338,3 +345,73 @@ def test_copy():
     prot2 = prot.copy()
     np.testing.assert_equal(prot2.coords, prot.coords)
     assert prot2.coords is not prot
+
+def test_setattr1():
+    prot2 = prot.copy()
+    prot2.names = 'test'
+    assert np.all(prot2.names == 'test')
+
+
+def test_setattr2():
+    prot2 = prot.copy()
+
+    asel = prot2.select_atoms('resname ARG')
+    mask = np.argwhere(prot2.resnames == 'ARG').flatten()
+
+    asel.resnames = 'TES'
+    assert np.all(asel.resnames == 'TES')
+    assert np.all(prot2.resnames[mask] == 'TES')
+
+
+def test_pickle():
+    mol = Protein.from_pdb('test_data/PPII_Capped.pdb')
+    with open('tmp.pkl', 'wb') as f:
+        pickle.dump(mol, f)
+
+    del mol
+    with open('tmp.pkl', 'rb') as f:
+        mol = pickle.load(f)
+
+    ans = Protein.from_pdb('test_data/PPII_Capped.pdb')
+
+    assert mol is not ans
+
+    np.testing.assert_equal(mol.names, ans.names)
+    np.testing.assert_equal(mol.resnames, ans.resnames)
+    np.testing.assert_equal(mol.coords, ans.coords)
+
+
+def test_pickle_selection():
+    mol = Protein.from_pdb('test_data/PPII_Capped.pdb').atoms
+    with open('tmp.pkl', 'wb') as f:
+        pickle.dump(mol, f)
+
+    del mol
+    with open('tmp.pkl', 'rb') as f:
+        mol = pickle.load(f)
+
+    ans = Protein.from_pdb('test_data/PPII_Capped.pdb').atoms
+
+    assert mol is not ans
+
+    np.testing.assert_equal(mol.names, ans.names)
+    np.testing.assert_equal(mol.resnames, ans.resnames)
+    np.testing.assert_equal(mol.coords, ans.coords)
+
+
+def test_from_atomsel():
+    # MDAnalysis test
+    atomsel = mda_prot.select_atoms('resnum 30-150')
+    new_prot = Protein.from_atomsel(atomsel)
+
+    np.testing.assert_equal(new_prot.positions, atomsel.positions)
+    np.testing.assert_equal(new_prot.ix + 435, atomsel.ix)
+    assert len(new_prot.trajectory) == len(atomsel.universe.trajectory)
+
+    # chiLife Protein test
+    atomsel = prot.select_atoms('resnum 30-150')
+    new_prot = Protein.from_atomsel(atomsel)
+
+    np.testing.assert_equal(new_prot.positions, atomsel.positions)
+    np.testing.assert_equal(new_prot.ix + 435, atomsel.ix)
+    assert len(new_prot.trajectory) == len(atomsel.universe.trajectory)

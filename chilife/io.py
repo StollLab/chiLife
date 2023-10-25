@@ -1,4 +1,5 @@
 from typing import Tuple, Dict, Union, BinaryIO, TextIO
+from numpy.typing import ArrayLike
 from collections import defaultdict
 from hashlib import sha256
 from pathlib import Path
@@ -79,13 +80,19 @@ def read_rotlib(rotlib: Union[Path, BinaryIO] = None) -> Dict:
 
     """
     with np.load(rotlib, allow_pickle=True) as files:
+        if files['format_version'] <= 1.1:
+            raise RuntimeError('The rotlib that was provided is an old version that is not compatible with your '
+                               'version of chiLife. You can either remake the rotlib, or use the update_rotlib.py '
+                               'script provided in the chilife scripts directory to update this rotamer library to the '
+                               'new format.')
+
         lib = dict(files)
 
     del lib["allow_pickle"]
 
     if "sigmas" not in lib:
         lib["sigmas"] = np.array([])
-
+    lib['internal_coords'] = lib['internal_coords'].item()
     lib["_rdihedrals"] = np.deg2rad(lib["dihedrals"])
     lib["_rsigmas"] = np.deg2rad(lib["sigmas"])
     lib['rotlib'] = str(lib['rotlib'])
@@ -172,30 +179,30 @@ def read_bbdep(res: str, Phi: int, Psi: int) -> Dict:
         dihedral_atoms = chilife.dihedral_defs[res][:nchi]
 
         # Calculate cartesian coordinates for each rotamer
-        coords = []
-        internal_coords = []
-        for r in lib["dihedrals"]:
-            ICn = ICs.copy().set_dihedral(np.deg2rad(r), 1, atom_list=dihedral_atoms)
-
-            coords.append(ICn.to_cartesian())
-            internal_coords.append(ICn)
+        z_matrix = ICs.batch_set_dihedrals(np.zeros(len(lib['dihedrals']), dtype=int), np.deg2rad(lib['dihedrals']), 1, dihedral_atoms)
+        ICs._chain_operators = ICs._chain_operators[0]
+        ICs.load_new(np.array(z_matrix))
+        internal_coords = ICs.copy()
+        coords = ICs.protein.trajectory.coordinate_array.copy()
 
     else:
         lib["weights"] = np.array([1])
         lib["dihedrals"], lib["sigmas"], dihedral_atoms = [], [], []
-        coords = [ICs.to_cartesian()]
-        internal_coords = [ICs.copy()]
+        coords = ICs.to_cartesian()[None, ...]
+        internal_coords = ICs.copy()
 
     # Get origin and rotation matrix of local frame
     mask = np.in1d(atom_names, ["N", "CA", "C"])
-    ori, mx = chilife.local_mx(*coords[0][mask])
+    ori, mx = chilife.local_mx(*coords[0, mask])
 
     # Set coords in local frame and prepare output
-    lib["coords"] = np.array([(coord - ori) @ mx for coord in coords])
+    coords -= ori
+
+    lib["coords"] = np.einsum('ijk,kl->ijl', coords, mx)
     lib["internal_coords"] = internal_coords
-    lib["atom_types"] = np.asarray(atom_types)
-    lib["atom_names"] = np.asarray(atom_names)
-    lib["dihedral_atoms"] = np.asarray(dihedral_atoms)
+    lib["atom_types"] = np.asarray(atom_types, dtype=str)
+    lib["atom_names"] = np.asarray(atom_names, dtype=str)
+    lib["dihedral_atoms"] = np.asarray(dihedral_atoms, dtype=str)
     lib["_rdihedrals"] = np.deg2rad(lib["dihedrals"])
     lib["_rsigmas"] = np.deg2rad(lib["sigmas"])
     lib['rotlib'] = res
@@ -411,10 +418,10 @@ def write_ic(pdbfile: TextIO, ic: chilife.ProteinIC) -> None:
         chiLife internal coordinates object.
     """
     pdbfile.write('MODEL\n')
-    for atom, coord in zip(ic.atoms, ic.coords):
-        pdbfile.write(fmt_str.format(atom.index + 1, atom.name, atom.resn, 'A', atom.resi,
+    for i, (atom, coord) in enumerate(zip(ic.atoms, ic.coords)):
+        pdbfile.write(fmt_str.format(i + 1, atom.name, atom.resname, atom.segid, atom.resnum,
                                      coord[0], coord[1], coord[2],
-                                     1.0, 1.0, atom.atype))
+                                     1.0, 1.0, atom.type))
     pdbfile.write('ENDMDL\n')
 
 
@@ -514,6 +521,27 @@ def write_labels(pdb_file: TextIO, *args: SpinLabel, KDE: bool = True, sorted: b
 
         pdb_file.write("TER\n")
 
+def write_atoms(f, atoms: ArrayLike, coords: ArrayLike) -> None:
+    """Save a single state pdb structure of the provided atoms and coords.
+
+    Parameters
+    ----------
+    f : IO object
+
+    atoms : ArrayLike
+        List of Atom objects to be saved
+    coords : ArrayLike
+        Array of atom coordinates corresponding to atoms
+    """
+
+    for atom, coord in zip(atoms, coords):
+        f.write(
+            f"ATOM  {atom.index + 1:5d} {atom.name:^4s} {atom.resname:3s} {'A':1s}{atom.resnum:4d}    "
+            f"{coord[0]:8.3f}{coord[1]:8.3f}{coord[2]:8.3f}{1.0:6.2f}{1.0:6.2f}          {atom.type:>2s}  \n"
+        )
+
+
+
 molecule_class = {RotamerEnsemble: 'rotens',
                   dRotamerEnsemble: 'rotens',
                   IntrinsicLabel: 'rotens',
@@ -538,5 +566,5 @@ rotlib_formats = {1.0: (
 )}
 
 rotlib_formats[1.1] = *rotlib_formats[1.0], 'description', 'comment', 'reference'
-
+rotlib_formats[1.2] = rotlib_formats[1.0]
 

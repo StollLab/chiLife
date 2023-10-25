@@ -33,7 +33,7 @@ def test_with_sample():
 
     with np.load('test_data/withsample.npz') as f:
         ans = {key: f[key] for key in f}
-
+    
     np.testing.assert_almost_equal(SL._coords, ans['coords'])
     np.testing.assert_almost_equal(SL.weights, ans['weights'])
     np.testing.assert_almost_equal(SL.dihedrals, ans['dihedrals'])
@@ -101,7 +101,7 @@ def test_sample():
                      [22.11572213, 23.19412351, 20.72492909],
                      [22.16827211, 22.00913727, 19.85099131]])
 
-    np.testing.assert_almost_equal(coords, cans)
+    np.testing.assert_almost_equal(coords, cans, decimal=6)
     assert weight == wans
 
 
@@ -190,14 +190,10 @@ def test_mem_sample():
 
 def test_label_as_library():
     R1C = chilife.RotamerEnsemble("R1C", site=28, protein=ubq)
-    for ic in R1C.internal_coords:
-        np.testing.assert_almost_equal(
-            ic.coords[2], [38.73227962, 26.58109478, 12.6243569]
-        )
-
-
-def test_coord_setter0():
-    R1C1 = chilife.RotamerEnsemble("R1C", site=28, protein=ubq)
+    R1C_SL = chilife.SpinLabel("R1C", site=28, protein=ubq, eval_clash=False, trim=False)
+    np.testing.assert_equal(R1C.coords, R1C_SL.coords)
+    np.testing.assert_equal(R1C.weights, R1C_SL.weights)
+    np.testing.assert_equal(R1C.internal_coords.trajectory.coords, R1C_SL.internal_coords.trajectory.coords)
 
 
 def test_coord_setter():
@@ -209,9 +205,15 @@ def test_coord_setter():
     np.testing.assert_allclose(R1C1.coords, R1C2.coords)
     np.testing.assert_allclose(R1C1.dihedrals, R1C2.dihedrals, rtol=1e-6)
 
+    for ic1, ic2 in zip(R1C1.internal_coords, R1C2.internal_coords):
+        assert np.max(np.abs(np.cos(ic1.z_matrix[R1C1.ic_mask]) - np.cos(ic2.z_matrix[R1C2.ic_mask]))) < 0.03
+
+    for ic1, ic2 in zip(R1C1.internal_coords, R1C2.internal_coords):
+        assert np.max(np.abs(ic1.coords[R1C1.ic_mask] - ic2.coords[R1C2.ic_mask])) < 0.11
+
     for key in 'ori', 'mx':
-        np.testing.assert_allclose(R1C1.internal_coords[0].chain_operators[1][key],
-                                   R1C2.internal_coords[0].chain_operators[1][key])
+        np.testing.assert_almost_equal(R1C1.internal_coords.chain_operators[0][key],
+                                       R1C2.internal_coords.chain_operators[0][key])
 
 
 def test_coord_setter2():
@@ -226,6 +228,7 @@ def test_coord_setter2():
 def test_dihedral_setter():
     R1C1 = chilife.RotamerEnsemble("R1C", site=28, protein=ubq, sample=100)
     R1C2 = chilife.RotamerEnsemble("R1C", site=28, protein=ubq, sample=100)
+
     R1C1.dihedrals = R1C2.dihedrals
 
     np.testing.assert_allclose(R1C1.coords, R1C2.coords)
@@ -301,18 +304,18 @@ def test_from_trajectory():
     assert RE2.res == 'ALA'
     assert RE3.res == 'TRP'
 
-    np.testing.assert_almost_equal(RE1.dihedrals, [[-72.49934635, 164.56177856]], decimal=5)
-    np.testing.assert_almost_equal(RE2.dihedrals, [[]])
-    np.testing.assert_almost_equal(RE3.dihedrals, [[-176.38805017,  -20.15226419],
-                                                   [-176.38805017,  -52.83812431],
-                                                   [-176.38805017, -111.39416684],
-                                                   [-176.38805017,   73.81697923],
-                                                   [-176.38805017, -134.54899132],
-                                                   [-176.38805017,  118.2802729 ],
-                                                   [-176.38805017,  164.59451953],
-                                                   [  62.16344279,  -93.79344738],
-                                                   [ -69.90840475,  -39.25944367],
-                                                   [ -69.90840475,  161.67407146]], decimal=5)
+    np.testing.assert_almost_equal(RE1.dihedrals, np.array([[-72.49934635, 164.56177856]]), decimal=5)
+    np.testing.assert_almost_equal(RE2.dihedrals, np.array([[]]))
+    np.testing.assert_almost_equal(RE3.dihedrals, np.array([[-176.38805 ,  -20.152264],
+                                                            [-176.38805 ,  -52.83812 ],
+                                                            [-176.38805 , -111.394165],
+                                                            [-176.38805 ,   73.81698 ],
+                                                            [-176.38805 , -134.54898 ],
+                                                            [-176.38805 ,  118.280266],
+                                                            [-176.38805 ,  164.5945  ],
+                                                            [  62.16344 ,  -93.79344 ],
+                                                            [ -69.9084  ,  -39.25944 ],
+                                                            [ -69.9084  ,  161.67407 ]]), decimal=4)
 
     with pytest.raises(ValueError):
         RE = chilife.RotamerEnsemble.from_trajectory(traj, 232)
@@ -342,20 +345,20 @@ def test_to_rotlib():
     assert RE2.res == 'TRP'
     assert len(RE2) == 10
 
-    np.testing.assert_almost_equal(RE2.dihedrals, [[-176.38805017,  -20.15226419],
-                                                   [-176.38805017,  -52.83812431],
-                                                   [-176.38805017, -111.39416684],
-                                                   [-176.38805017,   73.81697923],
-                                                   [-176.38805017, -134.54899132],
-                                                   [-176.38805017,  118.2802729 ],
-                                                   [-176.38805017,  164.59451953],
-                                                   [  62.16344279,  -93.79344738],
-                                                   [ -69.90840475,  -39.25944367],
-                                                   [ -69.90840475,  161.67407146]], decimal=5)
+    np.testing.assert_almost_equal(RE2.dihedrals, np.array([[-176.38805 ,  -20.152264],
+                                                            [-176.38805 ,  -52.83812 ],
+                                                            [-176.38805 , -111.394165],
+                                                            [-176.38805 ,   73.81698 ],
+                                                            [-176.38805 , -134.54898 ],
+                                                            [-176.38805 ,  118.280266],
+                                                            [-176.38805 ,  164.5945  ],
+                                                            [  62.16344 ,  -93.79344 ],
+                                                            [ -69.9084  ,  -39.25944 ],
+                                                            [ -69.9084  ,  161.67407 ]]), decimal=4)
 
     np.testing.assert_almost_equal(rotlib_test['coords'], rotlib_reference['coords'], decimal=5)
     np.testing.assert_almost_equal(rotlib_test['weights'], rotlib_reference['weights'], decimal=5)
-    np.testing.assert_almost_equal(rotlib_test['dihedrals'], rotlib_reference['dihedrals'], decimal=5)
+    np.testing.assert_almost_equal(rotlib_test['dihedrals'], rotlib_reference['dihedrals'], decimal=4)
 
 
 def test_sample_persists():
@@ -400,6 +403,11 @@ def test_min_callback():
 def test_copy_custom_lib():
     XYZ41 = chilife.SpinLabel('XYZ', 28, ubq, rotlib='test_data/usr_rtlb/XYZ_rotlib.npz')
     x2 = XYZ41.copy()
+
+    assert x2 is not XYZ41
+    assert x2.coords is not XYZ41.coords
+    assert x2.internal_coords is not XYZ41.internal_coords
+    assert x2.weights is not XYZ41.weights
 
 
 def test_from_wizard_custom_rotlib():

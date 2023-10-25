@@ -1,4 +1,4 @@
-import networkx as nx
+import igraph as ig
 from copy import deepcopy
 from itertools import combinations
 import logging
@@ -52,6 +52,17 @@ class dRotamerEnsemble:
 
         self.cst_idx1 = np.where(self.RE1.atom_names[None, :] == self.csts[:, None])[1]
         self.cst_idx2 = np.where(self.RE2.atom_names[None, :] == self.csts[:, None])[1]
+
+        _, idx1 = np.unique(self.cst_idx1, return_index=True)
+        _, idx2 = np.unique(self.cst_idx2, return_index=True)
+
+        self.cst_idx1 = self.cst_idx1[np.sort(idx1)]
+        self.cst_idx2 = self.cst_idx2[np.sort(idx2)]
+
+        for i in range(1, len(self.cst_idx2)):
+            if self.RE2.atom_names[self.cst_idx2[i]] == self.RE2.atom_names[self.cst_idx2[i-1]]:
+                self.cst_idx2[i - 1], self.cst_idx2[i] = self.cst_idx2[i], self.cst_idx2[i - 1]
+
         self.rl1mask = np.argwhere(~np.isin(self.RE1.atom_names, self.csts)).flatten()
         self.rl2mask = np.argwhere(~np.isin(self.RE2.atom_names, self.csts)).flatten()
 
@@ -65,8 +76,7 @@ class dRotamerEnsemble:
             f"resid {self.site1} {self.site2} and segid {self.chain} and not altloc B"
         )
 
-        self._graph = nx.Graph()
-        self._graph.add_edges_from(self.bonds)
+        self._graph = ig.Graph(edges=self.bonds)
 
         self.clash_radius = kwargs.setdefault("clash_radius", None)
         if self.clash_radius is None:
@@ -169,7 +179,6 @@ class dRotamerEnsemble:
             libA, libB, csts = chilife.read_library(rotlib_path)
 
         elif isinstance(rotlib_path, list):
-            concatable = ['dihedrals', 'internal_coords']
 
             cctA, cctB, ccsts = {}, {}, {}
             libA, libB, csts = chilife.read_library(rotlib_path[0])
@@ -199,19 +208,21 @@ class dRotamerEnsemble:
                     cct.setdefault('coords', []).append(tlib['coords'][:, ixmap])
 
                     # Create new internal coords if they are defined differently
-                    lib_ic, tlib_ic = lib['internal_coords'][0], tlib['internal_coords'][0]
+                    lib_ic, tlib_ic = lib['internal_coords'], tlib['internal_coords']
                     if np.any(lib_ic.atom_names != tlib_ic.atom_names):
                         uni.load_new(cct['coords'][-1])
-                        ics = [chilife.get_internal_coords(uni, lib['dihedral_atoms'], lib_ic.bonded_pairs)
-                               for ts in uni.trajectory]
-                        tlib['internal_coords'] = ics
+                        tlib_ic = chilife.ProteinIC.from_protein(uni, lib['dihedral_atoms'], lib_ic.bonds)
 
-                    for field in concatable:
-                        cct.setdefault(field, []).append(tlib[field])
+                    tlib['zmats'] = tlib_ic.trajectory.coordinate_array
+                    cct.setdefault('dihedrals', []).append(tlib['dihedrals'])
+                    cct.setdefault('zmats', []).append(tlib['zmats'])
 
-                    for field in concatable + ['coords']:
-                        lib[field] = np.concatenate(cct[field])
+            for field in ('dihedrals', 'coords', 'zmats'):
+                libA[field] = np.concatenate(cctA[field])
+                libB[field] = np.concatenate(cctB[field])
 
+            libA['internal_coords'].load_new(libA.pop('zmats'))
+            libB['internal_coords'].load_new(libB.pop('zmats'))
             libA['weights'] = libB['weights'] = np.ones(len(libA['coords'])) / len(libA['coords'])
 
         self.csts = csts
@@ -358,7 +369,7 @@ class dRotamerEnsemble:
     def atom_types(self):
         return np.concatenate((self.RE1.atom_types[self.rl1mask],
                                self.RE2.atom_types[self.rl2mask],
-                               self.RE1.atom_types[self.cst_idx2]))
+                               self.RE1.atom_types[self.cst_idx1]))
 
     @property
     def dihedral_atoms(self):
@@ -455,8 +466,9 @@ class dRotamerEnsemble:
         """ list of indices of intra-label non-bonded atom pairs. Primarily used for internal clash evaluation when
         sampling the dihedral space"""
         if not hasattr(self, "_non_bonded"):
-            pairs = dict(nx.all_pairs_shortest_path(self._graph, self._exclude_nb_interactions - 1))
-            pairs = {(a, b) for a in pairs for b in pairs[a] if a < b}
+            pairs = {v.index: [path for path in self._graph.get_all_shortest_paths(v) if
+                           len(path) <= (self._exclude_nb_interactions)] for v in self._graph.vs}
+            pairs = {(a, c) for a in pairs for b in pairs[a] for c in b if a < c}
             all_pairs = set(combinations(range(len(self.atom_names)), 2))
             self._non_bonded = all_pairs - pairs
 

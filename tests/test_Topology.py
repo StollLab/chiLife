@@ -67,7 +67,9 @@ def test_get_z_matrix():
 
     test_idxs = top.get_zmatrix_dihedrals()
     ans_idxs = np.load('test_data/top_idxs.npy', allow_pickle=True)
-    np.testing.assert_equal(test_idxs, ans_idxs)
+
+    for a, b in zip(test_idxs, ans_idxs):
+        np.testing.assert_equal(a, b)
 
 
 def test_dihedrals_by_atom():

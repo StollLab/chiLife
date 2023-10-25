@@ -26,6 +26,7 @@ setup(
     python_requires='>=3.8',
     packages=['chilife'],
     package_data={'chilife': ['data/*', 'data/*/*', 'data/*/*/*']},
+    scripts=['scripts/*'],
     license='GNU GPLv3',
     license_files=('LICENSE'),
     author='Maxx Tessmer',

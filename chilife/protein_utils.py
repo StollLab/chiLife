@@ -18,7 +18,7 @@ from .numba_utils import get_sasa
 from .RotamerEnsemble import RotamerEnsemble
 from .dRotamerEnsemble import dRotamerEnsemble
 
-import networkx as nx
+import igraph as ig
 
 
 def get_dihedral_rotation_matrix(theta: float, v: ArrayLike) -> ArrayLike:
@@ -100,6 +100,45 @@ def get_dihedral(p: ArrayLike) -> float:
 
     return dihedral
 
+def get_dihedrals(p1: ArrayLike, p2: ArrayLike, p3: ArrayLike, p4: ArrayLike) -> ArrayLike:
+    """Vectorized version of get_dihedral
+
+    Parameters
+    ----------
+    p1 : ArrayLike
+        Array containing coordinates of the first point in the dihedral.
+    p2 : ArrayLike
+        Array containing coordinates of the second point in the dihedral
+    p3 : ArrayLike
+        Array containing coordinates of the third point in the dihedral
+    p4 : ArrayLike
+        Array containing coordinates of the fourth point in the dihedral
+
+    Returns
+    -------
+    dihedrals : ArrayLike
+        Dihedral angles in radians.
+    """
+
+    # Define vectors from coordinates
+    b0 = p1 - p2
+    b1 = p3 - p2
+    b2 = p4 - p3
+
+    # Normalize dihedral bond vector
+    b1 /= np.linalg.norm(b1, axis=-1)[:, None]
+
+    # Calculate dihedral projections orthogonal to the bond vector
+    v = b0 - np.einsum('ij,ij->i', b0, b1)[:, None] * b1
+    w = b2 - np.einsum('ij,ij->i',b2, b1)[:, None] * b1
+
+    # Calculate angle between projections
+    x = np.einsum('ij,ij->i', v, w)
+    y = np.einsum('ij,ij->i', np.cross(b1, v, axis=-1), w)
+
+    dihedral = np.arctan2(y, x)
+
+    return dihedral
 
 def get_angle(p: ArrayLike) -> float:
     r"""Calculate the angle created by 3 points.
@@ -131,6 +170,36 @@ def get_angle(p: ArrayLike) -> float:
     angle = math.atan2(Y, X)
 
     return angle
+
+
+def get_angles(p1: ArrayLike, p2: ArrayLike, p3: ArrayLike) -> ArrayLike:
+    r"""Vectorized version of get_angle.
+
+    Parameters
+    ----------
+    p1: ArrayLike :
+        Array of first points in the angles.
+    p2: ArrayLike :
+        Array of second points in the angles.
+    p3: ArrayLike :
+        Array of third points in angle.
+
+
+    Returns
+    -------
+    angles : float
+        Array of anlges.
+
+    """
+    v1 = p1 - p2
+    v2 = p3 - p2
+    X =  np.einsum('ij,ij->i', v1, v2)
+    Y = np.cross(v1, v2, axis=-1)
+    Y = np.sqrt((Y * Y).sum(axis=-1))
+
+    angles = np.arctan2(Y, X)
+
+    return angles
 
 
 def set_dihedral(p: ArrayLike, angle: float, mobile: ArrayLike) -> ArrayLike:
@@ -337,25 +406,6 @@ def save_pdb(name: Union[str, Path], atoms: ArrayLike, coords: ArrayLike, mode: 
             )
         f.write('ENDMDL\n')
 
-def write_atoms(f, atoms: ArrayLike, coords: ArrayLike) -> None:
-    """Save a single state pdb structure of the provided atoms and coords.
-
-    Parameters
-    ----------
-    f : IO object
-
-    atoms : ArrayLike
-        List of Atom objects to be saved
-    coords : ArrayLike
-        Array of atom coordinates corresponding to atoms
-    """
-
-    for atom, coord in zip(atoms, coords):
-        f.write(
-            f"ATOM  {atom.index + 1:5d} {atom.name:^4s} {atom.resn:3s} {'A':1s}{atom.resi:4d}    "
-            f"{coord[0]:8.3f}{coord[1]:8.3f}{coord[2]:8.3f}{1.0:6.2f}{1.0:6.2f}          {atom.atype:>2s}  \n"
-        )
-
 
 def get_missing_residues(
         protein: Union[MDAnalysis.Universe, MDAnalysis.AtomGroup],
@@ -394,7 +444,10 @@ def get_missing_residues(
 
         # Check if there are any missing heavy atoms
         heavy_atoms = res.atoms.types[res.atoms.types != "H"]
-        if len(heavy_atoms) != cache.get(res.resname, len(RotamerEnsemble(res.resname).atom_names)):
+        resn = res.resname
+
+        a = cache.setdefault(resn, len(RotamerEnsemble(resn).atom_names))
+        if len(heavy_atoms) != a:
             missing_residues.append(
                 RotamerEnsemble(
                     res.resname,
@@ -764,8 +817,8 @@ def guess_bonds(coords: ArrayLike, atom_types: ArrayLike) -> np.ndarray:
 
     dist = np.linalg.norm(coords[a_atoms] - coords[b_atoms], axis=1)
     bonds = pairs[dist < bond_lengths]
-
-    return bonds
+    sorted_args = np.lexsort((bonds[:, 0], bonds[:,1]))
+    return bonds[sorted_args]
 
 
 def get_min_topol(lines: List[List[str]],
@@ -863,7 +916,6 @@ def sort_pdb(pdbfile: Union[str, List[str], List[List[str]]],
     lines : List[str], List[List[str]]
         Sorted list of strings corresponding to the ATOM entries of a PDB file.
     """
-
     if isinstance(pdbfile, (str, Path)):
         with open(pdbfile, "r") as f:
             lines = f.readlines()
@@ -882,7 +934,8 @@ def sort_pdb(pdbfile: Union[str, List[str], List[List[str]]],
 
         # Use connect information for bonds if present
         if connect != [] and bonds == set():
-            bonds, _, _ = parse_connect(connect)
+            connect, _, _ = parse_connect(connect)
+            kwargs['additional_bonds'] = kwargs.get('additional_bonds', set()) | connect
 
         # If it's a multi-state pdb...
         if start_idxs != []:
@@ -932,6 +985,7 @@ def _sort_pdb_lines(lines, bonds=None, index=False, **kwargs) -> \
         Additional keyword arguments.
         return_bonds : bool
             Return bond indices as well, usually only used when letting the function guess the bonds.
+        additional_bonds: set(tuple(int))
 
     Returns
     -------
@@ -941,7 +995,9 @@ def _sort_pdb_lines(lines, bonds=None, index=False, **kwargs) -> \
         A set of tuples containing pars of indices corresponding to the atoms bound to in lines.
     """
 
-    lines = [line for line in lines if line.startswith(("ATOM", "HETATM"))]
+    waters = [line for line in lines if line[17:20] in ('SOL', 'HOH')]
+    water_idx = [idx for idx, line in enumerate(lines) if line[17:20] in ('SOL', 'HOH')]
+    lines = [line for line in lines if line.startswith(("ATOM", "HETATM")) and line[17:20] not in ('SOL', 'HOH')]
     n_atoms = len(lines)
     index_key = {line[6:11]: i for i, line in enumerate(lines)}
 
@@ -960,7 +1016,8 @@ def _sort_pdb_lines(lines, bonds=None, index=False, **kwargs) -> \
     else:
         bonds = guess_bonds(coords, atypes)
         presort_bonds = set(tuple(sorted((b1, b2))) for b1, b2 in bonds)
-
+        if kwargs.get('additional_bonds', set()) != set():
+            presort_bonds.union(kwargs['additional_bonds'])
     # get residue groups
     chain, resi = lines[0][21], int(lines[0][22:26].strip())
     start = 0
@@ -1005,24 +1062,24 @@ def _sort_pdb_lines(lines, bonds=None, index=False, **kwargs) -> \
             bonds = np.asarray(bonds)
 
             # Get all nearest neighbors and sort by distance
-            try:
-                distances = np.linalg.norm(coords[start:stop][bonds[:, 0]] - coords[start:stop][bonds[:, 1]], axis=1)
-            except:
-                breakpoint()
+            distances = np.linalg.norm(coords[start:stop][bonds[:, 0]] - coords[start:stop][bonds[:, 1]], axis=1)
             distances = np.around(distances, decimals=3)
+
             idx_sort = np.lexsort((bonds[:, 0], bonds[:, 1], distances))
             pairs = bonds[idx_sort]
             pairs = [pair for pair in pairs if np.any(~np.isin(pair, sorted_args))]
 
-            graph = nx.Graph()
-            graph.add_edges_from(pairs)
+            graph = ig.Graph(edges=pairs)
+
+            if root_idx not in graph.vs.indices:
+                root_idx = min(graph.vs.indices)
 
             # Start stemming from CA atom
-            CA_edges = [edge[1] for edge in nx.bfs_edges(graph, root_idx) if edge[1] not in sorted_args]
+            CA_edges = [edge[1] for edge in bfs_edges(pairs, root_idx) if edge[1] not in sorted_args]
 
             # Check for disconnected parts of residue
-            if not nx.is_connected(graph):
-                for g in nx.connected_components(graph):
+            if not graph.is_connected():
+                for g in graph.connected_components():
                     if np.any([arg in g for arg in sorted_args]):
                         continue
                     CA_nodes = [idx for idx in CA_edges if atypes[start + idx] != 'H']
@@ -1030,9 +1087,9 @@ def _sort_pdb_lines(lines, bonds=None, index=False, **kwargs) -> \
                     near_root = cdist(coords[start:stop][CA_nodes], coords[start:stop][g_nodes]).argmin()
 
                     yidx = near_root % len(g_nodes)
-                    CA_edges += [g_nodes[yidx]] + [edge[1]
-                                                   for edge in nx.bfs_edges(graph, g_nodes[yidx])
-                                                   if edge[1] not in sorted_args]
+                    subnodes, _, _ = graph.bfs(g_nodes[yidx])
+                    CA_edges += list(subnodes)
+
         elif stop - start > n_heavy:
             # Assumes  non-heavy atoms come after the heavy atoms, which should be true because of the pre-sort
             CA_edges = list(range(n_heavy, n_heavy + (stop - start - len(sorted_args))))
@@ -1061,11 +1118,11 @@ def _sort_pdb_lines(lines, bonds=None, index=False, **kwargs) -> \
     # Return line indices if requested
     if index:
         str_lines = lines
-        lines = [index_key[line[6:11]] for line in lines]
+        lines = [index_key[line[6:11]] for line in lines] + water_idx
 
     # Otherwise make new indices
     else:
-        lines = [line[:6] + f"{i + 1:5d}" + line[11:] for i, line in enumerate(lines)]
+        lines = [line[:6] + f"{i + 1:5d}" + line[11:] for i, line in enumerate(lines)] + waters
 
     if kwargs.get('return_bonds', False):
         bonds = {tuple(sorted((idxmap[a], idxmap[b]))) for a, b in input_bonds}
@@ -1149,6 +1206,42 @@ def make_mda_uni(anames: ArrayLike,
     mda_uni.add_TopologyAttr(Segindices())
 
     return mda_uni
+
+
+def neighbors(edges, node):
+    nbs = []
+    for edge in edges:
+        if node not in edge:
+            continue
+        elif node == edge[0]:
+            nbs.append(edge[1])
+        elif node == edge[1]:
+            nbs.append(edge[0])
+    return nbs
+
+
+def bfs_edges(edges, root):
+    nodes = np.unique(edges)
+
+    depth_limit = len(nodes)
+    seen = {root}
+
+    n = len(nodes)
+    depth = 0
+    next_parents_children = [(root, neighbors(edges, root))]
+
+    while next_parents_children and depth < depth_limit:
+        this_parents_children = next_parents_children
+        next_parents_children = []
+        for parent, children in this_parents_children:
+            for child in children:
+                if child not in seen:
+                    seen.add(child)
+                    next_parents_children.append((child, neighbors(edges, child)))
+                    yield parent, child
+            if len(seen) == n:
+                return
+        depth += 1
 
 
 DATA_DIR = Path(__file__).parent.absolute() / "data/"

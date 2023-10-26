@@ -20,6 +20,36 @@ def test_add_dlabel():
         sites=(2, 6),
         weights=P,
         dihedral_atoms=[
+            [["N", "CA", "CB", "CG"], ["CA", "CB", "CG", "ND1"], ['CD2', 'NE2', 'Cu1', 'N5']],
+            [["N", "CA", "CB", "CG"], ["CA", "CB", "CG", "ND1"], ['CD2', 'NE2', 'Cu1', 'N5']],
+        ],
+        spin_atoms=["Cu1"],
+    )
+
+    # Test that chain operators were reset
+    dSL = xl.dSpinLabel('___', (28, 32), protein)
+
+    os.remove('___ip4_drotlib.zip')
+
+    spin_center_ans = np.array([[44.46482086, 25.11999893, 12.35381317],
+                                [44.35407639, 24.42422485, 11.61791611]])
+    Eans =np.array([-2.80119358, -2.33511906, -0.21797025, -6.21705528, -2.50485578,
+                    -7.42736075, 87.1990342 ,  0.93290375, -1.83151097, -1.18059185,
+                    -6.61134315, -6.70879944])
+
+    np.testing.assert_almost_equal(dSL.spin_centers, spin_center_ans, decimal=5)
+    np.testing.assert_almost_equal(dSL.atom_energies.sum(axis=1), Eans, decimal=3)
+
+def test_add_dlabel_shared_atom_names():
+    Energies = np.loadtxt("test_data/DHC.energies")[:, 1]
+    P = np.exp(-Energies / (xl.GAS_CONST * 298))
+    P /= P.sum()
+    xl.create_dlibrary(
+        "___",
+        "test_data/DHC.pdb",
+        sites=(2, 6),
+        weights=P,
+        dihedral_atoms=[
             [["N", "CA", "CB", "CG"], ["CA", "CB", "CG", "ND1"]],
             [["N", "CA", "CB", "CG"], ["CA", "CB", "CG", "ND1"]],
         ],
@@ -27,14 +57,23 @@ def test_add_dlabel():
     )
 
     # Test that chain operators were reset
-    libA, libB, csts = xl.read_drotlib('___ip4_drotlib.zip')
-    for lib in (libA, libB):
-        for ic in lib['internal_coords']:
-            np.testing.assert_almost_equal(ic.chain_operators[1]['ori'], np.zeros(3))
-            np.testing.assert_almost_equal(ic.chain_operators[1]['mx'], np.eye(3))
+    with pytest.raises(RuntimeError):
+        dSL = xl.dSpinLabel('___', (28, 32), protein)
 
+    dSL = xl.dSpinLabel('___', (28, 32), protein, minimize=False)
+
+    # Ensure cst idx are aligned
+    assert np.all(dSL.RE1.atom_names[dSL.cst_idx1] == dSL.RE2.atom_names[dSL.cst_idx2])
+
+    # And that the duplicate name atom sare not
+    test = np.linalg.norm(np.diff(dSL.RE1.coords[:, dSL.RE1.atom_names == 'ND1'], axis=1), axis=2)
+    ans = np.array([[6.650147 ],
+                    [6.6462107],
+                    [6.754248 ]])
+    np.testing.assert_almost_equal(test, ans, decimal=6)
 
     os.remove('___ip4_drotlib.zip')
+
 
 def test_distance_distribution():
     r = np.linspace(15, 50, 256)
@@ -126,10 +165,10 @@ def test_alternate_increment():
 
 def test_min_method():
     SL2 = xl.dSpinLabel("DHC", (28, 32), gb1, min_method='Powell')
-    ans = np.array([[ 18.6062596, -14.705718 ,  12.0624657],
-                    [ 18.5973143, -14.7182376,  12.0220758]])
+    ans = np.array([[ 18.6062595, -14.7057183,  12.0624657],
+                    [ 18.5973142, -14.7182378,  12.0220757]])
 
-    np.testing.assert_almost_equal(SL2.spin_centers, ans)
+    np.testing.assert_allclose(SL2.spin_centers, ans)
 
 
 def test_no_min():

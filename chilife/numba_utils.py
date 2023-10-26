@@ -302,7 +302,7 @@ def _ic_to_cart(IC_idx_Array: np.ndarray, ICArray: np.ndarray) -> np.ndarray:
 def batch_ic2cart(IC_idx_Array: np.ndarray, ICArray: np.ndarray):
     coords = np.zeros_like(ICArray)
     for i in prange(len(ICArray)):
-        coords[i] = _ic_to_cart(IC_idx_Array[i], ICArray[i])
+        coords[i] = _ic_to_cart(IC_idx_Array, ICArray[i])
 
     return coords
 

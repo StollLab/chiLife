@@ -1,3 +1,10 @@
+[project]
+name = "chilife"
+dynamic = ["version"]
+
+[tool.setuptools.dynamic]
+version = {attr = "chilife.__version__"}
+
 [build-system]
 requires = ["setuptools", "matplotlib", "wheel"]
 build-backend = "setuptools.build_meta"

@@ -23,10 +23,10 @@ class PostInstall(install):
 
 setup(
     name='chilife',
-    version='0.1.10-2',
     python_requires='>=3.8',
     packages=['chilife'],
     package_data={'chilife': ['data/*', 'data/*/*', 'data/*/*/*']},
+    scripts=['scripts/update_rotlib.py', 'scripts/oldProteinIC.py'],
     license='GNU GPLv3',
     license_files=('LICENSE'),
     author='Maxx Tessmer',
@@ -41,7 +41,7 @@ setup(
                       'memoization>=0.3.1',
                       'argparse>=1.4.0',
                       'setuptools>=53.0.0',
-                      'networkx>=2.8',
+                      'igraph>=0.11.2',
                       'rtoml>=0.9.0'],
     url='https://github.com/StollLab/chiLife',
     project_urls = {'Source': 'https://github.com/StollLab/chiLife'},

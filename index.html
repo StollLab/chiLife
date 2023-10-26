@@ -12,11 +12,11 @@
     <script src="_static/js/html5shiv.min.js"></script>
   <![endif]-->
   
-        <script src="_static/jquery.js"></script>
-        <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
-        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
-        <script src="_static/doctools.js"></script>
-        <script src="_static/sphinx_highlight.js"></script>
+        <script src="_static/jquery.js?v=5d32c60e"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="_static/documentation_options.js?v=5929fcd5"></script>
+        <script src="_static/doctools.js?v=888ff710"></script>
+        <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
         <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
@@ -78,10 +78,10 @@
            <div itemprop="articleBody">
              
   <section id="life">
-<h1>χLife<a class="headerlink" href="#life" title="Permalink to this heading"></a></h1>
+<h1>χLife<a class="headerlink" href="#life" title="Link to this heading"></a></h1>
 </section>
 <section id="chilife">
-<h1>chiLife<a class="headerlink" href="#chilife" title="Permalink to this heading"></a></h1>
+<h1>chiLife<a class="headerlink" href="#chilife" title="Link to this heading"></a></h1>
 <p>chiLife (or χLife) is a python package for modeling non-canonical amino acid side chain ensembles, primarily site
 directed spin labels (SDSLs), and using those ensembles to predict experimental results. The goal of chiLife is to provide a
 simple, flexible and interoperable python interface to protein side chain ensemble modeling, allowing for rapid
@@ -93,7 +93,7 @@ Python-based molecular modeling packages. This enables the use of experimental d
 resonance (DEER), in other standalone protein modeling applications that allow user defined restraints, such as
 pyrosetta and NIH-Xplor.</p>
 <section id="getting-started">
-<h2>Getting Started<a class="headerlink" href="#getting-started" title="Permalink to this heading"></a></h2>
+<h2>Getting Started<a class="headerlink" href="#getting-started" title="Link to this heading"></a></h2>
 <p>Stable distributions of chiLife can be installed using <code class="docutils literal notranslate"><span class="pre">pip</span></code>.</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>pip<span class="w"> </span>install<span class="w"> </span>chiLife
 </pre></div>
@@ -108,7 +108,7 @@ pip<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </s
 </section>
 <hr class="docutils" />
 <section id="chilife-module">
-<h2>chiLife Module<a class="headerlink" href="#chilife-module" title="Permalink to this heading"></a></h2>
+<h2>chiLife Module<a class="headerlink" href="#chilife-module" title="Link to this heading"></a></h2>
 <p>The primary feature of chiLife is the <code class="docutils literal notranslate"><span class="pre">SpinLabel</span></code> object, which inherits from the more abstract <code class="docutils literal notranslate"><span class="pre">RotamerEnsemble</span></code>
 object. While most people will primarily use <code class="docutils literal notranslate"><span class="pre">SpinLabel</span></code> objects, be aware that most properties and functions
 discussed are also functional on <code class="docutils literal notranslate"><span class="pre">RotamerLibrary</span></code> objects as well. <code class="docutils literal notranslate"><span class="pre">SpinLabel</span></code> objects can be created and “attached” to
@@ -116,7 +116,7 @@ protein models easily and quickly, allowing for on the fly simulation of distanc
 scriptable analysis. Notably, attaching a <code class="docutils literal notranslate"><span class="pre">SpinLabel</span></code> to a protein does not alter the protein in any way, allowing the
 protein model to retain the native amino acid.</p>
 <section id="simple-rotamer-library-based-spinlabel-modeling">
-<h3>Simple rotamer-library based SpinLabel modeling<a class="headerlink" href="#simple-rotamer-library-based-spinlabel-modeling" title="Permalink to this heading"></a></h3>
+<h3>Simple rotamer-library based SpinLabel modeling<a class="headerlink" href="#simple-rotamer-library-based-spinlabel-modeling" title="Link to this heading"></a></h3>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
 <span class="kn">import</span> <span class="nn">chilife</span> <span class="k">as</span> <span class="nn">xl</span>
@@ -154,7 +154,7 @@ structure you can use the :ref:<code class="docutils literal notranslate"><span 
 <a class="reference external image-reference" href="https://github.com/StollLab/chiLife/raw/main/img/L20R1_S238R1_Structure.png"><img alt="MBP L20R1 S238R1 Structure" src="https://github.com/StollLab/chiLife/raw/main/img/L20R1_S238R1_Structure.png" /></a>
 </section>
 <section id="mimicking-mmm-and-mtsslwizard">
-<h3>Mimicking MMM and MTSSLWizard<a class="headerlink" href="#mimicking-mmm-and-mtsslwizard" title="Permalink to this heading"></a></h3>
+<h3>Mimicking MMM and MTSSLWizard<a class="headerlink" href="#mimicking-mmm-and-mtsslwizard" title="Link to this heading"></a></h3>
 <p>In addition to its own features, chiLife offers spin label modeling methods that mimic the popular MMM and MTSSLWizard
 modeling applications.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">chilife</span> <span class="k">as</span> <span class="nn">xl</span>
@@ -169,7 +169,7 @@ modeling applications.</p>
 </div>
 </section>
 <section id="off-rotamer-sampling-and-local-repacking">
-<h3>Off-rotamer sampling and local repacking<a class="headerlink" href="#off-rotamer-sampling-and-local-repacking" title="Permalink to this heading"></a></h3>
+<h3>Off-rotamer sampling and local repacking<a class="headerlink" href="#off-rotamer-sampling-and-local-repacking" title="Link to this heading"></a></h3>
 <p>One of the benefits of chiLife is the variety and customizable nature of spin label modeling methods. This includes
 methods to sample side chain conformations that deviate from canonical dihedral angles and fixed rotamer libraries
 (Off-rotamer sampling) and methods to repack a <code class="docutils literal notranslate"><span class="pre">SpinLabel</span></code> and it’s neighboring amino acids, and to</p>
@@ -205,7 +205,7 @@ the off_rotamer variable. For example, passing <code class="docutils literal not
 rotamer sampling of only &amp;chi;:raw-html-md:<cite>&lt;sub&gt;4&lt;/sub&gt; and &amp;chi;&lt;sub&gt;5&lt;/sub&gt;</cite>.</p>
 </section>
 <section id="mutating-protein-structures">
-<h3>Mutating protein structures<a class="headerlink" href="#mutating-protein-structures" title="Permalink to this heading"></a></h3>
+<h3>Mutating protein structures<a class="headerlink" href="#mutating-protein-structures" title="Link to this heading"></a></h3>
 <p>Sometimes you don’t want a whole rotamer ensembles, you just want a protein structure mutated at a particular site with
 the most probable spin label conformer. This can be done easily with the <code class="docutils literal notranslate"><span class="pre">mutate</span></code> function.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">chilife</span> <span class="k">as</span> <span class="nn">xl</span>
@@ -229,7 +229,7 @@ This will return a trajectory which can be used to pick the last or lowest energ
 </div>
 </section>
 <section id="adding-user-defined-spin-labels">
-<h3>Adding user defined spin labels<a class="headerlink" href="#adding-user-defined-spin-labels" title="Permalink to this heading"></a></h3>
+<h3>Adding user defined spin labels<a class="headerlink" href="#adding-user-defined-spin-labels" title="Link to this heading"></a></h3>
 <p>Site directed spin labels, and other non-canonical amino acids, are constantly being developed. Additionally, rotamer
 libraries for existing labels continuously undergo incremental improvements or modification to suit particular needs,
 e.g. a rotamer library specifically for transmembrane residues. In fact chiLife iteself may be being used to develop
@@ -264,7 +264,28 @@ single state pdb file a list of dihedral angles and weights can be passed via th
 arguments. For each set of dihedral angles, chiLife create a rotamer and store the whole library using the specified
 name. Alternatively using a multi-state PDB file can add some additional information, such as isomeric heterogeneity of
 the rotamer library, which will be maintained by chiLife.</p>
-<p>For more information on how to use chiLife as a python module, see <a class="reference external" href="https://stolllab.github.io/chiLife/examples.html">examples</a></p>
+<p>For more information on how to use chiLife see <a class="reference external" href="https://stolllab.github.io/chiLife/examples.html">examples</a></p>
+</section>
+</section>
+<section id="references">
+<h2>References<a class="headerlink" href="#references" title="Link to this heading"></a></h2>
+<p>For general chiLife use, please cite:</p>
+<blockquote>
+<div><p>Tessmer, M.H., and S. Stoll. 2023. chiLife: An open-source Python package for in silico spin labeling and integrative</p>
+</div></blockquote>
+<p>protein modeling. Plos Comput Biol. 19:e1010834.</p>
+<p>For use of Off-Rotamer sampling please cite:</p>
+<blockquote>
+<div><p>Tessmer, M., E.R. Canarie, and S. Stoll. 2022. Comparative evaluation of spin label modeling methods for protein</p>
+</div></blockquote>
+<p>structural studies. Biophys J.</p>
+<p>And when using bifunctional label modeling please cite:</p>
+<blockquote>
+<div><p>Tessmer, M.H., and S. Stoll. 2023. A Rotamer Library Approach to Modeling Side Chain Ensembles of the Bifunctional
+Spin Label RX. Appl. Magn. Reson. 1–14.</p>
+</div></blockquote>
+<p>Note than many rotamer libraries may also have their own references. Please use the <code class="docutils literal notranslate"><span class="pre">chilfe.rotlib_info</span></code> function
+on the rotamer libraries to check if there is any additional citations that should be referenced when being used.</p>
 <div class="toctree-wrapper compound">
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="chilife.html">χLife</a><ul>
@@ -273,6 +294,7 @@ the rotamer library, which will be maintained by chiLife.</p>
 <li class="toctree-l2"><a class="reference internal" href="chilife.html#chilife.chilife.add_rotlib_dir"><code class="docutils literal notranslate"><span class="pre">add_rotlib_dir()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="chilife.html#chilife.chilife.add_to_defaults"><code class="docutils literal notranslate"><span class="pre">add_to_defaults()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="chilife.html#chilife.chilife.add_to_toml"><code class="docutils literal notranslate"><span class="pre">add_to_toml()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="chilife.html#chilife.chilife.continuous_topol"><code class="docutils literal notranslate"><span class="pre">continuous_topol()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="chilife.html#chilife.chilife.create_dlibrary"><code class="docutils literal notranslate"><span class="pre">create_dlibrary()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="chilife.html#chilife.chilife.create_library"><code class="docutils literal notranslate"><span class="pre">create_library()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="chilife.html#chilife.chilife.distance_distribution"><code class="docutils literal notranslate"><span class="pre">distance_distribution()</span></code></a></li>
@@ -294,6 +316,7 @@ the rotamer library, which will be maintained by chiLife.</p>
 <li class="toctree-l2"><a class="reference internal" href="chilife.html#chilife.io.read_library"><code class="docutils literal notranslate"><span class="pre">read_library()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="chilife.html#chilife.io.read_rotlib"><code class="docutils literal notranslate"><span class="pre">read_rotlib()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="chilife.html#chilife.io.save"><code class="docutils literal notranslate"><span class="pre">save()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="chilife.html#chilife.io.write_atoms"><code class="docutils literal notranslate"><span class="pre">write_atoms()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="chilife.html#chilife.io.write_ic"><code class="docutils literal notranslate"><span class="pre">write_ic()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="chilife.html#chilife.io.write_labels"><code class="docutils literal notranslate"><span class="pre">write_labels()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="chilife.html#chilife.io.write_protein"><code class="docutils literal notranslate"><span class="pre">write_protein()</span></code></a></li>
@@ -308,7 +331,6 @@ the rotamer library, which will be maintained by chiLife.</p>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="rotamer_libraries.html">Rotamer Libraries</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="rotamer_libraries.html#creating-custom-rotamer-libraries">Creating Custom Rotamer Libraries</a></li>
-<li class="toctree-l2"><a class="reference internal" href="rotamer_libraries.html#differences-when-creating-bifunctional-rotamer-libraries">Differences When Creating Bifunctional Rotamer Libraries</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="protein.html">Protein</a><ul>
@@ -320,13 +342,8 @@ the rotamer library, which will be maintained by chiLife.</p>
 <li class="toctree-l2"><a class="reference internal" href="protein.html#chilife.Protein.ResidueSelection"><code class="docutils literal notranslate"><span class="pre">ResidueSelection</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="protein.html#chilife.Protein.Segment"><code class="docutils literal notranslate"><span class="pre">Segment</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="protein.html#chilife.Protein.SegmentSelection"><code class="docutils literal notranslate"><span class="pre">SegmentSelection</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="protein.html#chilife.ProteinIC.ICAtom"><code class="docutils literal notranslate"><span class="pre">ICAtom</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="protein.html#chilife.ProteinIC.ProteinIC"><code class="docutils literal notranslate"><span class="pre">ProteinIC</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="protein.html#chilife.ProteinIC.get_ICAtom"><code class="docutils literal notranslate"><span class="pre">get_ICAtom()</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="protein.html#chilife.ProteinIC.get_ICResidues"><code class="docutils literal notranslate"><span class="pre">get_ICResidues()</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="protein.html#chilife.ProteinIC.get_all_n_pred"><code class="docutils literal notranslate"><span class="pre">get_all_n_pred()</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="protein.html#chilife.ProteinIC.get_internal_coords"><code class="docutils literal notranslate"><span class="pre">get_internal_coords()</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="protein.html#chilife.ProteinIC.get_n_pred"><code class="docutils literal notranslate"><span class="pre">get_n_pred()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="protein.html#chilife.ProteinIC.get_chainbreak_idxs"><code class="docutils literal notranslate"><span class="pre">get_chainbreak_idxs()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="protein.html#chilife.ProteinIC.ic_mx"><code class="docutils literal notranslate"><span class="pre">ic_mx()</span></code></a></li>
 </ul>
 </li>
@@ -364,9 +381,8 @@ the rotamer library, which will be maintained by chiLife.</p>
 </div>
 </section>
 </section>
-</section>
 <section id="indices-and-tables">
-<h1>Indices and tables<a class="headerlink" href="#indices-and-tables" title="Permalink to this heading"></a></h1>
+<h1>Indices and tables<a class="headerlink" href="#indices-and-tables" title="Link to this heading"></a></h1>
 <ul class="simple">
 <li><p><a class="reference internal" href="genindex.html"><span class="std std-ref">Index</span></a></p></li>
 <li><p><a class="reference internal" href="search.html"><span class="std std-ref">Search Page</span></a></p></li>

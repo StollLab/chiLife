@@ -12,11 +12,11 @@
     <script src="_static/js/html5shiv.min.js"></script>
   <![endif]-->
   
-        <script src="_static/jquery.js"></script>
-        <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
-        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
-        <script src="_static/doctools.js"></script>
-        <script src="_static/sphinx_highlight.js"></script>
+        <script src="_static/jquery.js?v=5d32c60e"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="_static/documentation_options.js?v=5929fcd5"></script>
+        <script src="_static/doctools.js?v=888ff710"></script>
+        <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
         <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
@@ -94,10 +94,10 @@
            <div itemprop="articleBody">
              
   <section id="module-chilife.alignment_methods">
-<span id="alignment-methods"></span><h1>Alignment Methods<a class="headerlink" href="#module-chilife.alignment_methods" title="Permalink to this heading"></a></h1>
+<span id="alignment-methods"></span><h1>Alignment Methods<a class="headerlink" href="#module-chilife.alignment_methods" title="Link to this heading"></a></h1>
 <dl class="py function">
 <dt class="sig sig-object py" id="chilife.alignment_methods.alignment_method">
-<span class="sig-name descname"><span class="pre">alignment_method</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">func</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#chilife.alignment_methods.alignment_method" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">alignment_method</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">func</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#chilife.alignment_methods.alignment_method" title="Link to this definition"></a></dt>
 <dd><p>Decorator to add function to the superimpositions dictionary</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -111,7 +111,7 @@
 
 <dl class="py function">
 <dt class="sig sig-object py" id="chilife.alignment_methods.bisect_alignment">
-<span class="sig-name descname"><span class="pre">bisect_alignment</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">N</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">CA</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">C</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#chilife.alignment_methods.bisect_alignment" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">bisect_alignment</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">N</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">CA</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">C</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#chilife.alignment_methods.bisect_alignment" title="Link to this definition"></a></dt>
 <dd><p>Calculates a rotation matrix and translation to transform an amino acid from the local coordinate frame to the
 global coordinate frame for a given residue with backbone coordinates (N, C, CA). Principal axis bisects the
 N-&gt;Ca-&gt;C angle.</p>
@@ -135,7 +135,7 @@ N-&gt;Ca-&gt;C angle.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="chilife.alignment_methods.fit_alignment">
-<span class="sig-name descname"><span class="pre">fit_alignment</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">N</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">CA</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">C</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#chilife.alignment_methods.fit_alignment" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">fit_alignment</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">N</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">CA</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">C</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#chilife.alignment_methods.fit_alignment" title="Link to this definition"></a></dt>
 <dd><p>Superimpose the residues such that the root mean squared deviation of the backbone atoms is minimized.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -157,7 +157,7 @@ N-&gt;Ca-&gt;C angle.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="chilife.alignment_methods.mmm_alignment">
-<span class="sig-name descname"><span class="pre">mmm_alignment</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">N</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">CA</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">C</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#chilife.alignment_methods.mmm_alignment" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">mmm_alignment</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">N</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">CA</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">C</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#chilife.alignment_methods.mmm_alignment" title="Link to this definition"></a></dt>
 <dd><p>Calculates a rotation matrix and translation to transform an amino acid from the local coordinate frame to the
 global coordinate frame for a given residue with backbone coordinates (N, C, CA). Principal axis is defined
 along the CA-&gt;N bond.</p>
@@ -181,7 +181,7 @@ along the CA-&gt;N bond.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="chilife.alignment_methods.parse_backbone">
-<span class="sig-name descname"><span class="pre">parse_backbone</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">rotamer_library</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">kind</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#chilife.alignment_methods.parse_backbone" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">parse_backbone</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">rotamer_library</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">kind</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#chilife.alignment_methods.parse_backbone" title="Link to this definition"></a></dt>
 <dd><p>Extract appropriate backbone information to make a rotation matrix using the method provided</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -203,7 +203,7 @@ with the first coordinate as the rotamer ensemble backbone and the second as the
 
 <dl class="py function">
 <dt class="sig sig-object py" id="chilife.alignment_methods.rosetta_alignment">
-<span class="sig-name descname"><span class="pre">rosetta_alignment</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">N</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">CA</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">C</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#chilife.alignment_methods.rosetta_alignment" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">rosetta_alignment</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">N</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">CA</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">C</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#chilife.alignment_methods.rosetta_alignment" title="Link to this definition"></a></dt>
 <dd><p>Calculates a rotation matrix and translation to transform an amino acid from the local coordinate frame to the
 global coordinate frame for a given residue with backbone coordinates (N, C, CA). Principal axis is the C-&gt;Ca Bond.</p>
 <dl class="field-list simple">

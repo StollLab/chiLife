@@ -12,11 +12,11 @@
     <script src="_static/js/html5shiv.min.js"></script>
   <![endif]-->
   
-        <script src="_static/jquery.js"></script>
-        <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
-        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
-        <script src="_static/doctools.js"></script>
-        <script src="_static/sphinx_highlight.js"></script>
+        <script src="_static/jquery.js?v=5d32c60e"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="_static/documentation_options.js?v=5929fcd5"></script>
+        <script src="_static/doctools.js?v=888ff710"></script>
+        <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
         <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
@@ -91,9 +91,9 @@
            <div itemprop="articleBody">
              
   <section id="frequently-asked-questions">
-<h1>Frequently Asked Questions<a class="headerlink" href="#frequently-asked-questions" title="Permalink to this heading"></a></h1>
+<h1>Frequently Asked Questions<a class="headerlink" href="#frequently-asked-questions" title="Link to this heading"></a></h1>
 <section id="what-is-the-difference-between-a-chilife-rotamerensemble-and-a-chilife-spinlabel">
-<h2>What is the difference between a <a class="reference internal" href="rotamer_ensemble.html#chilife.RotamerEnsemble" title="chilife.RotamerEnsemble"><code class="xref py py-class docutils literal notranslate"><span class="pre">chilife.RotamerEnsemble</span></code></a> and a <a class="reference internal" href="rotamer_ensemble.html#chilife.SpinLabel" title="chilife.SpinLabel"><code class="xref py py-class docutils literal notranslate"><span class="pre">chilife.SpinLabel</span></code></a>?<a class="headerlink" href="#what-is-the-difference-between-a-chilife-rotamerensemble-and-a-chilife-spinlabel" title="Permalink to this heading"></a></h2>
+<h2>What is the difference between a <a class="reference internal" href="rotamer_ensemble.html#chilife.RotamerEnsemble" title="chilife.RotamerEnsemble"><code class="xref py py-class docutils literal notranslate"><span class="pre">chilife.RotamerEnsemble</span></code></a> and a <a class="reference internal" href="rotamer_ensemble.html#chilife.SpinLabel" title="chilife.SpinLabel"><code class="xref py py-class docutils literal notranslate"><span class="pre">chilife.SpinLabel</span></code></a>?<a class="headerlink" href="#what-is-the-difference-between-a-chilife-rotamerensemble-and-a-chilife-spinlabel" title="Link to this heading"></a></h2>
 <p>A <a class="reference internal" href="rotamer_ensemble.html#chilife.RotamerEnsemble" title="chilife.RotamerEnsemble"><code class="xref py py-class docutils literal notranslate"><span class="pre">chilife.RotamerEnsemble</span></code></a> is a more abstract class that can represent canonical amino acids as well as
 non-canonical amino acids and spin labels. We will often use <a class="reference internal" href="rotamer_ensemble.html#chilife.RotamerEnsemble" title="chilife.RotamerEnsemble"><code class="xref py py-class docutils literal notranslate"><span class="pre">chilife.RotamerEnsemble</span></code></a>
 and <a class="reference internal" href="rotamer_ensemble.html#chilife.SpinLabel" title="chilife.SpinLabel"><code class="xref py py-class docutils literal notranslate"><span class="pre">chilife.SpinLabel</span></code></a> interchangeably since chiLife is primarily an SDSL modeling application at this time. It
@@ -102,7 +102,7 @@ chilife will support additional label types in the future (e.g. FRET labels) wit
 that are unique to those kinds of labels.</p>
 </section>
 <section id="how-do-i-use-my-own-pdb-file">
-<h2>How do I use my own PDB file?<a class="headerlink" href="#how-do-i-use-my-own-pdb-file" title="Permalink to this heading"></a></h2>
+<h2>How do I use my own PDB file?<a class="headerlink" href="#how-do-i-use-my-own-pdb-file" title="Link to this heading"></a></h2>
 <p>chiLife uses <a class="reference external" href="https://www.mdanalysis.org/">MDAnalysis</a> as a back end for protein structure and will accept <code class="xref py py-class docutils literal notranslate"><span class="pre">MDAnalysis.Universe</span></code> and
 <code class="xref py py-class docutils literal notranslate"><span class="pre">MDAnalysis.AtomGroup</span></code> objects as proteins, thus a protein can be loaded in using MDAnalysis:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">MDAnalysis</span> <span class="k">as</span> <span class="nn">mda</span>
@@ -115,7 +115,7 @@ trajectory</strong>. To perform spin labeling over a trajectory you will have to
 new <a class="reference internal" href="rotamer_ensemble.html#chilife.SpinLabel" title="chilife.SpinLabel"><code class="xref py py-class docutils literal notranslate"><span class="pre">SpinLabel</span></code></a> objects.</p>
 </section>
 <section id="what-spin-labels-and-rotamer-libraries-are-available">
-<h2>What spin labels and rotamer libraries are available?<a class="headerlink" href="#what-spin-labels-and-rotamer-libraries-are-available" title="Permalink to this heading"></a></h2>
+<h2>What spin labels and rotamer libraries are available?<a class="headerlink" href="#what-spin-labels-and-rotamer-libraries-are-available" title="Link to this heading"></a></h2>
 <p>Because chiLife rotamer libraries are portable, different users may have different libraries on their computers or even
 in different directories. To list all the available rotamer libraries just run the
 <a class="reference internal" href="chilife.html#chilife.chilife.list_available_rotlibs" title="chilife.chilife.list_available_rotlibs"><code class="xref py py-func docutils literal notranslate"><span class="pre">list_available_rotlibs()</span></code></a> function which will output a table listing the available libraries and
@@ -130,7 +130,7 @@ curated <a class="reference external" href="https://github.com/mtessmer/chiLife_
 </div>
 </section>
 <section id="how-do-i-create-my-own-rotamer-libraries">
-<h2>How do I create my own rotamer libraries?<a class="headerlink" href="#how-do-i-create-my-own-rotamer-libraries" title="Permalink to this heading"></a></h2>
+<h2>How do I create my own rotamer libraries?<a class="headerlink" href="#how-do-i-create-my-own-rotamer-libraries" title="Link to this heading"></a></h2>
 <p>Custom rotamer libraries are created through the <a class="reference internal" href="chilife.html#chilife.chilife.create_library" title="chilife.chilife.create_library"><code class="xref py py-func docutils literal notranslate"><span class="pre">create_library()</span></code></a> and
 <a class="reference internal" href="chilife.html#chilife.chilife.create_dlibrary" title="chilife.chilife.create_dlibrary"><code class="xref py py-func docutils literal notranslate"><span class="pre">create_dlibrary()</span></code></a> functions. These functions accept multi-state PDB files that make up the
 libraries structural ensemble as well as several additional arguments to specify weights, mobile dihedrals, spin atoms
@@ -138,7 +138,7 @@ and more. Check out <a class="reference internal" href="chilife.html#chilife.chi
 creating custom <a class="reference internal" href="rotamer_libraries.html#custom-rotamer-libraries"><span class="std std-ref">Creating Custom Rotamer Libraries</span></a> section.</p>
 </section>
 <section id="i-created-my-own-rotamer-library-or-got-one-from-a-collaborator-now-how-do-i-use-it">
-<h2>I created my own rotamer library or got one from a collaborator now how do I use it?<a class="headerlink" href="#i-created-my-own-rotamer-library-or-got-one-from-a-collaborator-now-how-do-i-use-it" title="Permalink to this heading"></a></h2>
+<h2>I created my own rotamer library or got one from a collaborator now how do I use it?<a class="headerlink" href="#i-created-my-own-rotamer-library-or-got-one-from-a-collaborator-now-how-do-i-use-it" title="Link to this heading"></a></h2>
 <p>chiLife searches for rotamer libraries in 3 places. 1) the current working directory, 2) Any number of
 <a class="reference internal" href="#direct-rotlib-storage"><span class="std std-ref">user defined folders</span></a> , 3) The default chiLife
 rotamer library directory. In most cases you will just need to place the rotamer library in the directory you want to
@@ -150,7 +150,7 @@ keyword argument:</p>
 </div>
 </section>
 <section id="where-can-i-find-rotamer-libraries-for-my-spin-label">
-<h2>Where can I find rotamer libraries for my spin label?<a class="headerlink" href="#where-can-i-find-rotamer-libraries-for-my-spin-label" title="Permalink to this heading"></a></h2>
+<h2>Where can I find rotamer libraries for my spin label?<a class="headerlink" href="#where-can-i-find-rotamer-libraries-for-my-spin-label" title="Link to this heading"></a></h2>
 <p>If you are looking rotamer libraries that do not ship with chiLife by default you can find several on the curated
 <a class="reference external" href="https://github.com/mtessmer/chiLife_rotlibs">chiLife_rotlibs</a> GitHub repo, you can <a class="reference internal" href="rotamer_libraries.html#custom-rotamer-libraries"><span class="std std-ref">make your own</span></a>, get them from a collaborator, or
 reach out to <script type="text/javascript">document.write(
@@ -164,17 +164,17 @@ reach out to <script type="text/javascript">document.write(
 );</script> for additional information.</p>
 </section>
 <section id="how-do-i-tell-chilife-where-i-store-my-personal-rotamer-libraries">
-<span id="direct-rotlib-storage"></span><h2>How do I tell chiLife where I store my personal rotamer libraries?<a class="headerlink" href="#how-do-i-tell-chilife-where-i-store-my-personal-rotamer-libraries" title="Permalink to this heading"></a></h2>
+<span id="direct-rotlib-storage"></span><h2>How do I tell chiLife where I store my personal rotamer libraries?<a class="headerlink" href="#how-do-i-tell-chilife-where-i-store-my-personal-rotamer-libraries" title="Link to this heading"></a></h2>
 <p>You can set a user rotamer library directory or list of directories that chiLife will search before searching the
 default folders. This can be done using the <a class="reference internal" href="chilife.html#chilife.chilife.add_rotlib_dir" title="chilife.chilife.add_rotlib_dir"><code class="xref py py-func docutils literal notranslate"><span class="pre">add_rotlib_dir()</span></code></a> command.</p>
 </section>
 <section id="how-do-i-emulate-mmm-and-mtsslwizard-behavior">
-<h2>How do I emulate MMM and MTSSLWizard behavior?<a class="headerlink" href="#how-do-i-emulate-mmm-and-mtsslwizard-behavior" title="Permalink to this heading"></a></h2>
+<h2>How do I emulate MMM and MTSSLWizard behavior?<a class="headerlink" href="#how-do-i-emulate-mmm-and-mtsslwizard-behavior" title="Link to this heading"></a></h2>
 <p>MMM and MTSSLWizard behavior can be emulated using the <a class="reference internal" href="rotamer_ensemble.html#chilife.SpinLabel.from_mmm" title="chilife.SpinLabel.from_mmm"><code class="xref py py-meth docutils literal notranslate"><span class="pre">chilife.SpinLabel.from_mmm()</span></code></a> and
 <a class="reference internal" href="rotamer_ensemble.html#chilife.SpinLabel.from_wizard" title="chilife.SpinLabel.from_wizard"><code class="xref py py-meth docutils literal notranslate"><span class="pre">chilife.SpinLabel.from_wizard()</span></code></a> class methods respectively. Note that even though</p>
 </section>
 <section id="how-do-i-view-my-rotamer-spin-label-ensembles">
-<h2>How do I view my rotamer/spin label ensembles?<a class="headerlink" href="#how-do-i-view-my-rotamer-spin-label-ensembles" title="Permalink to this heading"></a></h2>
+<h2>How do I view my rotamer/spin label ensembles?<a class="headerlink" href="#how-do-i-view-my-rotamer-spin-label-ensembles" title="Link to this heading"></a></h2>
 <p>You can save your ensembles (and proteins) as a pdb file using the <a class="reference internal" href="chilife.html#chilife.io.save" title="chilife.io.save"><code class="xref py py-func docutils literal notranslate"><span class="pre">save()</span></code></a> function and visualize
 using your favorite molecular visualization software (We recommend PyMol). The function <a class="reference internal" href="chilife.html#chilife.io.save" title="chilife.io.save"><code class="xref py py-func docutils literal notranslate"><span class="pre">save()</span></code></a>
 accepts any number of protein, <a class="reference internal" href="rotamer_ensemble.html#chilife.RotamerEnsemble" title="chilife.RotamerEnsemble"><code class="xref py py-class docutils literal notranslate"><span class="pre">RotamerEnsemble</span></code></a>  and <a class="reference internal" href="rotamer_ensemble.html#chilife.dRotamerEnsemble" title="chilife.dRotamerEnsemble"><code class="xref py py-class docutils literal notranslate"><span class="pre">dRotamerEnsemble</span></code></a> objects.</p>
@@ -196,7 +196,7 @@ set transparency, 0.5
 surface.</p>
 </section>
 <section id="i-opened-2-pdbs-with-labels-in-pymol-but-it-only-shows-labels-for-one-of-them">
-<h2>I opened 2 PDBs with labels in PyMol but it only shows labels for one of them<a class="headerlink" href="#i-opened-2-pdbs-with-labels-in-pymol-but-it-only-shows-labels-for-one-of-them" title="Permalink to this heading"></a></h2>
+<h2>I opened 2 PDBs with labels in PyMol but it only shows labels for one of them<a class="headerlink" href="#i-opened-2-pdbs-with-labels-in-pymol-but-it-only-shows-labels-for-one-of-them" title="Link to this heading"></a></h2>
 <p>There is a good chance that the labels have the same object name in the two files and one is being overwritten when the
 second is loaded. You can alter the label name before saving, e.g.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">omp</span> <span class="o">=</span> <span class="n">xl</span><span class="o">.</span><span class="n">fetch</span><span class="p">(</span><span class="s1">&#39;1omp&#39;</span><span class="p">)</span>
@@ -216,9 +216,13 @@ second is loaded. You can alter the label name before saving, e.g.</p>
 </div>
 </section>
 <section id="why-don-t-my-label-stay-attached-to-my-protein-when-i-align-it-in-pymol">
-<h2>Why don’t my label stay attached to my protein when I align it in pymol?<a class="headerlink" href="#why-don-t-my-label-stay-attached-to-my-protein-when-i-align-it-in-pymol" title="Permalink to this heading"></a></h2>
+<h2>Why don’t my label stay attached to my protein when I align it in pymol?<a class="headerlink" href="#why-don-t-my-label-stay-attached-to-my-protein-when-i-align-it-in-pymol" title="Link to this heading"></a></h2>
 <p>The labels are saved as separate objects in the PDB and will not move with the protein object it is associated with.
-While you can move</p>
+You can realign rotamer ensembles with the protein using the pymol align command: e.g. <code class="docutils literal notranslate"><span class="pre">align</span> <span class="pre">S238R1M,</span> <span class="pre">1omp</span> <span class="pre">and</span> <span class="pre">resi</span>
+<span class="pre">238</span> <span class="pre">and</span> <span class="pre">name</span> <span class="pre">N+CA+C</span></code>. This alignment works well enough for visualizing the rotamer ensemble but is tedious and does
+not work at all for the density objects. In general it is preferable to use pre-aligned structures or perform the
+alignment with python before spin labeling. Examples of aligning sturcures with MDAnalysis can be found in the
+<a class="reference external" href="https://docs.mdanalysis.org/stable/documentation_pages/analysis/align.html">MDAnalysis documentation</a>.</p>
 </section>
 </section>
 

@@ -146,16 +146,25 @@ Using a predefined rotamer libraries
 While the accessible volume method has been shown to be a powerful modeling method for predicting spin-spin distance
 distributions it is relatively slow compared to the rotamer library method and does not take into account the energetic
 preference of different conformations.
-***************************************************************************
-There are two ways you can
 
-First using an array of dihedral values
+There are two major ways you can create a rotamer library in chiLife. First, chiLife can make rotamer libraries from a
+single structure with an array of dihedral angle values. As an example we can create a library with a bunch of random
+dihedral angles:
 
-second using a multistate pdb
+..  code-block:: python
 
-.. tip:: chiLife can utilize structures with more conformational diversity just dihedral, bond angle and bond diversity.
-As long as two structures hae a shared sub-topology chiLife will accept them as two possible rotamers of the same
-structure. This includes stereoisomers and
+    dihedrals = np.random.uniform(-np.pi, np.pi, shape=(150, len(dihedral_defs)))
+    xl.create_library('TSP', 'TSP.pdb', dihedral_atoms=dihedral_defs, spin_atoms=['N1', 'O1'], dihedrals=dihedrals)
+
+
+
+But dihedral angles are not random, and different conformations may have slight differences in bond angles and lengths
+especially bonds coordinating metals. Thus. you can also create a library using a multi state pdb file. Multi-state
+files can be generated using methods like MD simulations, meta-dynamics, MCMC sampling or using tools like CREST, FROG2,
+Rosetta, or BCL. Whine using multi-state PDB files, chiLife can utilize structures with more conformational diversity. As
+long as two structures have a shared sub-topology chiLife will accept them as two possible rotamers of the same
+structure. This includes stereo isomers, topologically diverse metal coordination geometries and labels with multiple
+ring conformations.
 
 
 Setting Rotamer Weights
@@ -163,21 +172,12 @@ Setting Rotamer Weights
 Of course, different conformations also have different energetic values and therefore different frequencies of
 observance. While chiLife accounts for energetic penalties of clashes when attaching a RotamerEnsemble to a proteins
 site, each individual rotamer in the library can be given a weight approximating the observance frequency based off of
-the internal energy of the rotamer.
+the internal energy of the rotamer or by the frequency observed in some kind of sampling method. Assuming you have
+the relative energy of your rotamers in an array called `energy` in unist of kcal/mol and `TSP.pdb` is a multistate
+PDB with each state corresponding to the respective energy in `energy` :
 
+..  code-block:: python
 
-Setting Dihedral Variances for Off Rotamer Sampling
-----------------------------------------------------
+    weights = np.exp(-energy / (xl.GAS_CONST * 293) )
+    xl.create_library('TSP', 'TSP.pdb', dihedral_atoms=dihedral_defs, spin_atoms=['N1', 'O1'], weights=weights)
 
-
-.. tip:: Using the accessible volume method with rotamer libraries will apply dihedral sampling to all rotamers of the
-library. This allows for some additional variation in bond length and bond angles that may be present in the rotamer
-library. It is also a great way to include sterioisomers when performing accessible volume sampling.
-
-
-Using Custom Rotlibs
---------------------
-
---------------------------------------------------------
-Differences When Creating Bifunctional Rotamer Libraries
---------------------------------------------------------

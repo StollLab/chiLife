@@ -26,7 +26,7 @@ setup(
     python_requires='>=3.8',
     packages=['chilife'],
     package_data={'chilife': ['data/*', 'data/*/*', 'data/*/*/*']},
-    scripts=['scripts/*'],
+    scripts=['scripts/update_rotlib.py', 'scripts/oldProteinIC.py'],
     license='GNU GPLv3',
     license_files=('LICENSE'),
     author='Maxx Tessmer',

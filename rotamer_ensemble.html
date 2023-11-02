@@ -161,9 +161,26 @@ acids.</p>
 <li><p><strong>protein</strong> (<em>MDAnalysis.Universe</em><em>, </em><em>MDAnalysis.AtomGroup</em>) – Object containing all protein information (coords, atom types, etc.)</p></li>
 <li><p><strong>chain</strong> (<em>str</em>) – Protein chain identifier to attach spin label to.</p></li>
 <li><p><strong>rotlib</strong> (<em>str</em>) – Rotamer library to use for constructing the RotamerEnsemble</p></li>
-<li><p><strong>**kwargs</strong> (<em>dict</em>) – <dl class="simple">
-<dt>protein_tree<span class="classifier">Scipy.spatial.cKDTree</span></dt><dd><p>KDTree of atom positions for fast distance calculations and neighbor detection. Defaults to None</p>
+<li><p><strong>**kwargs</strong> – <dl>
+<dt>minimize: bool</dt><dd><p>Switch to turn on/off minimization. During minimization each rotamer is optimized in dihedral space
+with respect to both internal and external clashes, and deviation from the starting conformation in
+dihedral space.</p>
 </dd>
+<dt>min_method: str</dt><dd><p>Name of the minimization algorithm to use. All <code class="docutils literal notranslate"><span class="pre">scipy.optimize.minimize</span></code> algorithms are available
+and include: ‘Nelder-Mead’, ‘Powell’, ‘CG’, ‘BFGS’, ‘Newton-CG’, ‘L-BFGS-B’, ‘TNC’, ‘COBYLA’, ‘SLSQP’,
+‘trust-constr’, ‘dogleg’, ‘trust-ncg’, ‘trust-exact’, ‘trust-krylov’, and custom.</p>
+</dd>
+<dt>exclude_nb_interactions: int:</dt><dd><p>When calculating internal clashes, ignore 1-<code class="docutils literal notranslate"><span class="pre">exclude_nb_interactions</span></code> interactions and below. Defaults
+to ignore 1-3 interactions, i.e. atoms that are connected by 2 bonds or fewer will not have a steric
+effect on each other.</p>
+</dd>
+<dt>eval_clash<span class="classifier">bool</span></dt><dd><p>Switch to turn clash evaluation on (True) and off (False).</p>
+</dd>
+<dt>energy_func<span class="classifier">callable</span></dt><dd><p>Python function or callable object that takes a protein and a RotamerEnsemble object as input and
+returns an energy value (kcal/mol) for each atom of each rotamer in the ensemble. See also
+<code class="xref py py-mod docutils literal notranslate"><span class="pre">Scoring</span></code> . Defaults to <code class="xref py py-mod docutils literal notranslate"><span class="pre">chiLife.get_lj_rep</span></code> .</p>
+<blockquote>
+<div><dl class="simple">
 <dt>forgive<span class="classifier">float</span></dt><dd><p>Softening factor to be passed to <code class="docutils literal notranslate"><span class="pre">energy_func</span></code>. Only used if <code class="docutils literal notranslate"><span class="pre">energy_func</span></code> uses a softening factor.
 Defaults to 1.0. See <code class="xref py py-mod docutils literal notranslate"><span class="pre">Scoring</span></code> .</p>
 </dd>
@@ -176,6 +193,13 @@ angstroms.</p>
 </dd>
 <dt>clash_ori<span class="classifier">str</span></dt><dd><p>Atom selection to use as the origin when finding atoms within the <code class="docutils literal notranslate"><span class="pre">clash_radius</span></code>. Defaults to ‘cen’,
 the centroid of the rotamer ensemble heavy atoms.</p>
+</dd>
+<dt>protein_tree<span class="classifier">Scipy.spatial.cKDTree</span></dt><dd><p>KDTree of atom positions for fast distance calculations and neighbor detection. Defaults to None</p>
+</dd>
+<dt>trim: bool</dt><dd><p>When true, the lowest <cite>trim_tol</cite> fraction of rotamers in the ensemble will be removed.</p>
+</dd>
+<dt>trim_tol: float</dt><dd><p>Tolerance for trimming rotamers from the ensemble. trim_tol=0.005 means the bottom 0.5% of rotamers
+will be removed.</p>
 </dd>
 <dt>alignment_method<span class="classifier">str</span></dt><dd><p>Method to use when attaching or aligning the rotamer ensemble backbone with the protein backbone.
 Defaults to <code class="docutils literal notranslate"><span class="pre">'bisect'</span></code> which aligns the CA atom, the vectors bisecting the N-CA-C angle and the
@@ -191,14 +215,8 @@ Defaults to False.</p>
 </dd>
 <dt>use_H<span class="classifier">bool</span></dt><dd><p>Determines if hydrogen atoms are used or not. Defaults to False.</p>
 </dd>
-<dt>eval_clash<span class="classifier">bool</span></dt><dd><p>Switch to turn clash evaluation on (True) and off (False).</p>
-</dd>
-<dt>sample<span class="classifier">int, bool</span></dt><dd><p>Argument to use the off-rotamer sampling method. If <code class="docutils literal notranslate"><span class="pre">False</span></code> or <code class="docutils literal notranslate"><span class="pre">0</span></code> the off-rotamer sampling method
-will not be used. If <code class="docutils literal notranslate"><span class="pre">int</span></code> the ensemble will be generated with that many off-rotamer samples.</p>
-</dd>
-<dt>energy_func<span class="classifier">callable</span></dt><dd><p>Python function or callable object that takes a protein and a RotamerEnsemble object as input and
-returns an energy value (kcal/mol) for each atom of each rotamer in the ensemble. See also
-<code class="xref py py-mod docutils literal notranslate"><span class="pre">Scoring</span></code> . Defaults to <code class="xref py py-mod docutils literal notranslate"><span class="pre">chiLife.get_lj_rep</span></code> .</p>
+</dl>
+</div></blockquote>
 </dd>
 </dl>
 </p></li>
@@ -564,7 +582,80 @@ amino acids whether they are spin labels or other bifunctional non-canonical ami
 <dl class="py class">
 <dt class="sig sig-object py" id="chilife.dRotamerEnsemble">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">dRotamerEnsemble</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">res</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sites</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">protein</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">chain</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rotlib</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#chilife.dRotamerEnsemble" title="Link to this definition"></a></dt>
-<dd><dl class="py method">
+<dd><p>Create new dRotamerEnsemble object.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>res</strong> (<em>string</em>) – 3-character name of desired residue, e.g. RXA.</p></li>
+<li><p><strong>site</strong> (<em>tuple</em><em>[</em><em>int</em><em>, </em><em>int</em><em>]</em>) – Protein residue numbers to attach the bifunctional library to.</p></li>
+<li><p><strong>protein</strong> (<em>MDAnalysis.Universe</em><em>, </em><em>MDAnalysis.AtomGroup</em>) – Object containing all protein information (coords, atom types, etc.)</p></li>
+<li><p><strong>chain</strong> (<em>str</em>) – Protein chain identifier to attach spin label to.</p></li>
+<li><p><strong>rotlib</strong> (<em>str</em>) – Rotamer library to use for constructing the RotamerEnsemble</p></li>
+<li><p><strong>**kwargs</strong> (<em>dict</em>) – <dl class="simple">
+<dt>restraint_weight: float</dt><dd><p>Force constant (kcal/mol/A^2) for calculating energetic penalty of restraint satisfaction, i.e. the
+alignment of the overlapping atoms of the two mono-functional subunits of the bifunctional label.</p>
+</dd>
+<dt>torsion_weight: float</dt><dd><p>Force constant (kcal/mol/radian^2) for calculating energetic penalty of the deviation from rotamer
+starting dihedral angles.</p>
+</dd>
+<dt>minimize: bool</dt><dd><p>Switch to turn on/off minimization. During minimization each rotamer is optimized in dihedral space
+with respect to alignment of the “cap” atoms of the two mono-functional subunits, internal clashes
+and deviation from the starting conformation in dihedral space.</p>
+</dd>
+<dt>min_method: str</dt><dd><p>Name of the minimization algorithm to use. All <code class="docutils literal notranslate"><span class="pre">scipy.optimize.minimize</span></code> algorithms are available
+and include: ‘Nelder-Mead’, ‘Powell’, ‘CG’, ‘BFGS’, ‘Newton-CG’, ‘L-BFGS-B’, ‘TNC’, ‘COBYLA’, ‘SLSQP’,
+‘trust-constr’, ‘dogleg’, ‘trust-ncg’, ‘trust-exact’, ‘trust-krylov’, and custom.</p>
+</dd>
+<dt>exclude_nb_interactions: int:</dt><dd><p>When calculating internal clashes, ignore 1-<code class="docutils literal notranslate"><span class="pre">exclude_nb_interactions</span></code> interactions and below. Defaults
+to ignore 1-3 interactions, i.e. atoms that are connected by 2 bonds or fewer will not have a steric
+effect on each other.</p>
+</dd>
+<dt>eval_clash<span class="classifier">bool</span></dt><dd><p>Switch to turn clash evaluation on (True) and off (False).</p>
+</dd>
+<dt>energy_func<span class="classifier">callable</span></dt><dd><p>Python function or callable object that takes a protein and a RotamerEnsemble object as input and
+returns an energy value (kcal/mol) for each atom of each rotamer in the ensemble. See also
+<code class="xref py py-mod docutils literal notranslate"><span class="pre">Scoring</span></code> . Defaults to <code class="xref py py-mod docutils literal notranslate"><span class="pre">chiLife.get_lj_energy</span></code> .</p>
+</dd>
+<dt>forgive<span class="classifier">float</span></dt><dd><p>Softening factor to be passed to <code class="docutils literal notranslate"><span class="pre">energy_func</span></code>. Only used if <code class="docutils literal notranslate"><span class="pre">energy_func</span></code> uses a softening factor.
+Defaults to 0.95. See <code class="xref py py-mod docutils literal notranslate"><span class="pre">Scoring</span></code> .</p>
+</dd>
+<dt>temp<span class="classifier">float</span></dt><dd><p>Temperature to use when running <code class="docutils literal notranslate"><span class="pre">energy_func</span></code>. Only used if <code class="docutils literal notranslate"><span class="pre">energy_func</span></code> accepts a temperature
+argument  Defaults to 298 K.</p>
+</dd>
+<dt>clash_radius<span class="classifier">float</span></dt><dd><p>Cutoff distance (angstroms) for inclusion of atoms in clash evaluations. This distance is measured from
+<code class="docutils literal notranslate"><span class="pre">clash_ori</span></code> Defaults to the longest distance between any two atoms in the rotamer ensemble plus 5
+angstroms.</p>
+</dd>
+<dt>clash_ori<span class="classifier">str</span></dt><dd><p>Atom selection to use as the origin when finding atoms within the <code class="docutils literal notranslate"><span class="pre">clash_radius</span></code>. Defaults to ‘cen’,
+the centroid of the rotamer ensemble heavy atoms.</p>
+</dd>
+<dt>protein_tree<span class="classifier">Scipy.spatial.cKDTree</span></dt><dd><p>KDTree of atom positions for fast distance calculations and neighbor detection. Defaults to None</p>
+</dd>
+<dt>trim: bool</dt><dd><p>When true, the lowest <cite>trim_tol</cite> fraction of rotamers in the ensemble will be removed.</p>
+</dd>
+<dt>trim_tol: float</dt><dd><p>Tolerance for trimming rotamers from the ensemble. trim_tol=0.005 means the bottom 0.5% of rotamers
+will be removed.</p>
+</dd>
+<dt>alignment_method<span class="classifier">str</span></dt><dd><p>Method to use when attaching or aligning the rotamer ensemble backbone with the protein backbone.
+Defaults to <code class="docutils literal notranslate"><span class="pre">'bisect'</span></code> which aligns the CA atom, the vectors bisecting the N-CA-C angle and the
+N-CA-C plane.</p>
+</dd>
+<dt>dihedral_sigmas<span class="classifier">float, numpy.ndarray</span></dt><dd><p>Standard deviations of dihedral angles (degrees) for off rotamer sampling. Can be a single number for
+isotropic sampling, a vector to define each dihedral individually or a matrix to define a value for
+each rotamer and each dihedral. Setting this value to np.inf will force uniform (accessible volume)
+sampling. Defaults to 35 degrees.</p>
+</dd>
+<dt>weighted_sampling<span class="classifier">bool</span></dt><dd><p>Determines whether the rotamer ensemble is sampled uniformly or based off of their intrinsic weights.
+Defaults to False.</p>
+</dd>
+<dt>use_H<span class="classifier">bool</span></dt><dd><p>Determines if hydrogen atoms are used or not. Defaults to False.</p>
+</dd>
+</dl>
+</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
 <dt class="sig sig-object py" id="chilife.dRotamerEnsemble.copy">
 <span class="sig-name descname"><span class="pre">copy</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#chilife.dRotamerEnsemble.copy" title="Link to this definition"></a></dt>
 <dd><p>Create a deep copy of the dRotamerEnsemble object</p>

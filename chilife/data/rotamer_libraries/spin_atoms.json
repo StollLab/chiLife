@@ -77,14 +77,6 @@
             0.5
         ]
     },
-    "DHC": {
-        "spin_atoms": [
-            "Cu1"
-        ],
-        "spin_weights": [
-            1.0
-        ]
-    },
     "V1A": {
         "spin_atoms": [
             "N3",

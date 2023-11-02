@@ -116,7 +116,7 @@ def test_distance_distribution(args, kws, expected):
 def test_distance_distribution_dep():
     ans = np.load('test_data/dependent_dist.npy')
     SL1 = chilife.SpinLabel('R1M', 295, anf)
-    SL2 = chilife.dSpinLabel('DHC', (233, 237), anf)
+    SL2 = chilife.dSpinLabel('DHC', (233, 237), anf, rotlib='test_data/DHC')
     r = np.linspace(2.5, 35, 256)
     P1 = chilife.distance_distribution(SL1, SL2, r)
     P2 = chilife.distance_distribution(SL1, SL2, r, dependent=True)
@@ -308,7 +308,7 @@ def test_MMM_dd(key):
 def test_save():
     L20R1 = chilife.SpinLabel("R1C", 20, protein)
     S238T = chilife.RotamerEnsemble("THR", 238, protein)
-    A318DHC = chilife.dSpinLabel("DHC", [318, 322], protein)
+    A318DHC = chilife.dSpinLabel("DHC", [318, 322], protein, rotlib='test_data/DHC')
 
     chilife.save(L20R1, S238T, A318DHC, protein, KDE=False)
 
@@ -481,4 +481,4 @@ def test_rl_speed():
 def test_rotlib_info():
 
     chilife.rotlib_info('R1M')
-    chilife.rotlib_info('DHC')
+    chilife.rotlib_info('DCN')

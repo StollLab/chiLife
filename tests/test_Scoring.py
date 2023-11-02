@@ -34,7 +34,7 @@ def test_efunc(func):
 
 @pytest.mark.parametrize('func',  lj_funcs)
 def test_efunc_dlabel(func):
-    dSL = chilife.dSpinLabel('DHC', (28, 32), protein, eval_clash=False)
+    dSL = chilife.dSpinLabel('DHC', (28, 32), protein, eval_clash=False, rotlib='test_data/DHC')
     test = func(dSL)
     ans = np.load(f'test_data/d{func.__name__}.npy')
     np.testing.assert_almost_equal(test, ans, decimal=4)

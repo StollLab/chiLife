@@ -7,7 +7,7 @@ import chilife as xl
 
 protein = mda.Universe("test_data/1ubq.pdb", in_memory=True)
 gb1 = mda.Universe("test_data/4wh4.pdb", in_memory=True).select_atoms("protein and segid A")
-SL2 = xl.dSpinLabel("DHC", [28, 28+4], gb1)
+SL2 = xl.dSpinLabel("DHC", [28, 28+4], gb1, rotlib='test_data/DHC')
 
 
 def test_add_dlabel():
@@ -90,7 +90,7 @@ def test_centroid():
 
 
 def test_side_chain_idx():
-    SL3 = xl.dSpinLabel("DHC", [28, 32], gb1)
+    SL3 = xl.dSpinLabel("DHC", [28, 32], gb1, rotlib='test_data/DHC')
     ans = np.array(['CB', 'CG', 'CD2', 'ND1', 'NE2', 'CE1', 'CB', 'CG', 'CD2', 'ND1',
                     'NE2', 'CE1', 'Cu1', 'O3', 'O1', 'O6', 'N5', 'C11', 'C9', 'C14',
                     'C8', 'C7', 'C10', 'O2', 'O4', 'O5'], dtype='<U3')
@@ -99,7 +99,7 @@ def test_side_chain_idx():
 
 
 def test_coords_setter():
-    SL3 = xl.dSpinLabel("DHC", [28, 32], gb1)
+    SL3 = xl.dSpinLabel("DHC", [28, 32], gb1, rotlib='test_data/DHC')
     old = SL3.coords.copy()
     ans = old + 5
     SL3.coords += 5
@@ -107,14 +107,14 @@ def test_coords_setter():
 
 
 def test_coord_set_error():
-    SL3 = xl.dSpinLabel("DHC", [28, 32], gb1)
+    SL3 = xl.dSpinLabel("DHC", [28, 32], gb1, rotlib='test_data/DHC')
     ar = np.random.rand(5, 20, 3)
     with pytest.raises(ValueError):
         SL3.coords = ar
 
 
 def test_mutate():
-    SL2 = xl.dSpinLabel('DHC', (28, 32), gb1, min_method='Powell')
+    SL2 = xl.dSpinLabel('DHC', (28, 32), gb1, min_method='Powell', rotlib='test_data/DHC')
     gb1_Cu = xl.mutate(gb1, SL2)
     xl.save("mutate_dSL.pdb", gb1_Cu)
 
@@ -142,7 +142,7 @@ def test_single_chain_error():
 
 
 def test_restraint_weight():
-    SL3 = xl.dSpinLabel("DHC", [28, 32], gb1, restraint_weight=5)
+    SL3 = xl.dSpinLabel("DHC", [28, 32], gb1, restraint_weight=5, rotlib='test_data/DHC')
     ans = np.array([0.51175099, 0.48824901])
 
     np.testing.assert_almost_equal(SL3.weights, ans, decimal=3)
@@ -152,9 +152,9 @@ def test_restraint_weight():
 def test_alternate_increment():
     with pytest.warns():
         with pytest.raises(RuntimeError):
-            xl.dSpinLabel("DHC", (15, 44), gb1)
+            xl.dSpinLabel("DHC", (15, 44), gb1, rotlib='test_data/DHC')
 
-    SL2 = xl.dSpinLabel("DHC", (12, 37), gb1)
+    SL2 = xl.dSpinLabel("DHC", (12, 37), gb1, rotlib='test_data/DHC')
     ans = np.array([[25.50056398,  1.27502619,  3.3972164 ],
                     [24.45518418,  2.0136011 ,  3.74825233],
                     [24.57566352,  1.97824049,  3.73004511],
@@ -164,7 +164,7 @@ def test_alternate_increment():
 
 
 def test_min_method():
-    SL2 = xl.dSpinLabel("DHC", (28, 32), gb1, min_method='Powell')
+    SL2 = xl.dSpinLabel("DHC", (28, 32), gb1, min_method='Powell', rotlib='test_data/DHC')
     ans = np.array([[ 18.6062595, -14.7057183,  12.0624657],
                     [ 18.5973142, -14.7182378,  12.0220757]])
 
@@ -172,7 +172,7 @@ def test_min_method():
 
 
 def test_no_min():
-    SL2 = xl.dSpinLabel("DHC", (28, 32), gb1, minimize=False)
+    SL2 = xl.dSpinLabel("DHC", (28, 32), gb1, minimize=False, rotlib='test_data/DHC')
 
     bb_coords = gb1.select_atoms('resid 28 32 and name N CA C O').positions
     bb_idx = np.argwhere(np.isin(SL2.atom_names, SL2.backbone_atoms)).flatten()
@@ -183,8 +183,8 @@ def test_no_min():
 
 
 def test_trim_false():
-    SL1 = xl.dSpinLabel('DHC', (28, 32), gb1, trim=False)
-    SL3 = xl.dSpinLabel('DHC', (28, 32), gb1, eval_clash=False)
+    SL1 = xl.dSpinLabel('DHC', (28, 32), gb1, trim=False, rotlib='test_data/DHC')
+    SL3 = xl.dSpinLabel('DHC', (28, 32), gb1, eval_clash=False, rotlib='test_data/DHC')
 
     assert len(SL1) == len(SL3)
     most_probable = np.sort(SL1.weights)[::-1][:len(SL2)]
@@ -199,7 +199,7 @@ def test_dmin_callback():
         vals.append(val)
         ivals.append(i)
 
-    SL1 = xl.dRotamerEnsemble('DHC', (28, 32), gb1, minimize=False)
+    SL1 = xl.dRotamerEnsemble('DHC', (28, 32), gb1, minimize=False, rotlib='test_data/DHC')
     SL1.minimize(callback=my_callback)
 
     assert len(vals) > 0

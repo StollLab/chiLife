@@ -16,6 +16,80 @@ import chilife
 
 
 class dRotamerEnsemble:
+    """Create new dRotamerEnsemble object.
+
+        Parameters
+        ----------
+        res : string
+            3-character name of desired residue, e.g. RXA.
+        site : tuple[int, int]
+            Protein residue numbers to attach the bifunctional library to.
+        protein : MDAnalysis.Universe, MDAnalysis.AtomGroup
+            Object containing all protein information (coords, atom types, etc.)
+        chain : str
+            Protein chain identifier to attach spin label to.
+        rotlib : str
+            Rotamer library to use for constructing the RotamerEnsemble
+        **kwargs : dict
+            restraint_weight: float
+                Force constant (kcal/mol/A^2) for calculating energetic penalty of restraint satisfaction, i.e. the
+                alignment of the overlapping atoms of the two mono-functional subunits of the bifunctional label.
+            torsion_weight: float
+                Force constant (kcal/mol/radian^2) for calculating energetic penalty of the deviation from rotamer
+                starting dihedral angles.
+            minimize: bool
+                Switch to turn on/off minimization. During minimization each rotamer is optimized in dihedral space
+                with respect to alignment of the "cap" atoms of the two mono-functional subunits, internal clashes
+                and deviation from the starting conformation in dihedral space.
+            min_method: str
+                Name of the minimization algorithm to use. All ``scipy.optimize.minimize`` algorithms are available
+                and include: ‘Nelder-Mead’, ‘Powell’, ‘CG’, ‘BFGS’, ‘Newton-CG’, ‘L-BFGS-B’, ‘TNC’, ‘COBYLA’, ‘SLSQP’,
+                ‘trust-constr’, ‘dogleg’, ‘trust-ncg’, ‘trust-exact’, ‘trust-krylov’, and custom.
+            exclude_nb_interactions: int:
+                When calculating internal clashes, ignore 1-``exclude_nb_interactions`` interactions and below. Defaults
+                to ignore 1-3 interactions, i.e. atoms that are connected by 2 bonds or fewer will not have a steric
+                effect on each other.
+            eval_clash : bool
+                Switch to turn clash evaluation on (True) and off (False).
+            energy_func : callable
+               Python function or callable object that takes a protein and a RotamerEnsemble object as input and
+               returns an energy value (kcal/mol) for each atom of each rotamer in the ensemble. See also
+               :mod:`Scoring <chiLife.scoring>` . Defaults to :mod:`chiLife.get_lj_energy <chiLife.get_lj_energy>` .
+            forgive : float
+               Softening factor to be passed to ``energy_func``. Only used if ``energy_func`` uses a softening factor.
+               Defaults to 0.95. See :mod:`Scoring <chiLife.scoring>` .
+            temp : float
+               Temperature to use when running ``energy_func``. Only used if ``energy_func`` accepts a temperature
+               argument  Defaults to 298 K.
+            clash_radius : float
+               Cutoff distance (angstroms) for inclusion of atoms in clash evaluations. This distance is measured from
+               ``clash_ori`` Defaults to the longest distance between any two atoms in the rotamer ensemble plus 5
+               angstroms.
+            clash_ori : str
+               Atom selection to use as the origin when finding atoms within the ``clash_radius``. Defaults to 'cen',
+               the centroid of the rotamer ensemble heavy atoms.
+            protein_tree : Scipy.spatial.cKDTree
+               KDTree of atom positions for fast distance calculations and neighbor detection. Defaults to None
+            trim: bool
+                When true, the lowest `trim_tol` fraction of rotamers in the ensemble will be removed.
+            trim_tol: float
+                Tolerance for trimming rotamers from the ensemble. trim_tol=0.005 means the bottom 0.5% of rotamers
+                will be removed.
+            alignment_method : str
+               Method to use when attaching or aligning the rotamer ensemble backbone with the protein backbone.
+               Defaults to ``'bisect'`` which aligns the CA atom, the vectors bisecting the N-CA-C angle and the
+               N-CA-C plane.
+            dihedral_sigmas : float, numpy.ndarray
+               Standard deviations of dihedral angles (degrees) for off rotamer sampling. Can be a single number for
+               isotropic sampling, a vector to define each dihedral individually or a matrix to define a value for
+               each rotamer and each dihedral. Setting this value to np.inf will force uniform (accessible volume)
+               sampling. Defaults to 35 degrees.
+            weighted_sampling : bool
+               Determines whether the rotamer ensemble is sampled uniformly or based off of their intrinsic weights.
+               Defaults to False.
+            use_H : bool
+               Determines if hydrogen atoms are used or not. Defaults to False.
+           """
     backbone_atoms = ["H", "N", "CA", "HA", "C", "O"]
 
     def __init__(self, res, sites, protein=None, chain=None, rotlib=None, **kwargs):
@@ -28,22 +102,10 @@ class dRotamerEnsemble:
 
         self.protein = protein
         self.chain = chain if chain is not None else self.guess_chain()
-        self.protein_tree = self.kwargs.setdefault("protein_tree", None)
 
-        self.forgive = kwargs.setdefault("forgive", 0.95)
-        self._clash_ori_inp = kwargs.setdefault("clash_ori", "cen")
-        self.restraint_weight = kwargs.pop("restraint_weight") if "restraint_weight" in kwargs else 222
-        self.torsion_weight = kwargs.pop("torsion_weight") if "torsion_weight" in kwargs else 5
-        self.alignment_method = kwargs.setdefault("alignment_method", "bisect".lower())
-        self.dihedral_sigmas = kwargs.setdefault("dihedral_sigmas", 25)
-        self._exclude_nb_interactions = kwargs.setdefault('exclude_nb_interactions', 3)
-        self._minimize = kwargs.pop("minimize", True)
-        self.min_method = kwargs.pop('min_method', 'L-BFGS-B')
-        self.trim_tol = kwargs.pop('trim_tol', 0.005)
-        self._do_trim = kwargs.pop('trim', True)
-        self.eval_clash = kwargs.pop("eval_clash", True)
-        self.energy_func = kwargs.setdefault("energy_func", chilife.get_lj_energy)
-        self.temp = kwargs.setdefault("temp", 298)
+        self.input_kwargs = kwargs
+        self.__dict__.update(dassign_defaults(kwargs))
+
         self.get_lib(rotlib)
         self.create_ensembles()
 
@@ -72,13 +134,10 @@ class dRotamerEnsemble:
         if self.chain is not None:
             self.name += f"_{self.chain}"
 
-        self.selstr = (
-            f"resid {self.site1} {self.site2} and segid {self.chain} and not altloc B"
-        )
+        self.selstr = f"resid {self.site1} {self.site2} and segid {self.chain} and not altloc B"
 
         self._graph = ig.Graph(edges=self.bonds)
 
-        self.clash_radius = kwargs.setdefault("clash_radius", None)
         if self.clash_radius is None:
             self.clash_radius = np.linalg.norm(self.clash_ori - self.coords, axis=-1).max() + 5
 
@@ -274,9 +333,9 @@ class dRotamerEnsemble:
         self.cap_MSDs = MSD
         self.RE1.backbone_to_site()
         self.RE2.backbone_to_site()
-
+        self.score_base = scores.min()
         scores -= scores.min()
-        self.rotamer_scores = scores
+        self.rotamer_scores = scores + self.score_base
         self.weights *= np.exp(-scores / (chilife.GAS_CONST * self.temp) / np.exp(-scores).sum())
         self.weights /= self.weights.sum()
 
@@ -545,3 +604,63 @@ class dRotamerEnsemble:
             else:
                 new_copy.__dict__[item] = deepcopy(self.__dict__[item])
         return new_copy
+
+
+def dassign_defaults(kwargs):
+    """
+    Helper function to assign default values to kwargs that have not been explicitly assigned by the user. Also
+    checks to make sure that the user provided kwargs are real kwargs.
+    Parameters
+    ----------
+    kwargs : dict
+        Dictionary of user supplied keyword arguments.
+
+
+    Returns
+    -------
+    kwargs : dict
+        Dictionary of user supplied keyword arguments augmented with defaults for all kwargs the user did not supply.
+    """
+
+    # Make all string arguments lowercase
+    for key, value in kwargs.items():
+        if isinstance(value, str):
+            kwargs[key] = value.lower()
+
+    # Default parameters
+    defaults = {
+        "eval_clash": True,
+
+        "forgive": 0.95,
+        "temp": 298,
+        "clash_radius": None,
+        "protein_tree": None,
+        "_clash_ori_inp": kwargs.pop("clash_ori", "cen"),
+
+        "alignment_method": "bisect",
+        "dihedral_sigmas": 25,
+
+        "use_H": False,
+        "_exclude_nb_interactions": kwargs.pop('exclude_nb_interactions', 3),
+
+        "energy_func": chilife.get_lj_energy,
+        "_minimize": kwargs.pop('minimize', True),
+        "min_method": 'L-BFGS-B',
+        "_do_trim": kwargs.pop('trim', True),
+        "trim_tol": 0.005,
+
+        "restraint_weight": kwargs.pop('restraint_weight', 222),
+        "torsion_weight": 5,
+    }
+
+    # Overwrite defaults
+    kwargs_filled = {**defaults, **kwargs}
+
+    # Make sure there are no unused parameters
+    if len(kwargs_filled) != len(defaults):
+        raise TypeError(
+            f"Got unexpected keyword argument(s): "
+            f'{", ".join(key for key in kwargs if key not in defaults)}'
+        )
+
+    return kwargs_filled.items()

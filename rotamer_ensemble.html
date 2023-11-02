@@ -161,7 +161,7 @@ acids.</p>
 <li><p><strong>protein</strong> (<em>MDAnalysis.Universe</em><em>, </em><em>MDAnalysis.AtomGroup</em>) – Object containing all protein information (coords, atom types, etc.)</p></li>
 <li><p><strong>chain</strong> (<em>str</em>) – Protein chain identifier to attach spin label to.</p></li>
 <li><p><strong>rotlib</strong> (<em>str</em>) – Rotamer library to use for constructing the RotamerEnsemble</p></li>
-<li><p><strong>**kwargs</strong> – <dl>
+<li><p><strong>**kwargs</strong> (<em>dict</em>) – <dl class="simple">
 <dt>minimize: bool</dt><dd><p>Switch to turn on/off minimization. During minimization each rotamer is optimized in dihedral space
 with respect to both internal and external clashes, and deviation from the starting conformation in
 dihedral space.</p>
@@ -179,8 +179,7 @@ effect on each other.</p>
 <dt>energy_func<span class="classifier">callable</span></dt><dd><p>Python function or callable object that takes a protein and a RotamerEnsemble object as input and
 returns an energy value (kcal/mol) for each atom of each rotamer in the ensemble. See also
 <code class="xref py py-mod docutils literal notranslate"><span class="pre">Scoring</span></code> . Defaults to <code class="xref py py-mod docutils literal notranslate"><span class="pre">chiLife.get_lj_rep</span></code> .</p>
-<blockquote>
-<div><dl class="simple">
+</dd>
 <dt>forgive<span class="classifier">float</span></dt><dd><p>Softening factor to be passed to <code class="docutils literal notranslate"><span class="pre">energy_func</span></code>. Only used if <code class="docutils literal notranslate"><span class="pre">energy_func</span></code> uses a softening factor.
 Defaults to 1.0. See <code class="xref py py-mod docutils literal notranslate"><span class="pre">Scoring</span></code> .</p>
 </dd>
@@ -205,6 +204,9 @@ will be removed.</p>
 Defaults to <code class="docutils literal notranslate"><span class="pre">'bisect'</span></code> which aligns the CA atom, the vectors bisecting the N-CA-C angle and the
 N-CA-C plane.</p>
 </dd>
+<dt>sample<span class="classifier">int, bool</span></dt><dd><p>Argument to use the off-rotamer sampling method. If <code class="docutils literal notranslate"><span class="pre">False</span></code> or <code class="docutils literal notranslate"><span class="pre">0</span></code> the off-rotamer sampling method
+will not be used. If <code class="docutils literal notranslate"><span class="pre">int</span></code> the ensemble will be generated with that many off-rotamer samples.</p>
+</dd>
 <dt>dihedral_sigmas<span class="classifier">float, numpy.ndarray</span></dt><dd><p>Standard deviations of dihedral angles (degrees) for off rotamer sampling. Can be a single number for
 isotropic sampling, a vector to define each dihedral individually or a matrix to define a value for
 each rotamer and each dihedral. Setting this value to np.inf will force uniform (accessible volume)
@@ -214,9 +216,6 @@ sampling. Defaults to 35 degrees.</p>
 Defaults to False.</p>
 </dd>
 <dt>use_H<span class="classifier">bool</span></dt><dd><p>Determines if hydrogen atoms are used or not. Defaults to False.</p>
-</dd>
-</dl>
-</div></blockquote>
 </dd>
 </dl>
 </p></li>

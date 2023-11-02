@@ -33,11 +33,10 @@ class RotamerEnsemble:
     rotlib : str
         Rotamer library to use for constructing the RotamerEnsemble
     **kwargs : dict
-
         minimize: bool
-                Switch to turn on/off minimization. During minimization each rotamer is optimized in dihedral space
-                with respect to both internal and external clashes, and deviation from the starting conformation in
-                dihedral space.
+            Switch to turn on/off minimization. During minimization each rotamer is optimized in dihedral space
+            with respect to both internal and external clashes, and deviation from the starting conformation in
+            dihedral space.
         min_method: str
             Name of the minimization algorithm to use. All ``scipy.optimize.minimize`` algorithms are available
             and include: ‘Nelder-Mead’, ‘Powell’, ‘CG’, ‘BFGS’, ‘Newton-CG’, ‘L-BFGS-B’, ‘TNC’, ‘COBYLA’, ‘SLSQP’,
@@ -52,44 +51,6 @@ class RotamerEnsemble:
            Python function or callable object that takes a protein and a RotamerEnsemble object as input and
            returns an energy value (kcal/mol) for each atom of each rotamer in the ensemble. See also
            :mod:`Scoring <chiLife.scoring>` . Defaults to :mod:`chiLife.get_lj_rep <chiLife.get_lj_rep>` .
-            forgive : float
-               Softening factor to be passed to ``energy_func``. Only used if ``energy_func`` uses a softening factor.
-               Defaults to 1.0. See :mod:`Scoring <chiLife.scoring>` .
-            temp : float
-               Temperature to use when running ``energy_func``. Only used if ``energy_func`` accepts a temperature
-               argument  Defaults to 298 K.
-            clash_radius : float
-               Cutoff distance (angstroms) for inclusion of atoms in clash evaluations. This distance is measured from
-               ``clash_ori`` Defaults to the longest distance between any two atoms in the rotamer ensemble plus 5
-               angstroms.
-            clash_ori : str
-               Atom selection to use as the origin when finding atoms within the ``clash_radius``. Defaults to 'cen',
-               the centroid of the rotamer ensemble heavy atoms.
-            protein_tree : Scipy.spatial.cKDTree
-               KDTree of atom positions for fast distance calculations and neighbor detection. Defaults to None
-            trim: bool
-                When true, the lowest `trim_tol` fraction of rotamers in the ensemble will be removed.
-            trim_tol: float
-                Tolerance for trimming rotamers from the ensemble. trim_tol=0.005 means the bottom 0.5% of rotamers
-                will be removed.
-            alignment_method : str
-               Method to use when attaching or aligning the rotamer ensemble backbone with the protein backbone.
-               Defaults to ``'bisect'`` which aligns the CA atom, the vectors bisecting the N-CA-C angle and the
-               N-CA-C plane.
-            dihedral_sigmas : float, numpy.ndarray
-               Standard deviations of dihedral angles (degrees) for off rotamer sampling. Can be a single number for
-               isotropic sampling, a vector to define each dihedral individually or a matrix to define a value for
-               each rotamer and each dihedral. Setting this value to np.inf will force uniform (accessible volume)
-               sampling. Defaults to 35 degrees.
-            weighted_sampling : bool
-               Determines whether the rotamer ensemble is sampled uniformly or based off of their intrinsic weights.
-               Defaults to False.
-            use_H : bool
-               Determines if hydrogen atoms are used or not. Defaults to False.
-
-
-        protein_tree : Scipy.spatial.cKDTree
-           KDTree of atom positions for fast distance calculations and neighbor detection. Defaults to None
         forgive : float
            Softening factor to be passed to ``energy_func``. Only used if ``energy_func`` uses a softening factor.
            Defaults to 1.0. See :mod:`Scoring <chiLife.scoring>` .
@@ -103,10 +64,20 @@ class RotamerEnsemble:
         clash_ori : str
            Atom selection to use as the origin when finding atoms within the ``clash_radius``. Defaults to 'cen',
            the centroid of the rotamer ensemble heavy atoms.
+        protein_tree : Scipy.spatial.cKDTree
+           KDTree of atom positions for fast distance calculations and neighbor detection. Defaults to None
+        trim: bool
+            When true, the lowest `trim_tol` fraction of rotamers in the ensemble will be removed.
+        trim_tol: float
+            Tolerance for trimming rotamers from the ensemble. trim_tol=0.005 means the bottom 0.5% of rotamers
+            will be removed.
         alignment_method : str
            Method to use when attaching or aligning the rotamer ensemble backbone with the protein backbone.
            Defaults to ``'bisect'`` which aligns the CA atom, the vectors bisecting the N-CA-C angle and the
            N-CA-C plane.
+        sample : int, bool
+           Argument to use the off-rotamer sampling method. If ``False`` or ``0`` the off-rotamer sampling method
+           will not be used. If ``int`` the ensemble will be generated with that many off-rotamer samples.
         dihedral_sigmas : float, numpy.ndarray
            Standard deviations of dihedral angles (degrees) for off rotamer sampling. Can be a single number for
            isotropic sampling, a vector to define each dihedral individually or a matrix to define a value for
@@ -117,14 +88,6 @@ class RotamerEnsemble:
            Defaults to False.
         use_H : bool
            Determines if hydrogen atoms are used or not. Defaults to False.
-
-        sample : int, bool
-           Argument to use the off-rotamer sampling method. If ``False`` or ``0`` the off-rotamer sampling method
-           will not be used. If ``int`` the ensemble will be generated with that many off-rotamer samples.
-        energy_func : callable
-           Python function or callable object that takes a protein and a RotamerEnsemble object as input and
-           returns an energy value (kcal/mol) for each atom of each rotamer in the ensemble. See also
-           :mod:`Scoring <chiLife.scoring>` . Defaults to :mod:`chiLife.get_lj_rep <chiLife.get_lj_rep>` .
        """
 
 

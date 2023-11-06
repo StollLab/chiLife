@@ -66,7 +66,7 @@ class MolecularSystem:
 
     @fname.setter
     def fname(self, val):
-        self.protein.fname = val
+        self.protein._fname = val
 
     @property
     def positions(self):

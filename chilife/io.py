@@ -376,7 +376,7 @@ def write_protein(pdb_file: TextIO, protein: Union[mda.Universe, mda.AtomGroup])
         name = name.name
     else:
         traj = protein.trajectory
-        name = protein.fname
+        name = protein.fname if hasattr(protein, 'fname') else None
 
     if name is None:
         name = Path(pdb_file.name).name

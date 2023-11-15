@@ -773,6 +773,7 @@ class Residue(MolecularSystem):
         self.resname = protein.resnames[self.mask][0]
         self.resnum = protein.resnums[self.mask][0]
         self.resid = self.resnum
+        self.resindex = protein.resixs[self.mask][0]
         self.segid = protein.segids[self.mask][0]
         self.segindex = protein.segixs[self.mask][0]
         self.chain = protein.chains[self.mask][0]

@@ -26,7 +26,6 @@ setup(
     packages=['chilife'],
     package_data={'chilife': ['data/*', 'data/*/*', 'data/*/*/*']},
     scripts=['scripts/update_rotlib.py', 'scripts/oldProteinIC.py'],
-    license_files=('LICENSE'),
     project_urls = {'Source': 'https://github.com/StollLab/chiLife'},
     long_description=readme,
     long_description_content_type='text/markdown',

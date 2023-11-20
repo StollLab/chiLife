@@ -1,6 +1,18 @@
 [project]
 name = "chilife"
 dynamic = ["version"]
+dependencies = ['numpy>=1.23.0',
+                'scipy>=1.6.3',
+                'matplotlib>=3.3.4',
+                'numba>=0.57.0',
+                'mdanalysis>=2.0.0',
+                'tqdm>=4.45.0',
+                'pytest>=6.2.2',
+                'memoization>=0.3.1',
+                'argparse>=1.4.0',
+                'setuptools>=53.0.0',
+                'igraph>=0.11.2',
+                'rtoml>=0.9.0']
 
 [tool.setuptools.dynamic]
 version = {attr = "chilife.__version__"}

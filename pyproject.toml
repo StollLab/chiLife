@@ -1,6 +1,34 @@
 [project]
 name = "chilife"
-dynamic = ["version"]
+description = 'A package for modeling non-canonical amino acid side chain ensembles.'
+license= {name = 'GNU GPLv3', file = 'LICENSE'}
+authors=[{name = 'Maxx Tessmer', email='mhtessmer@gmail.com'},
+         {name = 'Stefan Stoll', email='stst@uw.edu'}]
+keywords=['Spin-label', 'EPR', 'DEER', 'PELDOR', 'Side-chain']
+dynamic = ["version", "readme"]
+requires-python = ">= 3.8,<=3.11"
+dependencies = ['numpy>=1.23.0',
+                'scipy>=1.6.3',
+                'matplotlib>=3.3.4',
+                'numba>=0.57.0',
+                'mdanalysis>=2.0.0',
+                'tqdm>=4.45.0',
+                'pytest>=6.2.2',
+                'memoization>=0.3.1',
+                'argparse>=1.4.0',
+                'setuptools>=53.0.0',
+                'igraph>=0.11.2',
+                'rtoml>=0.9.0']
+
+classifiers=['License :: OSI Approved :: GNU General Public License v3 (GPLv3)',
+             'Programming Language :: Python :: 3.8',
+             'Programming Language :: Python :: 3.9',
+             'Programming Language :: Python :: 3.10',
+             'Programming Language :: Python :: 3.11']
+
+[project.urls]
+homepage = 'https://github.com/StollLab/chiLife'
+documentation = "stolllab.github.io/chiLife/"
 
 [tool.setuptools.dynamic]
 version = {attr = "chilife.__version__"}

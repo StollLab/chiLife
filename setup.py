@@ -23,23 +23,12 @@ class PostInstall(install):
 
 setup(
     name='chilife',
-    python_requires='>=3.8',
     packages=['chilife'],
     package_data={'chilife': ['data/*', 'data/*/*', 'data/*/*/*']},
     scripts=['scripts/update_rotlib.py', 'scripts/oldProteinIC.py'],
-    license='GNU GPLv3',
     license_files=('LICENSE'),
-    author='Maxx Tessmer',
-    author_email='mhtessmer@gmail.com',
-    url='https://github.com/StollLab/chiLife',
     project_urls = {'Source': 'https://github.com/StollLab/chiLife'},
-    keywords=['Spin label', 'EPR', 'DEER', 'PELDOR', 'Side chain'],
-    description='A package for modeling non-canonical amino acid side chain ensembles.',
     long_description=readme,
     long_description_content_type='text/markdown',
     cmdclass={'install': PostInstall},
-    classifiers=['License :: OSI Approved :: GNU General Public License v3 (GPLv3)',
-                 'Programming Language :: Python :: 3.8',
-                 'Programming Language :: Python :: 3.9',
-                 'Programming Language :: Python :: 3.10',
-                 'Programming Language :: Python :: 3.11'])
+

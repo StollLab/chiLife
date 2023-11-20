@@ -2,7 +2,7 @@
 name = "chilife"
 description = 'A package for modeling non-canonical amino acid side chain ensembles.'
 license= {file = 'LICENSE' }
-authors='Maxx Tessmer'
+authors=['Maxx Tessmer', 'Stefan Stoll']
 author_email='mhtessmer@gmail.com'
 keywords=['Spin-label', 'EPR', 'DEER', 'PELDOR', 'Side-chain']
 url='https://github.com/StollLab/chiLife'

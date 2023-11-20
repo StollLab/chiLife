@@ -30,5 +30,5 @@ setup(
     project_urls = {'Source': 'https://github.com/StollLab/chiLife'},
     long_description=readme,
     long_description_content_type='text/markdown',
-    cmdclass={'install': PostInstall},
+    cmdclass={'install': PostInstall})
 

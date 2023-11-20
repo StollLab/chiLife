@@ -1,9 +1,9 @@
 [project]
 name = "chilife"
 description = 'A package for modeling non-canonical amino acid side chain ensembles.'
-license= {file = 'LICENSE' }
-authors=['Maxx Tessmer', 'Stefan Stoll']
-author_email='mhtessmer@gmail.com'
+license= {name = 'GNU GPLv3', file = 'LICENSE'}
+authors=[{name = 'Maxx Tessmer', email='mhtessmer@gmail.com'},
+         {name = 'Stefan Stoll', email='stst@uw.edu'}]
 keywords=['Spin-label', 'EPR', 'DEER', 'PELDOR', 'Side-chain']
 url='https://github.com/StollLab/chiLife'
 dynamic = ["version", "readme"]

@@ -562,6 +562,7 @@ def create_dlibrary(
         resname: str = None,
         dihedrals: ArrayLike = None,
         weights: ArrayLike = None,
+        sort_atoms = True,
         permanent: bool = False,
         default: bool = False,
         force: bool = False,
@@ -649,7 +650,7 @@ def create_dlibrary(
             "residue number"
         )
 
-    struct, spin_atoms = pre_add_library(pdb, spin_atoms, uniform_topology=False)
+    struct, spin_atoms = pre_add_library(pdb, spin_atoms, uniform_topology=False, sort_atoms=sort_atoms)
     res1 = struct.select_atoms(f'resnum {site1}')
     res2 = struct.select_atoms(f'resnum {site2}')
 
@@ -769,6 +770,7 @@ def pre_add_library(
         pdb: str,
         spin_atoms: List[str],
         uniform_topology: bool = True,
+        sort_atoms = True,
 ) -> Tuple[MDAnalysis.Universe, Dict]:
     """Helper function to sort PDBs, save spin atoms, update lists, etc. when adding a SpinLabel or dSpinLabel.
 
@@ -790,27 +792,32 @@ def pre_add_library(
     spin_atoms : dict
         Dictionary of spin atoms and weights if specified.
     """
-    # Sort the PDB for optimal dihedral definitions
-    pdb_lines, bonds = sort_pdb(pdb, uniform_topology=uniform_topology, return_bonds=True)
-    bonds = get_min_topol(pdb_lines, forced_bonds=bonds)
+    if sort_atoms:
+        # Sort the PDB for optimal dihedral definitions
+        pdb_lines, bonds = sort_pdb(pdb, uniform_topology=uniform_topology, return_bonds=True)
+        bonds = get_min_topol(pdb_lines, forced_bonds=bonds)
 
-    # Write a temporary file with the sorted atoms
-    if isinstance(pdb_lines[0], list):
-        with tempfile.NamedTemporaryFile(suffix=".pdb", mode="w+", delete=False) as tmpfile:
-            for i, model in enumerate(pdb_lines):
-                tmpfile.write(f"MODEL {i + 1}\n")
-                for atom in model:
-                    tmpfile.write(atom)
-                tmpfile.write("ENDMDL\n")
-    else:
-        with tempfile.NamedTemporaryFile(suffix=".pdb", mode="w+", delete=False) as tmpfile:
-            for line in pdb_lines:
-                tmpfile.write(line)
+        # Write a temporary file with the sorted atoms
+        if isinstance(pdb_lines[0], list):
+            with tempfile.NamedTemporaryFile(suffix=".pdb", mode="w+", delete=False) as tmpfile:
+                for i, model in enumerate(pdb_lines):
+                    tmpfile.write(f"MODEL {i + 1}\n")
+                    for atom in model:
+                        tmpfile.write(atom)
+                    tmpfile.write("ENDMDL\n")
+        else:
+            with tempfile.NamedTemporaryFile(suffix=".pdb", mode="w+", delete=False) as tmpfile:
+                for line in pdb_lines:
+                    tmpfile.write(line)
 
     # Load sorted atom pdb using MDAnalysis and remove tempfile
-    struct = mda.Universe(tmpfile.name, in_memory=True)
-    struct.universe.add_bonds(bonds)
-    os.remove(tmpfile.name)
+        struct = mda.Universe(tmpfile.name, in_memory=True)
+        struct.add_bonds(bonds)
+        os.remove(tmpfile.name)
+    else:
+        struct = mda.Universe(pdb, in_memory=True)
+        bonds = chilife.guess_bonds(struct.atoms.positions, struct.atoms.types)
+        struct.add_bonds(bonds)
 
     # Store spin atoms if provided
     if spin_atoms is not None:

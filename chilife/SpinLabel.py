@@ -73,10 +73,8 @@ class SpinLabel(RotamerEnsemble):
         self.protein = self.protein.select_atoms("not (byres name OH2 or resname HOH)")
         self.to_site()
         self.backbone_to_site()
-        self.clash_ignore_idx = self.protein.select_atoms(
-            f"resid {self.site} and segid {self.chain}"
-        ).ix
-
+        clash_ignore_idx = self.protein.select_atoms(f"resid {self.site} and segid {self.chain}").ix
+        self.clash_ignore_idx = np.argwhere(np.isin(self.protein.ix, clash_ignore_idx)).flatten()
         self.resindex = self.protein.select_atoms(self.selstr).resindices[0]
         self.segindex = self.protein.select_atoms(self.selstr).segindices[0]
 

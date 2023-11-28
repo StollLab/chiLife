@@ -153,10 +153,8 @@ class dRotamerEnsemble:
                 self.protein.universe.add_TopologyAttr('altLocs', np.full(len(self.protein.universe.atoms), ""))
 
         self.protein = self.protein.select_atoms("not (byres name OH2 or resname HOH)")
-        self.clash_ignore_idx = self.protein.select_atoms(
-            f"resid {self.site1} {self.site2} and segid {self.chain}"
-        ).ix
-
+        clash_ignore_idx = self.protein.select_atoms(f"resid {self.site1} {self.site2} and segid {self.chain}").ix
+        self.clash_ignore_idx = np.argwhere(np.isin(self.protein.ix, clash_ignore_idx)).flatten()
         self.resindex = self.protein.select_atoms(self.selstr).residues[0].resindex
         self.segindex = self.protein.select_atoms(self.selstr).residues[0].segindex
 

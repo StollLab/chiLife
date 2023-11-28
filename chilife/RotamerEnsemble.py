@@ -974,8 +974,8 @@ class RotamerEnsemble:
         self.backbone_to_site()
 
         # Get weight of current or closest rotamer
-        self.clash_ignore_idx = self.protein.select_atoms(f"resid {self.site} and segid {self.chain}").ix
-
+        clash_ignore_idx = self.protein.select_atoms(f"resid {self.site} and segid {self.chain}").ix
+        self.clash_ignore_idx = np.argwhere(np.isin(self.protein.ix, clash_ignore_idx)).flatten()
         protein_clash_idx = self.protein_tree.query_ball_point(self.clash_ori, self.clash_radius)
         self.protein_clash_idx = [idx for idx in protein_clash_idx if idx not in self.clash_ignore_idx]
 

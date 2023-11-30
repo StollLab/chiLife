@@ -36,7 +36,6 @@ script-files = ['scripts/update_rotlib.py', 'scripts/oldProteinIC.py']
 [tool.setuptools.package-data]
 chilife = ['data/*', 'data/*/*', 'data/*/*/*']
 
-
 [tool.setuptools.dynamic]
 version = {attr = "chilife.__version__"}
 

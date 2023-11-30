@@ -105,7 +105,7 @@ def test_set_dihedral():
 
 
 def test_set_dihedral2():
-    lys = mda.Universe('../chilife/data/rotamer_libraries/residue_pdbs/lys.pdb')
+    lys = mda.Universe('../src/chilife/data/rotamer_libraries/residue_pdbs/lys.pdb')
 
     ICs = xl.ProteinIC.from_protein(lys)
     ICs.set_dihedral(np.pi / 2, 1, ["N", "CA", "CB", "CG"])
@@ -128,7 +128,7 @@ def test_polypro():
 
 
 def test_PRO():
-    pro = mda.Universe("../chilife/data/rotamer_libraries/residue_pdbs/pro.pdb")
+    pro = mda.Universe("../src/chilife/data/rotamer_libraries/residue_pdbs/pro.pdb")
     pro_ic = xl.ProteinIC.from_protein(pro)
 
     np.testing.assert_equal(pro_ic.z_matrix_names[6], ["CD", "CG", "CB", "CA"])
@@ -258,7 +258,7 @@ def test_pickle():
 
 
 def test_chain_operators():
-    LYS = mda.Universe('../chilife/data/rotamer_libraries/residue_pdbs/lys.pdb')
+    LYS = mda.Universe('../src/chilife/data/rotamer_libraries/residue_pdbs/lys.pdb')
     pic = xl.ProteinIC.from_protein(LYS)
 
     mx = np.array([[0.38281548,  0.9238248,   0.],

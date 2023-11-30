@@ -2,7 +2,7 @@ import os, hashlib, pickle
 import numpy as np
 import pytest
 import chilife
-from chilife.Protein import Protein, parse_paren, Residue, ResidueSelection, Segment, SegmentSelection, AtomSelection
+from chilife.Protein import Protein, parse_paren, Residue, ResidueSelection
 import MDAnalysis as mda
 
 prot = Protein.from_pdb('test_data/1omp_H.pdb')

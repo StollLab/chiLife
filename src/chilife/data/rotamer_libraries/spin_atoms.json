@@ -1,0 +1,130 @@
+{
+    "R1M": {
+        "spin_atoms": [
+            "N1",
+            "O1"
+        ],
+        "spin_weights": [
+            0.5,
+            0.5
+        ]
+    },
+    "R7M": {
+        "spin_atoms": [
+            "N2",
+            "O2"
+        ],
+        "spin_weights": [
+            0.5,
+            0.5
+        ]
+    },
+    "V1M": {
+        "spin_atoms": [
+            "N3",
+            "O2"
+        ],
+        "spin_weights": [
+            0.5,
+            0.5
+        ]
+    },
+    "M1M": {
+        "spin_atoms": [
+            "N3",
+            "O4"
+        ],
+        "spin_weights": [
+            0.5,
+            0.5
+        ]
+    },
+    "I1M": {
+        "spin_atoms": [
+            "N1",
+            "O1"
+        ],
+        "spin_weights": [
+            0.5,
+            0.5
+        ]
+    },
+    "R1C": {
+        "spin_atoms": [
+            "N1",
+            "O1"
+        ],
+        "spin_weights": [
+            0.5,
+            0.5
+        ]
+    },
+    "TRT": {
+        "spin_atoms": [
+            "CAQ"
+        ],
+        "spin_weights": [
+            1.0
+        ]
+    },
+    "TOC": {
+        "spin_atoms": [
+            "N1",
+            "O1"
+        ],
+        "spin_weights": [
+            0.5,
+            0.5
+        ]
+    },
+    "V1A": {
+        "spin_atoms": [
+            "N3",
+            "O2"
+        ],
+        "spin_weights": [
+            0.5,
+            0.5
+        ]
+    },
+    "I1A": {
+        "spin_atoms": [
+            "N1",
+            "O1"
+        ],
+        "spin_weights": [
+            0.5,
+            0.5
+        ]
+    },
+    "M1A": {
+        "spin_atoms": [
+            "N3",
+            "O4"
+        ],
+        "spin_weights": [
+            0.5,
+            0.5
+        ]
+    },
+    "R1A": {
+        "spin_atoms": [
+            "N1",
+            "O1"
+        ],
+        "spin_weights": [
+            0.5,
+            0.5
+        ]
+    },
+    "R7A": {
+        "spin_atoms": [
+            "N2",
+            "O2"
+        ],
+        "spin_weights": [
+            0.5,
+            0.5
+        ]
+    }
+}

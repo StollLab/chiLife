@@ -1,0 +1,28 @@
+#Author: Cameron Davidson-Pilon, replicated styles from FiveThirtyEight.com
+# See https://www.dataorigami.net/blogs/fivethirtyeight-mpl
+
+lines.solid_capstyle: butt
+legend.fancybox: true
+
+axes.prop_cycle: cycler('color', ['8080FF', 'B34D66', '991A99', '339933', 'a7522b', '8EBA42', 'FFB5B8'])
+                   # 8080FF : slate
+                   # B34D66 : raspberry
+                   # 991A99 : deeppurple
+                   # A6E6A6 : palegreen
+                   # FBC15E : yellow
+                   # 8EBA42 : green
+                   # FFB5B8 : pink
+				   
+axes.axisbelow: true
+axes.grid: false
+
+patch.edgecolor: f0f0f0
+patch.linewidth: 0.5
+
+svg.fonttype: path
+
+xtick.top: false
+ytick.right: false
+
+savefig.edgecolor: f0f0f0
+savefig.facecolor: ffffff

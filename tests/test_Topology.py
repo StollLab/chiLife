@@ -2,7 +2,7 @@ import pickle
 import pytest
 import MDAnalysis
 import chilife as xl
-from chilife.Topology import *
+from src.chilife.Topology import *
 from MDAnalysis.topology.guessers import guess_angles, guess_dihedrals
 
 ubq = xl.Protein.from_pdb('test_data/1ubq.pdb', sort_atoms=True)

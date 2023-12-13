@@ -14,6 +14,7 @@ from tqdm import tqdm
 import numpy as np
 from numpy.typing import ArrayLike
 from scipy.spatial.distance import cdist
+from scipy.stats import t
 import MDAnalysis as mda
 import MDAnalysis.transformations
 
@@ -1418,6 +1419,38 @@ def _print_drotlib_info(lib_file):
                                      f"*"*80)]
 
     print("\n".join(list(chain.from_iterable(myl))))
+
+
+def confidence_interval(data: ArrayLike, cutoff: float = 0.95, non_negative: bool = True) -> Tuple[np.array, np.array]:
+    """
+
+    Parameters
+    ----------
+    data: Array Like
+        Array of distance distribution samples
+    cutoff: float
+        Confidence cutoff to calculate confidence interval over.
+    non_negative: bool
+        Clip negative elements of confidence intervals to 0.
+
+    Returns
+    -------
+    interval: Tuple[np.array, np.array]
+        Lower and upper confidence intervals at the provided cutoff
+
+    """
+    mu = np.mean(data, axis=0)
+    std = np.std(data, axis=0)
+    ub, lb = t.interval(cutoff, df=len(data) - 1, loc=mu, scale=std)
+
+    lb[np.isnan(lb)] = 0.
+    ub[np.isnan(ub)] = 0.
+
+    if non_negative:
+        lb = lb.clip(0)
+        ub = ub.clip(0)
+
+    return lb, ub
 
 
 def continuous_topol(atoms, bonds):

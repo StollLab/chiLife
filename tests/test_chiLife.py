@@ -1,6 +1,7 @@
 import pickle, hashlib, os
 from time import perf_counter
 import numpy as np
+from scipy.stats import norm, t
 import pytest
 import MDAnalysis as mda
 import chilife
@@ -482,3 +483,15 @@ def test_rotlib_info():
 
     chilife.rotlib_info('R1M')
     chilife.rotlib_info('DCN')
+
+def test_uq():
+
+    np.random.seed(0)
+    P = norm(loc=35, scale=2).pdf(r)
+    Ps = np.random.normal(P, 0.2 * P, size=(500, 256))
+
+    ub, lb = chilife.confidence_interval(Ps)
+    adj = (ub - lb) / (2 * t.ppf(0.975, len(P) - 1))
+    diff = adj - 0.2*P
+
+    assert diff @ diff < 1e-4

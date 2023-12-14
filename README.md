@@ -37,7 +37,7 @@ protein model to retain the native amino acid.
 ```python
 import numpy as np
 import matplotlib.pyplot as plt
-import chilife as xl
+from src import chilife as xl
 
 # Download protein structure from PDB
 MBP = xl.fetch('1omp', save=True)

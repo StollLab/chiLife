@@ -1,4 +1,4 @@
-Protein Utils
+MolSys Utils
 =============
 
 .. automodule:: chilife.protein_utils

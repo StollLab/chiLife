@@ -1,5 +1,8 @@
 #! /usr/bin/env python
+from zipfile import ZipFile
+from io import BytesIO
 import numpy as np
+from numpy.lib.format import read_array
 import chilife as xl
 import oldProteinIC as opic
 import sys, os
@@ -18,15 +21,20 @@ args = parser.parse_args()
 
 
 def main():
+
+
     for filename in args.files_names:
+
         if filename.endswith('_rotlib.npz'):
             shutil.copy(filename, filename + '.bku')
             data = get_data(filename)
             np.savez(filename, **data)
 
+
         elif filename.endswith('_drotlib.zip'):
             shutil.copy(filename, filename + '.bku')
             libname = filename[:-12]
+
             with zipfile.ZipFile(filename, 'r') as archive:
                 for f in archive.namelist():
                     if 'csts' in f:
@@ -58,6 +66,31 @@ def main():
 
 
 def get_data(filename, description = None, comment = None, reference = None):
+
+    with np.load(filename, allow_pickle=True) as f:
+        version = f['format_version']
+
+    if version < 1.2:
+        data = get_data_lt_1_2(filename)
+
+    elif version == 1.2:
+        data = get_data_1_2(filename)
+
+    else:
+        data = {}
+        with np.load(filename, allow_pickle=True) as f:
+            for key in f:
+                data[key] = f[key]
+
+    for key, val in zip(('description', 'comment', 'reference'), (description, comment, reference)):
+        if (key not in data) or (val is not None):
+            data[key] = val
+
+    data['format_version'] = 1.3
+
+    return data
+
+def get_data_lt_1_2(filename):
     sys.modules['chilife.ProteinIC'] = opic
     data = {}
     with np.load(filename, allow_pickle=True) as f:
@@ -88,15 +121,29 @@ def get_data(filename, description = None, comment = None, reference = None):
 
     del sys.modules['chilife.ProteinIC']
     reload(xl)
-    P = xl.ProteinIC(z_matrix, z_matrix_idxs, uni, bonds=bonds)
+    P = xl.MolSysIC(z_matrix, z_matrix_idxs, uni, bonds=bonds)
     data['internal_coords'] = P
 
-    for key, val in zip(('description', 'comment', 'reference'), (description, comment, reference)):
-        if (key not in data) or (val is not None):
-            data[key] = val
-
-    data['format_version'] = 1.2
     return data
 
+def get_data_1_2(filename):
+
+    with ZipFile(filename, 'r') as fb:
+        with fb.open('internal_coords.npy', 'r') as finner:
+            ic_bytes = finner.read()
+
+    ic_bytes = ic_bytes.replace(b'chilife.Protein\n', b'chilife.MolSys\n')
+    ic_bytes = ic_bytes.replace(b'\nProtein\n', b'\nMolSys\n')
+    ic_bytes = ic_bytes.replace(b'chilife.ProteinIC\nProteinIC', b'chilife.MolSysIC\nMolSysIC')
+
+    data = {}
+    with np.load(filename, allow_pickle=True) as f:
+        for key in f:
+            if key != 'internal_coords':
+                data[key] = f[key]
+
+    data['internal_coords'] = read_array(BytesIO(ic_bytes), allow_pickle=True)
+
+    return data
 
 main()

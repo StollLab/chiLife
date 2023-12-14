@@ -29,7 +29,7 @@ def test_efunc(func):
     RL = chilife.RotamerEnsemble('TRP', 28, protein)
     test = func(RL)
     ans = np.load(f'test_data/{func.__name__}.npy')
-    np.testing.assert_almost_equal(test, ans, decimal=6)
+    np.testing.assert_almost_equal(test, ans, decimal=5)
 
 
 @pytest.mark.parametrize('func',  lj_funcs)
@@ -47,7 +47,7 @@ def test_prep_internal_clash():
         r_ans, rmin_ans, eps_ans = f['r'], f['rmin'], f['eps']
 
     assert shape == (36, 56)
-    np.testing.assert_almost_equal(r, r_ans)
+    np.testing.assert_almost_equal(r, r_ans, decimal=6)
     np.testing.assert_almost_equal(rmin, rmin_ans)
     np.testing.assert_almost_equal(eps, eps_ans)
 

@@ -417,3 +417,7 @@ def test_from_wizard_custom_rotlib():
     np.testing.assert_almost_equal(A28NBA.coords, ans, decimal=5)
 
 
+def test_name():
+    ubqs = ubq.select_atoms('resnum 8-70')
+    SL1 = chilife.SpinLabel('R1M', 28, ubqs)
+    assert SL1.name == 'A28R1M'

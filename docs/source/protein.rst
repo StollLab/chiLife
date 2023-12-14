@@ -1,11 +1,11 @@
-Protein
+MolSys
 =============
 
-Under construction. The chiLife.Protein module is not yet officially supported.
+Under construction. The chiLife.MolSys module is not yet officially supported.
 
-.. automodule:: chilife.Protein
+.. automodule:: chilife.MolSys
     :members:
 
-.. automodule:: chilife.ProteinIC
+.. automodule:: chilife.MolSysIC
     :members:
 

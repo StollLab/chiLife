@@ -1,6 +1,7 @@
 import pickle, hashlib, os
 from time import perf_counter
 import numpy as np
+from scipy.stats import norm, t
 import pytest
 import MDAnalysis as mda
 import chilife
@@ -439,7 +440,7 @@ def test_create_library_diff():
 def test_chilife_mplstyle():
     mlp_stylelib_path = Path(mpl.get_configdir()) / 'stylelib'
 
-    style_files = list(Path("../chilife/data/mplstyles/").glob("*.mplstyle"))
+    style_files = list(Path("../src/chilife/data/mplstyles/").glob("*.mplstyle"))
     assert len(style_files) > 0
     for style_file in style_files:
         test_file = mlp_stylelib_path / style_file.name
@@ -482,3 +483,15 @@ def test_rotlib_info():
 
     chilife.rotlib_info('R1M')
     chilife.rotlib_info('DCN')
+
+def test_uq():
+
+    np.random.seed(0)
+    P = norm(loc=35, scale=2).pdf(r)
+    Ps = np.random.normal(P, 0.2 * P, size=(500, 256))
+
+    ub, lb = chilife.confidence_interval(Ps)
+    adj = (ub - lb) / (2 * t.ppf(0.975, len(P) - 1))
+    diff = adj - 0.2*P
+
+    assert diff @ diff < 1e-4

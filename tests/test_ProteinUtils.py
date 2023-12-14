@@ -59,18 +59,19 @@ def test_sort_pdb2():
 
     U = mda.Universe("test_data/SL_GGAGG_tmp.pdb", in_memory=True)
     os.remove("test_data/SL_GGAGG_tmp.pdb")
-    ICs = chilife.ProteinIC.from_protein(U, preferred_dihedrals=[["C", "N", "CA", "C"]])
+    ICs = chilife.MolSysIC.from_protein(U, preferred_dihedrals=[["C", "N", "CA", "C"]])
 
 
 def test_sort_H():
-    x = chilife.sort_pdb('../chilife/data/rotamer_libraries/residue_pdbs/lys.pdb')
+    x = chilife.sort_pdb('../src/chilife/data/rotamer_libraries/residue_pdbs/lys.pdb')
     H_names = [xx[12:16] for xx in x[9:]]
     np.testing.assert_equal(H_names, [' H  ', ' HA ', '3HB ', '2HB ',
                                       '3HG ', '2HG ', '3HD ', '2HD ',
                                       '2HE ', '3HE ', '3HZ ', '2HZ ',
                                       '1HZ '])
 
-def test_sort_manymodels():
+
+def test_sort_many_models():
     x = chilife.sort_pdb("test_data/msort.pdb")
     with open("test_data/msort_tmp.pdb", "w") as f:
         for i, struct in enumerate(x):

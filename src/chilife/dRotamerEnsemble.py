@@ -23,11 +23,11 @@ class dRotamerEnsemble:
         res : string
             3-character name of desired residue, e.g. RXA.
         site : tuple[int, int]
-            Protein residue numbers to attach the bifunctional library to.
+            MolSys residue numbers to attach the bifunctional library to.
         protein : MDAnalysis.Universe, MDAnalysis.AtomGroup
             Object containing all protein information (coords, atom types, etc.)
         chain : str
-            Protein chain identifier to attach spin label to.
+            MolSys chain identifier to attach spin label to.
         rotlib : str
             Rotamer library to use for constructing the RotamerEnsemble
         **kwargs : dict
@@ -268,7 +268,7 @@ class dRotamerEnsemble:
                     lib_ic, tlib_ic = lib['internal_coords'], tlib['internal_coords']
                     if np.any(lib_ic.atom_names != tlib_ic.atom_names):
                         uni.load_new(cct['coords'][-1])
-                        tlib_ic = chilife.ProteinIC.from_protein(uni, lib['dihedral_atoms'], lib_ic.bonds)
+                        tlib_ic = chilife.MolSysIC.from_protein(uni, lib['dihedral_atoms'], lib_ic.bonds)
 
                     tlib['zmats'] = tlib_ic.trajectory.coordinate_array
                     cct.setdefault('dihedrals', []).append(tlib['dihedrals'])

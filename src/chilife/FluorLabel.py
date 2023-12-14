@@ -12,9 +12,9 @@ class FluorLabel(RotamerEnsemble):
         :param label: str
             Name of desired label, e.g. .
         :param site: int
-            Protein residue number to attach spin label to.
+            MolSys residue number to attach spin label to.
         :param chain: str
-            Protein chain identifier to attach spin label to.
+            MolSys chain identifier to attach spin label to.
         :param protein: MDAnalysis.Universe, MDAnalysis.AtomGroup
             Object containing all protein information (coords, atom types, etc.)
         :param protein_tree: cKDtree
@@ -28,9 +28,9 @@ class FluorLabel(RotamerEnsemble):
         :param label: str
             Name of desired spin label, e.g. R1A.
         :param site: int
-            Protein residue number to attach spin label to.
+            MolSys residue number to attach spin label to.
         :param chain: str
-            Protein chain identifier to attach spin label to.
+            MolSys chain identifier to attach spin label to.
         :param protein: MDAnalysis.Universe, MDAnalysis.AtomGroup
             Object containing all protein information (coords, atom types, etc.)
         :param protein_tree: cKDtree

@@ -21,52 +21,52 @@ import chilife
 masked_properties = ('atomids', 'names', 'altlocs', 'resnames', 'resnums', 'chains', 'occupancies',
                      'bs', 'segs', 'segids', 'atypes', 'charges', 'ix', 'resixs', 'segixs', '_Atoms', 'atoms')
 
-class MolecularSystem:
+class MolecularSystemBase:
     """Base class for molecular systems"""
 
     def __getattr__(self, key):
-        if 'protein' not in self.__dict__:
+        if 'molsys' not in self.__dict__:
             self.__getattribute__(key)
-        elif key not in self.__dict__['protein'].__dict__:
-            self.protein.__getattribute__(key)
+        elif key not in self.__dict__['molsys'].__dict__:
+            self.molsys.__getattribute__(key)
         elif key == 'trajectory':
-            return self.protein.trajectory
+            return self.molsys.trajectory
         elif key == 'atoms':
-            return self.protein.__getattribute__(key)[self.mask]
+            return self.molsys.__getattribute__(key)[self.mask]
         elif key in masked_properties:
-            return np.squeeze(self.protein.__getattribute__(key)[self.mask])
+            return np.squeeze(self.molsys.__getattribute__(key)[self.mask])
         else:
-            return self.protein.__getattribute__(key)
+            return self.molsys.__getattribute__(key)
 
     def __setattr__(self, key, value):
-        if key in ('protein', 'mask'):
-            super(MolecularSystem, self).__setattr__(key, value)
-        elif key not in self.__dict__['protein'].__dict__:
-            super(MolecularSystem, self).__setattr__(key, value)
+        if key in ('molsys', 'mask'):
+            super(MolecularSystemBase, self).__setattr__(key, value)
+        elif key not in self.__dict__['molsys'].__dict__:
+            super(MolecularSystemBase, self).__setattr__(key, value)
         elif key == 'trajectory':
-            self.protein.__dict__['trajectory'] = value
+            self.molsys.__dict__['trajectory'] = value
         elif key in masked_properties:
-            self.protein.__getattribute__(key)[self.mask] = value
+            self.molsys.__getattribute__(key)[self.mask] = value
         else:
-            super(MolecularSystem, self).__setattr__(key, value)
+            super(MolecularSystemBase, self).__setattr__(key, value)
 
     def select_atoms(self, selstr):
-        mask = process_statement(selstr, self.logic_keywords, self.protein_keywords)
+        mask = process_statement(selstr, self.logic_keywords, self.molsys_keywords)
         if hasattr(self, 'mask'):
-            t_mask = np.zeros(self.protein.n_atoms, dtype=bool)
+            t_mask = np.zeros(self.molsys.n_atoms, dtype=bool)
             t_mask[self.mask] = True
             mask *= t_mask
 
         mask = np.argwhere(mask).T[0]
-        return AtomSelection(self.protein, mask)
+        return AtomSelection(self.molsys, mask)
 
     @property
     def fname(self):
-        return self.protein._fname
+        return self.molsys._fname
 
     @fname.setter
     def fname(self, val):
-        self.protein._fname = val
+        self.molsys._fname = val
 
     @property
     def positions(self):
@@ -86,11 +86,11 @@ class MolecularSystem:
 
     @property
     def resindices(self):
-        return np.unique(self.protein.resixs[self.mask])
+        return np.unique(self.molsys.resixs[self.mask])
 
     @property
     def segindices(self):
-        return np.unique(self.protein.segixs[self.mask])
+        return np.unique(self.molsys.segixs[self.mask])
 
     @property
     def n_atoms(self):
@@ -106,43 +106,43 @@ class MolecularSystem:
 
     @property
     def residues(self):
-        return ResidueSelection(self.protein, self.mask)
+        return ResidueSelection(self.molsys, self.mask)
 
     @property
     def segments(self):
-        return SegmentSelection(self.protein, self.mask)
+        return SegmentSelection(self.molsys, self.mask)
 
     @property
     def logic_keywords(self):
-        return self.protein._logic_keywords
+        return self.molsys._logic_keywords
 
     @property
-    def protein_keywords(self):
-        return self.protein._protein_keywords
+    def molsys_keywords(self):
+        return self.molsys._molsys_keywords
 
     @property
     def types(self):
-        return self.protein.atypes[self.mask]
+        return self.molsys.atypes[self.mask]
 
     @types.setter
     def types(self, value):
-        self.protein.atypes[self.mask] = value
+        self.molsys.atypes[self.mask] = value
 
     @property
     def universe(self):
-        return self.protein
+        return self.molsys
 
     def copy(self):
-        p2 = self.protein.copy()
+        p2 = self.molsys.copy()
         return AtomSelection(p2, self.mask.copy())
 
     def __iter__(self):
         for idx in self.mask:
-            yield self.protein.atoms[idx]
+            yield self.molsys.atoms[idx]
 
 
-class Protein(MolecularSystem):
-    """Protein object"""
+class MolSys(MolecularSystemBase):
+    """MolSys object"""
     def __init__(
             self,
             atomids: np.ndarray,
@@ -158,10 +158,10 @@ class Protein(MolecularSystem):
             atypes: np.ndarray,
             charges: np.ndarray,
             bonds: ArrayLike = None,
-            name: str = 'Noname_Protein'
+            name: str = 'Noname_MolSys'
 
     ):
-        self.protein = self
+        self.molsys = self
         self.atomids = atomids.copy()
         self.names = names.copy().astype('U4')
         self.altlocs = altlocs.copy()
@@ -200,7 +200,7 @@ class Protein(MolecularSystem):
         truth = np.array([res in chilife.SUPPORTED_RESIDUES for res in resnames])
         self.is_protein = truth[nuidxs]
 
-        self._protein_keywords = {'id': self.atomids,
+        self._molsys_keywords = {'id': self.atomids,
                                   'name': self.names,
                                   'altloc': self.altlocs,
                                   'resname': self.resnames,
@@ -238,15 +238,15 @@ class Protein(MolecularSystem):
                                 '<=': operator.le,
                                 '>=': operator.ge,
                                 '!=': operator.ne,
-                                'byres': partial(byres, protein=self.protein),
-                                'within': update_wrapper(partial(within, protein=self.protein), within),
-                                'around': update_wrapper(partial(within, protein=self.protein), within)}
+                                'byres': partial(byres, molsys=self.molsys),
+                                'within': update_wrapper(partial(within, molsys=self.molsys), within),
+                                'around': update_wrapper(partial(within, molsys=self.molsys), within)}
 
         self.atoms = AtomSelection(self, self.mask)
 
     @classmethod
     def from_pdb(cls, file_name, sort_atoms=False):
-        """reads a pdb file and returns a Protein object"""
+        """reads a pdb file and returns a MolSys object"""
 
         keys = ["skip", "atomids", "names", "altlocs", "resnames", "chains", "resnums",
                 "skip", "coords", "occupancies", "bs", "segs", "atypes", "charges"]
@@ -302,7 +302,7 @@ class Protein(MolecularSystem):
                     segindices: ArrayLike,
                     segids: ArrayLike = None,
                     trajectory: ArrayLike = None,
-                    ) -> Protein:
+                    ) -> MolSys:
         anames = np.asarray(anames)
         atypes = np.asarray(atypes)
         resindices = np.asarray(resindices)
@@ -376,7 +376,7 @@ class Protein(MolecularSystem):
         return cls.from_arrays(anames, atypes, resnames, resindices, resnums, segindices, segids, trajectory)
 
     def copy(self):
-        return Protein(
+        return MolSys(
             atomids=self.atomids,
             names=self.names,
             altlocs=self.altlocs,
@@ -403,8 +403,8 @@ class Protein(MolecularSystem):
 
 class Trajectory:
 
-    def __init__(self, coordinates, protein, timestep=1):
-        self.protein = protein
+    def __init__(self, coordinates, molsys, timestep=1):
+        self.molsys = molsys
         self.timestep = timestep
         self.coords = coordinates
         self.coordinate_array = coordinates
@@ -617,45 +617,45 @@ def process_sub_statement(subject, values):
     return np.isin(subject, values)
 
 
-class AtomSelection(MolecularSystem):
+class AtomSelection(MolecularSystemBase):
 
     def __new__(cls, *args):
         if len(args) == 2:
-            protein, mask = args
+            molsys, mask = args
         else:
             return object.__new__(cls)
 
         if isinstance(mask, int):
-            return Atom(protein, mask)
+            return Atom(molsys, mask)
         else:
             return object.__new__(cls)
 
-    def __init__(self, protein, mask):
-        self.protein = protein
+    def __init__(self, molsys, mask):
+        self.molsys = molsys
         self.mask = mask
 
     def __getitem__(self, item):
 
         if np.issubdtype(type(item), np.integer):
-            relidx = self.protein.ix[self.mask][item]
-            return Atom(self.protein, relidx)
+            relidx = self.molsys.ix[self.mask][item]
+            return Atom(self.molsys, relidx)
 
         if isinstance(item, slice):
-            return AtomSelection(self.protein, self.mask[item])
+            return AtomSelection(self.molsys, self.mask[item])
 
         elif isinstance(item, (np.ndarray, list, tuple)):
             item = np.asarray(item)
             if len(item) == 1 or item.sum() == 1:
-                return Atom(self.protein, self.mask[item])
+                return Atom(self.molsys, self.mask[item])
             elif item.dtype == bool:
                 item = np.argwhere(item).T[0]
-                return AtomSelection(self.protein, item)
+                return AtomSelection(self.molsys, item)
             else:
-                return AtomSelection(self.protein, self.mask[item])
+                return AtomSelection(self.molsys, self.mask[item])
 
         elif hasattr(item, '__iter__'):
             if all([np.issubdtype(type(x), int) for x in item]):
-                return AtomSelection(self.protein, self.mask[item])
+                return AtomSelection(self.molsys, self.mask[item])
 
         raise TypeError('Only integer, slice type, and boolean mask arguments are supported at this time')
 
@@ -663,15 +663,15 @@ class AtomSelection(MolecularSystem):
         return len(self.mask)
 
 
-class ResidueSelection(MolecularSystem):
+class ResidueSelection(MolecularSystemBase):
 
-    def __init__(self, protein, mask):
+    def __init__(self, molsys, mask):
 
-        resixs = np.unique(protein.resixs[mask])
-        self.mask = np.argwhere(np.isin(protein.resixs, resixs)).flatten()
-        self.protein = protein
+        resixs = np.unique(molsys.resixs[mask])
+        self.mask = np.argwhere(np.isin(molsys.resixs, resixs)).flatten()
+        self.molsys = molsys
 
-        _, self.first_ix = np.unique(protein.resixs[self.mask], return_index=True)
+        _, self.first_ix = np.unique(molsys.resixs[self.mask], return_index=True)
 
         self.resnames = self.resnames[self.first_ix].flatten()
         self.resnums = self.resnums[self.first_ix].flatten()
@@ -682,17 +682,17 @@ class ResidueSelection(MolecularSystem):
         self.__dict__[key] = value
 
     def __getitem__(self, item):
-        resixs = np.unique(self.protein.resixs[self.mask])
+        resixs = np.unique(self.molsys.resixs[self.mask])
         new_resixs = resixs[item]
-        new_mask = np.argwhere(np.isin(self.protein.resixs, new_resixs)).flatten()
+        new_mask = np.argwhere(np.isin(self.molsys.resixs, new_resixs)).flatten()
 
         if np.issubdtype(type(item), int):
-            return Residue(self.protein, new_mask)
+            return Residue(self.molsys, new_mask)
         elif isinstance(item, slice):
-            return ResidueSelection(self.protein, new_mask)
+            return ResidueSelection(self.molsys, new_mask)
         elif hasattr(item, '__iter__'):
             if all([np.issubdtype(type(x), int) for x in item]):
-                return ResidueSelection(self.protein, new_mask)
+                return ResidueSelection(self.molsys, new_mask)
 
         raise TypeError('Only integer and slice type arguments are supported at this time')
 
@@ -701,18 +701,18 @@ class ResidueSelection(MolecularSystem):
 
     def __iter__(self):
         for resnum in self.resnums:
-            mask = self.protein.resnums == resnum
-            yield Residue(self.protein, mask)
+            mask = self.molsys.resnums == resnum
+            yield Residue(self.molsys, mask)
 
 
-class SegmentSelection(MolecularSystem):
+class SegmentSelection(MolecularSystemBase):
 
-    def __init__(self, protein, mask):
-        seg_ixs = np.unique(protein.segixs[mask])
-        self.mask = np.argwhere(np.isin(protein.segixs, seg_ixs)).flatten()
-        self.protein = protein
+    def __init__(self, molsys, mask):
+        seg_ixs = np.unique(molsys.segixs[mask])
+        self.mask = np.argwhere(np.isin(molsys.segixs, seg_ixs)).flatten()
+        self.molsys = molsys
 
-        _, self.first_ix = np.unique(protein.segixs[self.mask], return_index=True)
+        _, self.first_ix = np.unique(molsys.segixs[self.mask], return_index=True)
 
         self.segids = self.segids[self.first_ix].flatten()
         self.chains = self.chains[self.first_ix].flatten()
@@ -721,17 +721,17 @@ class SegmentSelection(MolecularSystem):
         self.__dict__[key] = value
 
     def __getitem__(self, item):
-        segixs = np.unique(self.protein.segixs[self.mask])
+        segixs = np.unique(self.molsys.segixs[self.mask])
         new_segixs = segixs[item]
-        new_mask = np.argwhere(np.isin(self.protein.segixs, new_segixs))
+        new_mask = np.argwhere(np.isin(self.molsys.segixs, new_segixs))
 
         if np.issubdtype(type(item), int):
-            return Segment(self.protein, new_mask)
+            return Segment(self.molsys, new_mask)
         elif isinstance(item, slice):
-            return SegmentSelection(self.protein, new_mask)
+            return SegmentSelection(self.molsys, new_mask)
         elif hasattr(item, '__iter__'):
             if all([np.issubdtype(type(x), int) for x in item]):
-                return SegmentSelection(self.protein, new_mask)
+                return SegmentSelection(self.molsys, new_mask)
 
         raise TypeError('Only integer and slice type arguments are supported at this time')
 
@@ -739,44 +739,44 @@ class SegmentSelection(MolecularSystem):
         return len(self.first_ix)
 
 
-class Atom(MolecularSystem):
-    def __init__(self, protein, mask):
-        self.__dict__['protein'] = protein
+class Atom(MolecularSystemBase):
+    def __init__(self, molsys, mask):
+        self.__dict__['molsys'] = molsys
         self.index = mask
         self.mask = mask
 
 
-        self.name = protein.names[self.index]
-        self.altLoc = protein.altlocs[self.index]
-        self.atype = protein.types[self.index]
+        self.name = molsys.names[self.index]
+        self.altLoc = molsys.altlocs[self.index]
+        self.atype = molsys.types[self.index]
         self.type = self.atype
 
-        self.resn = protein.resnames[self.index]
+        self.resn = molsys.resnames[self.index]
         self.resname = self.resn
-        self.resi = protein.resnums[self.index]
+        self.resi = molsys.resnums[self.index]
         self.resid = self.resi
         self.resnum = self.resi
-        self.chain = protein.segids[self.index]
-        self.segid = protein.chains[self.index]
+        self.chain = molsys.segids[self.index]
+        self.segid = molsys.chains[self.index]
 
     @property
     def position(self):
-        return self.protein.coords[self.index]
+        return self.molsys.coords[self.index]
 
 
-class Residue(MolecularSystem):
-    def __init__(self, protein, mask):
-        resix = np.unique(protein.resixs[mask])[0]
-        self.mask = np.argwhere(np.isin(protein.resixs, resix)).T[0]
-        self.protein = protein
+class Residue(MolecularSystemBase):
+    def __init__(self, molsys, mask):
+        resix = np.unique(molsys.resixs[mask])[0]
+        self.mask = np.argwhere(np.isin(molsys.resixs, resix)).T[0]
+        self.molsys = molsys
 
-        self.resname = protein.resnames[self.mask][0]
-        self.resnum = protein.resnums[self.mask][0]
+        self.resname = molsys.resnames[self.mask][0]
+        self.resnum = molsys.resnums[self.mask][0]
         self.resid = self.resnum
-        self.resindex = protein.resixs[self.mask][0]
-        self.segid = protein.segids[self.mask][0]
-        self.segindex = protein.segixs[self.mask][0]
-        self.chain = protein.chains[self.mask][0]
+        self.resindex = molsys.resixs[self.mask][0]
+        self.segid = molsys.segids[self.mask][0]
+        self.segindex = molsys.segixs[self.mask][0]
+        self.chain = molsys.chains[self.mask][0]
 
     def __len__(self):
         return len(self.mask)
@@ -786,38 +786,38 @@ class Residue(MolecularSystem):
         prev = np.unique(prev[prev > 0])
 
         maskN_CA_C = self.mask[np.isin(self.names, ['N', 'CA', 'C'])]
-        maskC = np.argwhere(np.isin(self.protein.resnums, prev)).flatten()
-        maskC = maskC[self.protein.names[maskC] == 'C']
+        maskC = np.argwhere(np.isin(self.molsys.resnums, prev)).flatten()
+        maskC = maskC[self.molsys.names[maskC] == 'C']
         mask_phi = np.concatenate((maskC, maskN_CA_C))
-        sel = self.protein.atoms[mask_phi]
+        sel = self.molsys.atoms[mask_phi]
         return sel if len(sel) == 4 else None
 
     def psi_selection(self):
         nex = self.atoms.resnums + 1
-        nex = np.unique(nex[nex <= self.protein.resnums.max()])
+        nex = np.unique(nex[nex <= self.molsys.resnums.max()])
 
         maskN_CA_C = self.mask[np.isin(self.names, ['N', 'CA', 'C'])]
-        maskN = np.argwhere(np.isin(self.protein.resnums, nex)).flatten()
-        maskN = maskN[self.protein.names[maskN] == 'N']
+        maskN = np.argwhere(np.isin(self.molsys.resnums, nex)).flatten()
+        maskN = maskN[self.molsys.names[maskN] == 'N']
         mask_psi = np.concatenate((maskN_CA_C, maskN))
-        sel = self.protein.atoms[mask_psi]
+        sel = self.molsys.atoms[mask_psi]
         return sel if len(sel) == 4 else None
 
 
-class Segment(MolecularSystem):
+class Segment(MolecularSystemBase):
 
-    def __init__(self, protein, mask):
-        segix = np.unique(protein.segixs[mask])[0]
-        self.mask = np.argwhere(np.isin(protein.segixs, segix)).T[0]
-        self.protein = protein
+    def __init__(self, molsys, mask):
+        segix = np.unique(molsys.segixs[mask])[0]
+        self.mask = np.argwhere(np.isin(molsys.segixs, segix)).T[0]
+        self.molsys = molsys
 
-        self.segid = protein.segids[segix]
-        self.chain = protein.chains[segix]
+        self.segid = molsys.segids[segix]
+        self.chain = molsys.chains[segix]
 
 
-def byres(mask, protein):
-    residues = np.unique(protein.resnums[mask])
-    mask = np.isin(protein.resnums, residues)
+def byres(mask, molsys):
+    residues = np.unique(molsys.resnums[mask])
+    mask = np.isin(molsys.resnums, residues)
     return mask
 
 
@@ -825,10 +825,10 @@ def unot(mask):
     return ~mask
 
 
-def within(distance, mask, protein):
+def within(distance, mask, molsys):
     distance = float(distance)
-    tree1 = cKDTree(protein.coords)
-    tree2 = cKDTree(protein.protein.coords[mask])
+    tree1 = cKDTree(molsys.coords)
+    tree2 = cKDTree(molsys.molsys.coords[mask])
     results = np.concatenate(tree2.query_ball_tree(tree1, distance))
     results = np.unique(results)
     out_mask = np.zeros_like(mask, dtype=bool)

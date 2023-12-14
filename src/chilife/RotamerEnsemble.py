@@ -25,11 +25,11 @@ class RotamerEnsemble:
     res : string
         3-character name of desired residue, e.g. R1A.
     site : int
-        Protein residue number to attach library to.
+        MolSys residue number to attach library to.
     protein : MDAnalysis.Universe, MDAnalysis.AtomGroup
         Object containing all protein information (coords, atom types, etc.)
     chain : str
-        Protein chain identifier to attach spin label to.
+        MolSys chain identifier to attach spin label to.
     rotlib : str
         Rotamer library to use for constructing the RotamerEnsemble
     **kwargs : dict
@@ -189,7 +189,7 @@ class RotamerEnsemble:
             self.rmin2 = chilife.get_lj_rmin(self.atom_types[self.side_chain_idx])
             self.eps = chilife.get_lj_eps(self.atom_types[self.side_chain_idx])
 
-        if hasattr(self.protein, "atoms") and isinstance(self.protein.atoms, (mda.AtomGroup, chilife.MolecularSystem)):
+        if hasattr(self.protein, "atoms") and isinstance(self.protein.atoms, (mda.AtomGroup, chilife.MolecularSystemBase)):
             self.protein_setup()
             resname = self.protein.atoms[self.clash_ignore_idx[0]].resname
             self.nataa = chilife.nataa_codes.get(resname, resname)
@@ -263,7 +263,7 @@ class RotamerEnsemble:
         res = residue.resname
         site = residue.resnum
         chain = residue.segid
-        protein = residue.universe if isinstance(residue, mda.core.groups.Residue) else residue.protein
+        protein = residue.universe
         return cls(res, site, protein, chain, **kwargs)
 
     @classmethod
@@ -320,8 +320,8 @@ class RotamerEnsemble:
 
         pi /= pi.sum()
         weights = pi
-        res = chilife.Protein.from_atomsel(res, frames=unique_idx)
-        ICs = chilife.ProteinIC.from_protein(res)
+        res = chilife.MolSys.from_atomsel(res, frames=unique_idx)
+        ICs = chilife.MolSysIC.from_protein(res)
 
 
         ICs.shift_resnum(-(site - 1))
@@ -586,7 +586,7 @@ class RotamerEnsemble:
             e.g. `off_+rotamer = [False, False, False, True, True]` for R1 will only sample off-rotamers for χ4 and χ5.
         **kwargs : dict
             return_dihedrals : bool
-                If True, sample will return a ProteinIC object of the sampled rotamer
+                If True, sample will return a MolSysIC object of the sampled rotamer
 
         Returns
         -------
@@ -594,8 +594,8 @@ class RotamerEnsemble:
             The 3D coordinates of the sampled rotamer(s)
         new_weights : ArrayLike
             New weights (relative) of the sampled rotamer(s)
-        ICs : List[chilife.ProteinIC] (Optional)
-            Internal coordinate (ProteinIC) objects of the rotamer(s).
+        ICs : List[chilife.MolSysIC] (Optional)
+            Internal coordinate (MolSysIC) objects of the rotamer(s).
         """
 
         if not self.weighted_sampling:
@@ -664,7 +664,7 @@ class RotamerEnsemble:
              off-rotamers for χ4 and χ5.
         **kwargs : dict
             return_dihedrals : bool
-                If True, sample will return a ProteinIC object of the sampled rotamer
+                If True, sample will return a MolSysIC object of the sampled rotamer
 
         Returns
         -------
@@ -672,8 +672,8 @@ class RotamerEnsemble:
             The 3D coordinates of the sampled rotamer(s)
         new_weights : ArrayLike
             New weights (relative) of the sampled rotamer(s)
-        ICs : List[chilife.ProteinIC] (Optional)
-            Internal coordinate (ProteinIC) objects of the rotamer(s).
+        ICs : List[chilife.MolSysIC] (Optional)
+            Internal coordinate (MolSysIC) objects of the rotamer(s).
         """
 
         # Use accessible volume sampling if only provided a single rotamer
@@ -740,7 +740,7 @@ class RotamerEnsemble:
         ----------
         dihedrals : ArrayLike
             Array of dihedral angles to generate a score for.
-        ic1 : chilife.ProteinIC
+        ic1 : chilife.MolSysIC
             Internal coordinate objects
         dummy : chilife.RotamerEnsemble
             A dummy ensemble to use for applying dihedrals to and testing the score so that the parent rotamer ensemble
@@ -777,7 +777,7 @@ class RotamerEnsemble:
         ----------
         i : int
             index of the rotamer (of the underlying library) to be minimized.
-        ic : chilife.ProteinIC
+        ic : chilife.MolSysIC
             Internal coordinate object of the rotamer to be minimized.
         dummy : chilife.RotamerEnsemble
             A dummy ensemble to perform manipulations on while minimizing.
@@ -1260,7 +1260,7 @@ def guess_chain(protein, site):
 
     Parameters
     ----------
-    protein : mda.Universe | mda.AtomGroup | chilife.Protein
+    protein : mda.Universe | mda.AtomGroup | chilife.MolSys
         The protein being labeled.
     site :  int
         The residue being labeled.

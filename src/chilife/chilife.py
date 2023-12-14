@@ -20,7 +20,7 @@ import MDAnalysis.transformations
 
 import chilife
 from .protein_utils import dihedral_defs, local_mx, sort_pdb, mutate, get_min_topol
-from .ProteinIC import ProteinIC
+from .MolSysIC import MolSysIC
 from .scoring import get_lj_rep, GAS_CONST, get_lj_params, reweight_rotamers
 from .numba_utils import get_delta_r, normdist
 from .SpinLabel import SpinLabel
@@ -291,7 +291,7 @@ def repack(
     Parameters
     ----------
     protein : MDAnalysis.Universe, MDAnalysis.AtomGroup
-        Protein to be repacked
+        MolSys to be repacked
     spin_labels : RotamerEnsemble, SpinLabel
         RotamerEnsemble or SpinLabel object placed at site of interest
     repetitions : int
@@ -430,10 +430,7 @@ def repack(
     logging.info(f"Total counts: {acount}")
 
     # Load MCMC trajectory into universe.
-    if isinstance(protein, (mda.Universe, mda.AtomGroup)):
-        protein.universe.load_new(traj)
-    else:
-        protein.protein.trajectory = chilife.Trajectory(traj, protein)
+    protein.universe.load_new(traj)
 
     return protein, np.squeeze(deltaEs)
 
@@ -517,10 +514,10 @@ def create_library(
                            "https://www.wwpdb.org/documentation/file-format-content/format33/sect10.html")
 
     # Convert loaded rotamer ensemble to internal coords
-    internal_coords = chilife.ProteinIC.from_protein(resi_selection,
-                                                     preferred_dihedrals=dihedral_atoms,
-                                                     bonds=bonds,
-                                                     use_chain_operators=False)
+    internal_coords = chilife.MolSysIC.from_protein(resi_selection,
+                                                    preferred_dihedrals=dihedral_atoms,
+                                                    bonds=bonds,
+                                                    use_chain_operators=False)
     internal_coords.shift_resnum(-(site - 1))
 
     if len(internal_coords.chains) > 1:
@@ -706,7 +703,7 @@ def create_dlibrary(
     if not continuous_topol(res1, res1_bonds):
         raise RuntimeError(error_message)
 
-    IC1 = chilife.ProteinIC.from_protein(res1, dihedral_atoms[0], res1_bonds, use_chain_operators=False)
+    IC1 = chilife.MolSysIC.from_protein(res1, dihedral_atoms[0], res1_bonds, use_chain_operators=False)
 
     ovlp2_selection = struct.atoms[cap2_idxs]
     ovlp2_selection.residues.resnums = site2
@@ -717,7 +714,7 @@ def create_dlibrary(
     if not continuous_topol(res2, res2_bonds):
         raise RuntimeError(error_message)
 
-    IC2 = chilife.ProteinIC.from_protein(res2, dihedral_atoms[1], res2_bonds, use_chain_operators=False)
+    IC2 = chilife.MolSysIC.from_protein(res2, dihedral_atoms[1], res2_bonds, use_chain_operators=False)
 
     IC1.shift_resnum(-(site1 - 1))
     IC2.shift_resnum(-(site2 - 1))
@@ -841,7 +838,7 @@ def pre_add_library(
 def prep_restype_savedict(
         libname: str,
         resname: str,
-        internal_coords: ProteinIC,
+        internal_coords: MolSysIC,
         weights: ArrayLike,
         dihedrals: ArrayLike,
         dihedral_atoms: ArrayLike,
@@ -860,7 +857,7 @@ def prep_restype_savedict(
         Name of residue to be stored.
     resname : str
         Residue name (3-letter code)
-    internal_coords : List[ProteinIC]
+    internal_coords : List[MolSysIC]
         list of internal coordinates of the new residue type.
     weights : ArrayLike
         Array of weights corresponding to each rotamer of the library

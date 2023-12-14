@@ -2,10 +2,10 @@ import os, hashlib, pickle
 import numpy as np
 import pytest
 import chilife
-from chilife.Protein import Protein, parse_paren, Residue, ResidueSelection
+from chilife.MolSys import MolSys, parse_paren, Residue, ResidueSelection
 import MDAnalysis as mda
 
-prot = Protein.from_pdb('test_data/1omp_H.pdb')
+prot = MolSys.from_pdb('test_data/1omp_H.pdb')
 mda_prot = mda.Universe('test_data/1omp_H.pdb')
 
 
@@ -20,7 +20,7 @@ def test_from_pdb():
 
 
 def test_from_multistate_pdb():
-    prot = Protein.from_pdb('test_data/DHC.pdb')
+    prot = MolSys.from_pdb('test_data/DHC.pdb')
 
 
 def test_parse_paren1():
@@ -145,7 +145,7 @@ def test_subsel():
 
 
 def test_SL_Protein():
-    omp = chilife.Protein.from_pdb('test_data/1omp.pdb')
+    omp = chilife.MolSys.from_pdb('test_data/1omp.pdb')
     ompmda = mda.Universe('test_data/1omp.pdb')
 
     SL1 = chilife.SpinLabel('R1M', 20, omp)
@@ -155,7 +155,7 @@ def test_SL_Protein():
 
 
 def test_trajectory():
-    p = chilife.Protein.from_pdb('test_data/2klf.pdb')
+    p = chilife.MolSys.from_pdb('test_data/2klf.pdb')
     ans = np.array([[41.068, 2.309, 0.296],
                     [39.431, 5.673, 2.669],
                     [39.041, 6.607, 2.738],
@@ -175,13 +175,13 @@ def test_trajectory():
 
 
 def test_trajectory_set():
-    p = chilife.Protein.from_pdb('test_data/2klf.pdb')
+    p = chilife.MolSys.from_pdb('test_data/2klf.pdb')
     p.trajectory[5]
     np.testing.assert_allclose([34.155, 6.464, 8.545], p.coords[0])
 
 
 def test_selection_traj():
-    p = chilife.Protein.from_pdb('test_data/2klf.pdb')
+    p = chilife.MolSys.from_pdb('test_data/2klf.pdb')
     s = p.select_atoms('resi 10 and name CB')
     np.testing.assert_allclose(s.coords, [[16.569, -1.406, 11.158]])
     p.trajectory[5]
@@ -189,7 +189,7 @@ def test_selection_traj():
 
 
 def test_ResidueSelection():
-    p = chilife.Protein.from_pdb('test_data/1omp.pdb')
+    p = chilife.MolSys.from_pdb('test_data/1omp.pdb')
     r = p.residues[10:12]
     assert isinstance(r, ResidueSelection)
     assert len(r) == 2
@@ -202,7 +202,7 @@ def test_ResidueSelection():
 
 
 def test_save_Protein():
-    p = chilife.Protein.from_pdb('test_data/1omp.pdb', sort_atoms=True)
+    p = chilife.MolSys.from_pdb('test_data/1omp.pdb', sort_atoms=True)
     p._fname = "my_protein"
     chilife.save('my_protein.pdb', p)
 
@@ -224,7 +224,7 @@ def test_bool_index_atomsel():
 
 
 def test_save_trajectory():
-    traj = chilife.Protein.from_pdb('test_data/xlsavetraj.pdb')
+    traj = chilife.MolSys.from_pdb('test_data/xlsavetraj.pdb')
     traj._fname = 'xlsavetraj'
     chilife.save('xlsavetraj.pdb', traj)
 
@@ -239,7 +239,7 @@ def test_save_trajectory():
 
 
 def test_trajectory_iter():
-    traj = chilife.Protein.from_pdb('test_data/test_traj_iter.pdb')
+    traj = chilife.MolSys.from_pdb('test_data/test_traj_iter.pdb')
     assert not np.all(traj.trajectory.coords[0] == traj.trajectory.coords[1])
 
     prev_coords = np.zeros_like(traj.coords)
@@ -252,7 +252,7 @@ def test_trajectory_iter():
 def test_xl_protein_repack():
 
     np.random.seed(2)
-    protein = chilife.Protein.from_pdb("test_data/1ubq.pdb").select_atoms("protein")
+    protein = chilife.MolSys.from_pdb("test_data/1ubq.pdb").select_atoms("protein")
     SL = chilife.SpinLabel("R1M", site=28, protein=protein)
 
     traj1, deltaE1 = chilife.repack(protein, SL, repetitions=10, repack_radius=10)
@@ -284,7 +284,7 @@ def test_same_as_mda():
 
 
 def test_xl_protein_mutate():
-    p = chilife.Protein.from_pdb('test_data/1omp.pdb', sort_atoms=True)
+    p = chilife.MolSys.from_pdb('test_data/1omp.pdb', sort_atoms=True)
     SL = chilife.SpinLabel('R1M', 238, p)
     pSL = chilife.mutate(p, SL)
     pSL._fname = 'test_mutate'
@@ -301,7 +301,7 @@ def test_xl_protein_mutate():
 
 
 def test_re_form_xl_traj():
-    traj = Protein.from_pdb('test_data/xlsavetraj.pdb')
+    traj = MolSys.from_pdb('test_data/xlsavetraj.pdb')
     SL = chilife.RotamerEnsemble.from_trajectory(traj, 236, burn_in=0)
     ans_dihedrals = np.array([[-175.57682647, -23.12323366],
                               [-175.57682647, 5.02763709],
@@ -364,7 +364,7 @@ def test_setattr2():
 
 
 def test_pickle():
-    mol = Protein.from_pdb('test_data/PPII_Capped.pdb')
+    mol = MolSys.from_pdb('test_data/PPII_Capped.pdb')
     with open('tmp.pkl', 'wb') as f:
         pickle.dump(mol, f)
 
@@ -372,7 +372,7 @@ def test_pickle():
     with open('tmp.pkl', 'rb') as f:
         mol = pickle.load(f)
 
-    ans = Protein.from_pdb('test_data/PPII_Capped.pdb')
+    ans = MolSys.from_pdb('test_data/PPII_Capped.pdb')
 
     assert mol is not ans
 
@@ -382,7 +382,7 @@ def test_pickle():
 
 
 def test_pickle_selection():
-    mol = Protein.from_pdb('test_data/PPII_Capped.pdb').atoms
+    mol = MolSys.from_pdb('test_data/PPII_Capped.pdb').atoms
     with open('tmp.pkl', 'wb') as f:
         pickle.dump(mol, f)
 
@@ -390,7 +390,7 @@ def test_pickle_selection():
     with open('tmp.pkl', 'rb') as f:
         mol = pickle.load(f)
 
-    ans = Protein.from_pdb('test_data/PPII_Capped.pdb').atoms
+    ans = MolSys.from_pdb('test_data/PPII_Capped.pdb').atoms
 
     assert mol is not ans
 
@@ -402,15 +402,15 @@ def test_pickle_selection():
 def test_from_atomsel():
     # MDAnalysis test
     atomsel = mda_prot.select_atoms('resnum 30-150')
-    new_prot = Protein.from_atomsel(atomsel)
+    new_prot = MolSys.from_atomsel(atomsel)
 
     np.testing.assert_equal(new_prot.positions, atomsel.positions)
     np.testing.assert_equal(new_prot.ix + 435, atomsel.ix)
     assert len(new_prot.trajectory) == len(atomsel.universe.trajectory)
 
-    # chiLife Protein test
+    # chiLife MolSys test
     atomsel = prot.select_atoms('resnum 30-150')
-    new_prot = Protein.from_atomsel(atomsel)
+    new_prot = MolSys.from_atomsel(atomsel)
 
     np.testing.assert_equal(new_prot.positions, atomsel.positions)
     np.testing.assert_equal(new_prot.ix + 435, atomsel.ix)

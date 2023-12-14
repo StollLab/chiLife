@@ -5,7 +5,7 @@ import chilife as xl
 from chilife.Topology import *
 from MDAnalysis.topology.guessers import guess_angles, guess_dihedrals
 
-ubq = xl.Protein.from_pdb('test_data/1ubq.pdb', sort_atoms=True)
+ubq = xl.MolSys.from_pdb('test_data/1ubq.pdb', sort_atoms=True)
 mbp = MDAnalysis.Universe("test_data/2klf.pdb", in_memory=True)
 ubqu = MDAnalysis.Universe('test_data/1ubq.pdb')
 

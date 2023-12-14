@@ -28,7 +28,7 @@ def clash_only(func):
         """
         Parameters
         ----------
-        system : MDAnalysis.Universe, MDAnalysis.AtomGroup, RotamerEnsemble, Protein
+        system : MDAnalysis.Universe, MDAnalysis.AtomGroup, RotamerEnsemble, MolSys
             Molecular system for which you wish to calculate the energy of
 
         **kwargs : dict
@@ -60,7 +60,7 @@ def clash_only(func):
             E = E.sum(axis=1)
 
 
-        elif isinstance(system, (mda.Universe, mda.AtomGroup, chilife.Protein)):
+        elif isinstance(system, (mda.Universe, mda.AtomGroup, chilife.MolSys)):
             bonds = {(a, b) for a, b in system.atoms.bonds.indices}
             tree = cKDTree(system.atoms.positions)
             pairs = tree.query_pairs(rmax)
@@ -89,7 +89,7 @@ def clash_only(func):
 
         else:
             raise TypeError(f'Energy evaluations of a {type(system)} object are not supported at this time. Please '
-                            f'pass an chilife.RotamerEnsemble, mda.Universe, mda.AtomGroup or chilife.Protein')
+                            f'pass an chilife.RotamerEnsemble, mda.Universe, mda.AtomGroup or chilife.MolSys')
 
         return E
 

@@ -18,8 +18,8 @@ from .RotamerEnsemble import RotamerEnsemble
 from .SpinLabel import SpinLabel
 from .dRotamerEnsemble import dRotamerEnsemble
 from .IntrinsicLabel import IntrinsicLabel
-from .Protein import MolecularSystem
-from .ProteinIC import ProteinIC
+from .MolSys import MolecularSystemBase
+from .MolSysIC import MolSysIC
 
 #                 ID    name   res  chain resnum      X     Y      Z      q      b              elem
 fmt_str = "ATOM  {:5d} {:^4s} {:3s} {:1s}{:4d}    {:8.3f}{:8.3f}{:8.3f}{:6.2f}{:6.2f}          {:>2s}  \n"
@@ -140,9 +140,9 @@ def read_bbdep(res: str, Phi: int, Psi: int) -> Dict:
     res : str
         3-letter residue code
     Phi : int
-        Protein backbone Phi dihedral angle for the provided residue
+        MolSys backbone Phi dihedral angle for the provided residue
     Psi : int
-        Protein backbone Psi dihedral angle for the provided residue
+        MolSys backbone Psi dihedral angle for the provided residue
 
     Returns
     -------
@@ -223,9 +223,9 @@ def read_library(rotlib: str, Phi: float = None, Psi: float = None) -> Dict:
     rotlib : str, Path
         3 letter residue code
     Phi : float
-        Protein backbone Phi dihedral angle for the provided residue
+        MolSys backbone Phi dihedral angle for the provided residue
     Psi : float
-        Protein backbone Psi dihedral angle for the provided residue
+        MolSys backbone Psi dihedral angle for the provided residue
     Returns
     -------
     lib: dict
@@ -255,7 +255,7 @@ def read_library(rotlib: str, Phi: float = None, Psi: float = None) -> Dict:
 
 def save(
         file_name: str,
-        *molecules: Union[RotamerEnsemble, MolecularSystem, mda.Universe, mda.AtomGroup, str],
+        *molecules: Union[RotamerEnsemble, MolecularSystemBase, mda.Universe, mda.AtomGroup, str],
         protein_path: Union[str, Path] = None,
         mode: str = 'w',
         **kwargs,
@@ -267,7 +267,7 @@ def save(
     file_name : str
         Desired file name for output file. Will be automatically made based off of protein name and labels if not
         provided.
-    *molecules : RotmerLibrary, chiLife.Protein, mda.Universe, mda.AtomGroup, str
+    *molecules : RotmerLibrary, chiLife.MolSys, mda.Universe, mda.AtomGroup, str
         Object(s) to save. Includes RotamerEnsemble, SpinLabels, dRotamerEnsembles, proteins, or path to protein pdb.
         Can add as many as desired, except for path, for which only one can be given.
     protein_path : str, Path
@@ -406,7 +406,7 @@ def write_protein(pdb_file: TextIO, protein: Union[mda.Universe, mda.AtomGroup])
         pdb_file.write("ENDMDL\n")
 
 
-def write_ic(pdbfile: TextIO, ic: chilife.ProteinIC) -> None:
+def write_ic(pdbfile: TextIO, ic: chilife.MolSysIC) -> None:
     """
     Write a :class:`chilife.ProteinIC` internal coordinates object to a pdb file.
 
@@ -414,7 +414,7 @@ def write_ic(pdbfile: TextIO, ic: chilife.ProteinIC) -> None:
     ----------
     pdbfile : TextIO
         open file or io object.
-    ic: chilife.ProteinIC
+    ic: chilife.MolSysIC
         chiLife internal coordinates object.
     """
     pdbfile.write('MODEL\n')
@@ -547,8 +547,8 @@ molecule_class = {RotamerEnsemble: 'rotens',
                   IntrinsicLabel: 'rotens',
                   mda.Universe: 'molcart',
                   mda.AtomGroup: 'molcart',
-                  MolecularSystem: 'molcart',
-                  ProteinIC: 'molic'}
+                  MolecularSystemBase: 'molcart',
+                  MolSysIC: 'molic'}
 
 
 rotlib_formats = {1.0: (
@@ -567,4 +567,6 @@ rotlib_formats = {1.0: (
 
 rotlib_formats[1.1] = *rotlib_formats[1.0], 'description', 'comment', 'reference'
 rotlib_formats[1.2] = rotlib_formats[1.0]
+rotlib_formats[1.3] = rotlib_formats[1.2]
+
 

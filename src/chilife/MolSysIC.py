@@ -10,13 +10,13 @@ import numpy as np
 from numpy.typing import ArrayLike
 
 import chilife
-from .Protein import MolecularSystem, Trajectory, Protein
+from .MolSys import MolecularSystemBase, Trajectory, MolSys
 from .Topology import Topology
 from .protein_utils import get_angles, get_dihedrals, guess_bonds
 from .numba_utils import _ic_to_cart, batch_ic2cart
 
 
-class ProteinIC:
+class MolSysIC:
     """
     A class for protein internal coordinates.
 
@@ -58,19 +58,19 @@ class ProteinIC:
     def __init__(self,
                  z_matrix: ArrayLike,
                  z_matrix_idxs: ArrayLike,
-                 protein: Union[MolecularSystem, MDAnalysis.Universe, MDAnalysis.AtomGroup],
+                 protein: Union[MolecularSystemBase, MDAnalysis.Universe, MDAnalysis.AtomGroup],
                  **kwargs):
         """
-        ProteinIC constructor method.
+        MolSysIC constructor method.
 
         Parameters
         ----------
         """
         # Internal coords and atom info
-        if isinstance(protein, Protein):
+        if isinstance(protein, MolSys):
             self.protein = protein.copy()
         else:
-            self.protein = Protein.from_atomsel(protein)
+            self.protein = MolSys.from_atomsel(protein)
 
         self.atoms = self.protein.atoms
         self.atom_names = self.protein.names
@@ -124,7 +124,7 @@ class ProteinIC:
 
     @classmethod
     def from_protein(cls,
-                     protein: Union[MDAnalysis.Universe, MDAnalysis.AtomGroup, MolecularSystem],
+                     protein: Union[MDAnalysis.Universe, MDAnalysis.AtomGroup, MolecularSystemBase],
                      preferred_dihedrals: List = None,
                      bonds: ArrayLike = None,
                      **kwargs: Dict):
@@ -224,7 +224,7 @@ class ProteinIC:
                    chain_operators=chain_operators, chain_operator_idxs=chain_operator_idxs)
 
     def copy(self):
-        """Create a deep copy of an ProteinIC instance"""
+        """Create a deep copy of an MolSysIC instance"""
         z_matrix = self.trajectory.coordinate_array.copy()
         z_matrix_idxs = self.z_matrix_idxs.copy()
         if isinstance(self._chain_operators, list):
@@ -241,7 +241,7 @@ class ProteinIC:
                   'non_nan_idxs': self.non_nan_idxs,
                   'chain_res_name_map': self.chain_res_name_map}
 
-        return ProteinIC(z_matrix, z_matrix_idxs, **kwargs)
+        return MolSysIC(z_matrix, z_matrix_idxs, **kwargs)
 
     @property
     def chain_operator_idxs(self):
@@ -274,7 +274,7 @@ class ProteinIC:
         Parameters
         ----------
         op : dict
-            Dictionary containing an entry for each chain in the ProteinIC molecule. Each entry must contain a
+            Dictionary containing an entry for each chain in the MolSysIC molecule. Each entry must contain a
             rotation matrix, 'mx' and translation vector 'ori'.
 
         Returns
@@ -383,7 +383,7 @@ class ProteinIC:
 
         Returns
         -------
-        self : ProteinIC
+        self : MolSysIC
             ProteinIC object with new dihedral angle(s)
         """
 
@@ -425,7 +425,7 @@ class ProteinIC:
         Parameters
         ----------
         idxs: ArrayLike
-            an array in indices corresponding to the progenitor structure in the ProteinIC trajectory.
+            an array in indices corresponding to the progenitor structure in the MolSysIC trajectory.
         dihedrals : ArrayLike
             an array of angles for each idx in ``idxs`` and for each dihedral in ``atom_list``. Should have the shape
             ``(len(idxs), len(atom_list))``

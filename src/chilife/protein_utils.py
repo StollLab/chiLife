@@ -418,7 +418,7 @@ def get_missing_residues(
     Parameters
     ----------
     protein : MDAnalysis.Universe, MDAnalysis.AtomGroup
-        Protein to search for residues with missing atoms.
+        MolSys to search for residues with missing atoms.
     ignore : set
         List of residue numbers to ignore. Usually sites you plan to label or mutate.
     use_H : bool
@@ -596,8 +596,8 @@ def mutate(
 
     if isinstance(protein, (mda.Universe, mda.AtomGroup)):
         U = make_mda_uni(atom_names, atom_types, res_names, residx, resids, segidx, segids)
-    elif isinstance(protein, chilife.MolecularSystem):
-        U = chilife.Protein.from_arrays(atom_names, atom_types, res_names, residx, resids, segidx, segids)
+    elif isinstance(protein, chilife.MolecularSystemBase):
+        U = chilife.MolSys.from_arrays(atom_names, atom_types, res_names, residx, resids, segidx, segids)
 
     # Apply old coordinates to non-spinlabel atoms
     new_other_atoms = U.select_atoms(f"not ({label_selstr})")
@@ -626,7 +626,7 @@ def randomize_rotamers(
     Parameters
     ----------
     protein : MDAnalysis.Universe, MDAnalysis.AtomGroup
-        Protein object to modify.
+        MolSys object to modify.
     rotamer_libraries : list
         RotamerEnsemble objects attached to the protein corresponding to the residues to be repacked/randomized.
     **kwargs : dict
@@ -646,7 +646,7 @@ def get_sas_res(
     Parameters
     ----------
     protein : MDAnalysis.Universe, MDAnalysis.AtomGroup
-        Protein object to measure Solvent Accessible Surfaces (SAS) area of and report the SAS residues.
+        MolSys object to measure Solvent Accessible Surfaces (SAS) area of and report the SAS residues.
     cutoff : float
         Exclude residues from list with SASA below cutoff in angstroms squared.
 

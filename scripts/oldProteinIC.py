@@ -37,7 +37,7 @@ class ProteinIC:
         self._dihedral_defs = None
 
     def copy(self):
-        """Create a deep copy of an ProteinIC instance"""
+        """Create a deep copy of an MolSysIC instance"""
         zmats = {key: value.copy() for key, value in self.zmats.items()}
         zmat_idxs = {key: value.copy() for key, value in self.zmat_idxs.items()}
         kwargs = {"chain_operators": self.chain_operators,

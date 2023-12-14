@@ -12,3 +12,4 @@ Examples
     gallery/04-Repacking_with_MCMC_Sampling.nblink
     gallery/05-Membrane_Docking.nblink
     gallery/06-Custom_Energy_Function.nblink
+    gallery/09-Bifunctional_Labels.nblink

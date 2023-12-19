@@ -1,4 +1,5 @@
 #! /usr/bin/env python
+from pathlib import Path
 from zipfile import ZipFile
 from io import BytesIO
 import numpy as np
@@ -16,20 +17,35 @@ parser = argparse.ArgumentParser(prog='update_rotlibs',
                                              '(compatible) versions.',
                                  )
 parser.add_argument('files_names', nargs='+', help='Names of the old rotlib files you wish to update')
+parser.add_argument('-d', '--description', default=None, help='Description text you would like to add to the rotamer '
+                                                              'library. Can be a string or a file')
+parser.add_argument('-c', '--comment',  default=None, help='Description text you would like to add to the rotamer '
+                                                           'library. can be a string or a file')
+parser.add_argument('-r', '--reference',  default=None, help='Reference text you would like to add to the rotamer '
+                                                             'library can be a string or a file.')
 
 args = parser.parse_args()
 
 
 def main():
 
+    adding_metadata = ((args.description is not None) or
+                       (args.comment is not None) or
+                       (args.reference is not None))
+
+    if adding_metadata and len(args.files_names) > 1:
+        raise RuntimeError("You can only add descriptions, comments, or references when updating one library at a time")
+
+    description = check_textfile(args.description)
+    comment = check_textfile(args.comment)
+    reference = check_textfile(args.reference)
 
     for filename in args.files_names:
 
         if filename.endswith('_rotlib.npz'):
             shutil.copy(filename, filename + '.bku')
-            data = get_data(filename)
+            data = get_data(filename, description, comment, reference)
             np.savez(filename, **data)
-
 
         elif filename.endswith('_drotlib.zip'):
             shutil.copy(filename, filename + '.bku')
@@ -43,11 +59,11 @@ def main():
                             np.save(f'{libname}_csts.npy', csts)
                     elif f[-12] == 'A':
                         with archive.open(f) as of:
-                            libA = get_data(of)
+                            libA = get_data(of, description, comment, reference)
                             np.savez(f'{libname}A_rotlib.npz', **libA)
                     elif f[-12] == 'B':
                         with archive.open(f) as of:
-                            libB = get_data(of)
+                            libB = get_data(of, description, comment, reference)
                             np.savez(f'{libname}B_rotlib.npz', **libB)
 
             with zipfile.ZipFile(f'{libname}_drotlib.zip', mode='w') as archive:
@@ -145,5 +161,18 @@ def get_data_1_2(filename):
     data['internal_coords'] = read_array(BytesIO(ic_bytes), allow_pickle=True)
 
     return data
+
+def check_textfile(file):
+
+    if Path(str(file)).exists():
+
+        with open(file, 'r') as f:
+            lines = f.readlines()
+
+        lines = "\n".join(lines)
+    else:
+        lines = file
+
+    return lines
 
 main()

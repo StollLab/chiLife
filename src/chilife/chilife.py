@@ -56,12 +56,10 @@ def distance_distribution(
         uq: bool = False,
 ) -> np.ndarray:
     """Calculates total distribution of spin-spin distances among an arbitrary number of spin labels, using the
-    distance range ``r`` (in angstrom). The distance distribution is obtained by summing over all pair distance
-    distributions. These in turn are calculated by summing over rotamer pairs with the appropriate weights. For each
-    rotamer pair, the distance distribution is either just the distance between the ``spin_center`` coordinates of two
-    labels (if ``spin_populations=False``) or the weighted sum over all pairs of spn-bearing atoms
-    (``spin_populations=True``). The resulting distance histogram is convolved with a normal distribution with a
-    standard deviation ``sigma`` .
+    distance range ``r`` (in angstrom). The distance distribution is obtained by summing over all label pair distance
+    distributions. These in turn are calculated by convolving a weighted histogram of pairwise distances between lables
+    with a normal distribution. Distance between labels are calculated either between label ``spin_center`` if
+    ``spin_populations=False``, or between all pairs of spn-bearing atoms if ``spin_populations=True``.
 
     Parameters
     ----------
@@ -277,162 +275,36 @@ def traj_dd(
     return P
 
 
-def repack(
-        protein: Union[mda.Universe, mda.AtomGroup],
-        *spin_labels: RotamerEnsemble,
-        repetitions: int = 200,
-        temp: float = 1,
-        energy_func: Callable = get_lj_rep,
-        off_rotamer=False,
-        **kwargs,
-) -> Tuple[mda.Universe, ArrayLike]:
-    """Markov chain Monte Carlo repack a protein around any number of SpinLabel or RotamerEnsemble objects.
+def confidence_interval(data: ArrayLike, cutoff: float = 0.95, non_negative: bool = True) -> Tuple[np.array, np.array]:
+    """
 
     Parameters
     ----------
-    protein : MDAnalysis.Universe, MDAnalysis.AtomGroup
-        MolSys to be repacked
-    spin_labels : RotamerEnsemble, SpinLabel
-        RotamerEnsemble or SpinLabel object placed at site of interest
-    repetitions : int
-        Number of successful MC samples to perform before terminating the MC sampling loop
-    temp : float, ArrayLike
-        Temperature (Kelvin) for both clash evaluation and metropolis-hastings acceptance criteria. Accepts a list or
-        array like object of temperatures if a temperature schedule is desired
-    energy_func : Callable
-        Energy function to be used for clash evaluation. Must accept a protein and RotamerEnsemble object and return an
-        array of potentials in kcal/mol, with one energy per rotamer in the rotamer ensemble
-    off_rotamer : bool
-        Boolean argument that decides whether off rotamer sampling is used when repacking the provided residues.
-    kwargs : dict
-        Additional keyword arguments to be passed to ``mutate`` .
+    data: Array Like
+        Array of distance distribution samples
+    cutoff: float
+        Confidence cutoff to calculate confidence interval over.
+    non_negative: bool
+        Clip negative elements of confidence intervals to 0.
 
     Returns
     -------
-    protein: MDAnalysis.Universe
-        MCMC trajectory of local repack
-    deltaEs: np.ndarray:
-        Change in energy_func score at each accept of MCMC trajectory
+    interval: Tuple[Array, Array]
+        Lower and upper confidence intervals at the provided cutoff
 
     """
-    temp = np.atleast_1d(temp)
-    KT = {t: GAS_CONST * t for t in temp}
+    mu = np.mean(data, axis=0)
+    std = np.std(data, axis=0)
+    ub, lb = t.interval(cutoff, df=len(data) - 1, loc=mu, scale=std)
 
-    repack_radius = kwargs.pop("repack_radius") if "repack_radius" in kwargs else None  # Angstroms
-    if repack_radius is None:
-        repack_radius = max([SL.clash_radius for SL in spin_labels])
-    # Construct a new spin labeled protein and preallocate variables to retain monte carlo trajectory
-    spin_label_str = " or ".join(
-        f"( {spin_label.selstr} )" for spin_label in spin_labels
-    )
-    protein = mutate(protein, *spin_labels, **kwargs).atoms
+    lb[np.isnan(lb)] = 0.
+    ub[np.isnan(ub)] = 0.
 
-    # Determine the residues near the spin label that will be repacked
-    repack_residues = protein.select_atoms(f"around {repack_radius} {spin_label_str}").residues
+    if non_negative:
+        lb = lb.clip(0)
+        ub = ub.clip(0)
 
-    repack_res_kwargs = spin_labels[0].input_kwargs
-    repack_res_kwargs['eval_clash'] = False
-    repack_residue_libraries = [
-        RotamerEnsemble.from_mda(res, **repack_res_kwargs)
-        for res in repack_residues
-        if res.resname not in ["GLY", "ALA"]
-           and res.resname in chilife.SUPPORTED_RESIDUES
-    ]
-    repack_residue_libraries += list(spin_labels)
-
-    # Create new labeled protein construct to fill in any missing atoms of repack residues
-    protein = mutate(protein, *repack_residue_libraries, **kwargs).atoms
-
-    repack_residues = protein.select_atoms(f"around {repack_radius} {spin_label_str}").residues
-
-    repack_residue_libraries = [
-        RotamerEnsemble.from_mda(res, **repack_res_kwargs)
-        for res in repack_residues
-        if res.resname not in ["GLY", "ALA"]
-           and res.resname in chilife.SUPPORTED_RESIDUES
-    ]
-    repack_residue_libraries += [RotamerEnsemble(RL.res, RL.site, protein, rotlib=RL._rotlib, **repack_res_kwargs)
-                                    for RL in spin_labels]
-
-    traj = np.empty((repetitions, *protein.positions.shape))
-    deltaEs = []
-
-    sample_freq = np.array(
-        [len(res.dihedral_atoms) for res in repack_residue_libraries], dtype=np.float64
-    )
-    mean = sample_freq[sample_freq > 1].mean()
-    sample_freq[sample_freq == 1] = mean
-    sample_freq /= sample_freq.sum()
-
-    count = 0
-    acount = 0
-    bcount = 0
-    bidx = 0
-    schedule = repetitions / (len(temp) + 1)
-    with tqdm(total=repetitions) as pbar:
-        while count < repetitions:
-
-            # Randomly select a residue from the repacked residues
-            SiteLibrary = repack_residue_libraries[
-                np.random.choice(len(repack_residue_libraries), p=sample_freq)
-            ]
-            if not hasattr(SiteLibrary, "dummy_label"):
-                SiteLibrary.dummy_label = SiteLibrary.copy()
-                SiteLibrary.dummy_label.protein = protein
-                SiteLibrary.dummy_label.mask = np.isin(
-                    protein.ix, SiteLibrary.clash_ignore_idx
-                )
-                SiteLibrary.dummy_label._coords = np.atleast_3d(
-                    [protein.atoms[SiteLibrary.dummy_label.mask].positions]
-                )
-
-                with np.errstate(divide="ignore"):
-                    SiteLibrary.dummy_label.E0 = energy_func(SiteLibrary.dummy_label) - \
-                                                 KT[temp[bidx]] * np.log(SiteLibrary.current_weight)
-
-            DummyLabel = SiteLibrary.dummy_label
-
-            coords, weight = SiteLibrary.sample(off_rotamer=off_rotamer)
-
-            with np.errstate(divide="ignore"):
-                DummyLabel._coords = np.atleast_3d([coords])
-                E1 = energy_func(DummyLabel) - KT[temp[bidx]] * np.log(weight)
-
-            deltaE = E1 - DummyLabel.E0
-            deltaE = np.maximum(deltaE, -10.0)
-
-            acount += 1
-            # Metropolis-Hastings criteria
-
-            if (E1 < DummyLabel.E0 or np.exp(-deltaE / KT[temp[bidx]]) > np.random.rand()):
-                deltaEs.append(deltaE)
-                try:
-                    protein.atoms[DummyLabel.mask].positions = coords
-                    DummyLabel.E0 = E1
-
-                except ValueError as err:
-                    print(SiteLibrary.name)
-                    print(SiteLibrary.atom_names)
-
-                    raise ValueError(err)
-
-                traj[count] = protein.atoms.positions
-                SiteLibrary.update_weight(weight)
-                count += 1
-                bcount += 1
-                pbar.update(1)
-                if bcount > schedule:
-                    bcount = 0
-                    bidx = np.minimum(bidx + 1, len(temp) - 1)
-            else:
-                continue
-
-    logging.info(f"Total counts: {acount}")
-
-    # Load MCMC trajectory into universe.
-    protein.universe.load_new(traj)
-
-    return protein, np.squeeze(deltaEs)
+    return lb, ub
 
 
 def create_library(
@@ -452,7 +324,7 @@ def create_library(
         comment: str = None,
         reference: str = None
 ) -> None:
-    """Add a user defined SpinLabel from a pdb file.
+    """Create a chiLife rotamer library from a pdb file and a user defined set of parameters.
 
     Parameters
     ----------
@@ -569,7 +441,7 @@ def create_dlibrary(
         comment: str = None,
         reference: str = None
 ) -> None:
-    """Add a user defined dSpinLabel from a pdb file.
+    """Create a chiLife bifunctional rotamer library from a pdb file and a user defined set of parameters.
 
     Parameters
     ----------
@@ -608,6 +480,9 @@ def create_dlibrary(
         permanent: bool
         If set to True the library will be stored in the chilife user_rotlibs directory in addition to the current
         working directory.
+    sort_atoms: bool
+        Rotamer library atoms are sorted to achieve consistent internal coordinates by default. Sometimes this sorting
+        is not desired or the PDB file is already sorted. Setting this option to ``False`` turns off atom sorting.
     permanent : bool
         If set to True, a copy of the rotamer library will be stored in the chiLife rotamer libraries directory
     default : bool
@@ -936,10 +811,59 @@ def prep_restype_savedict(
     return save_dict
 
 
+def add_rotlib_dir(directory: Union[Path, str]) -> None:
+    """
+    Add a directory to search for rotlibs when none are found in te working directory. This directory will be
+    searched before the chiLife default rotlib directory.
+
+    Parameters
+    ----------
+    directory: Path, str
+        String or Path object of the desired directory.
+    """
+
+
+    directory = Path(directory)
+    with open(RL_DIR / 'additional_rotlib_dirs.txt', 'a+') as f:
+        f.write(str(directory))
+        f.write('\n')
+
+    USER_RL_DIR.append(Path(directory))
+
+
+def remove_rotlib_dir(directory: Union[Path, str]) -> None:
+    """
+    Remove a user added directory to search for rotlibs.
+
+    Parameters
+    ----------
+    directory: Path, str
+        String or Path object of the desired directory.
+    """
+
+    directory = Path(directory)
+    if directory in USER_RL_DIR:
+        USER_RL_DIR.remove(directory)
+
+    with open(RL_DIR / 'additional_rotlib_dirs.txt', 'r') as f:
+        TMP = [Path(line.strip()) for line in f.readlines() if Path(line.strip()) != directory]
+
+    with open(RL_DIR / 'additional_rotlib_dirs.txt', 'w') as f:
+        for p in TMP:
+            f.write(str(p))
+            f.write('\n')
+
+
+
 def add_library(filename: Union[str, Path], libname: str = None, default: bool = False, force: bool = False):
     """
     Add the provided rotamer library to the chilife rotamer library directory so that it does not need to be
     in the working directory when utilizing.
+
+    .. note:: It is generally preferred to keep a custom directory of rotlibs and use
+        :func:`~chilife.chilife.add_rotlib_dir` to force chiLife to search that directory for rotlibs since this function
+        adds rotlibs to the chilife install directory that can be overwritten with updates and is not preserved when
+        updating python.
 
     Parameters
     ----------
@@ -1110,7 +1034,7 @@ def add_to_defaults(resname: str, rotlib_name: str, default: bool = False):
     Parameters
     ----------
     resname : str
-        3 letter code name of the residue.
+        3-letter code name of the residue.
     rotlib_name : str
         Name of the rotamer library.
     default : bool
@@ -1270,31 +1194,6 @@ def list_available_rotlibs():
     print("*" * 80)
 
 
-def add_rotlib_dir(directory: Union[Path, str]) -> None:
-    """Add a directory to search for rotlibs when none are found in te working directory. This directory will be
-    searched before the chiLife default rotlib directory."""
-    directory = Path(directory)
-    with open(RL_DIR / 'additional_rotlib_dirs.txt', 'a+') as f:
-        f.write(str(directory))
-        f.write('\n')
-
-    USER_RL_DIR.append(Path(directory))
-
-
-def remove_rotlib_dir(directory: Union[Path, str]) -> None:
-    directory = Path(directory)
-    if directory in USER_RL_DIR:
-        USER_RL_DIR.remove(directory)
-
-    with open(RL_DIR / 'additional_rotlib_dirs.txt', 'r') as f:
-        TMP = [Path(line.strip()) for line in f.readlines() if Path(line.strip()) != directory]
-
-    with open(RL_DIR / 'additional_rotlib_dirs.txt', 'w') as f:
-        for p in TMP:
-            f.write(str(p))
-            f.write('\n')
-
-
 def get_possible_rotlibs(rotlib: str,
                          suffix: str,
                          extension: str,
@@ -1432,48 +1331,180 @@ def _print_drotlib_info(lib_file):
     print("\n".join(list(chain.from_iterable(myl))))
 
 
-def confidence_interval(data: ArrayLike, cutoff: float = 0.95, non_negative: bool = True) -> Tuple[np.array, np.array]:
-    """
+def repack(
+        protein: Union[mda.Universe, mda.AtomGroup],
+        *spin_labels: RotamerEnsemble,
+        repetitions: int = 200,
+        temp: float = 1,
+        energy_func: Callable = get_lj_rep,
+        off_rotamer=False,
+        **kwargs,
+) -> Tuple[mda.Universe, ArrayLike]:
+    """Markov chain Monte Carlo repack a protein around any number of SpinLabel or RotamerEnsemble objects.
 
     Parameters
     ----------
-    data: Array Like
-        Array of distance distribution samples
-    cutoff: float
-        Confidence cutoff to calculate confidence interval over.
-    non_negative: bool
-        Clip negative elements of confidence intervals to 0.
+    protein : MDAnalysis.Universe, MDAnalysis.AtomGroup
+        MolSys to be repacked
+    spin_labels : RotamerEnsemble, SpinLabel
+        RotamerEnsemble or SpinLabel object placed at site of interest
+    repetitions : int
+        Number of successful MC samples to perform before terminating the MC sampling loop
+    temp : float, ArrayLike
+        Temperature (Kelvin) for both clash evaluation and metropolis-hastings acceptance criteria. Accepts a list or
+        array like object of temperatures if a temperature schedule is desired
+    energy_func : Callable
+        Energy function to be used for clash evaluation. Must accept a protein and RotamerEnsemble object and return an
+        array of potentials in kcal/mol, with one energy per rotamer in the rotamer ensemble
+    off_rotamer : bool
+        Boolean argument that decides whether off rotamer sampling is used when repacking the provided residues.
+    kwargs : dict
+        Additional keyword arguments to be passed to ``mutate`` .
 
     Returns
     -------
-    interval: Tuple[np.array, np.array]
-        Lower and upper confidence intervals at the provided cutoff
+    protein: MDAnalysis.Universe
+        MCMC trajectory of local repack
+    deltaEs: np.ndarray:
+        Change in energy_func score at each accept of MCMC trajectory
 
     """
-    mu = np.mean(data, axis=0)
-    std = np.std(data, axis=0)
-    ub, lb = t.interval(cutoff, df=len(data) - 1, loc=mu, scale=std)
+    temp = np.atleast_1d(temp)
+    KT = {t: GAS_CONST * t for t in temp}
 
-    lb[np.isnan(lb)] = 0.
-    ub[np.isnan(ub)] = 0.
+    repack_radius = kwargs.pop("repack_radius") if "repack_radius" in kwargs else None  # Angstroms
+    if repack_radius is None:
+        repack_radius = max([SL.clash_radius for SL in spin_labels])
+    # Construct a new spin labeled protein and preallocate variables to retain monte carlo trajectory
+    spin_label_str = " or ".join(
+        f"( {spin_label.selstr} )" for spin_label in spin_labels
+    )
+    protein = mutate(protein, *spin_labels, **kwargs).atoms
 
-    if non_negative:
-        lb = lb.clip(0)
-        ub = ub.clip(0)
+    # Determine the residues near the spin label that will be repacked
+    repack_residues = protein.select_atoms(f"around {repack_radius} {spin_label_str}").residues
 
-    return lb, ub
+    repack_res_kwargs = spin_labels[0].input_kwargs
+    repack_res_kwargs['eval_clash'] = False
+    repack_residue_libraries = [
+        RotamerEnsemble.from_mda(res, **repack_res_kwargs)
+        for res in repack_residues
+        if res.resname not in ["GLY", "ALA"]
+           and res.resname in chilife.SUPPORTED_RESIDUES
+    ]
+    repack_residue_libraries += list(spin_labels)
+
+    # Create new labeled protein construct to fill in any missing atoms of repack residues
+    protein = mutate(protein, *repack_residue_libraries, **kwargs).atoms
+
+    repack_residues = protein.select_atoms(f"around {repack_radius} {spin_label_str}").residues
+
+    repack_residue_libraries = [
+        RotamerEnsemble.from_mda(res, **repack_res_kwargs)
+        for res in repack_residues
+        if res.resname not in ["GLY", "ALA"]
+           and res.resname in chilife.SUPPORTED_RESIDUES
+    ]
+    repack_residue_libraries += [RotamerEnsemble(RL.res, RL.site, protein, rotlib=RL._rotlib, **repack_res_kwargs)
+                                    for RL in spin_labels]
+
+    traj = np.empty((repetitions, *protein.positions.shape))
+    deltaEs = []
+
+    sample_freq = np.array(
+        [len(res.dihedral_atoms) for res in repack_residue_libraries], dtype=np.float64
+    )
+    mean = sample_freq[sample_freq > 1].mean()
+    sample_freq[sample_freq == 1] = mean
+    sample_freq /= sample_freq.sum()
+
+    count = 0
+    acount = 0
+    bcount = 0
+    bidx = 0
+    schedule = repetitions / (len(temp) + 1)
+    with tqdm(total=repetitions) as pbar:
+        while count < repetitions:
+
+            # Randomly select a residue from the repacked residues
+            SiteLibrary = repack_residue_libraries[
+                np.random.choice(len(repack_residue_libraries), p=sample_freq)
+            ]
+            if not hasattr(SiteLibrary, "dummy_label"):
+                SiteLibrary.dummy_label = SiteLibrary.copy()
+                SiteLibrary.dummy_label.protein = protein
+                SiteLibrary.dummy_label.mask = np.isin(
+                    protein.ix, SiteLibrary.clash_ignore_idx
+                )
+                SiteLibrary.dummy_label._coords = np.atleast_3d(
+                    [protein.atoms[SiteLibrary.dummy_label.mask].positions]
+                )
+
+                with np.errstate(divide="ignore"):
+                    SiteLibrary.dummy_label.E0 = energy_func(SiteLibrary.dummy_label) - \
+                                                 KT[temp[bidx]] * np.log(SiteLibrary.current_weight)
+
+            DummyLabel = SiteLibrary.dummy_label
+
+            coords, weight = SiteLibrary.sample(off_rotamer=off_rotamer)
+
+            with np.errstate(divide="ignore"):
+                DummyLabel._coords = np.atleast_3d([coords])
+                E1 = energy_func(DummyLabel) - KT[temp[bidx]] * np.log(weight)
+
+            deltaE = E1 - DummyLabel.E0
+            deltaE = np.maximum(deltaE, -10.0)
+
+            acount += 1
+            # Metropolis-Hastings criteria
+
+            if (E1 < DummyLabel.E0 or np.exp(-deltaE / KT[temp[bidx]]) > np.random.rand()):
+                deltaEs.append(deltaE)
+                try:
+                    protein.atoms[DummyLabel.mask].positions = coords
+                    DummyLabel.E0 = E1
+
+                except ValueError as err:
+                    print(SiteLibrary.name)
+                    print(SiteLibrary.atom_names)
+
+                    raise ValueError(err)
+
+                traj[count] = protein.atoms.positions
+                SiteLibrary.update_weight(weight)
+                count += 1
+                bcount += 1
+                pbar.update(1)
+                if bcount > schedule:
+                    bcount = 0
+                    bidx = np.minimum(bidx + 1, len(temp) - 1)
+            else:
+                continue
+
+    logging.info(f"Total counts: {acount}")
+
+    # Load MCMC trajectory into universe.
+    protein.universe.load_new(traj)
+
+    return protein, np.squeeze(deltaEs)
 
 
 def continuous_topol(atoms, bonds):
     """
+    Determines if there is a chain break in the set of atoms and bonds provided.
 
     Parameters
     ----------
-    atoms
-    bonds
+    atoms: Universe, AtomGroup, MolSys
+        Set of atoms to be checked for chain breaks.
+
+    bonds: ArrayLike[Tuple[int]]
+        Array of tuples of integers defining bonds by their atom indices.
 
     Returns
     -------
+    G.is_connected: bool
+        The boolean value of whether the set of atoms are connected.
 
     """
     ixmap = {ix: i for i, ix in enumerate(atoms.ix)}

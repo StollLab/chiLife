@@ -37,13 +37,13 @@ def rosetta_alignment(N, CA, C):
     rotation_matrix : numpy ndarray (3x3)
         Rotation  matrix to rotate spin label to achieve the correct orientation.
     origin : numpy.ndarray (1x3)
-        New origin position in 3 dimensional space.
+        New origin position in 3-dimensional space.
     """
     # Define new Z axis from  C-->CA
     zaxis = CA - C
     zaxis = zaxis / np.linalg.norm(zaxis)
 
-    # Define new y axis
+    # Define new y-axis
     yaxis_plane = N - C
     z_comp = yaxis_plane.dot(zaxis)
     yaxis = yaxis_plane - z_comp * zaxis
@@ -78,7 +78,7 @@ def bisect_alignment(N, CA, C):
     rotation_matrix : numpy ndarray (3x3)
         Rotation  matrix to rotate spin label to achieve the correct orientation.
     origin : numpy.ndarray (1x3)
-        New origin position in 3 dimensional space.
+        New origin position in 3-dimensional space.
     """
     # Define new Z axis that bisects N<--CA-->C angle
     CA_N = N - CA
@@ -123,7 +123,7 @@ def mmm_alignment(N, CA, C):
     rotation_matrix : numpy ndarray (3x3)
         Rotation  matrix to rotate spin label to achieve the correct orientation.
     origin : numpy.ndarray (1x3)
-        New origin position in 3 dimensional space.
+        New origin position in 3-dimensional space.
     """
     xaxis = N - CA
     xaxis /= np.linalg.norm(xaxis)
@@ -160,7 +160,7 @@ def fit_alignment(N, CA, C):
     rotation_matrix : numpy ndarray (3x3)
         Rotation  matrix to rotate spin label to achieve the correct orientation.
     origin : numpy.ndarray (1x3)
-        New origin position in 3 dimensional space.
+        New origin position in 3-dimensional space.
     """
 
     # Check if input is transposed
@@ -209,12 +209,12 @@ def fit_alignment(N, CA, C):
     return rotation_matrix, origin
 
 
-def parse_backbone(rotamer_library, kind):
+def parse_backbone(rotamer_ensemble, kind):
     """Extract appropriate backbone information to make a rotation matrix using the method provided
 
     Parameters
     ----------
-    rotamer_library : RotamerEnsemble
+    rotamer_ensemble : RotamerEnsemble
         The RotamerEnsemble object that the rotation matrix will operate on. If using the `fit` method, the rotamer
         ensemble must have a `protein` feature.
     kind : str
@@ -226,21 +226,23 @@ def parse_backbone(rotamer_library, kind):
         Numpy arrays of N, CA and C coordinates of the rotamer ensemble backbone. If using method `fit` arrays are 2x3
         with the first coordinate as the rotamer ensemble backbone and the second as the protein site backbone.
     """
-    method = rotamer_library.alignment_method
+    method = rotamer_ensemble.alignment_method
 
     if method.__name__ == "fit_alignment":
-        N1, CA1, C1 = rotamer_library.backbone
-        N2, CA2, C2 = rotamer_library.protein.select_atoms(
-            f"segid {rotamer_library.chain} and "
-            f"resnum {rotamer_library.site} "
+        N1, CA1, C1 = rotamer_ensemble.backbone
+        N2, CA2, C2 = rotamer_ensemble.protein.select_atoms(
+            f"segid {rotamer_ensemble.chain} and "
+            f"resnum {rotamer_ensemble.site} "
             f"and name N CA C and not altloc B"
         ).positions
         return np.array([[N1, N2], [CA1, CA2], [C1, C2]])
+
     elif kind == "local":
-        return rotamer_library.backbone
+        return rotamer_ensemble.backbone
+
     elif kind == "global":
-        return rotamer_library.protein.select_atoms(
-            f"segid {rotamer_library.chain} and "
-            f"resnum {rotamer_library.site} "
+        return rotamer_ensemble.protein.select_atoms(
+            f"segid {rotamer_ensemble.chain} and "
+            f"resnum {rotamer_ensemble.site} "
             f"and name N CA C and not altloc B"
         ).positions

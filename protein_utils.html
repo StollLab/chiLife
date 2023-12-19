@@ -1,13 +1,15 @@
 <!DOCTYPE html>
-<html class="writer-html5" lang="en" >
+<html class="writer-html5" lang="en" data-content_root="./">
 <head>
-  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Protein Utils &mdash; χLife  documentation</title>
-      <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
-      <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
-      <link rel="stylesheet" href="_static/sg_gallery.css" type="text/css" />
+  <title>MolSys Utils &mdash; χLife  documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=19f00094" />
+      <link rel="stylesheet" type="text/css" href="_static/sg_gallery.css?v=61a4c737" />
+
+  
   <!--[if lt IE 9]>
     <script src="_static/js/html5shiv.min.js"></script>
   <![endif]-->
@@ -48,10 +50,10 @@
 <li class="toctree-l1"><a class="reference internal" href="chilife.html">χLife</a></li>
 <li class="toctree-l1"><a class="reference internal" href="rotamer_ensemble.html">Side chain ensembles</a></li>
 <li class="toctree-l1"><a class="reference internal" href="rotamer_libraries.html">Rotamer Libraries</a></li>
-<li class="toctree-l1"><a class="reference internal" href="protein.html">Protein</a></li>
+<li class="toctree-l1"><a class="reference internal" href="molsys.html">MolSys</a></li>
 <li class="toctree-l1 current"><a class="reference internal" href="utils.html">Utils</a><ul class="current">
 <li class="toctree-l2"><a class="reference internal" href="numba_utils.html">Numba Utils</a></li>
-<li class="toctree-l2 current"><a class="current reference internal" href="#">Protein Utils</a><ul>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">MolSys Utils</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#chilife.protein_utils.FreeAtom"><code class="docutils literal notranslate"><span class="pre">FreeAtom</span></code></a><ul>
 <li class="toctree-l4"><a class="reference internal" href="#chilife.protein_utils.FreeAtom.name"><code class="docutils literal notranslate"><span class="pre">FreeAtom.name</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#chilife.protein_utils.FreeAtom.atype"><code class="docutils literal notranslate"><span class="pre">FreeAtom.atype</span></code></a></li>
@@ -108,7 +110,7 @@
   <ul class="wy-breadcrumbs">
       <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
           <li class="breadcrumb-item"><a href="utils.html">Utils</a></li>
-      <li class="breadcrumb-item active">Protein Utils</li>
+      <li class="breadcrumb-item active">MolSys Utils</li>
       <li class="wy-breadcrumbs-aside">
             <a href="_sources/protein_utils.rst.txt" rel="nofollow"> View page source</a>
       </li>
@@ -119,7 +121,7 @@
            <div itemprop="articleBody">
              
   <section id="module-chilife.protein_utils">
-<span id="protein-utils"></span><h1>Protein Utils<a class="headerlink" href="#module-chilife.protein_utils" title="Link to this heading"></a></h1>
+<span id="molsys-utils"></span><h1>MolSys Utils<a class="headerlink" href="#module-chilife.protein_utils" title="Link to this heading"></a></h1>
 <dl class="py class">
 <dt class="sig sig-object py" id="chilife.protein_utils.FreeAtom">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">FreeAtom</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">atype</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">index</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">resn</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">resi</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">coords</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#chilife.protein_utils.FreeAtom" title="Link to this definition"></a></dt>
@@ -375,7 +377,7 @@ heavy atoms.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>protein</strong> (<em>MDAnalysis.Universe</em><em>, </em><em>MDAnalysis.AtomGroup</em>) – Protein to search for residues with missing atoms.</p></li>
+<li><p><strong>protein</strong> (<em>MDAnalysis.Universe</em><em>, </em><em>MDAnalysis.AtomGroup</em>) – MolSys to search for residues with missing atoms.</p></li>
 <li><p><strong>ignore</strong> (<em>set</em>) – List of residue numbers to ignore. Usually sites you plan to label or mutate.</p></li>
 <li><p><strong>use_H</strong> (<em>bool</em>) – Whether the new side chain should have hydrogen atoms.</p></li>
 </ul>
@@ -396,7 +398,7 @@ heavy atoms.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>protein</strong> (<em>MDAnalysis.Universe</em><em>, </em><em>MDAnalysis.AtomGroup</em>) – Protein object to measure Solvent Accessible Surfaces (SAS) area of and report the SAS residues.</p></li>
+<li><p><strong>protein</strong> (<em>MDAnalysis.Universe</em><em>, </em><em>MDAnalysis.AtomGroup</em>) – MolSys object to measure Solvent Accessible Surfaces (SAS) area of and report the SAS residues.</p></li>
 <li><p><strong>cutoff</strong> (<em>float</em>) – Exclude residues from list with SASA below cutoff in angstroms squared.</p></li>
 </ul>
 </dd>
@@ -566,7 +568,7 @@ RotamerEnsemble or SpinLabel object.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>protein</strong> (<em>MDAnalysis.Universe</em><em>, </em><em>MDAnalysis.AtomGroup</em>) – Protein object to modify.</p></li>
+<li><p><strong>protein</strong> (<em>MDAnalysis.Universe</em><em>, </em><em>MDAnalysis.AtomGroup</em>) – MolSys object to modify.</p></li>
 <li><p><strong>rotamer_libraries</strong> (<em>list</em>) – RotamerEnsemble objects attached to the protein corresponding to the residues to be repacked/randomized.</p></li>
 <li><p><strong>**kwargs</strong> (<em>dict</em>) – Additional Arguments to pass to <code class="docutils literal notranslate"><span class="pre">sample</span></code> method. See <code class="xref py py-mod docutils literal notranslate"><span class="pre">sample</span></code> .</p></li>
 </ul>

@@ -1,13 +1,15 @@
 <!DOCTYPE html>
-<html class="writer-html5" lang="en" >
+<html class="writer-html5" lang="en" data-content_root="./">
 <head>
-  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Side chain ensembles &mdash; χLife  documentation</title>
-      <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
-      <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
-      <link rel="stylesheet" href="_static/sg_gallery.css" type="text/css" />
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=19f00094" />
+      <link rel="stylesheet" type="text/css" href="_static/sg_gallery.css?v=61a4c737" />
+
+  
   <!--[if lt IE 9]>
     <script src="_static/js/html5shiv.min.js"></script>
   <![endif]-->
@@ -112,7 +114,7 @@
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="rotamer_libraries.html">Rotamer Libraries</a></li>
-<li class="toctree-l1"><a class="reference internal" href="protein.html">Protein</a></li>
+<li class="toctree-l1"><a class="reference internal" href="molsys.html">MolSys</a></li>
 <li class="toctree-l1"><a class="reference internal" href="utils.html">Utils</a></li>
 <li class="toctree-l1"><a class="reference internal" href="examples.html">Examples</a></li>
 <li class="toctree-l1"><a class="reference internal" href="faqs.html">Frequently Asked Questions</a></li>
@@ -157,9 +159,9 @@ acids.</p>
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>res</strong> (<em>string</em>) – 3-character name of desired residue, e.g. R1A.</p></li>
-<li><p><strong>site</strong> (<em>int</em>) – Protein residue number to attach library to.</p></li>
+<li><p><strong>site</strong> (<em>int</em>) – MolSys residue number to attach library to.</p></li>
 <li><p><strong>protein</strong> (<em>MDAnalysis.Universe</em><em>, </em><em>MDAnalysis.AtomGroup</em>) – Object containing all protein information (coords, atom types, etc.)</p></li>
-<li><p><strong>chain</strong> (<em>str</em>) – Protein chain identifier to attach spin label to.</p></li>
+<li><p><strong>chain</strong> (<em>str</em>) – MolSys chain identifier to attach spin label to.</p></li>
 <li><p><strong>rotlib</strong> (<em>str</em>) – Rotamer library to use for constructing the RotamerEnsemble</p></li>
 <li><p><strong>**kwargs</strong> (<em>dict</em>) – <dl class="simple">
 <dt>minimize: bool</dt><dd><p>Switch to turn on/off minimization. During minimization each rotamer is optimized in dihedral space
@@ -359,7 +361,7 @@ dihedrals. If True, all mobile dihedrals will undergo minor perturbations. A lis
 switch to turn on/off off-rotamer sampling of a particular dihedrals, corresponding to <cite>self.dihedral_atoms</cite>
 e.g. <cite>off_+rotamer = [False, False, False, True, True]</cite> for R1 will only sample off-rotamers for χ4 and χ5.</p></li>
 <li><p><strong>**kwargs</strong> (<em>dict</em>) – <dl class="simple">
-<dt>return_dihedrals<span class="classifier">bool</span></dt><dd><p>If True, sample will return a ProteinIC object of the sampled rotamer</p>
+<dt>return_dihedrals<span class="classifier">bool</span></dt><dd><p>If True, sample will return a MolSysIC object of the sampled rotamer</p>
 </dd>
 </dl>
 </p></li>
@@ -369,7 +371,7 @@ e.g. <cite>off_+rotamer = [False, False, False, True, True]</cite> for R1 will o
 <dd class="field-even"><p><ul class="simple">
 <li><p><strong>coords</strong> (<em>ArrayLike</em>) – The 3D coordinates of the sampled rotamer(s)</p></li>
 <li><p><strong>new_weights</strong> (<em>ArrayLike</em>) – New weights (relative) of the sampled rotamer(s)</p></li>
-<li><p><strong>ICs</strong> (<em>List[chilife.ProteinIC] (Optional)</em>) – Internal coordinate (ProteinIC) objects of the rotamer(s).</p></li>
+<li><p><strong>ICs</strong> (<em>List[chilife.MolSysIC] (Optional)</em>) – Internal coordinate (MolSysIC) objects of the rotamer(s).</p></li>
 </ul>
 </p>
 </dd>
@@ -530,9 +532,9 @@ modeling.</p>
 <li><p><strong>label</strong> – str
 Name of desired spin label, e.g. R1A.</p></li>
 <li><p><strong>site</strong> – int
-Protein residue number to attach spin label to.</p></li>
+MolSys residue number to attach spin label to.</p></li>
 <li><p><strong>chain</strong> – str
-Protein chain identifier to attach spin label to.</p></li>
+MolSys chain identifier to attach spin label to.</p></li>
 <li><p><strong>protein</strong> – MDAnalysis.Universe, MDAnalysis.AtomGroup
 Object containing all protein information (coords, atom types, etc.)</p></li>
 <li><p><strong>protein_tree</strong> – cKDtree
@@ -586,9 +588,9 @@ amino acids whether they are spin labels or other bifunctional non-canonical ami
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>res</strong> (<em>string</em>) – 3-character name of desired residue, e.g. RXA.</p></li>
-<li><p><strong>site</strong> (<em>tuple</em><em>[</em><em>int</em><em>, </em><em>int</em><em>]</em>) – Protein residue numbers to attach the bifunctional library to.</p></li>
+<li><p><strong>site</strong> (<em>tuple</em><em>[</em><em>int</em><em>, </em><em>int</em><em>]</em>) – MolSys residue numbers to attach the bifunctional library to.</p></li>
 <li><p><strong>protein</strong> (<em>MDAnalysis.Universe</em><em>, </em><em>MDAnalysis.AtomGroup</em>) – Object containing all protein information (coords, atom types, etc.)</p></li>
-<li><p><strong>chain</strong> (<em>str</em>) – Protein chain identifier to attach spin label to.</p></li>
+<li><p><strong>chain</strong> (<em>str</em>) – MolSys chain identifier to attach spin label to.</p></li>
 <li><p><strong>rotlib</strong> (<em>str</em>) – Rotamer library to use for constructing the RotamerEnsemble</p></li>
 <li><p><strong>**kwargs</strong> (<em>dict</em>) – <dl class="simple">
 <dt>restraint_weight: float</dt><dd><p>Force constant (kcal/mol/A^2) for calculating energetic penalty of restraint satisfaction, i.e. the

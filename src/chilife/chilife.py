@@ -1185,31 +1185,45 @@ def safe_save(file: Union[str, Path], data: dict, backup: dict):
 
 
 def _print_monofunc(files):
-    print(f"{'monofunctional' + ':':^60}")
-    print("-" * 60)
+    maxw = max([len(file.stem) for file in files]) - 6
+    wrapper = textwrap.TextWrapper(width=80, subsequent_indent=" "*(maxw + 3),
+                                   replace_whitespace=False, drop_whitespace=False)
+
+    print(f"{'monofunctional' + ':':^80}")
+    print("-" * 80)
 
     for file in files:
         with np.load(file, allow_pickle=True) as f:
             for key in f.keys():
-                resname = f['resname']
+                resname = file.stem
+                if resname.endswith('_rotlib'):
+                    resname = resname[:-len('_rotlib')]
                 if 'description' in f:
                     descr = f['description']
                 else:
                     descr = "No description"
 
-        print(f'{resname:<8} : {descr}')
-    print("-" * 60)
+        print("\n".join(wrapper.wrap(f'{resname:<{maxw}} : {descr}')))
+    print("-" * 80)
 
 
 def _print_bifunc(files):
-    print(f"{'bifunctional' + ':':^60}")
-    print("-" * 60)
+
+    maxw = max([len(file.stem) for file in files]) - 7
+    wrapper = textwrap.TextWrapper(width=80, subsequent_indent=" "*(maxw + 3),
+                                   replace_whitespace=False, drop_whitespace=False)
+
+
+    print(f"{'bifunctional' + ':':^80}")
+    print("-" * 80)
 
     for file in files:
         with zipfile.ZipFile(file, 'r') as archive:
             name = archive.namelist()[0]
-            resname = name[:3]
+            resname = file.stem
             context = name[3:6]
+            if resname.endswith('_drotlib'):
+                resname = resname[:-len('_drotlib')]
             with archive.open(name) as of:
                 with np.load(of, allow_pickle=True) as f:
                     if 'description' in f:
@@ -1217,8 +1231,8 @@ def _print_bifunc(files):
                     else:
                         descr = "No description"
 
-        print(f'{resname:<4}{context:<4} : {descr}')
-    print("-" * 60)
+        print("\n".join(wrapper.wrap(f'{resname:<{maxw}} : {descr} in the {context} context')))
+    print("-" * 80)
 
 
 def list_available_rotlibs():
@@ -1238,22 +1252,22 @@ def list_available_rotlibs():
         bifunctional = tuple(dpath.glob('*_drotlib.zip'))
         if len(monofunctional) + len(bifunctional) > 0:
 
-            print("*" * 60)
-            print(f"*{f'Rotlibs in {dname}':^58}*")
+            print("*" * 80)
+            print(f"*{f'Rotlibs in {dname}':^78}*")
             if 'user' in dname:
-                print(f'*{dname.name:^58}*')
-            print("*" * 60)
+                print(f'*{dname.name:^78}*')
+            print("*" * 80)
 
             if len(monofunctional) > 0 : _print_monofunc(monofunctional)
             if len(bifunctional) > 0 : _print_bifunc(bifunctional)
 
     print()
-    print("*" * 60)
-    print(f"*{'DUNBRACK ROTLIBS':^58}*")
-    print(f"*{'ARG, ASN, ASP, CSY, GLN, GLU, HIS, ILE, LEU, LYS, MET,':^58}*")
-    print(f"*{'PHE, PRO, SER, THR, TRP, TYR, VAL':^58}*")
-    print(f"*{'(no ALA, GLY}':^58}*")
-    print("*" * 60)
+    print("*" * 80)
+    print(f"*{'DUNBRACK ROTLIBS':^78}*")
+    print(f"*{'ARG, ASN, ASP, CSY, GLN, GLU, HIS, ILE, LEU, LYS, MET, PHE, PRO, SER,':^78}*")
+    print(f"*{'THR, TRP, TYR, VAL':^78}*")
+    print(f"*{'(no ALA, GLY}':^78}*")
+    print("*" * 80)
 
 
 def add_rotlib_dir(directory: Union[Path, str]) -> None:

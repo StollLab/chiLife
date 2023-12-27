@@ -27,7 +27,7 @@ class dRotamerEnsemble:
         protein : MDAnalysis.Universe, MDAnalysis.AtomGroup
             Object containing all protein information (coords, atom types, etc.)
         chain : str
-            MolSys chain identifier to attach spin label to.
+            MolSys chain identifier to attach the bifunctional ensemble to.
         rotlib : str
             Rotamer library to use for constructing the RotamerEnsemble
         **kwargs : dict
@@ -89,7 +89,31 @@ class dRotamerEnsemble:
                Defaults to False.
             use_H : bool
                Determines if hydrogen atoms are used or not. Defaults to False.
-           """
+
+        Attributes
+        ----------
+        res : string
+            3-character name of desired residue, e.g. RXA.
+        site1 : int
+            MolSys residue number of the first attachment site.
+        site2 : int
+            MolSys residue number of the second attachment site.
+        increment : int
+            Number of residues  between two attachment sites.
+        protein : MDAnalysis.Universe, MDAnalysis.AtomGroup, :class:`~MolSys`
+            Object containing all protein information (coords, atom types, etc.)
+        chain : str
+            Chain identifier of the site the bifunctional ensemble is attached to.
+        name : str
+            Name of the ensemble. Usually include the native amino acid, the site number and the label that was attached
+            changing the name will change the object name when saving in a PDB.
+        RE1 : RotamerEnsemble
+            Monofunctional ensemble subunit attached to the first site.
+        RE2 : RotamerEnsemble
+            Monofunctional ensemble subunit attached to the second site.
+    """
+
+
     backbone_atoms = ["H", "N", "CA", "HA", "C", "O"]
 
     def __init__(self, res, sites, protein=None, chain=None, rotlib=None, **kwargs):
@@ -146,6 +170,178 @@ class dRotamerEnsemble:
 
         self.protein_setup()
         self.sub_labels = (self.RE1, self.RE2)
+
+    @property
+    def weights(self):
+        """Array of the fractions of rotamer populations for each rotamer in the library."""
+        return self.RE1.weights
+
+    @weights.setter
+    def weights(self, value):
+        self.RE1.weights = value
+        self.RE2.weights = value
+
+    @property
+
+    def coords(self):
+        """The 3D cartesian coordinates of each atom of each rotamer in the library."""
+        ovlp = (self.RE1.coords[:, self.cst_idx1] + self.RE2.coords[:, self.cst_idx2]) / 2
+        return np.concatenate([self.RE1._coords[:, self.rl1mask], self.RE2._coords[:, self.rl2mask], ovlp], axis=1)
+
+    @coords.setter
+    def coords(self, value):
+        if value.shape[1] != len(self.atom_names):
+            raise ValueError(
+                f"The provided coordinates do not match the number of atoms of this ensemble ({self.res})"
+            )
+
+        self.RE1._coords[:, self.rl1mask] = value[:, :len(self.rl1mask)]
+        self.RE2._coords[:, self.rl2mask] = value[:, len(self.rl1mask):len(self.rl1mask) + len(self.rl2mask)]
+        self.RE1._coords[:, self.cst_idx1] = value[:, len(self.rl1mask) + len(self.rl2mask):]
+        self.RE2._coords[:, self.cst_idx2] = value[:, len(self.rl1mask) + len(self.rl2mask):]
+
+    @property
+    def _lib_coords(self):
+        ovlp = (self.RE1._lib_coords[:, self.cst_idx1] + self.RE2._lib_coords[:, self.cst_idx2]) / 2
+        return np.concatenate([self.RE1._lib_coords[:, self.rl1mask],
+                               self.RE2._lib_coords[:, self.rl2mask], ovlp], axis=1)
+
+    @property
+    def atom_names(self):
+        """The names of each atom in the rotamer"""
+        return np.concatenate((self.RE1.atom_names[self.rl1mask],
+                               self.RE2.atom_names[self.rl2mask],
+                               self.RE1.atom_names[self.cst_idx1]))
+
+    @property
+    def atom_types(self):
+        """The element or atom type of each atom in the rotamer."""
+        return np.concatenate((self.RE1.atom_types[self.rl1mask],
+                               self.RE2.atom_types[self.rl2mask],
+                               self.RE1.atom_types[self.cst_idx1]))
+
+    @property
+    def dihedral_atoms(self):
+        """Four atom sets defining each flexible dihedral of the side chain"""
+        return np.concatenate([self.RE1.dihedral_atoms, self.RE2.dihedral_atoms])
+
+    @property
+    def dihedrals(self):
+        """Dihedral angle values of each dihedral defined in :py:attr::`~dihedral_atoms` for each rotamer in the
+        library"""
+        return np.concatenate([self.RE1.dihedrals, self.RE2.dihedrals], axis=-1)
+
+    @property
+    def centroid(self):
+        """The geometric center of all atoms of all rotamers in the rotamer library"""
+        return self.coords.mean(axis=(0, 1))
+
+    @property
+    def clash_ori(self):
+        """The origin used to determine if an external atom will be considered for clashes using the
+        ``clash_radius`` property of the ensemble"""
+
+        if isinstance(self._clash_ori_inp, (np.ndarray, list)):
+            if len(self._clash_ori_inp) == 3:
+                return self._clash_ori_inp
+
+        elif isinstance(self._clash_ori_inp, str):
+            if self._clash_ori_inp in ["cen", "centroid"]:
+                return self.centroid
+
+            elif (ori_name := self._clash_ori_inp.upper()) in self.atom_names:
+                return np.squeeze(self.coords[0][ori_name == self.atom_names])
+
+        else:
+            raise ValueError(
+                f"Unrecognized clash_ori option {self._clash_ori_inp}. Please specify a 3D vector, an "
+                f"atom name or `centroid`"
+            )
+
+        return self._clash_ori
+
+    @clash_ori.setter
+    def clash_ori(self, inp):
+        self._clash_ori_inp = inp
+
+    @property
+    def side_chain_idx(self):
+        """Indices of the atoms that correspond to the side chain atoms (e.g. CB, CG, etc. and not N, CA, C)"""
+        if not hasattr(self, '_side_chain_idx'):
+            self._side_chain_idx = np.argwhere(
+                np.isin(self.atom_names, dRotamerEnsemble.backbone_atoms, invert=True)
+            ).flatten()
+
+        return self._side_chain_idx
+
+    @property
+    def bonds(self):
+        """Array of intra-label atom pairs indices that are covalently bonded."""
+        if not hasattr(self, "_bonds"):
+            bonds = []
+
+            for bond in self.RE1.bonds:
+                bndin = np.isin(bond, self.rl1mask)
+                if np.all(bndin):
+                    bonds.append(bond)
+                elif np.any(bndin):
+                    bonds.append([bond[0], np.argwhere(self.atom_names == self.RE1.atom_names[bond[1]]).flat[0]])
+                else:
+                    bonds.append([np.argwhere(self.atom_names == self.RE1.atom_names[bond[0]]).flat[0],
+                                  np.argwhere(self.atom_names == self.RE1.atom_names[bond[1]]).flat[0]])
+
+            for bond in self.RE2.bonds:
+                bndin = np.isin(bond, self.rl2mask)
+                if np.all(bndin):
+                    bonds.append([b + len(self.rl1mask) for b in bond])
+                elif not bndin[1]:
+                    bonds.append([bond[0] + len(self.rl1mask),
+                                  np.argwhere(self.atom_names == self.RE2.atom_names[bond[1]]).flat[0]])
+
+            self._bonds = np.array(sorted(set(map(tuple, bonds))), dtype=int)
+
+        return self._bonds
+
+    @bonds.setter
+    def bonds(self, inp):
+        """
+        Set of intra-label bonded pairs.
+        Parameters
+        ----------
+        inp : ArrayLike
+            List of atom ID pairs that are bonded
+        """
+        self._bonds = set(tuple(i) for i in inp)
+        idxs = np.arange(len(self.atom_names))
+        all_pairs = set(combinations(idxs, 2))
+        self._non_bonded = all_pairs - self._bonds
+
+    @property
+    def non_bonded(self):
+        """ Array of indices of intra-label non-bonded atom pairs. Primarily used for internal clash evaluation when
+        sampling the dihedral space"""
+        if not hasattr(self, "_non_bonded"):
+            pairs = {v.index: [path for path in self._graph.get_all_shortest_paths(v) if
+                           len(path) <= (self._exclude_nb_interactions)] for v in self._graph.vs}
+            pairs = {(a, c) for a in pairs for b in pairs[a] for c in b if a < c}
+            all_pairs = set(combinations(range(len(self.atom_names)), 2))
+            self._non_bonded = all_pairs - pairs
+
+        return sorted(list(self._non_bonded))
+
+    @non_bonded.setter
+    def non_bonded(self, inp):
+        """
+        Create a set of non-bonded atom pair indices within a single side chain
+        Parameters
+        ----------
+        inp : ArrayLike
+            List of atom ID pairs that are not bonded
+        """
+        self._non_bonded = set(tuple(i) for i in inp)
+        idxs = np.arange(len(self.atom_names))
+        all_pairs = set(combinations(idxs, 2))
+        self._bonds = all_pairs - self._non_bonded
 
     def protein_setup(self):
         if isinstance(self.protein, (mda.AtomGroup, mda.Universe)):
@@ -302,7 +498,16 @@ class dRotamerEnsemble:
                                            self.libB,
                                            **self.kwargs)
 
-    def save_pdb(self, name=None):
+
+    def save_pdb(self, name: str = None):
+        """
+        Save a PDB file of the ensemble
+
+        Parameters
+        ----------
+        name: str
+            Name of the PDB file
+        """
         if name is None:
             name = self.name + ".pdb"
         if not name.endswith(".pdb"):
@@ -311,6 +516,17 @@ class dRotamerEnsemble:
         chilife.save(name, self.RE1, self.RE2)
 
     def minimize(self, callback=None):
+        """
+        Minimize rotamers in dihedral space in the current context. Performed by default unless the ``minimize=False``
+        keyword argument is used during construction. Note that the minimization method is controlled by the
+
+        Parameters
+        ----------
+        callback: Callable
+            A callable function to be passed as the ``scipy.optimize.minimize`` function. See the
+            `scipy documentation <https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.minimize.html>`_
+            for details.
+        """
 
         scores = [self._min_one(i, ic1, ic2, callback=callback) for i, (ic1, ic2) in
                   enumerate(zip(self.RE1.internal_coords, self.RE2.internal_coords))]
@@ -321,7 +537,7 @@ class dRotamerEnsemble:
         MSDmin = MSD.min()
 
         if MSDmin > 0.1:
-            warnings.warn(f'The minimum MSD of the cap is {MSD.min()}, this may result in distorted spin label. '
+            warnings.warn(f'The minimum MSD of the cap is {MSD.min()}, this may result in distorted label. '
                           f'Check that the structures make sense.')
 
         if MSDmin > 0.25:
@@ -338,6 +554,22 @@ class dRotamerEnsemble:
         self.weights /= self.weights.sum()
 
     def _objective(self, dihedrals, ic1, ic2):
+        """
+        Objective function to optimize for each rotamer in the ensemble.
+
+        Parameters
+        ----------
+        dihedrals: ArrayLike
+            Dihedral values
+
+        ic1, ic2: chiLife.MolSysIC
+            Internal coordinates object for the two mono functional subunits of the bifunctional label.
+
+        Returns
+        -------
+        score: float
+            Rotamer energy score for the current conformation
+        """
 
         ic1.set_dihedral(dihedrals[: len(self.RE1.dihedral_atoms)], 1, self.RE1.dihedral_atoms)
         coords1 = ic1.to_cartesian()[self.RE1.ic_mask]
@@ -362,6 +594,26 @@ class dRotamerEnsemble:
         return score
 
     def _min_one(self, i, ic1, ic2, callback=None):
+        """
+        Helper function to use when dispatching minimization jobs or each rotamer.
+
+        Parameters
+        ----------
+        i: int
+            rotamer index
+        ic1, ic2: chiLife.MolSysIC
+            Internal coordinates object for the two mono functional subunits of the bifunctional label.
+        callback: Callable
+            A callable function to be passed as the ``scipy.optimize.minimize`` function. See the
+            `scipy documentation <https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.minimize.html>`_
+            for details.
+
+        Returns
+        -------
+        score: float
+            Energy score of the minimized rotamer.
+        """
+
         if callback is not None:
             if 'i' in inspect.signature(callback).parameters:
                 callback = partial(callback, i=i)
@@ -384,169 +636,9 @@ class dRotamerEnsemble:
 
         return xopt.fun + tors * self.torsion_weight
 
-    @property
-    def weights(self):
-        return self.RE1.weights
-
-    @weights.setter
-    def weights(self, value):
-        self.RE1.weights = value
-        self.RE2.weights = value
-
-    @property
-    def coords(self):
-        ovlp = (self.RE1.coords[:, self.cst_idx1] + self.RE2.coords[:, self.cst_idx2]) / 2
-        return np.concatenate([self.RE1._coords[:, self.rl1mask], self.RE2._coords[:, self.rl2mask], ovlp], axis=1)
-
-    @coords.setter
-    def coords(self, value):
-        if value.shape[1] != len(self.atom_names):
-            raise ValueError(
-                f"The provided coordinates do not match the number of atoms of this ensemble ({self.res})"
-            )
-
-        self.RE1._coords[:, self.rl1mask] = value[:, :len(self.rl1mask)]
-        self.RE2._coords[:, self.rl2mask] = value[:, len(self.rl1mask):len(self.rl1mask) + len(self.rl2mask)]
-        self.RE1._coords[:, self.cst_idx1] = value[:, len(self.rl1mask) + len(self.rl2mask):]
-        self.RE2._coords[:, self.cst_idx2] = value[:, len(self.rl1mask) + len(self.rl2mask):]
-
-    @property
-    def _lib_coords(self):
-        ovlp = (self.RE1._lib_coords[:, self.cst_idx1] + self.RE2._lib_coords[:, self.cst_idx2]) / 2
-        return np.concatenate([self.RE1._lib_coords[:, self.rl1mask],
-                               self.RE2._lib_coords[:, self.rl2mask], ovlp], axis=1)
-
-    @property
-    def atom_names(self):
-        return np.concatenate((self.RE1.atom_names[self.rl1mask],
-                               self.RE2.atom_names[self.rl2mask],
-                               self.RE1.atom_names[self.cst_idx1]))
-
-    @property
-    def atom_types(self):
-        return np.concatenate((self.RE1.atom_types[self.rl1mask],
-                               self.RE2.atom_types[self.rl2mask],
-                               self.RE1.atom_types[self.cst_idx1]))
-
-    @property
-    def dihedral_atoms(self):
-        return np.concatenate([self.RE1.dihedral_atoms, self.RE2.dihedral_atoms])
-
-    @property
-    def dihedrals(self):
-        return np.concatenate([self.RE1.dihedrals, self.RE2.dihedrals], axis=-1)
-
-    @property
-    def centroid(self):
-        return self.coords.mean(axis=(0, 1))
-
-    @property
-    def clash_ori(self):
-
-        if isinstance(self._clash_ori_inp, (np.ndarray, list)):
-            if len(self._clash_ori_inp) == 3:
-                return self._clash_ori_inp
-
-        elif isinstance(self._clash_ori_inp, str):
-            if self._clash_ori_inp in ["cen", "centroid"]:
-                return self.centroid
-
-            elif (ori_name := self._clash_ori_inp.upper()) in self.atom_names:
-                return np.squeeze(self.coords[0][ori_name == self.atom_names])
-
-        else:
-            raise ValueError(
-                f"Unrecognized clash_ori option {self._clash_ori_inp}. Please specify a 3D vector, an "
-                f"atom name or `centroid`"
-            )
-
-        return self._clash_ori
-
-    @clash_ori.setter
-    def clash_ori(self, inp):
-        self._clash_ori_inp = inp
-
-    @property
-    def side_chain_idx(self):
-        "Indices of side chain atoms"
-        if not hasattr(self, '_side_chain_idx'):
-            self._side_chain_idx = np.argwhere(
-                np.isin(self.atom_names, dRotamerEnsemble.backbone_atoms, invert=True)
-            ).flatten()
-
-        return self._side_chain_idx
-
-    @property
-    def bonds(self):
-        """List of intra-label atom pairs that are covalently bonded."""
-        if not hasattr(self, "_bonds"):
-            bonds = []
-
-            for bond in self.RE1.bonds:
-                bndin = np.isin(bond, self.rl1mask)
-                if np.all(bndin):
-                    bonds.append(bond)
-                elif np.any(bndin):
-                    bonds.append([bond[0], np.argwhere(self.atom_names == self.RE1.atom_names[bond[1]]).flat[0]])
-                else:
-                    bonds.append([np.argwhere(self.atom_names == self.RE1.atom_names[bond[0]]).flat[0],
-                                  np.argwhere(self.atom_names == self.RE1.atom_names[bond[1]]).flat[0]])
-
-            for bond in self.RE2.bonds:
-                bndin = np.isin(bond, self.rl2mask)
-                if np.all(bndin):
-                    bonds.append([b + len(self.rl1mask) for b in bond])
-                elif not bndin[1]:
-                    bonds.append([bond[0] + len(self.rl1mask),
-                                  np.argwhere(self.atom_names == self.RE2.atom_names[bond[1]]).flat[0]])
-
-            self._bonds = np.array(sorted(set(map(tuple, bonds))), dtype=int)
-
-        return self._bonds
-
-    @bonds.setter
-    def bonds(self, inp):
-        """
-        Set of intralabel bonded pairs.
-        Parameters
-        ----------
-        inp : ArrayLike
-            List of atom ID pairs that are bonded
-        """
-        self._bonds = set(tuple(i) for i in inp)
-        idxs = np.arange(len(self.atom_names))
-        all_pairs = set(combinations(idxs, 2))
-        self._non_bonded = all_pairs - self._bonds
-
-    @property
-    def non_bonded(self):
-        """ list of indices of intra-label non-bonded atom pairs. Primarily used for internal clash evaluation when
-        sampling the dihedral space"""
-        if not hasattr(self, "_non_bonded"):
-            pairs = {v.index: [path for path in self._graph.get_all_shortest_paths(v) if
-                           len(path) <= (self._exclude_nb_interactions)] for v in self._graph.vs}
-            pairs = {(a, c) for a in pairs for b in pairs[a] for c in b if a < c}
-            all_pairs = set(combinations(range(len(self.atom_names)), 2))
-            self._non_bonded = all_pairs - pairs
-
-        return sorted(list(self._non_bonded))
-
-    @non_bonded.setter
-    def non_bonded(self, inp):
-        """
-        Create a set of non-bonded atom pair indices within a single side chain
-        Parameters
-        ----------
-        inp : ArrayLike
-            List of atom ID pairs that are not bonded
-        """
-        self._non_bonded = set(tuple(i) for i in inp)
-        idxs = np.arange(len(self.atom_names))
-        all_pairs = set(combinations(idxs, 2))
-        self._bonds = all_pairs - self._non_bonded
-
     def trim_rotamers(self):
-        """Remove low probability rotamers from the ensemble"""
+        """Remove low probability rotamers from the ensemble. All rotamers accounting for the population less than
+        ``self.trim_tol`` will be removed."""
 
         arg_sort_weights = np.argsort(self.weights)[::-1]
         sorted_weights = self.weights[arg_sort_weights]
@@ -563,7 +655,7 @@ class dRotamerEnsemble:
         self.RE2.trim_rotamers(keep_idx=keep_idx)
 
     def evaluate(self):
-        """Place rotamer ensemble on protein site1 and recalculate rotamer weights."""
+        """Place rotamer ensemble on protein site and recalculate rotamer weights."""
         # Calculate external energies
         energies = self.energy_func(self)
         self.rot_clash_energy = energies

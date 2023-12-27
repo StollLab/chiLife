@@ -208,12 +208,12 @@ For more information on how to use chiLife see [examples](https://stolllab.githu
 For general chiLife use, please cite:
 
 >Tessmer, M.H., and S. Stoll. 2023. chiLife: An open-source Python package for in silico spin labeling and integrative 
-protein modeling. Plos Comput Biol. 19:e1010834.
+> protein modeling. Plos Comput Biol. 19:e1010834.
 
 For use of Off-Rotamer sampling please cite: 
 
 > Tessmer, M., E.R. Canarie, and S. Stoll. 2022. Comparative evaluation of spin label modeling methods for protein 
-structural studies. Biophys J.
+> structural studies. Biophys J.
 
 
 And when using bifunctional label modeling please cite:
@@ -221,5 +221,5 @@ And when using bifunctional label modeling please cite:
 > Tessmer, M.H., and S. Stoll. 2023. A Rotamer Library Approach to Modeling Side Chain Ensembles of the Bifunctional 
 > Spin Label RX. Appl. Magn. Reson. 1–14.
 
-Note than many rotamer libraries may also have their own references. Please use the ``chilfe.rotlib_info`` function 
+Note than many rotamer libraries may also have their own references. Please use the ``chilfe.rotlib_info()`` function 
 on the rotamer libraries to check if there is any additional citations that should be referenced when being used. 

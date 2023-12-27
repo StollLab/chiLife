@@ -20,4 +20,7 @@ IO Functions
 ------------
 
 .. automodule:: chilife.io
-    :members:
+    :members: read_distance_distribution,
+              read_library,
+              save,
+              write_atoms

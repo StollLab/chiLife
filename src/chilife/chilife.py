@@ -1200,7 +1200,28 @@ def get_possible_rotlibs(rotlib: str,
                          return_all: bool = False,
                          was_none: bool = False) -> Union[Path, None]:
     """
+    Search all known rotlib directories and the current working directory for rotlib(s) that match the provided
+    information.
 
+    Parameters
+    ----------
+    rotlib: str
+        Fullname, base name or partial name of the rotamer libraries to search for.
+    suffix: str
+        possible suffixes the rotamer library may have, e.g. ip2 to indicate an i+2 rotamer library.
+    extension: str
+        filetype extension to look for. This will be either `npz` for monofunctional rotlibs or zip for bifunctional
+        rotlibs.
+    return_all: bool
+        By default, only the first found rotlib will be returned unless ``return_all = True``, in which case
+    was_none: bool
+        For internal use only.
+
+    Returns
+    -------
+    rotlib: Path, List[Path], None
+        The path to the found rotlib or a list of paths to the rotlibs that match the search criteri, or ``None`` if
+        no rotlibs are found.
     """
     cwd = Path.cwd()
     sufplusex = '_' + suffix + extension

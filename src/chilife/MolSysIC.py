@@ -19,6 +19,15 @@ from .numba_utils import _ic_to_cart, batch_ic2cart
 class MolSysIC:
     """
     A class for protein internal coordinates.
+    
+    Parameters
+    ----------
+    z_matrix : np.ndarray
+        Array of z-matricies for all frames of the ensemble/trajectory
+    z_matrix_idxs : np.ndarray
+        Indices of the attoms that define the bond lengths, angles, and dihedrals of the z-matrix
+    protein : 
+    kwargs
 
     Attributes
     ----------
@@ -60,12 +69,6 @@ class MolSysIC:
                  z_matrix_idxs: ArrayLike,
                  protein: Union[MolecularSystemBase, MDAnalysis.Universe, MDAnalysis.AtomGroup],
                  **kwargs):
-        """
-        MolSysIC constructor method.
-
-        Parameters
-        ----------
-        """
         # Internal coords and atom info
         if isinstance(protein, MolSys):
             self.protein = protein.copy()

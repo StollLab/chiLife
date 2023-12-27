@@ -1,4 +1,6 @@
-from typing import Tuple, Dict, Union, BinaryIO, TextIO
+from typing import Tuple, Dict, Union, BinaryIO, TextIO, Protocol
+
+import MDAnalysis
 from numpy.typing import ArrayLike
 from collections import defaultdict
 from hashlib import sha256
@@ -53,6 +55,19 @@ def read_distance_distribution(file_name: str) -> Tuple[np.ndarray, np.ndarray]:
 
 
 def hash_file(file: Union[Path, BinaryIO]):
+    """
+    Helper function for hashing rotamer library files
+
+    Parameters
+    ----------
+    file : str, Path, BinaryIO
+        The name, Path or IOBytes of the file to hash
+
+    Returns
+    -------
+    hashstring : str
+        file hash
+    """
     hash = sha256()
     with open(file, 'rb') as f:
         while True:
@@ -101,19 +116,18 @@ def read_rotlib(rotlib: Union[Path, BinaryIO] = None) -> Dict:
     return lib
 
 
-# @cached(custom_key_maker=hash_file)
+@cached(custom_key_maker=hash_file)
 def read_drotlib(rotlib: Path) -> Tuple[dict]:
     """Reads RotamerEnsemble for stored spin labels.
 
         Parameters
         ----------
         rotlib : Path
-            Path to the rotamer library file.
+            The Path to the rotamer library file.
         Returns
         -------
         lib: Tuple[dict]
             Dictionaries of rotamer library attributes including sub_residues .
-
         """
 
     with zipfile.ZipFile(rotlib, 'r') as archive:
@@ -140,9 +154,9 @@ def read_bbdep(res: str, Phi: int, Psi: int) -> Dict:
     res : str
         3-letter residue code
     Phi : int
-        MolSys backbone Phi dihedral angle for the provided residue
+        Backbone Phi dihedral angle for the provided residue
     Psi : int
-        MolSys backbone Psi dihedral angle for the provided residue
+        Backbone Psi dihedral angle for the provided residue
 
     Returns
     -------
@@ -216,20 +230,21 @@ def read_bbdep(res: str, Phi: int, Psi: int) -> Dict:
 
 
 def read_library(rotlib: str, Phi: float = None, Psi: float = None) -> Dict:
-    """Generalized wrapper function to aid selection of rotamer library reading function.
+    """Function to read rotamer libraries and bifunctional rotamer libraries as dictionaries.
 
     Parameters
     ----------
     rotlib : str, Path
-        3 letter residue code
+        3 letter residue code or path the rotamer library file.
     Phi : float
-        MolSys backbone Phi dihedral angle for the provided residue
+        Backbone Phi dihedral angle for the provided residue. Only applicable for canonical amino acids.
     Psi : float
-        MolSys backbone Psi dihedral angle for the provided residue
+        Backbone Psi dihedral angle for the provided residue. Only applicable for canonical amino acids.
+
     Returns
     -------
     lib: dict
-        Dictionary of arrays containing rotamer library information in cartesian and dihedral space
+        Dictionary of arrays containing rotamer library information in cartesian and dihedral space.
     """
     backbone_exists = Phi and Psi
 
@@ -272,12 +287,10 @@ def save(
         Can add as many as desired, except for path, for which only one can be given.
     protein_path : str, Path
         The Path to a pdb file to use as the protein object.
+    mode : str
+        Which mode to open the file in. Accepts 'w' or 'a' to overwrite or append.
     **kwargs :
         Additional arguments to pass to ``write_labels``
-
-    Returns
-    -------
-    None
     """
 
     if isinstance(file_name, tuple(molecule_class.keys())):
@@ -349,20 +362,16 @@ def save(
         write_labels(pdb_file, *molecules['rotens'], **kwargs)
 
 
-
-def write_protein(pdb_file: TextIO, protein: Union[mda.Universe, mda.AtomGroup]) -> None:
-    """Helper function to write protein pdbs from mdanalysis objects.
+def write_protein(pdb_file: TextIO, protein: Union[mda.Universe, mda.AtomGroup, MolecularSystemBase]) -> None:
+    """
+    Helper function to write protein PDBs from MDAnalysis and MolSys objects.
 
     Parameters
     ----------
     pdb_file : TextIO
         File to save the protein to
-    protein : MDAnalysis.Universe, MDAnalysis.AtomGroup
-        MDAnalyiss object to save
-
-    Returns
-    -------
-    None
+    protein : MDAnalysis.Universe, MDAnalysis.AtomGroup, MolSys
+        MDAnalysis or MolSys object to save
     """
 
     # Change chain identifier if longer than 1
@@ -406,23 +415,24 @@ def write_protein(pdb_file: TextIO, protein: Union[mda.Universe, mda.AtomGroup])
         pdb_file.write("ENDMDL\n")
 
 
-def write_ic(pdbfile: TextIO, ic: chilife.MolSysIC) -> None:
+def write_ic(pdb_file: TextIO, ic: MolSysIC) -> None:
     """
-    Write a :class:`chilife.ProteinIC` internal coordinates object to a pdb file.
+    Write a :class:`~MolSysIC` internal coordinates object to a pdb file.
 
     Parameters
     ----------
-    pdbfile : TextIO
+    pdb_file : TextIO
         open file or io object.
-    ic: chilife.MolSysIC
+    ic: MolSysIC
         chiLife internal coordinates object.
     """
-    pdbfile.write('MODEL\n')
+
+    pdb_file.write('MODEL\n')
     for i, (atom, coord) in enumerate(zip(ic.atoms, ic.coords)):
-        pdbfile.write(fmt_str.format(i + 1, atom.name, atom.resname, atom.segid, atom.resnum,
+        pdb_file.write(fmt_str.format(i + 1, atom.name, atom.resname, atom.segid, atom.resnum,
                                      coord[0], coord[1], coord[2],
                                      1.0, 1.0, atom.type))
-    pdbfile.write('ENDMDL\n')
+    pdb_file.write('ENDMDL\n')
 
 
 def write_labels(pdb_file: TextIO, *args: SpinLabel, KDE: bool = True, sorted: bool = True) -> None:
@@ -431,15 +441,15 @@ def write_labels(pdb_file: TextIO, *args: SpinLabel, KDE: bool = True, sorted: b
 
     Parameters
     ----------
-    file : str
+    pdb_file : str
         File name to write to.
     *args: SpinLabel, RotamerEnsemble
-        RotamerEnsemble or SpinLabel objects to be saved.
+        The RotamerEnsemble or SpinLabel objects to be saved.
     KDE: bool
         Perform kernel density estimate smoothing on rotamer weights before saving. Usefull for uniformly weighted
         RotamerEnsembles or RotamerEnsembles with lots of rotamers
     sorted : bool
-        Sort rotamers by weight befroe saving.
+        Sort rotamers by weight before saving.
     Returns
     -------
     None
@@ -521,25 +531,35 @@ def write_labels(pdb_file: TextIO, *args: SpinLabel, KDE: bool = True, sorted: b
 
         pdb_file.write("TER\n")
 
-def write_atoms(f, atoms: ArrayLike, coords: ArrayLike) -> None:
-    """Save a single state pdb structure of the provided atoms and coords.
+
+def write_atoms(file: TextIO,
+                atoms: Union[MDAnalysis.Universe, MDAnalysis.AtomGroup, MolecularSystemBase],
+                coords: ArrayLike = None) -> None:
+    """
+    Write a set of atoms to a file in PDB format without any prefix or suffix, i.e. Not wrapped in `MODEL` or `ENDMDL`
 
     Parameters
     ----------
-    f : IO object
-
-    atoms : ArrayLike
-        List of Atom objects to be saved
+    file : TextIO
+        A writable file (TextIO) object. The file that the atoms will be written to.
+    atoms : MDAnalysis.Universe, MDAnalysis.AtomGroup, MolecularSystemBase
+        Object containing atoms to be written. May also work with duck-typed set of atoms that are iterable and each
+        atom has properties ``index``, ``name``,
     coords : ArrayLike
         Array of atom coordinates corresponding to atoms
     """
+
+    if isinstance(atoms, MDAnalysis.Universe):
+        atoms = atoms.atoms
+
+    if coords is None:
+        coords = atoms.positions
 
     for atom, coord in zip(atoms, coords):
         f.write(
             f"ATOM  {atom.index + 1:5d} {atom.name:^4s} {atom.resname:3s} {'A':1s}{atom.resnum:4d}    "
             f"{coord[0]:8.3f}{coord[1]:8.3f}{coord[2]:8.3f}{1.0:6.2f}{1.0:6.2f}          {atom.type:>2s}  \n"
         )
-
 
 
 molecule_class = {RotamerEnsemble: 'rotens',

@@ -49,7 +49,7 @@
 <li class="toctree-l1"><a class="reference internal" href="chilife.html">χLife</a></li>
 <li class="toctree-l1"><a class="reference internal" href="rotamer_ensemble.html">Side chain ensembles</a></li>
 <li class="toctree-l1"><a class="reference internal" href="rotamer_libraries.html">Rotamer Libraries</a></li>
-<li class="toctree-l1"><a class="reference internal" href="molsys.html">MolSys</a></li>
+<li class="toctree-l1"><a class="reference internal" href="molsys.html">Molecular Systems</a></li>
 <li class="toctree-l1"><a class="reference internal" href="utils.html">Utils</a></li>
 <li class="toctree-l1"><a class="reference internal" href="examples.html">Examples</a></li>
 <li class="toctree-l1"><a class="reference internal" href="faqs.html">Frequently Asked Questions</a></li>
@@ -273,56 +273,26 @@ the rotamer library, which will be maintained by chiLife.</p>
 <h2>References<a class="headerlink" href="#references" title="Link to this heading"></a></h2>
 <p>For general chiLife use, please cite:</p>
 <blockquote>
-<div><p>Tessmer, M.H., and S. Stoll. 2023. chiLife: An open-source Python package for in silico spin labeling and integrative</p>
+<div><p>Tessmer, M.H., and S. Stoll. 2023. chiLife: An open-source Python package for in silico spin labeling and integrative
+protein modeling. Plos Comput Biol. 19:e1010834.</p>
 </div></blockquote>
-<p>protein modeling. Plos Comput Biol. 19:e1010834.</p>
 <p>For use of Off-Rotamer sampling please cite:</p>
 <blockquote>
-<div><p>Tessmer, M., E.R. Canarie, and S. Stoll. 2022. Comparative evaluation of spin label modeling methods for protein</p>
+<div><p>Tessmer, M., E.R. Canarie, and S. Stoll. 2022. Comparative evaluation of spin label modeling methods for protein
+structural studies. Biophys J.</p>
 </div></blockquote>
-<p>structural studies. Biophys J.</p>
 <p>And when using bifunctional label modeling please cite:</p>
 <blockquote>
 <div><p>Tessmer, M.H., and S. Stoll. 2023. A Rotamer Library Approach to Modeling Side Chain Ensembles of the Bifunctional
 Spin Label RX. Appl. Magn. Reson. 1–14.</p>
 </div></blockquote>
-<p>Note than many rotamer libraries may also have their own references. Please use the <code class="docutils literal notranslate"><span class="pre">chilfe.rotlib_info</span></code> function
+<p>Note than many rotamer libraries may also have their own references. Please use the <code class="docutils literal notranslate"><span class="pre">chilfe.rotlib_info()</span></code> function
 on the rotamer libraries to check if there is any additional citations that should be referenced when being used.</p>
 <div class="toctree-wrapper compound">
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="chilife.html">χLife</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="chilife.html#chilife.chilife.add_dihedral_def"><code class="docutils literal notranslate"><span class="pre">add_dihedral_def()</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="chilife.html#chilife.chilife.add_library"><code class="docutils literal notranslate"><span class="pre">add_library()</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="chilife.html#chilife.chilife.add_rotlib_dir"><code class="docutils literal notranslate"><span class="pre">add_rotlib_dir()</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="chilife.html#chilife.chilife.add_to_defaults"><code class="docutils literal notranslate"><span class="pre">add_to_defaults()</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="chilife.html#chilife.chilife.add_to_toml"><code class="docutils literal notranslate"><span class="pre">add_to_toml()</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="chilife.html#chilife.chilife.confidence_interval"><code class="docutils literal notranslate"><span class="pre">confidence_interval()</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="chilife.html#chilife.chilife.continuous_topol"><code class="docutils literal notranslate"><span class="pre">continuous_topol()</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="chilife.html#chilife.chilife.create_dlibrary"><code class="docutils literal notranslate"><span class="pre">create_dlibrary()</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="chilife.html#chilife.chilife.create_library"><code class="docutils literal notranslate"><span class="pre">create_library()</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="chilife.html#chilife.chilife.distance_distribution"><code class="docutils literal notranslate"><span class="pre">distance_distribution()</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="chilife.html#chilife.chilife.get_possible_rotlibs"><code class="docutils literal notranslate"><span class="pre">get_possible_rotlibs()</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="chilife.html#chilife.chilife.list_available_rotlibs"><code class="docutils literal notranslate"><span class="pre">list_available_rotlibs()</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="chilife.html#chilife.chilife.pair_dd"><code class="docutils literal notranslate"><span class="pre">pair_dd()</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="chilife.html#chilife.chilife.pre_add_library"><code class="docutils literal notranslate"><span class="pre">pre_add_library()</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="chilife.html#chilife.chilife.prep_restype_savedict"><code class="docutils literal notranslate"><span class="pre">prep_restype_savedict()</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="chilife.html#chilife.chilife.remove_from_defaults"><code class="docutils literal notranslate"><span class="pre">remove_from_defaults()</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="chilife.html#chilife.chilife.remove_from_toml"><code class="docutils literal notranslate"><span class="pre">remove_from_toml()</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="chilife.html#chilife.chilife.remove_library"><code class="docutils literal notranslate"><span class="pre">remove_library()</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="chilife.html#chilife.chilife.repack"><code class="docutils literal notranslate"><span class="pre">repack()</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="chilife.html#chilife.chilife.rotlib_info"><code class="docutils literal notranslate"><span class="pre">rotlib_info()</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="chilife.html#chilife.chilife.safe_save"><code class="docutils literal notranslate"><span class="pre">safe_save()</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="chilife.html#chilife.chilife.traj_dd"><code class="docutils literal notranslate"><span class="pre">traj_dd()</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="chilife.html#chilife.io.read_bbdep"><code class="docutils literal notranslate"><span class="pre">read_bbdep()</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="chilife.html#chilife.io.read_distance_distribution"><code class="docutils literal notranslate"><span class="pre">read_distance_distribution()</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="chilife.html#chilife.io.read_drotlib"><code class="docutils literal notranslate"><span class="pre">read_drotlib()</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="chilife.html#chilife.io.read_library"><code class="docutils literal notranslate"><span class="pre">read_library()</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="chilife.html#chilife.io.read_rotlib"><code class="docutils literal notranslate"><span class="pre">read_rotlib()</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="chilife.html#chilife.io.save"><code class="docutils literal notranslate"><span class="pre">save()</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="chilife.html#chilife.io.write_atoms"><code class="docutils literal notranslate"><span class="pre">write_atoms()</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="chilife.html#chilife.io.write_ic"><code class="docutils literal notranslate"><span class="pre">write_ic()</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="chilife.html#chilife.io.write_labels"><code class="docutils literal notranslate"><span class="pre">write_labels()</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="chilife.html#chilife.io.write_protein"><code class="docutils literal notranslate"><span class="pre">write_protein()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="chilife.html#module-chilife.chilife">General Functions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="chilife.html#module-chilife.io">IO Functions</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="rotamer_ensemble.html">Side chain ensembles</a><ul>
@@ -330,24 +300,16 @@ on the rotamer libraries to check if there is any additional citations that shou
 <li class="toctree-l2"><a class="reference internal" href="rotamer_ensemble.html#spinlabel">SpinLabel</a></li>
 <li class="toctree-l2"><a class="reference internal" href="rotamer_ensemble.html#drotamerensemble">dRotamerEnsemble</a></li>
 <li class="toctree-l2"><a class="reference internal" href="rotamer_ensemble.html#dspinlabel">dSpinLabel</a></li>
+<li class="toctree-l2"><a class="reference internal" href="rotamer_ensemble.html#intrinsiclabel">IntrinsicLabel</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="rotamer_libraries.html">Rotamer Libraries</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="rotamer_libraries.html#creating-custom-rotamer-libraries">Creating Custom Rotamer Libraries</a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="molsys.html">MolSys</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="molsys.html#chilife.MolSys.Atom"><code class="docutils literal notranslate"><span class="pre">Atom</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="molsys.html#chilife.MolSys.AtomSelection"><code class="docutils literal notranslate"><span class="pre">AtomSelection</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="molsys.html#chilife.MolSys.MolSys"><code class="docutils literal notranslate"><span class="pre">MolSys</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="molsys.html#chilife.MolSys.MolecularSystemBase"><code class="docutils literal notranslate"><span class="pre">MolecularSystemBase</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="molsys.html#chilife.MolSys.Residue"><code class="docutils literal notranslate"><span class="pre">Residue</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="molsys.html#chilife.MolSys.ResidueSelection"><code class="docutils literal notranslate"><span class="pre">ResidueSelection</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="molsys.html#chilife.MolSys.Segment"><code class="docutils literal notranslate"><span class="pre">Segment</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="molsys.html#chilife.MolSys.SegmentSelection"><code class="docutils literal notranslate"><span class="pre">SegmentSelection</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="molsys.html#chilife.MolSysIC.MolSysIC"><code class="docutils literal notranslate"><span class="pre">MolSysIC</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="molsys.html#chilife.MolSysIC.get_chainbreak_idxs"><code class="docutils literal notranslate"><span class="pre">get_chainbreak_idxs()</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="molsys.html#chilife.MolSysIC.ic_mx"><code class="docutils literal notranslate"><span class="pre">ic_mx()</span></code></a></li>
+<li class="toctree-l1"><a class="reference internal" href="molsys.html">Molecular Systems</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="molsys.html#the-molsys-object">The MolSys object</a></li>
+<li class="toctree-l2"><a class="reference internal" href="molsys.html#the-molsysic-object">The MolSysIC object</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="utils.html">Utils</a><ul>

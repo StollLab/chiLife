@@ -4,7 +4,7 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>MolSys &mdash; χLife  documentation</title>
+  <title>Molecular Systems &mdash; χLife  documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=80d5e7a1" />
       <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=19f00094" />
       <link rel="stylesheet" type="text/css" href="_static/sg_gallery.css?v=61a4c737" />
@@ -50,47 +50,97 @@
 <li class="toctree-l1"><a class="reference internal" href="chilife.html">χLife</a></li>
 <li class="toctree-l1"><a class="reference internal" href="rotamer_ensemble.html">Side chain ensembles</a></li>
 <li class="toctree-l1"><a class="reference internal" href="rotamer_libraries.html">Rotamer Libraries</a></li>
-<li class="toctree-l1 current"><a class="current reference internal" href="#">MolSys</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#chilife.MolSys.Atom"><code class="docutils literal notranslate"><span class="pre">Atom</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="#chilife.MolSys.AtomSelection"><code class="docutils literal notranslate"><span class="pre">AtomSelection</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="#chilife.MolSys.MolSys"><code class="docutils literal notranslate"><span class="pre">MolSys</span></code></a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#chilife.MolSys.MolSys.from_pdb"><code class="docutils literal notranslate"><span class="pre">MolSys.from_pdb()</span></code></a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Molecular Systems</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#the-molsys-object">The MolSys object</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#chilife.MolSys.MolecularSystemBase"><code class="docutils literal notranslate"><span class="pre">MolecularSystemBase</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#chilife.MolSys.MolecularSystemBase.select_atoms"><code class="docutils literal notranslate"><span class="pre">MolecularSystemBase.select_atoms()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#chilife.MolSys.MolecularSystemBase.fname"><code class="docutils literal notranslate"><span class="pre">MolecularSystemBase.fname</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#chilife.MolSys.MolecularSystemBase.positions"><code class="docutils literal notranslate"><span class="pre">MolecularSystemBase.positions</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#chilife.MolSys.MolecularSystemBase.coords"><code class="docutils literal notranslate"><span class="pre">MolecularSystemBase.coords</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#chilife.MolSys.MolecularSystemBase.resindices"><code class="docutils literal notranslate"><span class="pre">MolecularSystemBase.resindices</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#chilife.MolSys.MolecularSystemBase.segindices"><code class="docutils literal notranslate"><span class="pre">MolecularSystemBase.segindices</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#chilife.MolSys.MolecularSystemBase.n_atoms"><code class="docutils literal notranslate"><span class="pre">MolecularSystemBase.n_atoms</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#chilife.MolSys.MolecularSystemBase.n_residues"><code class="docutils literal notranslate"><span class="pre">MolecularSystemBase.n_residues</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#chilife.MolSys.MolecularSystemBase.n_chains"><code class="docutils literal notranslate"><span class="pre">MolecularSystemBase.n_chains</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#chilife.MolSys.MolecularSystemBase.residues"><code class="docutils literal notranslate"><span class="pre">MolecularSystemBase.residues</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#chilife.MolSys.MolecularSystemBase.segments"><code class="docutils literal notranslate"><span class="pre">MolecularSystemBase.segments</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#chilife.MolSys.MolecularSystemBase.logic_keywords"><code class="docutils literal notranslate"><span class="pre">MolecularSystemBase.logic_keywords</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#chilife.MolSys.MolecularSystemBase.molsys_keywords"><code class="docutils literal notranslate"><span class="pre">MolecularSystemBase.molsys_keywords</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#chilife.MolSys.MolecularSystemBase.types"><code class="docutils literal notranslate"><span class="pre">MolecularSystemBase.types</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#chilife.MolSys.MolecularSystemBase.universe"><code class="docutils literal notranslate"><span class="pre">MolecularSystemBase.universe</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#chilife.MolSys.MolecularSystemBase.copy"><code class="docutils literal notranslate"><span class="pre">MolecularSystemBase.copy()</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="#chilife.MolSys.MolecularSystemBase"><code class="docutils literal notranslate"><span class="pre">MolecularSystemBase</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="#chilife.MolSys.Residue"><code class="docutils literal notranslate"><span class="pre">Residue</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="#chilife.MolSys.ResidueSelection"><code class="docutils literal notranslate"><span class="pre">ResidueSelection</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="#chilife.MolSys.Segment"><code class="docutils literal notranslate"><span class="pre">Segment</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="#chilife.MolSys.SegmentSelection"><code class="docutils literal notranslate"><span class="pre">SegmentSelection</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="#chilife.MolSysIC.MolSysIC"><code class="docutils literal notranslate"><span class="pre">MolSysIC</span></code></a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#chilife.MolSysIC.MolSysIC.zmats"><code class="docutils literal notranslate"><span class="pre">MolSysIC.zmats</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="#chilife.MolSysIC.MolSysIC.z_matrix_idxs"><code class="docutils literal notranslate"><span class="pre">MolSysIC.z_matrix_idxs</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="#chilife.MolSysIC.MolSysIC.atom_dict"><code class="docutils literal notranslate"><span class="pre">MolSysIC.atom_dict</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="#chilife.MolSysIC.MolSysIC.ICS"><code class="docutils literal notranslate"><span class="pre">MolSysIC.ICS</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="#chilife.MolSysIC.MolSysIC.atoms"><code class="docutils literal notranslate"><span class="pre">MolSysIC.atoms</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="#chilife.MolSysIC.MolSysIC.atom_types"><code class="docutils literal notranslate"><span class="pre">MolSysIC.atom_types</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="#chilife.MolSysIC.MolSysIC.atom_names"><code class="docutils literal notranslate"><span class="pre">MolSysIC.atom_names</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="#chilife.MolSysIC.MolSysIC.resis"><code class="docutils literal notranslate"><span class="pre">MolSysIC.resis</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="#chilife.MolSysIC.MolSysIC.resnames"><code class="docutils literal notranslate"><span class="pre">MolSysIC.resnames</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="#chilife.MolSysIC.MolSysIC.chains"><code class="docutils literal notranslate"><span class="pre">MolSysIC.chains</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="#chilife.MolSysIC.MolSysIC.bonded_pairs"><code class="docutils literal notranslate"><span class="pre">MolSysIC.bonded_pairs</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="#chilife.MolSysIC.MolSysIC.perturbed"><code class="docutils literal notranslate"><span class="pre">MolSysIC.perturbed</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="#chilife.MolSysIC.MolSysIC.dihedral_defs"><code class="docutils literal notranslate"><span class="pre">MolSysIC.dihedral_defs</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="#chilife.MolSysIC.MolSysIC.batch_set_dihedrals"><code class="docutils literal notranslate"><span class="pre">MolSysIC.batch_set_dihedrals()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="#chilife.MolSysIC.MolSysIC.chi_idxs"><code class="docutils literal notranslate"><span class="pre">MolSysIC.chi_idxs()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="#chilife.MolSysIC.MolSysIC.copy"><code class="docutils literal notranslate"><span class="pre">MolSysIC.copy()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="#chilife.MolSysIC.MolSysIC.get_dihedral"><code class="docutils literal notranslate"><span class="pre">MolSysIC.get_dihedral()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="#chilife.MolSysIC.MolSysIC.get_z_matrix_idxs"><code class="docutils literal notranslate"><span class="pre">MolSysIC.get_z_matrix_idxs()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="#chilife.MolSysIC.MolSysIC.has_clashes"><code class="docutils literal notranslate"><span class="pre">MolSysIC.has_clashes()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="#chilife.MolSysIC.MolSysIC.phi_idxs"><code class="docutils literal notranslate"><span class="pre">MolSysIC.phi_idxs()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="#chilife.MolSysIC.MolSysIC.psi_idxs"><code class="docutils literal notranslate"><span class="pre">MolSysIC.psi_idxs()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="#chilife.MolSysIC.MolSysIC.set_dihedral"><code class="docutils literal notranslate"><span class="pre">MolSysIC.set_dihedral()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="#chilife.MolSysIC.MolSysIC.chain_operators"><code class="docutils literal notranslate"><span class="pre">MolSysIC.chain_operators</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="#chilife.MolSysIC.MolSysIC.nonbonded"><code class="docutils literal notranslate"><span class="pre">MolSysIC.nonbonded</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#chilife.MolSys.MolSys"><code class="docutils literal notranslate"><span class="pre">MolSys</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#chilife.MolSys.MolSys.from_pdb"><code class="docutils literal notranslate"><span class="pre">MolSys.from_pdb()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#chilife.MolSys.MolSys.from_arrays"><code class="docutils literal notranslate"><span class="pre">MolSys.from_arrays()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#chilife.MolSys.MolSys.from_atomsel"><code class="docutils literal notranslate"><span class="pre">MolSys.from_atomsel()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#chilife.MolSys.MolSys.copy"><code class="docutils literal notranslate"><span class="pre">MolSys.copy()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#chilife.MolSys.MolSys.load_new"><code class="docutils literal notranslate"><span class="pre">MolSys.load_new()</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="#chilife.MolSysIC.get_chainbreak_idxs"><code class="docutils literal notranslate"><span class="pre">get_chainbreak_idxs()</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="#chilife.MolSysIC.ic_mx"><code class="docutils literal notranslate"><span class="pre">ic_mx()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#chilife.MolSys.Trajectory"><code class="docutils literal notranslate"><span class="pre">Trajectory</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#chilife.MolSys.Trajectory.load_new"><code class="docutils literal notranslate"><span class="pre">Trajectory.load_new()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#chilife.MolSys.Trajectory.frame"><code class="docutils literal notranslate"><span class="pre">Trajectory.frame</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#chilife.MolSys.AtomSelection"><code class="docutils literal notranslate"><span class="pre">AtomSelection</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#chilife.MolSys.ResidueSelection"><code class="docutils literal notranslate"><span class="pre">ResidueSelection</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#chilife.MolSys.SegmentSelection"><code class="docutils literal notranslate"><span class="pre">SegmentSelection</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#chilife.MolSys.Atom"><code class="docutils literal notranslate"><span class="pre">Atom</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#chilife.MolSys.Residue"><code class="docutils literal notranslate"><span class="pre">Residue</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#chilife.MolSys.Residue.phi_selection"><code class="docutils literal notranslate"><span class="pre">Residue.phi_selection()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#chilife.MolSys.Residue.psi_selection"><code class="docutils literal notranslate"><span class="pre">Residue.psi_selection()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#chilife.MolSys.Segment"><code class="docutils literal notranslate"><span class="pre">Segment</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#the-molsysic-object">The MolSysIC object</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#chilife.MolSysIC.MolSysIC"><code class="docutils literal notranslate"><span class="pre">MolSysIC</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#chilife.MolSysIC.MolSysIC.zmats"><code class="docutils literal notranslate"><span class="pre">MolSysIC.zmats</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#chilife.MolSysIC.MolSysIC.z_matrix_idxs"><code class="docutils literal notranslate"><span class="pre">MolSysIC.z_matrix_idxs</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#chilife.MolSysIC.MolSysIC.atom_dict"><code class="docutils literal notranslate"><span class="pre">MolSysIC.atom_dict</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#chilife.MolSysIC.MolSysIC.ICS"><code class="docutils literal notranslate"><span class="pre">MolSysIC.ICS</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#chilife.MolSysIC.MolSysIC.atoms"><code class="docutils literal notranslate"><span class="pre">MolSysIC.atoms</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#chilife.MolSysIC.MolSysIC.atom_types"><code class="docutils literal notranslate"><span class="pre">MolSysIC.atom_types</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#chilife.MolSysIC.MolSysIC.atom_names"><code class="docutils literal notranslate"><span class="pre">MolSysIC.atom_names</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#chilife.MolSysIC.MolSysIC.resis"><code class="docutils literal notranslate"><span class="pre">MolSysIC.resis</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#chilife.MolSysIC.MolSysIC.resnames"><code class="docutils literal notranslate"><span class="pre">MolSysIC.resnames</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#chilife.MolSysIC.MolSysIC.chains"><code class="docutils literal notranslate"><span class="pre">MolSysIC.chains</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#chilife.MolSysIC.MolSysIC.bonded_pairs"><code class="docutils literal notranslate"><span class="pre">MolSysIC.bonded_pairs</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#chilife.MolSysIC.MolSysIC.perturbed"><code class="docutils literal notranslate"><span class="pre">MolSysIC.perturbed</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#chilife.MolSysIC.MolSysIC.dihedral_defs"><code class="docutils literal notranslate"><span class="pre">MolSysIC.dihedral_defs</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#chilife.MolSysIC.MolSysIC.from_atoms"><code class="docutils literal notranslate"><span class="pre">MolSysIC.from_atoms()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#chilife.MolSysIC.MolSysIC.copy"><code class="docutils literal notranslate"><span class="pre">MolSysIC.copy()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#chilife.MolSysIC.MolSysIC.chain_operator_idxs"><code class="docutils literal notranslate"><span class="pre">MolSysIC.chain_operator_idxs</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#chilife.MolSysIC.MolSysIC.chain_operators"><code class="docutils literal notranslate"><span class="pre">MolSysIC.chain_operators</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#chilife.MolSysIC.MolSysIC.z_matrix"><code class="docutils literal notranslate"><span class="pre">MolSysIC.z_matrix</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#chilife.MolSysIC.MolSysIC.coords"><code class="docutils literal notranslate"><span class="pre">MolSysIC.coords</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#chilife.MolSysIC.MolSysIC.nonbonded"><code class="docutils literal notranslate"><span class="pre">MolSysIC.nonbonded</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#chilife.MolSysIC.MolSysIC.to_cartesian"><code class="docutils literal notranslate"><span class="pre">MolSysIC.to_cartesian()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#chilife.MolSysIC.MolSysIC.set_dihedral"><code class="docutils literal notranslate"><span class="pre">MolSysIC.set_dihedral()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#chilife.MolSysIC.MolSysIC.batch_set_dihedrals"><code class="docutils literal notranslate"><span class="pre">MolSysIC.batch_set_dihedrals()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#chilife.MolSysIC.MolSysIC.get_dihedral"><code class="docutils literal notranslate"><span class="pre">MolSysIC.get_dihedral()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#chilife.MolSysIC.MolSysIC.get_z_matrix_idxs"><code class="docutils literal notranslate"><span class="pre">MolSysIC.get_z_matrix_idxs()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#chilife.MolSysIC.MolSysIC.has_clashes"><code class="docutils literal notranslate"><span class="pre">MolSysIC.has_clashes()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#chilife.MolSysIC.MolSysIC.phi_idxs"><code class="docutils literal notranslate"><span class="pre">MolSysIC.phi_idxs()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#chilife.MolSysIC.MolSysIC.psi_idxs"><code class="docutils literal notranslate"><span class="pre">MolSysIC.psi_idxs()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#chilife.MolSysIC.MolSysIC.chi_idxs"><code class="docutils literal notranslate"><span class="pre">MolSysIC.chi_idxs()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#chilife.MolSysIC.MolSysIC.load_new"><code class="docutils literal notranslate"><span class="pre">MolSysIC.load_new()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#chilife.MolSysIC.MolSysIC.apply_chain_operators"><code class="docutils literal notranslate"><span class="pre">MolSysIC.apply_chain_operators()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#chilife.MolSysIC.MolSysIC.use_frames"><code class="docutils literal notranslate"><span class="pre">MolSysIC.use_frames()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#chilife.MolSysIC.MolSysIC.set_cartesian_coords"><code class="docutils literal notranslate"><span class="pre">MolSysIC.set_cartesian_coords()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#chilife.MolSysIC.MolSysIC.shift_resnum"><code class="docutils literal notranslate"><span class="pre">MolSysIC.shift_resnum()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#chilife.MolSysIC.reconfigure_cap"><code class="docutils literal notranslate"><span class="pre">reconfigure_cap()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#chilife.MolSysIC.zmatrix_idxs_to_local"><code class="docutils literal notranslate"><span class="pre">zmatrix_idxs_to_local()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#chilife.MolSysIC.get_chainbreak_idxs"><code class="docutils literal notranslate"><span class="pre">get_chainbreak_idxs()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#chilife.MolSysIC.ic_mx"><code class="docutils literal notranslate"><span class="pre">ic_mx()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#chilife.MolSysIC.get_z_matrix"><code class="docutils literal notranslate"><span class="pre">get_z_matrix()</span></code></a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="utils.html">Utils</a></li>
@@ -112,7 +162,7 @@
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
       <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
-      <li class="breadcrumb-item active">MolSys</li>
+      <li class="breadcrumb-item active">Molecular Systems</li>
       <li class="wy-breadcrumbs-aside">
             <a href="_sources/molsys.rst.txt" rel="nofollow"> View page source</a>
       </li>
@@ -122,61 +172,423 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="molsys">
-<h1>MolSys<a class="headerlink" href="#molsys" title="Link to this heading"></a></h1>
-<p>Under construction. The chiLife.MolSys module is not yet officially supported.</p>
+  <section id="molecular-systems">
+<h1>Molecular Systems<a class="headerlink" href="#molecular-systems" title="Link to this heading"></a></h1>
+<p>Under construction. The <code class="docutils literal notranslate"><span class="pre">chiLife.MolSys</span></code> module is not yet officially supported.</p>
+<section id="the-molsys-object">
+<h2>The MolSys object<a class="headerlink" href="#the-molsys-object" title="Link to this heading"></a></h2>
+<p>The chiLife Molecular System, or <code class="docutils literal notranslate"><span class="pre">MolSys</span></code> and related objects, are how chilife represents molecular systems including
+proteins, nucleic acids, small molecules, course grained systems and more. <code class="docutils literal notranslate"><span class="pre">MolSys</span></code> objects are generally created
+from PDB files, MDAnalysis objects or existing chilife molecular systems. The design of the chiLife molecular system
+objects are heavily influenced by <a class="reference external" href="https://userguide.mdanalysis.org/stable/index.html">MDAnalysis</a> and shares many
+attribute and method names to facilitate a compatible interface.</p>
 <dl class="py class" id="module-chilife.MolSys">
-<dt class="sig sig-object py" id="chilife.MolSys.Atom">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">Atom</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">molsys</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mask</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#chilife.MolSys.Atom" title="Link to this definition"></a></dt>
-<dd></dd></dl>
+<dt class="sig sig-object py" id="chilife.MolSys.MolecularSystemBase">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">MolecularSystemBase</span></span><a class="headerlink" href="#chilife.MolSys.MolecularSystemBase" title="Link to this definition"></a></dt>
+<dd><p>Base class for molecular systems containing attributes universal to</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="chilife.MolSys.MolecularSystemBase.select_atoms">
+<span class="sig-name descname"><span class="pre">select_atoms</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">selstr</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#chilife.MolSys.MolecularSystemBase.select_atoms" title="Link to this definition"></a></dt>
+<dd><p>Select atoms from <a class="reference internal" href="#chilife.MolSys.MolSys" title="chilife.MolSys.MolSys"><code class="xref py py-class docutils literal notranslate"><span class="pre">MolSys</span></code></a> or <a class="reference internal" href="#chilife.MolSys.AtomSelection" title="chilife.MolSys.AtomSelection"><code class="xref py py-class docutils literal notranslate"><span class="pre">AtomSelection</span></code></a> based on selection a selection string, similar
+to the <cite>select_atoms</cite> method from <a class="reference external" href="https://docs.mdanalysis.org/stable/documentation_pages/selections.html">MDAnalysis</a></p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>selstr</strong> (<em>str</em>) – Selection string</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>atoms</strong> – Selected atoms</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">AtomGroup</span></code></p>
+</dd>
+</dl>
+</dd></dl>
 
-<dl class="py class">
-<dt class="sig sig-object py" id="chilife.MolSys.AtomSelection">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">AtomSelection</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#chilife.MolSys.AtomSelection" title="Link to this definition"></a></dt>
-<dd></dd></dl>
+<dl class="py property">
+<dt class="sig sig-object py" id="chilife.MolSys.MolecularSystemBase.fname">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">fname</span></span><a class="headerlink" href="#chilife.MolSys.MolecularSystemBase.fname" title="Link to this definition"></a></dt>
+<dd><p>File name or functional name of the molecular system</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="chilife.MolSys.MolecularSystemBase.positions">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">positions</span></span><a class="headerlink" href="#chilife.MolSys.MolecularSystemBase.positions" title="Link to this definition"></a></dt>
+<dd><p>3-Dimensional cartesian coordinates of the atoms in the molecular system</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="chilife.MolSys.MolecularSystemBase.coords">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">coords</span></span><a class="headerlink" href="#chilife.MolSys.MolecularSystemBase.coords" title="Link to this definition"></a></dt>
+<dd><p>3-dimensional cartesian coordinates of the atoms in the molecular system</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="chilife.MolSys.MolecularSystemBase.resindices">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">resindices</span></span><a class="headerlink" href="#chilife.MolSys.MolecularSystemBase.resindices" title="Link to this definition"></a></dt>
+<dd><p>Residue indices for all atoms in the molecular system</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="chilife.MolSys.MolecularSystemBase.segindices">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">segindices</span></span><a class="headerlink" href="#chilife.MolSys.MolecularSystemBase.segindices" title="Link to this definition"></a></dt>
+<dd><p>Segment (chain) indices for all atoms in the molecular system</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="chilife.MolSys.MolecularSystemBase.n_atoms">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">n_atoms</span></span><a class="headerlink" href="#chilife.MolSys.MolecularSystemBase.n_atoms" title="Link to this definition"></a></dt>
+<dd><p>“Number of atoms in the molecular system</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="chilife.MolSys.MolecularSystemBase.n_residues">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">n_residues</span></span><a class="headerlink" href="#chilife.MolSys.MolecularSystemBase.n_residues" title="Link to this definition"></a></dt>
+<dd><p>Number of residues in the molecular system</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="chilife.MolSys.MolecularSystemBase.n_chains">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">n_chains</span></span><a class="headerlink" href="#chilife.MolSys.MolecularSystemBase.n_chains" title="Link to this definition"></a></dt>
+<dd><p>Number of chains in the molecular system</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="chilife.MolSys.MolecularSystemBase.residues">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">residues</span></span><a class="headerlink" href="#chilife.MolSys.MolecularSystemBase.residues" title="Link to this definition"></a></dt>
+<dd><p><a class="reference internal" href="#chilife.MolSys.ResidueSelection" title="chilife.MolSys.ResidueSelection"><code class="xref py py-class docutils literal notranslate"><span class="pre">ResidueSelection</span></code></a> for all residues of the molecular system</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="chilife.MolSys.MolecularSystemBase.segments">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">segments</span></span><a class="headerlink" href="#chilife.MolSys.MolecularSystemBase.segments" title="Link to this definition"></a></dt>
+<dd><p><a class="reference internal" href="#chilife.MolSys.SegmentSelection" title="chilife.MolSys.SegmentSelection"><code class="xref py py-class docutils literal notranslate"><span class="pre">SegmentSelection</span></code></a> for all segments (chains) of the molecular system</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="chilife.MolSys.MolecularSystemBase.logic_keywords">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">logic_keywords</span></span><a class="headerlink" href="#chilife.MolSys.MolecularSystemBase.logic_keywords" title="Link to this definition"></a></dt>
+<dd><p>Dictionary of logic keywords (strings) pertaining to <code class="xref py py-meth docutils literal notranslate"><span class="pre">atom_selection()</span></code> method. Keywords are mapped
+to the associated logic function</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="chilife.MolSys.MolecularSystemBase.molsys_keywords">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">molsys_keywords</span></span><a class="headerlink" href="#chilife.MolSys.MolecularSystemBase.molsys_keywords" title="Link to this definition"></a></dt>
+<dd><p>Dictionary of molecular system keywords (strings) pertaining to <code class="xref py py-meth docutils literal notranslate"><span class="pre">atom_selection()</span></code> method. Keywords are
+mapped to the associated molecular system attributes</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="chilife.MolSys.MolecularSystemBase.types">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">types</span></span><a class="headerlink" href="#chilife.MolSys.MolecularSystemBase.types" title="Link to this definition"></a></dt>
+<dd><p>Atom types for all atoms of the molecular system</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="chilife.MolSys.MolecularSystemBase.universe">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">universe</span></span><a class="headerlink" href="#chilife.MolSys.MolecularSystemBase.universe" title="Link to this definition"></a></dt>
+<dd><p>Wrapper attribute to allow molecular systems to behave like MDAnalysis AtomGroup objects</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="chilife.MolSys.MolecularSystemBase.copy">
+<span class="sig-name descname"><span class="pre">copy</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#chilife.MolSys.MolecularSystemBase.copy" title="Link to this definition"></a></dt>
+<dd><p>Creates a deep copy of the underlying MolSys and returns an <a class="reference internal" href="#chilife.MolSys.AtomSelection" title="chilife.MolSys.AtomSelection"><code class="xref py py-class docutils literal notranslate"><span class="pre">AtomSelection</span></code></a> from the new copy
+matching the current selection if it exists.</p>
+</dd></dl>
+
+</dd></dl>
 
 <dl class="py class">
 <dt class="sig sig-object py" id="chilife.MolSys.MolSys">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">MolSys</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atomids</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">np.ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">names</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">np.ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">altlocs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">np.ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">resnames</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">np.ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">resnums</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">np.ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">chains</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">np.ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">trajectory</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">np.ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">occupancies</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">np.ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">np.ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">segs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">np.ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">atypes</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">np.ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">charges</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">np.ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bonds</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ArrayLike</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'Noname_MolSys'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#chilife.MolSys.MolSys" title="Link to this definition"></a></dt>
-<dd><p>MolSys object</p>
+<dd><p>An object containing all attributes of a molecular system.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>atomids</strong> (<em>np.ndarray</em>) – Array of atom indices where each index is unique to each atom in the molecular system.</p></li>
+<li><p><strong>names</strong> (<em>np.ndarray</em>) – Array of atom names, e.g. ‘N’, ‘CA’ ‘C’.</p></li>
+<li><p><strong>altlocs</strong> (<em>np.ndarray</em>) – Array of alternative location identifiers for each atom.</p></li>
+<li><p><strong>resnames</strong> (<em>np.ndarray</em>) – Array of residue names for each atom.</p></li>
+<li><p><strong>resnums</strong> (<em>np.ndarray</em>) – Array of residue numbers for each atom.</p></li>
+<li><p><strong>chains</strong> (<em>np.ndarray</em>) – Array of chain identifiers for each atom.</p></li>
+<li><p><strong>trajectory</strong> (<em>np.ndarray</em>) – Cartesian coordinates of each atom for each state of an ensemble or for each timestep of a trajectory.</p></li>
+<li><p><strong>occupancies</strong> (<em>np.ndarray</em>) – Occupancy or q-factory for each atom.</p></li>
+<li><p><strong>bs</strong> (<em>np.ndarray</em>) – thermal, or b-factors for each atom.</p></li>
+<li><p><strong>segs</strong> (<em>np.ndarray</em>) – Segment/chain IDs for each atom.</p></li>
+<li><p><strong>atypes</strong> (<em>np.ndarray</em>) – Atom/element types.</p></li>
+<li><p><strong>charges</strong> (<em>np.ndarray</em>) – Formal or partial charges assigned to each atom.</p></li>
+<li><p><strong>bonds</strong> (<em>ArrayLike</em>) – Array of atom ID pairs corresponding to all atom bonds in the system.</p></li>
+<li><p><strong>name</strong> (<em>str</em>) – Name of molecular system</p></li>
+</ul>
+</dd>
+</dl>
 <dl class="py method">
 <dt class="sig sig-object py" id="chilife.MolSys.MolSys.from_pdb">
 <em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">from_pdb</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sort_atoms</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#chilife.MolSys.MolSys.from_pdb" title="Link to this definition"></a></dt>
-<dd><p>reads a pdb file and returns a MolSys object</p>
+<dd><p>Reads a pdb file and returns a MolSys object</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>file_name</strong> (<em>str</em><em>, </em><em>Path</em>) – Path to the PDB file to read.</p></li>
+<li><p><strong>sort_atoms</strong> (<em>bool</em>) – Presort atoms for consisted internal coordinate definitions</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>cls</strong> – Molecular system object of the PDB structure.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="#chilife.MolSys.MolSys" title="chilife.MolSys.MolSys"><em>MolSys</em></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="chilife.MolSys.MolSys.from_arrays">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">from_arrays</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">anames</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ArrayLike</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">atypes</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ArrayLike</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">resnames</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ArrayLike</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">resindices</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ArrayLike</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">resnums</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ArrayLike</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">segindices</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ArrayLike</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">segids</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ArrayLike</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">trajectory</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ArrayLike</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#chilife.MolSys.MolSys" title="chilife.MolSys.MolSys"><span class="pre">MolSys</span></a></span></span><a class="headerlink" href="#chilife.MolSys.MolSys.from_arrays" title="Link to this definition"></a></dt>
+<dd><p>Create a MolSys object from a minimal set of arrays.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>anames</strong> (<em>ArrayLike</em>) – Array of atom names.</p></li>
+<li><p><strong>atypes</strong> (<em>ArrayLike</em>) – Array of atom types/elements.</p></li>
+<li><p><strong>resnames</strong> (<em>ArrayLike</em>) – Array of residue names for each atom.</p></li>
+<li><p><strong>resindices</strong> (<em>ArrayLike</em>) – Array of residue indices for each atom.</p></li>
+<li><p><strong>resnums</strong> (<em>ArrayLike</em>) – Array of residue numbers for each atom.</p></li>
+<li><p><strong>segindices</strong> (<em>ArrayLike</em>) – Array of segment indices for each atom.</p></li>
+<li><p><strong>segids</strong> (<em>ArrayLike</em>) – Array of segment IDs for each atom.</p></li>
+<li><p><strong>trajectory</strong> (<em>ArrayLike</em>) – Array of cartesian coordinates for each atom and each state of an ensemble or frame of a trajectory.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>cls</strong> – Molecular system object of the PDB structure.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="#chilife.MolSys.MolSys" title="chilife.MolSys.MolSys"><em>MolSys</em></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="chilife.MolSys.MolSys.from_atomsel">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">from_atomsel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atomsel</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">frames</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#chilife.MolSys.MolSys.from_atomsel" title="Link to this definition"></a></dt>
+<dd><p>Create a new MolSys object from an existing <a class="reference internal" href="#chilife.MolSys.AtomSelection" title="chilife.MolSys.AtomSelection"><code class="xref py py-class docutils literal notranslate"><span class="pre">AtomSelection</span></code></a> or
+<a class="reference external" href="https://userguide.mdanalysis.org/stable/atomgroup.html">MDAnalysis.AtomGroup</a> object.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>atomsel</strong> (<a class="reference internal" href="#chilife.MolSys.AtomSelection" title="chilife.MolSys.AtomSelection"><code class="xref py py-class docutils literal notranslate"><span class="pre">AtomSelection</span></code></a>, MDAnalysis.AtomGroup) – The <a class="reference internal" href="#chilife.MolSys.AtomSelection" title="chilife.MolSys.AtomSelection"><code class="xref py py-class docutils literal notranslate"><span class="pre">AtomSelection</span></code></a> or <code class="xref py py-class docutils literal notranslate"><span class="pre">AtomGroup</span></code> from which to create the new MolSys object.</p></li>
+<li><p><strong>frames</strong> (<em>int</em><em>, </em><em>Slice</em><em>, </em><em>ArrayLike</em>) – Frame index, slice or array of frame indices corresponding to the frames of the atom selection you wish to
+extract into a new <a class="reference internal" href="#chilife.MolSys.MolSys" title="chilife.MolSys.MolSys"><code class="xref py py-class docutils literal notranslate"><span class="pre">MolSys</span></code></a> object.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>cls</strong> – Molecular system object of the PDB structure.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="#chilife.MolSys.MolSys" title="chilife.MolSys.MolSys"><em>MolSys</em></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="chilife.MolSys.MolSys.copy">
+<span class="sig-name descname"><span class="pre">copy</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#chilife.MolSys.MolSys.copy" title="Link to this definition"></a></dt>
+<dd><p>Create a deep copy of the MolSys.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="chilife.MolSys.MolSys.load_new">
+<span class="sig-name descname"><span class="pre">load_new</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">coordinates</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#chilife.MolSys.MolSys.load_new" title="Link to this definition"></a></dt>
+<dd><p>Load a new set (trajectory or ensemble) of 3-dimensional coordinates into the MolSys.
+:param coordinates: Set of new coordinates to load into the MolSys
+:type coordinates: ArrayLike</p>
 </dd></dl>
 
 </dd></dl>
 
 <dl class="py class">
-<dt class="sig sig-object py" id="chilife.MolSys.MolecularSystemBase">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">MolecularSystemBase</span></span><a class="headerlink" href="#chilife.MolSys.MolecularSystemBase" title="Link to this definition"></a></dt>
-<dd><p>Base class for molecular systems</p>
+<dt class="sig sig-object py" id="chilife.MolSys.Trajectory">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">Trajectory</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">coordinates</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">np.ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">molsys</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#chilife.MolSys.MolSys" title="chilife.MolSys.MolSys"><span class="pre">MolSys</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">timestep</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#chilife.MolSys.Trajectory" title="Link to this definition"></a></dt>
+<dd><p>Object containing and managing 3-dimensional coordinates of <a class="reference internal" href="#chilife.MolSys.MolSys" title="chilife.MolSys.MolSys"><code class="xref py py-class docutils literal notranslate"><span class="pre">MolSys</span></code></a> objects, particularly when there are
+multiple states or time steps</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>coordinates</strong> (<em>np.ndarray</em>) – 3-dimensional coordinates for all atoms and all states/frames of the associated <a class="reference internal" href="#chilife.MolSys.MolSys" title="chilife.MolSys.MolSys"><code class="xref py py-class docutils literal notranslate"><span class="pre">MolSys</span></code></a> object.</p></li>
+<li><p><strong>molsys</strong> (<a class="reference internal" href="#chilife.MolSys.MolSys" title="chilife.MolSys.MolSys"><em>MolSys</em></a>) – The associated <a class="reference internal" href="#chilife.MolSys.MolSys" title="chilife.MolSys.MolSys"><code class="xref py py-class docutils literal notranslate"><span class="pre">MolSys</span></code></a> object.</p></li>
+<li><p><strong>timestep</strong> (<em>float</em>) – The time step or change in time between frames/states of the trajectory/ensemble.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="chilife.MolSys.Trajectory.load_new">
+<span class="sig-name descname"><span class="pre">load_new</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">coordinates</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#chilife.MolSys.Trajectory.load_new" title="Link to this definition"></a></dt>
+<dd><p>Load a new set (trajectory or ensemble) of 3-dimensional coordinates into the Trajectory.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>coordinates</strong> (<em>ArrayLike</em>) – Set of new coordinates to load into the MolSys</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="chilife.MolSys.Trajectory.frame">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">frame</span></span><a class="headerlink" href="#chilife.MolSys.Trajectory.frame" title="Link to this definition"></a></dt>
+<dd><p>The frame number the trajectory is currently on</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="chilife.MolSys.AtomSelection">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">AtomSelection</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#chilife.MolSys.AtomSelection" title="Link to this definition"></a></dt>
+<dd><p>An object containing a group of atoms from a <a class="reference internal" href="#chilife.MolSys.MolSys" title="chilife.MolSys.MolSys"><code class="xref py py-class docutils literal notranslate"><span class="pre">MolSys</span></code></a> object</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>molsys</strong> (<a class="reference internal" href="#chilife.MolSys.MolSys" title="chilife.MolSys.MolSys"><code class="xref py py-class docutils literal notranslate"><span class="pre">MolSys</span></code></a>) – The <a class="reference internal" href="#chilife.MolSys.MolSys" title="chilife.MolSys.MolSys"><code class="xref py py-class docutils literal notranslate"><span class="pre">MolSys</span></code></a> object from which the AtomSelection belongs to.</p></li>
+<li><p><strong>mask</strong> (<em>np.ndarray</em>) – An array of atom indices that defines the atoms of <code class="docutils literal notranslate"><span class="pre">molsys</span></code> that make up the atom selection.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="chilife.MolSys.ResidueSelection">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">ResidueSelection</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">molsys</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mask</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#chilife.MolSys.ResidueSelection" title="Link to this definition"></a></dt>
+<dd><p>An object containing a group of residues and all their atoms from a <a class="reference internal" href="#chilife.MolSys.MolSys" title="chilife.MolSys.MolSys"><code class="xref py py-class docutils literal notranslate"><span class="pre">MolSys</span></code></a> object. Note that if one atom of
+a residue is present in the AtomSelection used to create the group, all atoms of that residue will be present in
+the ResidueSelection object.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Unlike a regular <a class="reference internal" href="#chilife.MolSys.AtomSelection" title="chilife.MolSys.AtomSelection"><code class="xref py py-class docutils literal notranslate"><span class="pre">AtomSelection</span></code></a> object, the <code class="docutils literal notranslate"><span class="pre">resnames</span></code>, <code class="docutils literal notranslate"><span class="pre">resnums</span></code>, <code class="docutils literal notranslate"><span class="pre">segids</span></code> and <code class="docutils literal notranslate"><span class="pre">chains</span></code>
+attributes of this object are tracked with respect to residue not atom and changes made to these attributes
+on this object will not be present in the parent object and vice versa.</p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>molsys</strong> (<a class="reference internal" href="#chilife.MolSys.MolSys" title="chilife.MolSys.MolSys"><code class="xref py py-class docutils literal notranslate"><span class="pre">MolSys</span></code></a>) – The <a class="reference internal" href="#chilife.MolSys.MolSys" title="chilife.MolSys.MolSys"><code class="xref py py-class docutils literal notranslate"><span class="pre">MolSys</span></code></a> object from which the AtomSelection belongs to.</p></li>
+<li><p><strong>mask</strong> (<em>np.ndarray</em>) – An array of atom indices that defines the atoms of <code class="docutils literal notranslate"><span class="pre">molsys</span></code> that make up the atom selection.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="chilife.MolSys.SegmentSelection">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">SegmentSelection</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">molsys</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mask</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#chilife.MolSys.SegmentSelection" title="Link to this definition"></a></dt>
+<dd><p>An object containing a group of segements and all their atoms from a <a class="reference internal" href="#chilife.MolSys.MolSys" title="chilife.MolSys.MolSys"><code class="xref py py-class docutils literal notranslate"><span class="pre">MolSys</span></code></a> object. Note that if one atom
+of a segment is present in the AtomSelection used to create the group, all atoms of that segment will be present in
+the SegmentSelection object.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Unlike a regular <a class="reference internal" href="#chilife.MolSys.AtomSelection" title="chilife.MolSys.AtomSelection"><code class="xref py py-class docutils literal notranslate"><span class="pre">AtomSelection</span></code></a> object, the <code class="docutils literal notranslate"><span class="pre">segids</span></code> and <code class="docutils literal notranslate"><span class="pre">chains</span></code>
+attributes of this object are tracked with respect to segements not atoms and changes made to these attributes
+on this object will not be present in the parent object and vice versa.</p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>molsys</strong> (<a class="reference internal" href="#chilife.MolSys.MolSys" title="chilife.MolSys.MolSys"><code class="xref py py-class docutils literal notranslate"><span class="pre">MolSys</span></code></a>) – The <a class="reference internal" href="#chilife.MolSys.MolSys" title="chilife.MolSys.MolSys"><code class="xref py py-class docutils literal notranslate"><span class="pre">MolSys</span></code></a> object from which the AtomSelection belongs to.</p></li>
+<li><p><strong>mask</strong> (<em>np.ndarray</em>) – An array of atom indices that defines the atoms of <code class="docutils literal notranslate"><span class="pre">molsys</span></code> that make up the atom selection.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="chilife.MolSys.Atom">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">Atom</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">molsys</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mask</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#chilife.MolSys.Atom" title="Link to this definition"></a></dt>
+<dd><p>An object containing information for a single atom.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>molsys</strong> (<a class="reference internal" href="#chilife.MolSys.MolSys" title="chilife.MolSys.MolSys"><code class="xref py py-class docutils literal notranslate"><span class="pre">MolSys</span></code></a>) – The <a class="reference internal" href="#chilife.MolSys.MolSys" title="chilife.MolSys.MolSys"><code class="xref py py-class docutils literal notranslate"><span class="pre">MolSys</span></code></a> object from which the Atom belongs to.</p></li>
+<li><p><strong>mask</strong> (<em>np.ndarray</em>) – The index that defines the atoms of <code class="docutils literal notranslate"><span class="pre">molsys</span></code> that make up the atom selection.</p></li>
+</ul>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py class">
 <dt class="sig sig-object py" id="chilife.MolSys.Residue">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">Residue</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">molsys</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mask</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#chilife.MolSys.Residue" title="Link to this definition"></a></dt>
-<dd></dd></dl>
+<dd><p>An object representing a single residue.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>molsys</strong> (<a class="reference internal" href="#chilife.MolSys.MolSys" title="chilife.MolSys.MolSys"><code class="xref py py-class docutils literal notranslate"><span class="pre">MolSys</span></code></a>) – The <a class="reference internal" href="#chilife.MolSys.MolSys" title="chilife.MolSys.MolSys"><code class="xref py py-class docutils literal notranslate"><span class="pre">MolSys</span></code></a> object from which the Residue belongs to.</p></li>
+<li><p><strong>mask</strong> (<em>int</em>) – An array of atom indices that defines the atoms of the residue</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="chilife.MolSys.Residue.phi_selection">
+<span class="sig-name descname"><span class="pre">phi_selection</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#chilife.MolSys.Residue.phi_selection" title="Link to this definition"></a></dt>
+<dd><p>Get an <a class="reference internal" href="#chilife.MolSys.AtomSelection" title="chilife.MolSys.AtomSelection"><code class="xref py py-class docutils literal notranslate"><span class="pre">AtomSelection</span></code></a> of the atoms defining the Phi backbone dihedral angle of the residue.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>sel</strong> – An <a class="reference internal" href="#chilife.MolSys.AtomSelection" title="chilife.MolSys.AtomSelection"><code class="xref py py-class docutils literal notranslate"><span class="pre">AtomSelection</span></code></a> object containing the atoms that make up the Phi backbone dihedral angle of
+the selected residue.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference internal" href="#chilife.MolSys.AtomSelection" title="chilife.MolSys.AtomSelection"><em>AtomSelection</em></a></p>
+</dd>
+</dl>
+</dd></dl>
 
-<dl class="py class">
-<dt class="sig sig-object py" id="chilife.MolSys.ResidueSelection">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">ResidueSelection</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">molsys</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mask</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#chilife.MolSys.ResidueSelection" title="Link to this definition"></a></dt>
-<dd></dd></dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="chilife.MolSys.Residue.psi_selection">
+<span class="sig-name descname"><span class="pre">psi_selection</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#chilife.MolSys.Residue.psi_selection" title="Link to this definition"></a></dt>
+<dd><p>Get an <a class="reference internal" href="#chilife.MolSys.AtomSelection" title="chilife.MolSys.AtomSelection"><code class="xref py py-class docutils literal notranslate"><span class="pre">AtomSelection</span></code></a> of the atoms defining the Psi backbone dihedral angle of the residue.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>sel</strong> – An <a class="reference internal" href="#chilife.MolSys.AtomSelection" title="chilife.MolSys.AtomSelection"><code class="xref py py-class docutils literal notranslate"><span class="pre">AtomSelection</span></code></a> object containing the atoms that make up the Psi backbone dihedral angle of
+the selected residue.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference internal" href="#chilife.MolSys.AtomSelection" title="chilife.MolSys.AtomSelection"><em>AtomSelection</em></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
 
 <dl class="py class">
 <dt class="sig sig-object py" id="chilife.MolSys.Segment">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">Segment</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">molsys</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mask</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#chilife.MolSys.Segment" title="Link to this definition"></a></dt>
-<dd></dd></dl>
+<dd><p>An object represeting a single segment of a molecular system.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>molsys</strong> (<a class="reference internal" href="#chilife.MolSys.MolSys" title="chilife.MolSys.MolSys"><code class="xref py py-class docutils literal notranslate"><span class="pre">MolSys</span></code></a>) – The <a class="reference internal" href="#chilife.MolSys.MolSys" title="chilife.MolSys.MolSys"><code class="xref py py-class docutils literal notranslate"><span class="pre">MolSys</span></code></a> object from which the segment belongs to.</p></li>
+<li><p><strong>mask</strong> (<em>int</em>) – An array of atom indices that defines the atoms of the segment</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
 
-<dl class="py class">
-<dt class="sig sig-object py" id="chilife.MolSys.SegmentSelection">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">SegmentSelection</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">molsys</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mask</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#chilife.MolSys.SegmentSelection" title="Link to this definition"></a></dt>
-<dd></dd></dl>
-
+</section>
+<section id="the-molsysic-object">
+<h2>The MolSysIC object<a class="headerlink" href="#the-molsysic-object" title="Link to this heading"></a></h2>
+<p>While the <a class="reference internal" href="#chilife.MolSys.MolSys" title="chilife.MolSys.MolSys"><code class="xref py py-class docutils literal notranslate"><span class="pre">MolSys</span></code></a> object contains cartesian coordinate and protein information, the  <code class="xref py py-class docutils literal notranslate"><span class="pre">MolSysIC</span></code>
+object contains information on internal coordinates.</p>
 <dl class="py class" id="module-chilife.MolSysIC">
 <dt class="sig sig-object py" id="chilife.MolSysIC.MolSysIC">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">MolSysIC</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">z_matrix</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">_SupportsArray</span><span class="p"><span class="pre">[</span></span><span class="pre">dtype</span><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">_NestedSequence</span><span class="p"><span class="pre">[</span></span><span class="pre">_SupportsArray</span><span class="p"><span class="pre">[</span></span><span class="pre">dtype</span><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">bool</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">complex</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">bytes</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">_NestedSequence</span><span class="p"><span class="pre">[</span></span><span class="pre">bool</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">complex</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">bytes</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">z_matrix_idxs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">_SupportsArray</span><span class="p"><span class="pre">[</span></span><span class="pre">dtype</span><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">_NestedSequence</span><span class="p"><span class="pre">[</span></span><span class="pre">_SupportsArray</span><span class="p"><span class="pre">[</span></span><span class="pre">dtype</span><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">bool</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">complex</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">bytes</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">_NestedSequence</span><span class="p"><span class="pre">[</span></span><span class="pre">bool</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">complex</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">bytes</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">protein</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#chilife.MolSys.MolecularSystemBase" title="chilife.MolSys.MolecularSystemBase"><span class="pre">MolecularSystemBase</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Universe</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">AtomGroup</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#chilife.MolSysIC.MolSysIC" title="Link to this definition"></a></dt>
 <dd><p>A class for protein internal coordinates.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>z_matrix</strong> (<em>np.ndarray</em>) – Array of z-matricies for all frames of the ensemble/trajectory</p></li>
+<li><p><strong>z_matrix_idxs</strong> (<em>np.ndarray</em>) – Indices of the attoms that define the bond lengths, angles, and dihedrals of the z-matrix</p></li>
+<li><p><strong>protein</strong> – </p></li>
+<li><p><strong>kwargs</strong> – </p></li>
+</ul>
+</dd>
+</dl>
 <dl class="py attribute">
 <dt class="sig sig-object py" id="chilife.MolSysIC.MolSysIC.zmats">
 <span class="sig-name descname"><span class="pre">zmats</span></span><a class="headerlink" href="#chilife.MolSysIC.MolSysIC.zmats" title="Link to this definition"></a></dt>
@@ -326,6 +738,115 @@ being defined.</p>
 </dd></dl>
 
 <dl class="py method">
+<dt class="sig sig-object py" id="chilife.MolSysIC.MolSysIC.from_atoms">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">from_atoms</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atoms</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Universe</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">AtomGroup</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference internal" href="#chilife.MolSys.MolecularSystemBase" title="chilife.MolSys.MolecularSystemBase"><span class="pre">MolecularSystemBase</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">preferred_dihedrals</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bonds</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">_SupportsArray</span><span class="p"><span class="pre">[</span></span><span class="pre">dtype</span><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">_NestedSequence</span><span class="p"><span class="pre">[</span></span><span class="pre">_SupportsArray</span><span class="p"><span class="pre">[</span></span><span class="pre">dtype</span><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">bool</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">complex</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">bytes</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">_NestedSequence</span><span class="p"><span class="pre">[</span></span><span class="pre">bool</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">complex</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">bytes</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#chilife.MolSysIC.MolSysIC.from_atoms" title="Link to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>atoms</strong> (<em>MDAnalysis.Universe</em><em>, </em><em>MDAnalysis.AtomGroup</em><em>, </em><a class="reference internal" href="#chilife.MolSys.MolecularSystemBase" title="chilife.MolSys.MolecularSystemBase"><em>MolecularSystemBase</em></a>) – MDA Universe, AtomGroup or chiLife Molecular System to create the internal coordinates from.</p></li>
+<li><p><strong>preferred_dihedrals</strong> (<em>List</em><em>[</em><em>List</em><em>[</em><em>str</em><em>]</em><em>]</em>) – List of preferred dihedral definitions to use when defining the internal coordinate system.</p></li>
+<li><p><strong>bonds</strong> (<em>ArrayLike</em>) – Array of tuples defining the atom pairs that are bonded.</p></li>
+<li><p><strong>kwargs</strong> (<em>dict</em>) – <p>Additional keyword arguments.
+ignore:water : bool</p>
+<blockquote>
+<div><p>Ignore atoms that belong to water molecules.</p>
+</div></blockquote>
+<dl class="simple">
+<dt>use_chain_operators<span class="classifier">bool</span></dt><dd><p>Allow for the use of a translation and rotation vectors to orient cains that are not covalently linked.</p>
+</dd>
+</dl>
+</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>cls</strong> – A chiLife internal coordinates molecular system.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>MDAnalysis.Universe</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="chilife.MolSysIC.MolSysIC.copy">
+<span class="sig-name descname"><span class="pre">copy</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#chilife.MolSysIC.MolSysIC.copy" title="Link to this definition"></a></dt>
+<dd><p>Create a deep copy of an MolSysIC instance</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="chilife.MolSysIC.MolSysIC.chain_operator_idxs">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">chain_operator_idxs</span></span><a class="headerlink" href="#chilife.MolSysIC.MolSysIC.chain_operator_idxs" title="Link to this definition"></a></dt>
+<dd><p>An array of indices defining the starting and ending indices of the different chains.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="chilife.MolSysIC.MolSysIC.chain_operators">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">chain_operators</span></span><a class="headerlink" href="#chilife.MolSysIC.MolSysIC.chain_operators" title="Link to this definition"></a></dt>
+<dd><p>A set of coordinate transformations that can orient multiple chains that are not covalently linked. e.g.
+structures with missing residues or protein complexes. The <code class="docutils literal notranslate"><span class="pre">chain_operator</span></code> property is a dictionary mapping
+chainIDs to a sub-dictionary containing a translation vector, <code class="docutils literal notranslate"><span class="pre">ori</span></code>  and rotation matrix <code class="docutils literal notranslate"><span class="pre">mx</span></code> that will
+transform the protein coordinates from tie internal coordinate frame to some global frame.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><em>dict</em></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="chilife.MolSysIC.MolSysIC.z_matrix">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">z_matrix</span></span><a class="headerlink" href="#chilife.MolSysIC.MolSysIC.z_matrix" title="Link to this definition"></a></dt>
+<dd><p>The z-matrix (internal) coordinates of the molecular system for the current frame.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="chilife.MolSysIC.MolSysIC.coords">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">coords</span></span><a class="headerlink" href="#chilife.MolSysIC.MolSysIC.coords" title="Link to this definition"></a></dt>
+<dd><p>The cartesian coordinates of the molecular system for the current frame</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="chilife.MolSysIC.MolSysIC.nonbonded">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">nonbonded</span></span><a class="headerlink" href="#chilife.MolSysIC.MolSysIC.nonbonded" title="Link to this definition"></a></dt>
+<dd><p>Array of atom index pairs of atoms that are not bonded</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>np.ndarray</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="chilife.MolSysIC.MolSysIC.to_cartesian">
+<span class="sig-name descname"><span class="pre">to_cartesian</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#chilife.MolSysIC.MolSysIC.to_cartesian" title="Link to this definition"></a></dt>
+<dd><p>Method to convert z-matrix (internal) coordinate to cartesian coordinate</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="chilife.MolSysIC.MolSysIC.set_dihedral">
+<span class="sig-name descname"><span class="pre">set_dihedral</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dihedrals</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">_SupportsArray</span><span class="p"><span class="pre">[</span></span><span class="pre">dtype</span><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">_NestedSequence</span><span class="p"><span class="pre">[</span></span><span class="pre">_SupportsArray</span><span class="p"><span class="pre">[</span></span><span class="pre">dtype</span><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">bool</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">complex</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">bytes</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">_NestedSequence</span><span class="p"><span class="pre">[</span></span><span class="pre">bool</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">complex</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">bytes</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">resi</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">atom_list</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">_SupportsArray</span><span class="p"><span class="pre">[</span></span><span class="pre">dtype</span><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">_NestedSequence</span><span class="p"><span class="pre">[</span></span><span class="pre">_SupportsArray</span><span class="p"><span class="pre">[</span></span><span class="pre">dtype</span><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">bool</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">complex</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">bytes</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">_NestedSequence</span><span class="p"><span class="pre">[</span></span><span class="pre">bool</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">complex</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">bytes</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">chain</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#chilife.MolSysIC.MolSysIC.set_dihedral" title="Link to this definition"></a></dt>
+<dd><p>Set one or more dihedral angles of a single residue in internal coordinates for the atoms defined in atom
+list.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>dihedrals</strong> (<em>float</em><em>, </em><em>ArrayLike</em>) – Angle or array of angles to set the dihedral(s) to.</p></li>
+<li><p><strong>resi</strong> (<em>int</em>) – Residue number of the site being altered</p></li>
+<li><p><strong>atom_list</strong> (<em>ArrayLike</em>) – Names or array of names of atoms involved in the dihedral(s)</p></li>
+<li><p><strong>chain</strong> (<em>int</em><em>, </em><em>str</em><em>, </em><em>optional</em>) – Chain containing the atoms that are defined by the dihedrals that are being set. Only necessary when there
+is more than one chain in the proteinIC object.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>self</strong> – ProteinIC object with new dihedral angle(s)</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="#chilife.MolSysIC.MolSysIC" title="chilife.MolSysIC.MolSysIC"><em>MolSysIC</em></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="chilife.MolSysIC.MolSysIC.batch_set_dihedrals">
 <span class="sig-name descname"><span class="pre">batch_set_dihedrals</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">idxs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">_SupportsArray</span><span class="p"><span class="pre">[</span></span><span class="pre">dtype</span><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">_NestedSequence</span><span class="p"><span class="pre">[</span></span><span class="pre">_SupportsArray</span><span class="p"><span class="pre">[</span></span><span class="pre">dtype</span><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">bool</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">complex</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">bytes</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">_NestedSequence</span><span class="p"><span class="pre">[</span></span><span class="pre">bool</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">complex</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">bytes</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dihedrals</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">_SupportsArray</span><span class="p"><span class="pre">[</span></span><span class="pre">dtype</span><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">_NestedSequence</span><span class="p"><span class="pre">[</span></span><span class="pre">_SupportsArray</span><span class="p"><span class="pre">[</span></span><span class="pre">dtype</span><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">bool</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">complex</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">bytes</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">_NestedSequence</span><span class="p"><span class="pre">[</span></span><span class="pre">bool</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">complex</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">bytes</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">resi</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">atom_list</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">_SupportsArray</span><span class="p"><span class="pre">[</span></span><span class="pre">dtype</span><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">_NestedSequence</span><span class="p"><span class="pre">[</span></span><span class="pre">_SupportsArray</span><span class="p"><span class="pre">[</span></span><span class="pre">dtype</span><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">bool</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">complex</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">bytes</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">_NestedSequence</span><span class="p"><span class="pre">[</span></span><span class="pre">bool</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">complex</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">bytes</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">chain</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#chilife.MolSysIC.MolSysIC.batch_set_dihedrals" title="Link to this definition"></a></dt>
 <dd><p>Sets dihedral angles of a single residue in internal coordinates for the atoms defined in atom
@@ -349,38 +870,6 @@ is more than one chain in the proteinIC object.</p></li>
 <dd class="field-odd"><p>ArrayLike</p>
 </dd>
 </dl>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="chilife.MolSysIC.MolSysIC.chi_idxs">
-<span class="sig-name descname"><span class="pre">chi_idxs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">resnums</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">_SupportsArray</span><span class="p"><span class="pre">[</span></span><span class="pre">dtype</span><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">_NestedSequence</span><span class="p"><span class="pre">[</span></span><span class="pre">_SupportsArray</span><span class="p"><span class="pre">[</span></span><span class="pre">dtype</span><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">bool</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">complex</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">bytes</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">_NestedSequence</span><span class="p"><span class="pre">[</span></span><span class="pre">bool</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">complex</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">bytes</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">chain</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#chilife.MolSysIC.MolSysIC.chi_idxs" title="Link to this definition"></a></dt>
-<dd><blockquote>
-<div><p>Create a list of index arrays corresponding the Z-matrix indices of flexible side chain (chi) dihedrals. Note
-that only chi dihedrals defined in <code class="docutils literal notranslate"><span class="pre">chilife.dihedral_defs</span></code> will be  considered.</p>
-</div></blockquote>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>resnums</strong> (<em>int</em><em>, </em><em>ArrayLike</em><em>[</em><em>int</em><em>]</em>) – Residues for which to return the Psi value index of the z-matrix</p></li>
-<li><p><strong>chain</strong> (<em>int</em><em>, </em><em>str</em>) – Chain corresponding to the resnums of interest</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p><strong>chi_idxs</strong> – list of arrays containing the indices of the z-matrix dihedrals corresponding to the chi dihedrals. Each
-array in the list refers to a specific dihedral: <code class="docutils literal notranslate"><span class="pre">[χ1,</span> <span class="pre">χ2,</span> <span class="pre">...</span> <span class="pre">χn]</span></code>. because different residues will
-have different numbers of chi dihedrals the arrays will not be the same size, but they can be concatenated
-using numpy: <code class="docutils literal notranslate"><span class="pre">chi_idxs</span> <span class="pre">=</span> <span class="pre">np.concatenate(IC.chi_idxs(...)))</span></code>.</p>
-</dd>
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><em>List</em>[np.ndarray]</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="chilife.MolSysIC.MolSysIC.copy">
-<span class="sig-name descname"><span class="pre">copy</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#chilife.MolSysIC.MolSysIC.copy" title="Link to this definition"></a></dt>
-<dd><p>Create a deep copy of an MolSysIC instance</p>
 </dd></dl>
 
 <dl class="py method">
@@ -435,6 +924,13 @@ chain. Dihedral angles are returned in radians.</p>
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><p><strong>distance</strong> (<em>float</em>) – Minimum distance allowed between non-bonded atoms in angstroms. (Default value = 1.5).</p>
 </dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>has_clashes</strong> – True if there are any atoms within <code class="docutils literal notranslate"><span class="pre">distance</span></code> angstroms from each other that would constitute a clash
+otherwise False</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><em>bool</em></p>
+</dd>
 </dl>
 </dd></dl>
 
@@ -479,54 +975,131 @@ chain. Dihedral angles are returned in radians.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="chilife.MolSysIC.MolSysIC.set_dihedral">
-<span class="sig-name descname"><span class="pre">set_dihedral</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dihedrals</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">_SupportsArray</span><span class="p"><span class="pre">[</span></span><span class="pre">dtype</span><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">_NestedSequence</span><span class="p"><span class="pre">[</span></span><span class="pre">_SupportsArray</span><span class="p"><span class="pre">[</span></span><span class="pre">dtype</span><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">bool</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">complex</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">bytes</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">_NestedSequence</span><span class="p"><span class="pre">[</span></span><span class="pre">bool</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">complex</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">bytes</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">resi</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">atom_list</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">_SupportsArray</span><span class="p"><span class="pre">[</span></span><span class="pre">dtype</span><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">_NestedSequence</span><span class="p"><span class="pre">[</span></span><span class="pre">_SupportsArray</span><span class="p"><span class="pre">[</span></span><span class="pre">dtype</span><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">bool</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">complex</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">bytes</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">_NestedSequence</span><span class="p"><span class="pre">[</span></span><span class="pre">bool</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">complex</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">bytes</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">chain</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#chilife.MolSysIC.MolSysIC.set_dihedral" title="Link to this definition"></a></dt>
-<dd><p>Set one or more dihedral angles of a single residue in internal coordinates for the atoms defined in atom
-list.</p>
+<dt class="sig sig-object py" id="chilife.MolSysIC.MolSysIC.chi_idxs">
+<span class="sig-name descname"><span class="pre">chi_idxs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">resnums</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">_SupportsArray</span><span class="p"><span class="pre">[</span></span><span class="pre">dtype</span><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">_NestedSequence</span><span class="p"><span class="pre">[</span></span><span class="pre">_SupportsArray</span><span class="p"><span class="pre">[</span></span><span class="pre">dtype</span><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">bool</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">complex</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">bytes</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">_NestedSequence</span><span class="p"><span class="pre">[</span></span><span class="pre">bool</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">complex</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">bytes</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">chain</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#chilife.MolSysIC.MolSysIC.chi_idxs" title="Link to this definition"></a></dt>
+<dd><blockquote>
+<div><p>Create a list of index arrays corresponding the Z-matrix indices of flexible side chain (chi) dihedrals. Note
+that only chi dihedrals defined in <code class="docutils literal notranslate"><span class="pre">chilife.dihedral_defs</span></code> will be  considered.</p>
+</div></blockquote>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>dihedrals</strong> (<em>float</em><em>, </em><em>ArrayLike</em>) – Angle or array of angles to set the dihedral(s) to.</p></li>
-<li><p><strong>resi</strong> (<em>int</em>) – Residue number of the site being altered</p></li>
-<li><p><strong>atom_list</strong> (<em>ArrayLike</em>) – Names or array of names of atoms involved in the dihedral(s)</p></li>
-<li><p><strong>chain</strong> (<em>int</em><em>, </em><em>str</em><em>, </em><em>optional</em>) – Chain containing the atoms that are defined by the dihedrals that are being set. Only necessary when there
-is more than one chain in the proteinIC object.</p></li>
+<li><p><strong>resnums</strong> (<em>int</em><em>, </em><em>ArrayLike</em><em>[</em><em>int</em><em>]</em>) – Residues for which to return the Psi value index of the z-matrix</p></li>
+<li><p><strong>chain</strong> (<em>int</em><em>, </em><em>str</em>) – Chain corresponding to the resnums of interest</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p><strong>self</strong> – ProteinIC object with new dihedral angle(s)</p>
+<dd class="field-even"><p><strong>chi_idxs</strong> – list of arrays containing the indices of the z-matrix dihedrals corresponding to the chi dihedrals. Each
+array in the list refers to a specific dihedral: <code class="docutils literal notranslate"><span class="pre">[χ1,</span> <span class="pre">χ2,</span> <span class="pre">...</span> <span class="pre">χn]</span></code>. because different residues will
+have different numbers of chi dihedrals the arrays will not be the same size, but they can be concatenated
+using numpy: <code class="docutils literal notranslate"><span class="pre">chi_idxs</span> <span class="pre">=</span> <span class="pre">np.concatenate(IC.chi_idxs(...)))</span></code>.</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><a class="reference internal" href="#chilife.MolSysIC.MolSysIC" title="chilife.MolSysIC.MolSysIC"><em>MolSysIC</em></a></p>
+<dd class="field-odd"><p><em>List</em>[np.ndarray]</p>
 </dd>
 </dl>
 </dd></dl>
 
-<dl class="py property">
-<dt class="sig sig-object py" id="chilife.MolSysIC.MolSysIC.chain_operators">
-<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">chain_operators</span></span><a class="headerlink" href="#chilife.MolSysIC.MolSysIC.chain_operators" title="Link to this definition"></a></dt>
-<dd><p>A set of coordinate transformations that can orient multiple chains that are not covalently linked. e.g.
-structures with missing residues or protein complexes. The <code class="docutils literal notranslate"><span class="pre">chain_operator</span></code> property is a dictionary mapping
-chainIDs to a sub-dictionary containing a translation vector, <code class="docutils literal notranslate"><span class="pre">ori</span></code>  and rotation matrix <code class="docutils literal notranslate"><span class="pre">mx</span></code> that will
-transform the protein coordinates from tie internal coordinate frame to some global frame.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="chilife.MolSysIC.MolSysIC.load_new">
+<span class="sig-name descname"><span class="pre">load_new</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">z_matrix</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#chilife.MolSysIC.MolSysIC.load_new" title="Link to this definition"></a></dt>
+<dd><p>Replace the current z-matrix ensemble/trajectory with new one.
+:param z_matrix: New z-matrix to load into the MolSysIC
+:type z_matrix: np.ndarray
+:param kwargs: Additional keyword arguments.</p>
+<blockquote>
+<div><dl class="simple">
+<dt>op<span class="classifier">dict</span></dt><dd><p>New chain operators for the new z-matrix.</p>
+</dd>
+</dl>
+</div></blockquote>
 <dl class="field-list simple">
-<dt class="field-odd">Type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><em>dict</em></p>
-</dd>
 </dl>
 </dd></dl>
 
-<dl class="py property">
-<dt class="sig sig-object py" id="chilife.MolSysIC.MolSysIC.nonbonded">
-<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">nonbonded</span></span><a class="headerlink" href="#chilife.MolSysIC.MolSysIC.nonbonded" title="Link to this definition"></a></dt>
-<dd><p>Array of atom index pairs of atoms that are not bonded</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="chilife.MolSysIC.MolSysIC.apply_chain_operators">
+<span class="sig-name descname"><span class="pre">apply_chain_operators</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">idx</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#chilife.MolSysIC.MolSysIC.apply_chain_operators" title="Link to this definition"></a></dt>
+<dd><p>Apply chain operators to the specified frames (<code class="docutils literal notranslate"><span class="pre">idx</span></code>) of the MolSysIC trajectory. If no <code class="docutils literal notranslate"><span class="pre">idx</span></code> is provided
+then all chain operators will be applied to all frames.
+:param idx: Frames or array of frames that should have the chain operators applied.
+:type idx: int, Array</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="chilife.MolSysIC.MolSysIC.use_frames">
+<span class="sig-name descname"><span class="pre">use_frames</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">idxs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#chilife.MolSysIC.MolSysIC.use_frames" title="Link to this definition"></a></dt>
+<dd><p>Remove all frames except those specified by <cite>idxs</cite>
+:param idxs: Index or array if indices to keep
+:type idxs: int, ArrayLike</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="chilife.MolSysIC.MolSysIC.set_cartesian_coords">
+<span class="sig-name descname"><span class="pre">set_cartesian_coords</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">coords</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mask</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#chilife.MolSysIC.MolSysIC.set_cartesian_coords" title="Link to this definition"></a></dt>
+<dd><p>Alter the coordinates of the current frame by assigning new cartwsian coordinates to the atoms set to True and
+<code class="docutils literal notranslate"><span class="pre">mask</span></code>.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>np.ndarray</p>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>coords</strong> (<em>np.ndarray</em>) – Cartesian coordinates to apply to the atoms defined by <code class="docutils literal notranslate"><span class="pre">mask</span></code> of the current frame.</p></li>
+<li><p><strong>mask</strong> (<em>np.ndarray</em>) – Array of bool values defining which atoms of the MolSysIC are being set.</p></li>
+</ul>
 </dd>
 </dl>
 </dd></dl>
 
+<dl class="py method">
+<dt class="sig sig-object py" id="chilife.MolSysIC.MolSysIC.shift_resnum">
+<span class="sig-name descname"><span class="pre">shift_resnum</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">delta</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#chilife.MolSysIC.MolSysIC.shift_resnum" title="Link to this definition"></a></dt>
+<dd><p>Alter the residue number of all residues in the MolSysIC by adding <code class="docutils literal notranslate"><span class="pre">delta</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>delta</strong> (<em>int</em>) – Amount to shift residue numbers by. Can be positive or negative.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="chilife.MolSysIC.reconfigure_cap">
+<span class="sig-name descname"><span class="pre">reconfigure_cap</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cap</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">atom_idxs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bonds</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#chilife.MolSysIC.reconfigure_cap" title="Link to this definition"></a></dt>
+<dd><p>Helper function to reconfigure the “cap” region of bifunctional labels so that the internal coordinates are defined
+correctly.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>cap</strong> (<em>ArrayLike</em>) – Indices of the cap atoms in the molecule with atoms defined in atom_idxs.</p></li>
+<li><p><strong>atom_idxs</strong> (<em>ArrayLike</em>) – Indices of all atoms to be considered for reconfiguration containing the cap.</p></li>
+<li><p><strong>bonds</strong> (<em>ArrayLike</em>) – Array of tuples defining the bonds between atoms in atom_idxs.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>atom_idxs</strong> – Array of atom indices rearranged so that the cap is terminal to the rest of the atoms.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>ArrayLike</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="chilife.MolSysIC.zmatrix_idxs_to_local">
+<span class="sig-name descname"><span class="pre">zmatrix_idxs_to_local</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">zmatrix_idxs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#chilife.MolSysIC.zmatrix_idxs_to_local" title="Link to this definition"></a></dt>
+<dd><p>Convert Z-matrix indices so that they reference the indices of the z-matrix rather than the parental atom selection
+that was used to construct the z-matrix and may have an index offset or missing atoms.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>zmatrix_idxs</strong> (<em>ArrayLike</em>) – z-matrix indices</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>zmatrix_idxs</strong> – Array of indices modified for internal reference.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>ArrayLike</p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py function">
@@ -565,6 +1138,28 @@ coordinates, made from internal coordinates, to their appropriate location in th
 </dl>
 </dd></dl>
 
+<dl class="py function">
+<dt class="sig sig-object py" id="chilife.MolSysIC.get_z_matrix">
+<span class="sig-name descname"><span class="pre">get_z_matrix</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">coords</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">z_matrix_idxs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">chain_operator_idxs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#chilife.MolSysIC.get_z_matrix" title="Link to this definition"></a></dt>
+<dd><p>Given a set of cartesian coordinates and indices defining a z-matrix, calcualte the z-matrix.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>coords</strong> (<em>np.ndarray</em>) – Array of cartesian coordinates.</p></li>
+<li><p><strong>z_matrix_idxs</strong> (<em>np.ndarray</em>) – Array of indices defining bond-angle-torsions of the z-matrix.</p></li>
+<li><p><strong>chain_operator_idxs</strong> (<em>np.ndarray</em>) – Array of indices defining different chains.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>z_matrix</strong> – Z-matrix (internal) coordinates.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>np.ndarray</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
 </section>
 
 

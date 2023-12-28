@@ -9,8 +9,8 @@ pdbids = ["1ubq", "1a2w", '1az5']
 ubq = mda.Universe("test_data/1ubq.pdb", in_memory=True)
 mbp = mda.Universe("test_data/2klf.pdb", in_memory=True)
 
-ubqIC = xl.MolSysIC.from_protein(ubq)
-mbpIC = xl.MolSysIC.from_protein(mbp)
+ubqIC = xl.MolSysIC.from_atoms(ubq)
+mbpIC = xl.MolSysIC.from_atoms(mbp)
 
 
 gd_kwargs = [
@@ -52,11 +52,11 @@ def test_from_prot_traj():
 @pytest.mark.parametrize("pdbid", pdbids)
 def test_get_internal_coordinates(pdbid):
     protein = mda.Universe(f"test_data/{pdbid}.pdb", in_memory=True).select_atoms("protein and not altloc B")
-    ICs = xl.MolSysIC.from_protein(protein, ignore_water=False)
+    ICs = xl.MolSysIC.from_atoms(protein, ignore_water=False)
     np.testing.assert_almost_equal(ICs.coords, protein.atoms.positions, decimal=4)
 
     protein = xl.MolSys.from_pdb(f"test_data/{pdbid}.pdb").select_atoms("protein and not altloc B")
-    ICs = xl.MolSysIC.from_protein(protein, ignore_water=False)
+    ICs = xl.MolSysIC.from_atoms(protein, ignore_water=False)
     np.testing.assert_almost_equal(ICs.coords, protein.atoms.positions, decimal=4)
 
 
@@ -76,7 +76,7 @@ def test_copy():
 def test_save_pdb():
     protein = mda.Universe("test_data/alphabetical_peptide.pdb").select_atoms("protein")
 
-    uni_ics = xl.MolSysIC.from_protein(protein)
+    uni_ics = xl.MolSysIC.from_atoms(protein)
     xl.save("test_data/postwrite_alphabet_peptide.pdb", uni_ics)
 
     with open("test_data/postwrite_alphabet_peptide.pdb", "r") as f:
@@ -107,7 +107,7 @@ def test_set_dihedral():
 def test_set_dihedral2():
     lys = mda.Universe('../src/chilife/data/rotamer_libraries/residue_pdbs/lys.pdb')
 
-    ICs = xl.MolSysIC.from_protein(lys)
+    ICs = xl.MolSysIC.from_atoms(lys)
     ICs.set_dihedral(np.pi / 2, 1, ["N", "CA", "CB", "CG"])
 
     print('DSF')
@@ -115,7 +115,7 @@ def test_set_dihedral2():
 
 @pytest.mark.parametrize(["inp", "ans"], zip(gd_kwargs, gd_ans))
 def test_get_dihedral(inp, ans):
-    ubqIC = xl.MolSysIC.from_protein(ubq)
+    ubqIC = xl.MolSysIC.from_atoms(ubq)
     dihedral = ubqIC.get_dihedral(**inp)
     np.testing.assert_almost_equal(dihedral, ans, decimal=4)
 
@@ -123,13 +123,13 @@ def test_get_dihedral(inp, ans):
 
 def test_polypro():
     polypro = mda.Universe("test_data/PPII_Capped.pdb")
-    polyproIC = xl.MolSysIC.from_protein(polypro)
+    polyproIC = xl.MolSysIC.from_atoms(polypro)
     np.testing.assert_equal(polyproIC.z_matrix_names[12], ['CD', 'CG', 'CB', 'CA'])
 
 
 def test_PRO():
     pro = mda.Universe("../src/chilife/data/rotamer_libraries/residue_pdbs/pro.pdb")
-    pro_ic = xl.MolSysIC.from_protein(pro)
+    pro_ic = xl.MolSysIC.from_atoms(pro)
 
     np.testing.assert_equal(pro_ic.z_matrix_names[6], ["CD", "CG", "CB", "CA"])
 
@@ -140,7 +140,7 @@ def test_PRO2():
 
 def test_set_coords():
     R1A = mda.Universe("test_data/R1A.pdb")
-    R1A_IC = xl.MolSysIC.from_protein(R1A)
+    R1A_IC = xl.MolSysIC.from_atoms(R1A)
     R1A_IC_c = R1A_IC.copy()
     R1A_IC_c.set_dihedral([np.pi/2, -np.pi/2, np.pi/2], 1, [['N', 'CA', 'CB', 'SG' ],
                                                             ['CA', 'CB', 'SG', 'SD'],
@@ -162,7 +162,7 @@ def test_nonbonded():
 
 def test_get_zmat_idxs():
     R1A = mda.Universe("test_data/R1A.pdb")
-    R1A_IC = xl.MolSysIC.from_protein(R1A)
+    R1A_IC = xl.MolSysIC.from_atoms(R1A)
     idxs = R1A_IC.get_z_matrix_idxs(1, ['CB', 'SG', 'SD', 'CE'])
 
     np.testing.assert_equal(idxs, 7)
@@ -195,7 +195,7 @@ def test_psi_idxs():
 
 def test_phi_psi_idxs_multichain():
     prot = xl.fetch('1a2w').select_atoms('protein')
-    ICs = xl.MolSysIC.from_protein(prot)
+    ICs = xl.MolSysIC.from_atoms(prot)
 
     with pytest.raises(ValueError):
         ICs.psi_idxs(10)
@@ -232,7 +232,7 @@ def test_ic_pref_dihe():
            ['CA', 'CB', 'CB2', 'NG'],
            ['ND', 'CE3', 'CZ3', 'C31']]
 
-    IC = xl.MolSysIC.from_protein(mol, preferred_dihedrals=dih)
+    IC = xl.MolSysIC.from_atoms(mol, preferred_dihedrals=dih)
     IC.set_dihedral(np.pi / 2, 1, ['ND', 'CE3', 'CZ3', 'C31'])
 
     sister_dihe_atom_coords = IC.coords[IC.atom_names == 'C36'].flat
@@ -259,7 +259,7 @@ def test_pickle():
 
 def test_chain_operators():
     LYS = mda.Universe('../src/chilife/data/rotamer_libraries/residue_pdbs/lys.pdb')
-    pic = xl.MolSysIC.from_protein(LYS)
+    pic = xl.MolSysIC.from_atoms(LYS)
 
     mx = np.array([[0.38281548,  0.9238248,   0.],
                    [0.92382485, -0.38281548,  0.],

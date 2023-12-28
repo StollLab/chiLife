@@ -6,9 +6,30 @@ import igraph as ig
 
 
 class Topology:
+    """
+    Topology class
+
+    Parameters
+    ----------
+    mol : MDAnalysis.Universe, MDAnalysis.AtomGroup, chiLife.MolecularSystemBase
+        Molecular system from which to define a topology.
+    bonds : ArrayLike
+        Array of tuples defining all the bonds of the molecule.
+    kwargs : dict
+        Additional keyword arguments, usually used to speed up construction by providing precomputed values for the
+        topology attributes.
+
+        graph : igraph.Graph
+            A Graph object of the  molecule topology.
+        angles : ArrayLike
+            Array defining all bond-angles of the molecule.
+        dihedrals : ArrayLike
+            Array defining all dihedral angles of the molecule.
+
+    """
+
 
     def __init__(self, mol, bonds, **kwargs):
-
         mol = mol.atoms
         self.atoms = mol.atoms
         self.atom_names = self.atoms.names
@@ -36,6 +57,14 @@ class Topology:
             self.dihedrals_by_resnum[c1, r1, n1, n2, n3, n4] = dihe
 
     def get_zmatrix_dihedrals(self):
+        """
+        Get the dihedral definitions for the z-matrix.
+
+        Returns
+        -------
+        zmatrix_dihedrals : ArrayLike
+
+        """
         zmatrix_dihedrals = []
         hold = []
         for key in self.atom_idxs:
@@ -62,9 +91,11 @@ class Topology:
         return zmatrix_dihedrals
 
     def _make_graph(self):
+        """Create an igraph.Graph form the topology"""
         return ig.Graph(n=len(self.atom_idxs), edges=self.bonds)
 
     def update_resnums(self):
+        """Update the residue numbers of each atom with respect to the dihedral that they belong to."""
         self.dihedrals_by_resnum = {}
         for dihe in self.dihedrals:
             c = dihe[2]
@@ -73,16 +104,20 @@ class Topology:
             c1 = self.atoms[c].segid
             self.dihedrals_by_resnum[c1, r1, n1, n2, n3, n4] = dihe
 
+
 def get_angle_defs(graph: ig.Graph) -> Tuple[Tuple[int, int, int]]:
     """
+    Get all angle definitions for the topology defined by the graph.
 
     Parameters
     ----------
-    graph:
+    graph: igraph.Graph
+        A graph of the molecular topology.
 
     Returns
     -------
-
+    angles : Tuple[Tuple[int, int, int]]
+        Tuple containing tuples defining all angles of the molecule/molecular system.
     """
     angles = []
     for node in graph.vs.indices:
@@ -95,6 +130,20 @@ def get_angle_defs(graph: ig.Graph) -> Tuple[Tuple[int, int, int]]:
 
 
 def get_dihedral_defs(graph):
+    """
+    Get all dihedral definitions for the topology defined by the graph.
+
+    Parameters
+    ----------
+    graph: igraph.Graph
+        A graph of the molecular topology.
+
+    Returns
+    -------
+    dihedrals : Tuple[Tuple[int, int, int, int]]
+        Tuple containing tuples defining all dihedrals of the molecule/molecular system.
+    """
+
     dihedrals = []
     for a, b in graph.get_edgelist():
         a_neighbors = tuple(graph.neighbors(a))

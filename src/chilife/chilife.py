@@ -386,10 +386,10 @@ def create_library(
                            "https://www.wwpdb.org/documentation/file-format-content/format33/sect10.html")
 
     # Convert loaded rotamer ensemble to internal coords
-    internal_coords = chilife.MolSysIC.from_protein(resi_selection,
-                                                    preferred_dihedrals=dihedral_atoms,
-                                                    bonds=bonds,
-                                                    use_chain_operators=False)
+    internal_coords = chilife.MolSysIC.from_atoms(resi_selection,
+                                                  preferred_dihedrals=dihedral_atoms,
+                                                  bonds=bonds,
+                                                  use_chain_operators=False)
     internal_coords.shift_resnum(-(site - 1))
 
     if len(internal_coords.chains) > 1:
@@ -578,7 +578,7 @@ def create_dlibrary(
     if not continuous_topol(res1, res1_bonds):
         raise RuntimeError(error_message)
 
-    IC1 = chilife.MolSysIC.from_protein(res1, dihedral_atoms[0], res1_bonds, use_chain_operators=False)
+    IC1 = chilife.MolSysIC.from_atoms(res1, dihedral_atoms[0], res1_bonds, use_chain_operators=False)
 
     ovlp2_selection = struct.atoms[cap2_idxs]
     ovlp2_selection.residues.resnums = site2
@@ -589,7 +589,7 @@ def create_dlibrary(
     if not continuous_topol(res2, res2_bonds):
         raise RuntimeError(error_message)
 
-    IC2 = chilife.MolSysIC.from_protein(res2, dihedral_atoms[1], res2_bonds, use_chain_operators=False)
+    IC2 = chilife.MolSysIC.from_atoms(res2, dihedral_atoms[1], res2_bonds, use_chain_operators=False)
 
     IC1.shift_resnum(-(site1 - 1))
     IC2.shift_resnum(-(site2 - 1))

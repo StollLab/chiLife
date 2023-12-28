@@ -464,7 +464,7 @@ class dRotamerEnsemble:
                     lib_ic, tlib_ic = lib['internal_coords'], tlib['internal_coords']
                     if np.any(lib_ic.atom_names != tlib_ic.atom_names):
                         uni.load_new(cct['coords'][-1])
-                        tlib_ic = chilife.MolSysIC.from_protein(uni, lib['dihedral_atoms'], lib_ic.bonds)
+                        tlib_ic = chilife.MolSysIC.from_atoms(uni, lib['dihedral_atoms'], lib_ic.bonds)
 
                     tlib['zmats'] = tlib_ic.trajectory.coordinate_array
                     cct.setdefault('dihedrals', []).append(tlib['dihedrals'])

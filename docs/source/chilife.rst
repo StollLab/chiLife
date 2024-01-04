@@ -1,9 +1,26 @@
 χLife
 ======
 
+General Functions
+-----------------
+
 .. automodule:: chilife.chilife
-    :members:
+    :members: distance_distribution,
+              create_library,
+              create_dlibrary,
+              add_rotlib_dir,
+              remove_rotlib_dir,
+              add_library,
+              remove_library,
+              list_available_rotlibs,
+              repack
     :exclude-members: traj_dd pair_dd
 
+IO Functions
+------------
+
 .. automodule:: chilife.io
-    :members:
+    :members: read_distance_distribution,
+              read_library,
+              save,
+              write_atoms

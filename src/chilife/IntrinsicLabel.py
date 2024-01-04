@@ -3,28 +3,28 @@ from .protein_utils import FreeAtom
 
 
 class IntrinsicLabel:
+    """
+    A helper object to assign spin density to part of a protein that is already present, e.g. metal ligands.
+    IntrinsicLabels can be used with the :func:`~chilife.chilife.distance_distribution` function
+
+    Parameters
+    ----------
+    res : str
+        3-character identifier of desired residue, e.g. NC2 (Native Cu(II)).
+    atom_selection : MDAnalysis.AtomGroup, chiLife.System
+        Group of atoms constituting the intrinsic label. These selections can consist of multiple residues, which
+        can be useful in the case of ions with multiple coordinating residues
+    spin_atoms : str, list, tuple, array, dict, MDAnalysis.AtomGroup
+        Atoms of the intrinsic label that host the unpaired electron density. Can be a single atom name, a
+        list/tuple/array of atom names or a dictionary mapping atom names to their relative populations.
+        ``spin_atoms `` can also be an ``MDAnalysis.AtomGroup`` object derived from the same MDAnalysis.Universe
+        as the ``atom_selection`` keyword argument. Use of an ``AtomGroup`` is particularly useful when there is
+        spin density is distributed on several atoms with the same name on different residues within the
+        ``IntrinsicLabel``.
+    """
 
     def __init__(self, res, atom_selection, spin_atoms=None, name='IntrinsicLabel'):
-        """
-        A helper object to assign spin density to part of a protein that is already present, e.g. metal ligands.
-        IntrinsicLabels can be used with the :func:`~chilife.chilife.distance_distribution` function
 
-        Parameters
-        ----------
-        res : str
-            3-character identifier of desired residue, e.g. NC2 (Native Cu(II)).
-        atom_selection : MDAnalysis.AtomGroup, chiLife.System
-            Group of atoms constituting the intrinsic label. These selections can consist of multiple residues, which
-            can be useful in the case of ions with multiple coordinating residues
-
-        spin_atoms : str, list, tuple, array, dict, MDAnalysis.AtomGroup
-            Atoms of the intrinsic label that host the unpaired electron density. Can be a single atom name, a
-            list/tuple/array of atom names or a dictionary mapping atom names to their relative populations.
-            ``spin_atoms `` can also be an ``MDAnalysis.AtomGroup`` object derived from the same MDAnalysis.Universe
-            as the ``atom_selection`` keyword argument. Use of an ``AtomGroup`` is particularly useful when there is
-            spin density is distributed on several atoms with the same name on different residues within the
-            ``IntrinsicLabel``.
-        """
         self._selection = atom_selection
         self._coords = atom_selection.positions.copy()[None, :, :]
         self.coords = self._coords

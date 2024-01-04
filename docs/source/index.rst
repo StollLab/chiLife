@@ -9,7 +9,7 @@
     chilife
     rotamer_ensemble
     rotamer_libraries
-    protein
+    molsys
     utils
     examples
     faqs

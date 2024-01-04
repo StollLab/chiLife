@@ -653,7 +653,7 @@ def get_sas_res(
     Returns
     -------
     SAResi : set
-        Set of solvent accessible surface residues.
+        A set of solvent accessible surface residues.
 
     """
     environment_coords = protein.atoms.positions
@@ -1209,6 +1209,21 @@ def make_mda_uni(anames: ArrayLike,
 
 
 def neighbors(edges, node):
+    """
+    Given a graph defined by edges and a node, find all neighbors of that node.
+
+    Parameters
+    ----------
+    edges : ArrayLike
+        Array of tuples defining all edges between nodes
+    node : int
+        The node of the graph for which to find neighbors.
+
+    Returns
+    -------
+    nbs : ArrayLike
+        Neighbor nodes.
+    """
     nbs = []
     for edge in edges:
         if node not in edge:
@@ -1221,6 +1236,22 @@ def neighbors(edges, node):
 
 
 def bfs_edges(edges, root):
+    """
+    Breadth first search of nodes given a set of edges
+    Parameters
+    ----------
+    edges : ArrayLike
+        Array of tuples defining edges between nodes.
+    root : int
+        Starting (root) node to begin the breadth first search at.
+
+    Yields
+    ------
+    parent : int
+        The node from which the children node stem
+    child: List[int]
+        All children node of parent.
+    """
     nodes = np.unique(edges)
 
     depth_limit = len(nodes)

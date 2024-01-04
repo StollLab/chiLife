@@ -12,19 +12,17 @@ class SpinLabel(RotamerEnsemble):
     """
     A RotamerEnsemble made from a side chain with one or more unpaired electrons.
 
-    :param label: str
+    Parameters
+    ----------
+    label: str
         Name of desired spin label, e.g. R1A.
-
-    :param site: int
+    site: int
         MolSys residue number to attach spin label to.
-
-    :param chain: str
+    chain: str
         MolSys chain identifier to attach spin label to.
-
-    :param protein: MDAnalysis.Universe, MDAnalysis.AtomGroup
+    protein: MDAnalysis.Universe, MDAnalysis.AtomGroup
         Object containing all protein information (coords, atom types, etc.)
-
-    :param protein_tree: cKDtree
+    protein_tree: cKDtree
         k-dimensional tree object associated with the protein coordinates.
     """
 

@@ -239,25 +239,26 @@ class RotamerEnsemble:
         -------
 
         """
-        # TODO: create pdb reader and impliment from_pdb method
+        # TODO: create pdb reader and implement from_pdb method
+        raise NotImplementedError('Creation of a RotamerEnsemble from a PDB file is not yet implemented.')
+
         return cls(res, site, protein, chain)
 
     @classmethod
     def from_mda(cls, residue, **kwargs):
-        """Create RotamerEnsemble from the MDAnalysis.Residue
+        """Create RotamerEnsemble from the MDAnalysis.Residue for chiLife.Residue
 
         Parameters
         ----------
-        residue :
-            MDAnalysis.Residue
-        **kwargs :
-            
+        residue : MDAnalysis.Residue, chiLife.Residue
+            Residue object from which to create the RotamerEnsemble.
+        **kwargs : dict
+            Additional keyword arguments to use for creating the RotamerEnsemble.
 
         Returns
         -------
-        type
-            RotamerEnsemble
-
+        cls : RotamerEnsemble
+            A RotamerEnsemble object created from the provided Residue object.
         """
 
         res = residue.resname
@@ -269,25 +270,27 @@ class RotamerEnsemble:
     @classmethod
     def from_trajectory(cls, traj, site, chain=None, energy=None, burn_in=100, **kwargs):
         """
+        Create a RotamerEnsemble object from a trajectory.
 
         Parameters
         ----------
-        traj :
-            
-        site :
-            
-        chain :
-             (Default value = None)
-        energy :
-             (Default value = None)
-        burn_in :
-             (Default value = 100)
-        **kwargs :
-            
+        traj : MDAnalysis.Universe, MDAnalysis.AtomGroup, chiLife.MolecularSystemBase
+            The trajectory over which the RotamerEnsemble is to be created.
+        site : res
+            Residue number of the residue to create a rotamer ensemble for.
+        chain : str
+            Chain identifier of the residue to create a RotamerEnsemble for.
+        energy : ArrayLike
+            Potential energy of the residue at each frame of the trajectory in kcal/mol
+        burn_in : int
+             Number of frames to skip from the trajectory. Used to skip burn-in period when performin MCMC sampling.
+        **kwargs : dict
+            Additional keyword arguments to use for creating the RotamerEnsemble.
 
         Returns
         -------
-
+        cls : RotamerEnsemble
+            A RotamerEnsemble object created from the provided trajectory.
         """
         if burn_in >= len(traj.universe.trajectory):
             raise ValueError("Burn in is longer than the provided trajectory.")
@@ -321,7 +324,7 @@ class RotamerEnsemble:
         pi /= pi.sum()
         weights = pi
         res = chilife.MolSys.from_atomsel(res, frames=unique_idx)
-        ICs = chilife.MolSysIC.from_protein(res)
+        ICs = chilife.MolSysIC.from_atoms(res)
 
 
         ICs.shift_resnum(-(site - 1))
@@ -365,13 +368,18 @@ class RotamerEnsemble:
                   comment: str = None,
                   reference: str = None) -> None:
         """
-        Save the current RotamerEnsemble as a RotamerLibrary
+        Saves the current RotamerEnsemble as a rotamer library file.
 
         Parameters
         ----------
         libname : str
-            Name of the rotamer library
-
+            Name of the rotamer library.
+        description : str
+            Description of the rotamer library.
+        comment : str
+            Additional comments about the rotamer library.
+        reference : str
+            References associated with the rotamer library.
         """
         if libname is None:
             libname = self.name
@@ -417,7 +425,7 @@ class RotamerEnsemble:
         )
 
     def set_site(self, site):
-        """Assign SpinLabel to a site.
+        """Assign RotamerLibrary to a site.
 
         Parameters
         ----------
@@ -472,7 +480,6 @@ class RotamerEnsemble:
         ----------
         site_pos : ArrayLike
             3x3 array of ordered backbone atom coordinates of new site (N CA C) (Default value = None)
-
         """
         if site_pos is None:
             N, CA, C = chilife.parse_backbone(self, kind="global")
@@ -491,8 +498,7 @@ class RotamerEnsemble:
         self.ICs_to_site(ori, mx)
 
     def ICs_to_site(self, cori, cmx):
-        """ Modify the internal coordinates so that they are aligned with the site that the RotamerEnsemble is attached
-         to"""
+        """ Modify the internal coordinates to be aligned with the site that the RotamerEnsemble is attached to"""
 
         # Update chain operators
         ic_backbone = np.squeeze(self.internal_coords.coords[:3])
@@ -550,8 +556,7 @@ class RotamerEnsemble:
                     self.internal_coords.trajectory.coordinate_array[:, additional_idxs, 2] -= delta[:, None]
 
     def backbone_to_site(self):
-        """Modify additional backbone atoms to match the backbone of the site that the RotamerEnsemble is being attached
-        to """
+        """Modify backbone atoms to match the site that the RotamerEnsemble is attached to """
         # Keep protein backbone dihedrals for oxygen and hydrogen atoms
         for atom in ["H", "O"]:
             mask = self.atom_names == atom
@@ -722,6 +727,16 @@ class RotamerEnsemble:
         self.current_weight = weight
 
     def minimize(self, callback=None):
+        """
+        Minimize the energy of the rotamers in dihedral space and re-weight with respect to the new energies.
+
+        Parameters
+        ----------
+        callback : callable
+            A callable function to be passed as the ``scipy.optimize.minimize`` function. See the
+            `scipy documentation <https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.minimize.html>`_
+            for details.
+        """
         dummy = self.copy()
 
         scores = np.array([self._min_one(i, ic, dummy, callback=callback) for i, ic in enumerate(self.internal_coords)])
@@ -750,7 +765,6 @@ class RotamerEnsemble:
         -------
         energy : float
             The "energy" score of the rotamer with the provided dihedrals.
-
         """
 
         ic1.set_dihedral(dihedrals[: len(self.dihedral_atoms)], 1, self.dihedral_atoms)
@@ -815,7 +829,6 @@ class RotamerEnsemble:
         ----------
         keep_idx : ArrayLike[int]
             Indices of rotamers to keep. If None rotamers will be trimmed based off of `self.trim_tol`.
-
         """
         if keep_idx is None:
             arg_sort_weights = np.argsort(self.weights)[::-1]
@@ -956,7 +969,11 @@ class RotamerEnsemble:
         return lib
 
     def protein_setup(self):
-        """ """
+        """
+        Performs all tasks associated with setting up the RotamerEnsemble in the context of a protein. This includes
+        translating and rotating the RotamerEnsemble to align with the desired site, evaluating clashes with the protein
+        and/or performing a minimization of the ensemble in dihedral space.
+        """
 
         if isinstance(self.protein, (mda.AtomGroup, mda.Universe)):
             if not hasattr(self.protein.universe._topology, "altLocs"):
@@ -1066,17 +1083,6 @@ class RotamerEnsemble:
 
     @clash_ori.setter
     def clash_ori(self, inp):
-        """
-
-        Parameters
-        ----------
-        inp :
-            
-
-        Returns
-        -------
-
-        """
         self._clash_ori_inp = inp
 
     @property
@@ -1206,7 +1212,6 @@ def assign_defaults(kwargs):
     ----------
     kwargs : dict
         Dictionary of user supplied keyword arguments.
-        
 
     Returns
     -------

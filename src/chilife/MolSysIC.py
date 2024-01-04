@@ -19,6 +19,15 @@ from .numba_utils import _ic_to_cart, batch_ic2cart
 class MolSysIC:
     """
     A class for protein internal coordinates.
+    
+    Parameters
+    ----------
+    z_matrix : np.ndarray
+        Array of z-matricies for all frames of the ensemble/trajectory
+    z_matrix_idxs : np.ndarray
+        Indices of the attoms that define the bond lengths, angles, and dihedrals of the z-matrix
+    protein :
+    kwargs
 
     Attributes
     ----------
@@ -60,12 +69,6 @@ class MolSysIC:
                  z_matrix_idxs: ArrayLike,
                  protein: Union[MolecularSystemBase, MDAnalysis.Universe, MDAnalysis.AtomGroup],
                  **kwargs):
-        """
-        MolSysIC constructor method.
-
-        Parameters
-        ----------
-        """
         # Internal coords and atom info
         if isinstance(protein, MolSys):
             self.protein = protein.copy()
@@ -123,20 +126,45 @@ class MolSysIC:
         self._dihedral_defs = None
 
     @classmethod
-    def from_protein(cls,
-                     protein: Union[MDAnalysis.Universe, MDAnalysis.AtomGroup, MolecularSystemBase],
-                     preferred_dihedrals: List = None,
-                     bonds: ArrayLike = None,
-                     **kwargs: Dict):
+    def from_atoms(cls,
+                   atoms: Union[MDAnalysis.Universe, MDAnalysis.AtomGroup, MolecularSystemBase],
+                   preferred_dihedrals: List = None,
+                   bonds: ArrayLike = None,
+                   **kwargs: Dict):
+        """
+
+
+        Parameters
+        ----------
+        atoms : MDAnalysis.Universe, MDAnalysis.AtomGroup, MolecularSystemBase
+            MDA Universe, AtomGroup or chiLife Molecular System to create the internal coordinates from.
+        preferred_dihedrals : List[List[str]]
+            List of preferred dihedral definitions to use when defining the internal coordinate system.
+        bonds : ArrayLike
+            Array of tuples defining the atom pairs that are bonded.
+        kwargs : dict
+            Additional keyword arguments.
+            ignore:water : bool
+                Ignore atoms that belong to water molecules.
+            use_chain_operators : bool
+                Allow for the use of a translation and rotation vectors to orient cains that are not covalently linked.
+
+
+        Returns
+        -------
+        cls : MDAnalysis.Universe
+            A chiLife internal coordinates molecular system.
+        """
+
+        if isinstance(atoms, MDAnalysis.Universe):
+            atoms = atoms.atoms
 
         if kwargs.get('ignore_water', True):
-            water_atoms = protein.select_atoms("byres (name OH2 or resname HOH)")
-            protein = protein.atoms[~np.isin(protein.atoms.ix, water_atoms.ix)]
-        elif isinstance(protein, MDAnalysis.Universe):
-            protein = protein.atoms
+            water_atoms = atoms.select_atoms("byres (name OH2 or resname HOH)")
+            atoms = atoms[~np.isin(atoms.ix, water_atoms.ix)]
 
         # Keep track of atom indexes in parent protein object in case atoms come from a larger system
-        atom_idxs = protein.atoms.ix
+        atom_idxs = atoms.ix
 
         # Explicitly passing bonds means no other bonds will be used and that the bonds are using universe indices.
         if bonds is not None:
@@ -154,10 +182,10 @@ class MolSysIC:
         # Guess the bonds as a last resort
         else:
             # Add selection's lowest index in case the user is selecting a subset of atoms from a larger system.
-            bonds = guess_bonds(protein.positions, protein.types)
+            bonds = guess_bonds(atoms.positions, atoms.types)
 
         # Remove bonds outside of selection
-        topology = Topology(protein, bonds)
+        topology = Topology(atoms, bonds)
         z_matrix_dihedrals = topology.get_zmatrix_dihedrals()
         # z_mat_map = {k[-1]: i for i, k in enumerate(z_matrix_dihedrals)}
 
@@ -166,7 +194,7 @@ class MolSysIC:
             for dihe in preferred_dihedrals:
 
                 # Get the indices of the atom being defined by the preferred dihedral
-                idx_of_interest = np.argwhere(protein.names == dihe[-1]).flatten()
+                idx_of_interest = np.argwhere(atoms.names == dihe[-1]).flatten()
                 for idx in idx_of_interest:
 
                     # Skip dihedral defs of chain terminal atoms
@@ -174,7 +202,7 @@ class MolSysIC:
                         continue
 
                     # Check if it is already in use
-                    if np.all(protein.atoms[z_matrix_dihedrals[idx]].names == dihe):
+                    if np.all(atoms[z_matrix_dihedrals[idx]].names == dihe):
                         present = True
                         continue
 
@@ -184,7 +212,7 @@ class MolSysIC:
 
                     # Check for alternative dihedral definitions that satisfy the preferred dihedral
                     for p in topology.dihedrals_by_atoms[idx]:
-                        if np.all(protein.atoms[list(p)].names == dihe):
+                        if np.all(atoms[list(p)].names == dihe):
                             dihedral = [a for a in p]
                             break
                     else:
@@ -206,21 +234,21 @@ class MolSysIC:
                 raise ValueError(f'There is no dihedral `{dihe}` in the provided protein. Perhaps there is typo or the '
                                  f'atoms are not sorted correctly')
 
-        z_matrix_coordinates = np.zeros((len(protein.universe.trajectory), len(z_matrix_dihedrals), 3))
+        z_matrix_coordinates = np.zeros((len(atoms.universe.trajectory), len(z_matrix_dihedrals), 3))
         z_matrix_dihedrals = zmatrix_idxs_to_local(z_matrix_dihedrals)
 
         chain_operator_idxs = get_chainbreak_idxs(z_matrix_dihedrals)
 
         chain_operators = []
-        for i, ts in enumerate(protein.universe.trajectory):
-            z_matrix, chain_operator = get_z_matrix(protein.atoms.positions, z_matrix_dihedrals, chain_operator_idxs)
+        for i, ts in enumerate(atoms.universe.trajectory):
+            z_matrix, chain_operator = get_z_matrix(atoms.positions, z_matrix_dihedrals, chain_operator_idxs)
             z_matrix_coordinates[i] = z_matrix
             chain_operators.append(chain_operator)
 
         if not kwargs.get('use_chain_operators', True):
             chain_operators = None
 
-        return cls(z_matrix_coordinates, z_matrix_dihedrals, protein,
+        return cls(z_matrix_coordinates, z_matrix_dihedrals, atoms,
                    chain_operators=chain_operators, chain_operator_idxs=chain_operator_idxs)
 
     def copy(self):
@@ -245,6 +273,7 @@ class MolSysIC:
 
     @property
     def chain_operator_idxs(self):
+        """An array of indices defining the starting and ending indices of the different chains."""
         return self._chain_operator_idxs
 
     @chain_operator_idxs.setter
@@ -276,10 +305,6 @@ class MolSysIC:
         op : dict
             Dictionary containing an entry for each chain in the MolSysIC molecule. Each entry must contain a
             rotation matrix, 'mx' and translation vector 'ori'.
-
-        Returns
-        -------
-        None
         """
 
         error_message = 'chain operators must be set to \n' \
@@ -313,12 +338,13 @@ class MolSysIC:
 
     @property
     def z_matrix(self):
+        """The z-matrix (internal) coordinates of the molecular system for the current frame."""
         return self.trajectory.coordinate_array[self.trajectory.frame]
 
     @property
     def coords(self):
+        """The cartesian coordinates of the molecular system for the current frame"""
         self.protein.trajectory[self.trajectory.frame]
-        """np.ndarray : The cartesian coordinates of the protein"""
         if (self.protein.positions is None) or self.perturbed:
             self.protein.positions = self.to_cartesian()
             self.perturbed = False
@@ -349,6 +375,7 @@ class MolSysIC:
         return self._nonbonded
 
     def to_cartesian(self):
+        """Method to convert z-matrix (internal) coordinate to cartesian coordinate"""
         cart_coords = _ic_to_cart(self.z_matrix_idxs[:, 1:], self.z_matrix)
 
         # Apply chain operations if any exist
@@ -556,7 +583,9 @@ class MolSysIC:
 
         Returns
         -------
-
+        has_clashes : bool
+            True if there are any atoms within ``distance`` angstroms from each other that would constitute a clash
+            otherwise False
         """
         diff = self.coords[self.nonbonded[:, 0]] - self.coords[self.nonbonded[:, 1]]
         dist = np.linalg.norm(diff, axis=1)
@@ -580,7 +609,6 @@ class MolSysIC:
         ----------
         resnums: int, ArrayLike[int]
             Residues for which to return the Phi value index of the z-matrix
-
         chain: int, str
             Chain corresponding to the resnums of interest
 
@@ -607,7 +635,6 @@ class MolSysIC:
         ----------
         resnums: int, ArrayLike[int]
             Residues for which to return the Psi value index of the z-matrix
-
         chain: int, str
             Chain corresponding to the resnums of interest
 
@@ -635,7 +662,6 @@ class MolSysIC:
         ----------
         resnums: int, ArrayLike[int]
             Residues for which to return the Psi value index of the z-matrix
-
         chain: int, str
             Chain corresponding to the resnums of interest
 
@@ -679,6 +705,17 @@ class MolSysIC:
         return len(self.trajectory)
 
     def load_new(self, z_matrix, **kwargs):
+        """
+        Replace the current z-matrix ensemble/trajectory with new one.
+        Parameters
+        ----------
+        z_matrix : np.ndarray
+            New z-matrix to load into the MolSysIC
+        kwargs : dict
+            Additional keyword arguments.
+            op : dict
+                New chain operators for the new z-matrix.
+        """
         self.trajectory.load_new(coordinates=z_matrix)
         cart_coords = batch_ic2cart(self.z_matrix_idxs[:, 1:], z_matrix)
         self.protein.trajectory.load_new(cart_coords)
@@ -711,6 +748,15 @@ class MolSysIC:
             self.apply_chain_operators()
 
     def apply_chain_operators(self, idx=None):
+        """
+        Apply chain operators to the specified frames (``idx``) of the MolSysIC trajectory. If no ``idx`` is provided
+        then all chain operators will be applied to all frames.
+        Parameters
+        ----------
+        idx : int, Array
+            Frames or array of frames that should have the chain operators applied.
+        """
+
         idx = np.arange(len(self._chain_operators), dtype=int) if idx is None else idx
         idx = np.atleast_1d(idx)
 
@@ -732,6 +778,13 @@ class MolSysIC:
                 cart_coords[:, start:end] = np.einsum('ijk,kl->ijl', cart_coords[:, start:end] - current_ori, m2m3) + ori
 
     def use_frames(self, idxs):
+        """
+        Remove all frames except those specified by `idxs`
+        Parameters
+        ----------
+        idxs : int, ArrayLike
+            Index or array if indices to keep
+        """
         self.trajectory.load_new(coordinates=self.trajectory.coordinate_array[idxs])
         self.protein.load_new(self.protein.trajectory.coordinate_array[idxs])
 
@@ -740,6 +793,17 @@ class MolSysIC:
             yield self
 
     def set_cartesian_coords(self, coords, mask):
+        """
+        Alter the coordinates of the current frame by assigning new cartwsian coordinates to the atoms set to True and
+        ``mask``.
+
+        Parameters
+        ----------
+        coords : np.ndarray
+            Cartesian coordinates to apply to the atoms defined by ``mask`` of the current frame.
+        mask : np.ndarray
+            Array of bool values defining which atoms of the MolSysIC are being set.
+        """
         nrots = len(coords)
         cpy = np.tile(self.protein.trajectory.coordinate_array[0].copy(), (nrots, 1, 1))
 
@@ -759,6 +823,14 @@ class MolSysIC:
         self.load_new(zcpy, op=ops)
 
     def shift_resnum(self, delta: int):
+        """
+        Alter the residue number of all residues in the MolSysIC by adding ``delta``.
+
+        Parameters
+        ----------
+        delta : int
+            Amount to shift residue numbers by. Can be positive or negative.
+        """
         self.resnums += delta
         self.atom_resnums += delta
 
@@ -783,6 +855,24 @@ class MolSysIC:
         return self._z_matrix_names
 
 def reconfigure_cap(cap, atom_idxs, bonds):
+    """
+    Helper function to reconfigure the "cap" region of bifunctional labels so that the internal coordinates are defined
+    correctly.
+
+    Parameters
+    ----------
+    cap : ArrayLike
+        Indices of the cap atoms in the molecule with atoms defined in atom_idxs.
+    atom_idxs : ArrayLike
+        Indices of all atoms to be considered for reconfiguration containing the cap.
+    bonds : ArrayLike
+        Array of tuples defining the bonds between atoms in atom_idxs.
+
+    Returns
+    -------
+    atom_idxs : ArrayLike
+        Array of atom indices rearranged so that the cap is terminal to the rest of the atoms.
+    """
     atom_idxs = atom_idxs[~np.isin(atom_idxs, cap)]
 
     # Get bonds to all cap atoms
@@ -810,6 +900,20 @@ def reconfigure_cap(cap, atom_idxs, bonds):
 
 
 def zmatrix_idxs_to_local(zmatrix_idxs):
+    """
+    Convert Z-matrix indices so that they reference the indices of the z-matrix rather than the parental atom selection
+    that was used to construct the z-matrix and may have an index offset or missing atoms.
+
+    Parameters
+    ----------
+    zmatrix_idxs : ArrayLike
+        z-matrix indices
+
+    Returns
+    -------
+    zmatrix_idxs : ArrayLike
+        Array of indices modified for internal reference.
+    """
     idxmap = {d[-1]: i for i, d in enumerate(zmatrix_idxs)}
     new_zmatrix_idxs = []
     for d in zmatrix_idxs:
@@ -883,6 +987,23 @@ def ic_mx(*p: ArrayLike) -> Tuple[ArrayLike, ArrayLike]:
 
 
 def get_z_matrix(coords, z_matrix_idxs, chain_operator_idxs=None):
+    """
+    Given a set of cartesian coordinates and indices defining a z-matrix, calcualte the z-matrix.
+
+    Parameters
+    ----------
+    coords : np.ndarray
+        Array of cartesian coordinates.
+    z_matrix_idxs : np.ndarray
+        Array of indices defining bond-angle-torsions of the z-matrix.
+    chain_operator_idxs : np.ndarray
+        Array of indices defining different chains.
+
+    Returns
+    -------
+    z_matrix : np.ndarray
+        Z-matrix (internal) coordinates.
+    """
     z_matrix = np.zeros((len(z_matrix_idxs), 3))
     bond_mask = ~(z_matrix_idxs[:, 1] < 0)
     bond_values = coords[z_matrix_idxs[bond_mask, 1]] - coords[z_matrix_idxs[bond_mask, 0]]

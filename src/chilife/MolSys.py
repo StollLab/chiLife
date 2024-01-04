@@ -22,7 +22,7 @@ masked_properties = ('atomids', 'names', 'altlocs', 'resnames', 'resnums', 'chai
                      'bs', 'segs', 'segids', 'atypes', 'charges', 'ix', 'resixs', 'segixs', '_Atoms', 'atoms')
 
 class MolecularSystemBase:
-    """Base class for molecular systems"""
+    """Base class for molecular systems containing attributes universal to """
 
     def __getattr__(self, key):
         if 'molsys' not in self.__dict__:
@@ -51,6 +51,21 @@ class MolecularSystemBase:
             super(MolecularSystemBase, self).__setattr__(key, value)
 
     def select_atoms(self, selstr):
+        """
+        Select atoms from :class:`~MolSys` or :class:`~AtomSelection` based on selection a selection string, similar
+        to the `select_atoms` method from `MDAnalysis <https://docs.mdanalysis.org/stable/documentation_pages/selections.html>`_
+
+        Parameters
+        ----------
+        selstr : str
+            Selection string
+
+        Returns
+        -------
+        atoms : :class:`~AtomGroup`
+            Selected atoms
+        """
+
         mask = process_statement(selstr, self.logic_keywords, self.molsys_keywords)
         if hasattr(self, 'mask'):
             t_mask = np.zeros(self.molsys.n_atoms, dtype=bool)
@@ -60,8 +75,35 @@ class MolecularSystemBase:
         mask = np.argwhere(mask).T[0]
         return AtomSelection(self.molsys, mask)
 
+    def __getitem__(self, item):
+
+        if np.issubdtype(type(item), np.integer):
+            relidx = self.molsys.ix[self.mask][item]
+            return Atom(self.molsys, relidx)
+
+        if isinstance(item, slice):
+            return AtomSelection(self.molsys, self.mask[item])
+
+        elif isinstance(item, (np.ndarray, list, tuple)):
+            item = np.asarray(item)
+            if len(item) == 1 or item.sum() == 1:
+                return Atom(self.molsys, self.mask[item])
+            elif item.dtype == bool:
+                item = np.argwhere(item).T[0]
+                return AtomSelection(self.molsys, item)
+            else:
+                return AtomSelection(self.molsys, self.mask[item])
+
+        elif hasattr(item, '__iter__'):
+            if all([np.issubdtype(type(x), int) for x in item]):
+                return AtomSelection(self.molsys, self.mask[item])
+
+        raise TypeError('Only integer, slice type, and boolean mask arguments are supported at this time')
+
+
     @property
     def fname(self):
+        """File name or functional name of the molecular system"""
         return self.molsys._fname
 
     @fname.setter
@@ -70,6 +112,7 @@ class MolecularSystemBase:
 
     @property
     def positions(self):
+        """3-Dimensional cartesian coordinates of the atoms in the molecular system"""
         return self.coords
 
     @positions.setter
@@ -78,6 +121,7 @@ class MolecularSystemBase:
 
     @property
     def coords(self):
+        """3-dimensional cartesian coordinates of the atoms in the molecular system"""
         return self.trajectory.coords[self.trajectory.frame, self.mask]
 
     @coords.setter
@@ -86,42 +130,54 @@ class MolecularSystemBase:
 
     @property
     def resindices(self):
+        """Residue indices for all atoms in the molecular system"""
         return np.unique(self.molsys.resixs[self.mask])
 
     @property
     def segindices(self):
+        """Segment (chain) indices for all atoms in the molecular system"""
         return np.unique(self.molsys.segixs[self.mask])
 
     @property
     def n_atoms(self):
+        """"Number of atoms in the molecular system"""
         return len(self.mask)
 
     @property
     def n_residues(self):
+        """Number of residues in the molecular system"""
         return len(np.unique(self.resnums[self.mask]))
 
     @property
     def n_chains(self):
+        """Number of chains in the molecular system"""
         return len(np.unique(self.chains[self.mask]))
 
     @property
     def residues(self):
+        """:class:`~ResidueSelection` for all residues of the molecular system"""
         return ResidueSelection(self.molsys, self.mask)
 
     @property
     def segments(self):
+        """:class:`~SegmentSelection` for all segments (chains) of the molecular system"""
         return SegmentSelection(self.molsys, self.mask)
 
     @property
     def logic_keywords(self):
+        """Dictionary of logic keywords (strings) pertaining to :meth:`atom_selection` method. Keywords are mapped
+        to the associated logic function """
         return self.molsys._logic_keywords
 
     @property
     def molsys_keywords(self):
+        """Dictionary of molecular system keywords (strings) pertaining to :meth:`atom_selection` method. Keywords are
+        mapped to the associated molecular system attributes"""
         return self.molsys._molsys_keywords
 
     @property
     def types(self):
+        """Atom types for all atoms of the molecular system"""
         return self.molsys.atypes[self.mask]
 
     @types.setter
@@ -130,9 +186,12 @@ class MolecularSystemBase:
 
     @property
     def universe(self):
+        """Wrapper attribute to allow molecular systems to behave like MDAnalysis AtomGroup objects"""
         return self.molsys
 
     def copy(self):
+        """Creates a deep copy of the underlying MolSys and returns an :class:`AtomSelection` from the new copy
+        matching the current selection if it exists."""
         p2 = self.molsys.copy()
         return AtomSelection(p2, self.mask.copy())
 
@@ -141,8 +200,42 @@ class MolecularSystemBase:
             yield self.molsys.atoms[idx]
 
 
+
 class MolSys(MolecularSystemBase):
-    """MolSys object"""
+    """
+    An object containing all attributes of a molecular system.
+
+    Parameters
+    ----------
+    atomids : np.ndarray
+        Array of atom indices where each index is unique to each atom in the molecular system.
+    names : np.ndarray
+        Array of atom names, e.g. 'N', 'CA' 'C'.
+    altlocs : np.ndarray
+        Array of alternative location identifiers for each atom.
+    resnames : np.ndarray
+        Array of residue names for each atom.
+    resnums : np.ndarray
+        Array of residue numbers for each atom.
+    chains : np.ndarray
+        Array of chain identifiers for each atom.
+    trajectory : np.ndarray
+        Cartesian coordinates of each atom for each state of an ensemble or for each timestep of a trajectory.
+    occupancies : np.ndarray
+        Occupancy or q-factory for each atom.
+    bs : np.ndarray
+        thermal, or b-factors for each atom.
+    segs : np.ndarray
+        Segment/chain IDs for each atom.
+    atypes : np.ndarray
+        Atom/element types.
+    charges : np.ndarray
+        Formal or partial charges assigned to each atom.
+    bonds : ArrayLike
+        Array of atom ID pairs corresponding to all atom bonds in the system.
+    name : str
+        Name of molecular system
+    """
     def __init__(
             self,
             atomids: np.ndarray,
@@ -161,6 +254,7 @@ class MolSys(MolecularSystemBase):
             name: str = 'Noname_MolSys'
 
     ):
+
         self.molsys = self
         self.atomids = atomids.copy()
         self.names = names.copy().astype('U4')
@@ -246,7 +340,21 @@ class MolSys(MolecularSystemBase):
 
     @classmethod
     def from_pdb(cls, file_name, sort_atoms=False):
-        """reads a pdb file and returns a MolSys object"""
+        """
+        Reads a pdb file and returns a MolSys object
+
+        Parameters
+        ----------
+        file_name : str, Path
+            Path to the PDB file to read.
+        sort_atoms : bool
+            Presort atoms for consisted internal coordinate definitions
+
+        Returns
+        -------
+        cls : MolSys
+            Molecular system object of the PDB structure.
+        """
 
         keys = ["skip", "atomids", "names", "altlocs", "resnames", "chains", "resnums",
                 "skip", "coords", "occupancies", "bs", "segs", "atypes", "charges"]
@@ -303,6 +411,33 @@ class MolSys(MolecularSystemBase):
                     segids: ArrayLike = None,
                     trajectory: ArrayLike = None,
                     ) -> MolSys:
+        """
+        Create a MolSys object from a minimal set of arrays.
+
+        Parameters
+        ----------
+        anames : ArrayLike
+            Array of atom names.
+        atypes : ArrayLike
+            Array of atom types/elements.
+        resnames : ArrayLike
+            Array of residue names for each atom.
+        resindices : ArrayLike
+            Array of residue indices for each atom.
+        resnums : ArrayLike
+            Array of residue numbers for each atom.
+        segindices : ArrayLike
+            Array of segment indices for each atom.
+        segids : ArrayLike
+            Array of segment IDs for each atom.
+        trajectory : ArrayLike
+            Array of cartesian coordinates for each atom and each state of an ensemble or frame of a trajectory.
+
+        Returns
+        -------
+        cls : MolSys
+            Molecular system object of the PDB structure.
+        """
         anames = np.asarray(anames)
         atypes = np.asarray(atypes)
         resindices = np.asarray(resindices)
@@ -346,6 +481,23 @@ class MolSys(MolecularSystemBase):
 
     @classmethod
     def from_atomsel(cls, atomsel, frames=None):
+        """
+        Create a new MolSys object from an existing :class:`~AtomSelection` or
+        `MDAnalysis.AtomGroup <https://userguide.mdanalysis.org/stable/atomgroup.html>`_ object.
+
+        Parameters
+        ----------
+        atomsel : :class:`~AtomSelection`, MDAnalysis.AtomGroup
+            The :class:`~AtomSelection` or :class:`~MDAnalysis.AtomGroup` from which to create the new MolSys object.
+        frames : int, Slice, ArrayLike
+            Frame index, slice or array of frame indices corresponding to the frames of the atom selection you wish to
+            extract into a new :class:`~MolSys` object.
+
+        Returns
+        -------
+        cls : MolSys
+            Molecular system object of the PDB structure.
+        """
 
         if isinstance(atomsel, (MDAnalysis.AtomGroup, AtomSelection)):
             U = atomsel.universe
@@ -376,6 +528,9 @@ class MolSys(MolecularSystemBase):
         return cls.from_arrays(anames, atypes, resnames, resindices, resnums, segindices, segids, trajectory)
 
     def copy(self):
+        """
+        Create a deep copy of the MolSys.
+        """
         return MolSys(
             atomids=self.atomids,
             names=self.names,
@@ -392,6 +547,13 @@ class MolSys(MolecularSystemBase):
             name=self.names)
 
     def load_new(self, coordinates):
+        """
+        Load a new set (trajectory or ensemble) of 3-dimensional coordinates into the MolSys.
+        Parameters
+        ----------
+        coordinates : ArrayLike
+            Set of new coordinates to load into the MolSys
+        """
         self.trajectory.load_new(coordinates=coordinates)
 
     @property
@@ -402,8 +564,22 @@ class MolSys(MolecularSystemBase):
 
 
 class Trajectory:
+    """
+    Object containing and managing 3-dimensional coordinates of :class:`~MolSys` objects, particularly when there are
+    multiple states or time steps
 
-    def __init__(self, coordinates, molsys, timestep=1):
+    Parameters
+    ----------
+    coordinates : np.ndarray
+        3-dimensional coordinates for all atoms and all states/frames of the associated :class:`~MolSys` object.
+    molsys : MolSys
+        The associated :class:`~MolSys` object.
+    timestep : float
+        The time step or change in time between frames/states of the trajectory/ensemble.
+    """
+
+    def __init__(self, coordinates : np.ndarray, molsys : MolSys, timestep : float=1):
+
         self.molsys = molsys
         self.timestep = timestep
         self.coords = coordinates
@@ -412,6 +588,14 @@ class Trajectory:
         self.time = np.arange(0, len(self.coords)) * self.timestep
 
     def load_new(self, coordinates):
+        """
+        Load a new set (trajectory or ensemble) of 3-dimensional coordinates into the Trajectory.
+
+        Parameters
+        ----------
+        coordinates : ArrayLike
+            Set of new coordinates to load into the MolSys
+        """
         self.coords = coordinates
         self.coordinate_array = coordinates
         self.time = np.arange(0, len(self.coords)) * self.timestep
@@ -432,6 +616,7 @@ class Trajectory:
 
     @property
     def frame(self):
+        """The frame number the trajectory is currently on"""
         return self._frame
 
     @frame.setter
@@ -440,6 +625,7 @@ class Trajectory:
 
 
 class TrajectoryIterator:
+    """An iterator object for looping over :class:`~Trajectory` objects."""
 
     def __init__(self, trajectory, arg=None):
         self.trajectory = trajectory
@@ -466,6 +652,23 @@ class TrajectoryIterator:
 
 
 def process_statement(statement, logickws, subjectkws):
+    """
+    Parse a selection string to identify subsets of atoms that satisfy the given conditions.
+
+    Parameters
+    ----------
+    statement : str
+        The selection string to parse.
+    logickws : dict
+        Dictionary of logic keywords (strings) mapped to the associated logic function.
+    subjectkws : dict
+        Dictionary of subject keywords (strings) mapped to the associated subject attributes.
+
+    Returns
+    -------
+    mask : np.ndarray
+        Array of subject indices that satisfy the given conditions.
+    """
     sub_statements = parse_paren(statement)
 
     mask = np.ones(subjectkws['_len'], dtype=bool)
@@ -509,6 +712,19 @@ def process_statement(statement, logickws, subjectkws):
 
 
 def parse_paren(string):
+    """
+    Break down a given string to parenthetically defined subcomponents
+
+    Parameters
+    ----------
+    string : str
+        The string to break down.
+
+    Returns
+    -------
+    results : List[str]
+        List of parenthetically defined subcomponents.
+    """
     stack = 0
     start_idx = 0
     end_idx = 0
@@ -543,6 +759,23 @@ def parse_paren(string):
     return results
 
 def check_operation(operation, stat_split, logickws):
+    """
+    Given an advanced operation, identify the additional arguments being passed to the advanced operation and create
+    a simple operation that defined specifically for the provided arguments.
+    Parameters
+    ----------
+    operation : callable
+        A function or callable object that operates on molecular system attributes.
+    stat_split : List[str]
+        the arguments associated with the operation
+    logickws : dict
+        Dictionary of logic keywords (strings) mapped to the associated logic function.
+
+    Returns
+    -------
+    operation : callable
+        A simplified version of the provided operation now accounting for the user provided parameters.
+    """
     advanced_operators = (logickws['within'], logickws['around'], logickws['byres'])
     if operation in advanced_operators:
         outer_operation = logickws['and']
@@ -559,6 +792,23 @@ def check_operation(operation, stat_split, logickws):
 
 
 def build_operator(stat_split, logickws):
+    """
+    A function to combine multiple sequential operators into one.
+
+    Parameters
+    ----------
+    stat_split : List[str]
+        The list of string arguments passed by the user to define the sequence of operations
+    logickws : dict
+        Dictionary of logic keywords (strings) mapped to the associated logic function.
+
+    Returns
+    -------
+    operation : callable
+        A compression of sequential operations combined into one.
+    split_stat : List[str]
+        Any remaining arguments passed by the user that were not used to define ``operation``
+    """
     operation = logickws['and']
     unary_operators = (logickws['not'], logickws['byres'])
     binary_operators = (logickws['and'], logickws['or'])
@@ -596,6 +846,20 @@ def build_operator(stat_split, logickws):
 
 
 def parse_value(value):
+    """
+    Helper function to parse values that may have slices.
+
+    Parameters
+    ----------
+    value : str, int, ArrayLike[int]
+        Values to parse.
+
+    Returns
+    -------
+    return_value : List
+        A list of values that satisfy the input.
+
+    """
     return_value = []
     if '-' in value:
         start, stop = [int(x) for x in value.split('-')]
@@ -618,7 +882,16 @@ def process_sub_statement(subject, values):
 
 
 class AtomSelection(MolecularSystemBase):
+    """
+    An object containing a group of atoms from a :class:`~MolSys` object
 
+    Parameters
+    ----------
+    molsys : :class:`~MolSys`
+        The :class:`~MolSys` object from which the AtomSelection belongs to.
+    mask : np.ndarray
+        An array of atom indices that defines the atoms of ``molsys`` that make up the atom selection.
+    """
     def __new__(cls, *args):
         if len(args) == 2:
             molsys, mask = args
@@ -631,6 +904,7 @@ class AtomSelection(MolecularSystemBase):
             return object.__new__(cls)
 
     def __init__(self, molsys, mask):
+
         self.molsys = molsys
         self.mask = mask
 
@@ -664,6 +938,23 @@ class AtomSelection(MolecularSystemBase):
 
 
 class ResidueSelection(MolecularSystemBase):
+    """
+    An object containing a group of residues and all their atoms from a :class:`~MolSys` object. Note that if one atom of
+    a residue is present in the AtomSelection used to create the group, all atoms of that residue will be present in
+    the ResidueSelection object.
+
+    .. note::
+        Unlike a regular :class:`~AtomSelection` object, the ``resnames``, ``resnums``, ``segids`` and ``chains`` 
+        attributes of this object are tracked with respect to residue not atom and changes made to these attributes
+        on this object will not be present in the parent object and vice versa.
+
+    Parameters
+    ----------
+    molsys : :class:`~MolSys`
+        The :class:`~MolSys` object from which the AtomSelection belongs to.
+    mask : np.ndarray
+        An array of atom indices that defines the atoms of ``molsys`` that make up the atom selection.
+    """
 
     def __init__(self, molsys, mask):
 
@@ -706,6 +997,23 @@ class ResidueSelection(MolecularSystemBase):
 
 
 class SegmentSelection(MolecularSystemBase):
+    """
+    An object containing a group of segements and all their atoms from a :class:`~MolSys` object. Note that if one atom 
+    of a segment is present in the AtomSelection used to create the group, all atoms of that segment will be present in
+    the SegmentSelection object.
+
+    .. note::
+        Unlike a regular :class:`~AtomSelection` object, the ``segids`` and ``chains`` 
+        attributes of this object are tracked with respect to segements not atoms and changes made to these attributes
+        on this object will not be present in the parent object and vice versa.
+
+    Parameters
+    ----------
+    molsys : :class:`~MolSys`
+        The :class:`~MolSys` object from which the AtomSelection belongs to.
+    mask : np.ndarray
+        An array of atom indices that defines the atoms of ``molsys`` that make up the atom selection.
+    """
 
     def __init__(self, molsys, mask):
         seg_ixs = np.unique(molsys.segixs[mask])
@@ -740,6 +1048,16 @@ class SegmentSelection(MolecularSystemBase):
 
 
 class Atom(MolecularSystemBase):
+    """
+    An object containing information for a single atom.
+    
+    Parameters
+    ----------
+    molsys : :class:`~MolSys`
+        The :class:`~MolSys` object from which the Atom belongs to.
+    mask : np.ndarray
+        The index that defines the atoms of ``molsys`` that make up the atom selection.
+    """
     def __init__(self, molsys, mask):
         self.__dict__['molsys'] = molsys
         self.index = mask
@@ -765,6 +1083,17 @@ class Atom(MolecularSystemBase):
 
 
 class Residue(MolecularSystemBase):
+    """
+    An object representing a single residue.
+
+    Parameters
+    ----------
+    molsys : :class:`~MolSys`
+        The :class:`~MolSys` object from which the Residue belongs to.
+    mask : int
+        An array of atom indices that defines the atoms of the residue
+    """
+
     def __init__(self, molsys, mask):
         resix = np.unique(molsys.resixs[mask])[0]
         self.mask = np.argwhere(np.isin(molsys.resixs, resix)).T[0]
@@ -782,6 +1111,16 @@ class Residue(MolecularSystemBase):
         return len(self.mask)
 
     def phi_selection(self):
+        """
+        Get an :class:`~AtomSelection` of the atoms defining the Phi backbone dihedral angle of the residue.
+
+        Returns
+        -------
+        sel : AtomSelection
+            An :class:`~AtomSelection` object containing the atoms that make up the Phi backbone dihedral angle of
+            the selected residue.
+        """
+
         prev = self.atoms.resnums - 1
         prev = np.unique(prev[prev > 0])
 
@@ -793,6 +1132,16 @@ class Residue(MolecularSystemBase):
         return sel if len(sel) == 4 else None
 
     def psi_selection(self):
+        """
+        Get an :class:`~AtomSelection` of the atoms defining the Psi backbone dihedral angle of the residue.
+
+        Returns
+        -------
+        sel : AtomSelection
+            An :class:`~AtomSelection` object containing the atoms that make up the Psi backbone dihedral angle of
+            the selected residue.
+        """
+
         nex = self.atoms.resnums + 1
         nex = np.unique(nex[nex <= self.molsys.resnums.max()])
 
@@ -805,6 +1154,16 @@ class Residue(MolecularSystemBase):
 
 
 class Segment(MolecularSystemBase):
+    """
+    An object represeting a single segment of a molecular system.
+
+    Parameters
+    ----------
+    molsys : :class:`~MolSys`
+        The :class:`~MolSys` object from which the segment belongs to.
+    mask : int
+        An array of atom indices that defines the atoms of the segment
+    """
 
     def __init__(self, molsys, mask):
         segix = np.unique(molsys.segixs[mask])[0]
@@ -816,16 +1175,37 @@ class Segment(MolecularSystemBase):
 
 
 def byres(mask, molsys):
+    """Advanced operator to select atoms by residue"""
     residues = np.unique(molsys.resnums[mask])
     mask = np.isin(molsys.resnums, residues)
     return mask
 
 
 def unot(mask):
+    """Unitary `not` operator"""
     return ~mask
 
 
 def within(distance, mask, molsys):
+    """
+    Advanced logic operator to identify atoms within a user defined distance.
+
+    Parameters
+    ----------
+    distance : float
+        The distance window defining which atoms will be included in the selection.
+    mask : np.ndarray
+        A boolean array defining a subset of  atoms of a :class:`~MolSys` from which the distance cutoff will be
+        measured by.
+    molsys : :class:`~MolSys`
+        A chiLife :class:`~MolSys` from which to select atoms from .
+
+    Returns
+    -------
+    out_mask : np.ndarray
+        A boolean array defining a subset of  atoms of a :class:`~MolSys` that are within the user defined distance
+        of the user defined selection.
+    """
     distance = float(distance)
     tree1 = cKDTree(molsys.coords)
     tree2 = cKDTree(molsys.molsys.coords[mask])

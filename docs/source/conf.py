@@ -45,7 +45,7 @@ templates_path = ['_templates']
 # directories to ignore when looking for source files.
 # This pattern also affects html_static_path and html_extra_path.
 exclude_patterns = []
-autodoc_member_order = 'groupwise'
+autodoc_member_order = 'bysource'
 autodoc_type_aliases = {ArrayLike: 'ArrayLike'}
 source_suffix = [".rst", ".md"]
 add_module_names = False

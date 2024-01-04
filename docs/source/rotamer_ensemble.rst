@@ -17,7 +17,7 @@ acids.
 SpinLabel
 ---------
 
-:class:`chilife.SpinLabel` s are the primary feature of χLife. :class:`chilife.SpinLabel` inherits from the
+The :class:`chilife.SpinLabel` object is the primary feature of χLife. :class:`chilife.SpinLabel` inherits from the
 :class:`chilife.RotamerEnsemble` object and therefore has all the same properties and methods . Additionally
 :class:`chilife.SpinLabel` have several other features unique to spin labels and useful for protein and spin label
 modeling.
@@ -40,3 +40,12 @@ dSpinLabel
 
 .. autoclass:: chilife.dSpinLabel
     :members:
+    :exclude-members: copy
+
+
+IntrinsicLabel
+--------------
+
+.. autoclass:: chilife.IntrinsicLabel
+    :members:
+

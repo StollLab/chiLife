@@ -1426,7 +1426,8 @@ def repack(
         if res.resname not in ["GLY", "ALA"]
            and res.resname in chilife.SUPPORTED_RESIDUES
     ]
-    repack_residue_libraries += [RotamerEnsemble(RL.res, RL.site, protein, rotlib=RL._rotlib, **repack_res_kwargs)
+    repack_residue_libraries += [RotamerEnsemble(RL.res, RL.site, protein, chain=RL.chain, rotlib=RL._rotlib,
+                                                 **repack_res_kwargs)
                                     for RL in spin_labels]
 
     traj = np.empty((repetitions, *protein.positions.shape))

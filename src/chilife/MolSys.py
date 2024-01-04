@@ -75,6 +75,32 @@ class MolecularSystemBase:
         mask = np.argwhere(mask).T[0]
         return AtomSelection(self.molsys, mask)
 
+    def __getitem__(self, item):
+
+        if np.issubdtype(type(item), np.integer):
+            relidx = self.molsys.ix[self.mask][item]
+            return Atom(self.molsys, relidx)
+
+        if isinstance(item, slice):
+            return AtomSelection(self.molsys, self.mask[item])
+
+        elif isinstance(item, (np.ndarray, list, tuple)):
+            item = np.asarray(item)
+            if len(item) == 1 or item.sum() == 1:
+                return Atom(self.molsys, self.mask[item])
+            elif item.dtype == bool:
+                item = np.argwhere(item).T[0]
+                return AtomSelection(self.molsys, item)
+            else:
+                return AtomSelection(self.molsys, self.mask[item])
+
+        elif hasattr(item, '__iter__'):
+            if all([np.issubdtype(type(x), int) for x in item]):
+                return AtomSelection(self.molsys, self.mask[item])
+
+        raise TypeError('Only integer, slice type, and boolean mask arguments are supported at this time')
+
+
     @property
     def fname(self):
         """File name or functional name of the molecular system"""
@@ -172,6 +198,7 @@ class MolecularSystemBase:
     def __iter__(self):
         for idx in self.mask:
             yield self.molsys.atoms[idx]
+
 
 
 class MolSys(MolecularSystemBase):

@@ -556,7 +556,7 @@ def write_atoms(file: TextIO,
         coords = atoms.positions
 
     for atom, coord in zip(atoms, coords):
-        f.write(
+        file.write(
             f"ATOM  {atom.index + 1:5d} {atom.name:^4s} {atom.resname:3s} {'A':1s}{atom.resnum:4d}    "
             f"{coord[0]:8.3f}{coord[1]:8.3f}{coord[2]:8.3f}{1.0:6.2f}{1.0:6.2f}          {atom.type:>2s}  \n"
         )

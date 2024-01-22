@@ -283,12 +283,18 @@ class RotamerEnsemble:
         energy : ArrayLike
             Potential energy of the residue at each frame of the trajectory in kcal/mol
         burn_in : int
-             Number of frames to skip from the trajectory. Used to skip burn-in period when performin MCMC sampling.
+             Number of frames to skip from the trajectory. Used to skip burn-in period when performing MCMC sampling.
         **kwargs : dict
             Additional keyword arguments to use for creating the RotamerEnsemble.
-            dihedral_atoms:
-            temp:
-            spin_atoms:
+
+            dihedral_atoms : list
+                A list of atoms defining the mobile dihedral angles of the residue. Primarily used when creating an
+                ensemble of a residue type chiLife is unaware of (see :ref:`mobile_dihedrals`
+            temp : float
+                Temperature to use when evaluating conformational populations from user supplied ``energy`` argument.
+            spin_atoms : list, dict
+                A list or dict defining the spin atoms of the label and their relative populations (see
+                :ref:`spin_atoms`).
 
         Returns
         -------

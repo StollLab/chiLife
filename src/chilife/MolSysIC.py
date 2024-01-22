@@ -132,7 +132,7 @@ class MolSysIC:
                    bonds: ArrayLike = None,
                    **kwargs: Dict):
         """
-
+        Generate a MolSysIC object from a :class:`~chilife.AtomSelection` or `MDAnalysis.AtomGroup` object.
 
         Parameters
         ----------
@@ -144,11 +144,11 @@ class MolSysIC:
             Array of tuples defining the atom pairs that are bonded.
         kwargs : dict
             Additional keyword arguments.
+
             ignore:water : bool
                 Ignore atoms that belong to water molecules.
             use_chain_operators : bool
                 Allow for the use of a translation and rotation vectors to orient cains that are not covalently linked.
-
 
         Returns
         -------
@@ -707,12 +707,14 @@ class MolSysIC:
     def load_new(self, z_matrix, **kwargs):
         """
         Replace the current z-matrix ensemble/trajectory with new one.
+
         Parameters
         ----------
         z_matrix : np.ndarray
             New z-matrix to load into the MolSysIC
         kwargs : dict
             Additional keyword arguments.
+
             op : dict
                 New chain operators for the new z-matrix.
         """

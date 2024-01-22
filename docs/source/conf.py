@@ -29,6 +29,7 @@ author = 'Maxx Tessmer'
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = ['sphinx.ext.autodoc',
+              'sphinx.ext.autosectionlabel',
               'sphinx_mdinclude',
               'sphinx.ext.coverage',
               'sphinx.ext.napoleon',

@@ -127,6 +127,12 @@ traj, de = xl.repack(SL1, SL2, protein=MBP, off_rotamer=True)
 SL1 = xl.SpinLabel.from_trajectory(traj, site=238)
 ```
 
+>Note: if you are creating a SpinLabel object from a label that is unknown to chilife you will have to specify which
+> atoms the spin density primarily resides on. this is done with the ``spin_atoms`` kwarg, e.g.
+> ```python
+> SL1 = xl.SpinLabel.from_trajectory(traj, site=238, spin_atoms=['N1', 'O1'])
+> ```
+
 Off rotamer sampling can be controlled on a per dihedral basis when repacking with chiLife by passing a list of bools to 
 the off_rotamer variable. For example, passing `off_rotamer = [False, False, False, True, True]` will allow for off 
 rotamer sampling of only &chi;<sub>4</sub> and &chi;<sub>5</sub>.

@@ -251,7 +251,7 @@ class RotamerEnsemble:
         Parameters
         ----------
         residue : MDAnalysis.Residue, chiLife.Residue
-            Residue object from which to create the RotamerEnsemble.
+            A Residue object from which to create the RotamerEnsemble.
         **kwargs : dict
             Additional keyword arguments to use for creating the RotamerEnsemble.
 
@@ -286,6 +286,9 @@ class RotamerEnsemble:
              Number of frames to skip from the trajectory. Used to skip burn-in period when performin MCMC sampling.
         **kwargs : dict
             Additional keyword arguments to use for creating the RotamerEnsemble.
+            dihedral_atoms:
+            temp:
+            spin_atoms:
 
         Returns
         -------
@@ -359,6 +362,13 @@ class RotamerEnsemble:
 
             lib['spin_atoms'] = np.array(list(spin_atoms.keys()))
             lib['spin_weights'] = np.array(list(spin_atoms.values()))
+
+        elif lib_path := chilife.get_possible_rotlibs(resname, suffix='rotlib', extension='.npz'):
+            with np.load(lib_path) as f:
+                if 'spin_atoms' in f:
+                    lib['spin_atoms'] = f['spin_atoms']
+                    lib['spin_weights'] = f['spin_weights']
+
         kwargs.setdefault('eval_clash', False)
         return cls(resname, site, traj, chain, lib, **kwargs)
 

@@ -62,7 +62,7 @@ class MolecularSystemBase:
 
         Returns
         -------
-        atoms : :class:`~AtomGroup`
+        atoms : :class:`~AtomSelection`
             Selected atoms
         """
 
@@ -488,7 +488,7 @@ class MolSys(MolecularSystemBase):
         Parameters
         ----------
         atomsel : :class:`~AtomSelection`, MDAnalysis.AtomGroup
-            The :class:`~AtomSelection` or :class:`~MDAnalysis.AtomGroup` from which to create the new MolSys object.
+            The :class:`~AtomSelection` or MDAnalysis.AtomGroup from which to create the new MolSys object.
         frames : int, Slice, ArrayLike
             Frame index, slice or array of frame indices corresponding to the frames of the atom selection you wish to
             extract into a new :class:`~MolSys` object.
@@ -549,6 +549,7 @@ class MolSys(MolecularSystemBase):
     def load_new(self, coordinates):
         """
         Load a new set (trajectory or ensemble) of 3-dimensional coordinates into the MolSys.
+
         Parameters
         ----------
         coordinates : ArrayLike
@@ -566,7 +567,7 @@ class MolSys(MolecularSystemBase):
 class Trajectory:
     """
     Object containing and managing 3-dimensional coordinates of :class:`~MolSys` objects, particularly when there are
-    multiple states or time steps
+    multiple states or time steps.
 
     Parameters
     ----------
@@ -998,7 +999,7 @@ class ResidueSelection(MolecularSystemBase):
 
 class SegmentSelection(MolecularSystemBase):
     """
-    An object containing a group of segements and all their atoms from a :class:`~MolSys` object. Note that if one atom 
+    An object containing a group of segments and all their atoms from a :class:`~MolSys` object. Note that if one atom
     of a segment is present in the AtomSelection used to create the group, all atoms of that segment will be present in
     the SegmentSelection object.
 
@@ -1155,14 +1156,14 @@ class Residue(MolecularSystemBase):
 
 class Segment(MolecularSystemBase):
     """
-    An object represeting a single segment of a molecular system.
+    An object representing a single segment of a molecular system.
 
     Parameters
     ----------
-    molsys : :class:`~MolSys`
+    molsys : MolSys
         The :class:`~MolSys` object from which the segment belongs to.
     mask : int
-        An array of atom indices that defines the atoms of the segment
+        An array of atom indices that defines the atoms of the segment.
     """
 
     def __init__(self, molsys, mask):

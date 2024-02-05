@@ -251,7 +251,7 @@ class RotamerEnsemble:
         Parameters
         ----------
         residue : MDAnalysis.Residue, chiLife.Residue
-            Residue object from which to create the RotamerEnsemble.
+            A Residue object from which to create the RotamerEnsemble.
         **kwargs : dict
             Additional keyword arguments to use for creating the RotamerEnsemble.
 
@@ -283,9 +283,18 @@ class RotamerEnsemble:
         energy : ArrayLike
             Potential energy of the residue at each frame of the trajectory in kcal/mol
         burn_in : int
-             Number of frames to skip from the trajectory. Used to skip burn-in period when performin MCMC sampling.
+             Number of frames to skip from the trajectory. Used to skip burn-in period when performing MCMC sampling.
         **kwargs : dict
             Additional keyword arguments to use for creating the RotamerEnsemble.
+
+            dihedral_atoms : list
+                A list of atoms defining the mobile dihedral angles of the residue. Primarily used when creating an
+                ensemble of a residue type chiLife is unaware of (see :ref:`mobile_dihedrals`
+            temp : float
+                Temperature to use when evaluating conformational populations from user supplied ``energy`` argument.
+            spin_atoms : list, dict
+                A list or dict defining the spin atoms of the label and their relative populations (see
+                :ref:`spin_atoms`).
 
         Returns
         -------
@@ -359,6 +368,13 @@ class RotamerEnsemble:
 
             lib['spin_atoms'] = np.array(list(spin_atoms.keys()))
             lib['spin_weights'] = np.array(list(spin_atoms.values()))
+
+        elif lib_path := chilife.get_possible_rotlibs(resname, suffix='rotlib', extension='.npz'):
+            with np.load(lib_path) as f:
+                if 'spin_atoms' in f:
+                    lib['spin_atoms'] = f['spin_atoms']
+                    lib['spin_weights'] = f['spin_weights']
+
         kwargs.setdefault('eval_clash', False)
         return cls(resname, site, traj, chain, lib, **kwargs)
 

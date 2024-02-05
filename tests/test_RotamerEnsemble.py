@@ -323,6 +323,13 @@ def test_from_trajectory():
     SL1 = chilife.SpinLabel.from_trajectory(traj, 238, burn_in=0, spin_atoms=['N1', 'O1'])
     assert np.all(SL1.spin_atoms == np.array(['N1', 'O1']))
 
+
+def test_spin_from_traj():
+    SL1 = chilife.RotamerEnsemble.from_trajectory(traj, 238, burn_in=0)
+    np.testing.assert_equal(SL1.spin_atoms, ['N1', 'O1'])
+    np.testing.assert_equal(SL1.spin_weights, [0.5, 0.5])
+
+
 def test_to_rotlib():
 
     # Generate rotamer library from trajectory

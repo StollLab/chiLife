@@ -991,8 +991,8 @@ class ResidueSelection(MolecularSystemBase):
         return len(self.first_ix)
 
     def __iter__(self):
-        for resnum in self.resnums:
-            mask = self.molsys.resnums == resnum
+        for resnum, segid in zip(self.resnums, self.segids):
+            mask = (self.molsys.resnums == resnum) * (self.molsys.segids == segid)
             yield Residue(self.molsys, mask)
 
 

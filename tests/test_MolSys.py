@@ -415,3 +415,13 @@ def test_from_atomsel():
     np.testing.assert_equal(new_prot.positions, atomsel.positions)
     np.testing.assert_equal(new_prot.ix + 435, atomsel.ix)
     assert len(new_prot.trajectory) == len(atomsel.universe.trajectory)
+
+
+def test_ResidueSelection_iter():
+    prot = MolSys.from_pdb('test_data/1a2w.pdb')
+    chain_B = prot.select_atoms('chain B')
+    for res in chain_B.residues:
+        assert res.chain == 'B'
+        assert np.all(res.atoms.chains == 'B')
+        
+

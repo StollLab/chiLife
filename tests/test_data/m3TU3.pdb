@@ -39,6 +39,7 @@ EXPDTA    X-RAY DIFFRACTION
 AUTHOR    A.S.HALAVATY,D.BOREK,Z.OTWINOWSKI,G.MINASOV,J.L.VEESENMEYER,G.TYSON,  
 AUTHOR   2 L.SHUVALOVA,A.R.HAUSER,W.F.ANDERSON,CENTER FOR STRUCTURAL GENOMICS   
 AUTHOR   3 OF INFECTIOUS DISEASES (CSGID)                                       
+REVDAT   4   28-FEB-24 3TU3    1       SEQADV                                   
 REVDAT   3   08-NOV-17 3TU3    1       REMARK                                   
 REVDAT   2   05-DEC-12 3TU3    1       JRNL                                     
 REVDAT   1   23-MAY-12 3TU3    0                                                
@@ -55,7 +56,8 @@ REMARK   2 RESOLUTION.    1.92 ANGSTROMS.
 REMARK   3                                                                      
 REMARK   3 REFINEMENT.                                                          
 REMARK   3   PROGRAM     : REFMAC 5.5.0102                                      
-REMARK   3   AUTHORS     : MURSHUDOV,VAGIN,DODSON                               
+REMARK   3   AUTHORS     : MURSHUDOV,SKUBAK,LEBEDEV,PANNU,STEINER,              
+REMARK   3               : NICHOLLS,WINN,LONG,VAGIN                             
 REMARK   3                                                                      
 REMARK   3    REFINEMENT TARGET : MAXIMUM LIKELIHOOD                            
 REMARK   3                                                                      
@@ -11674,5 +11676,5 @@ HETATM 5673  O   HOH B1120      78.780  78.903  54.623  1.00 32.10           O
 HETATM 5674  O   HOH B1121      75.667  76.127  55.980  1.00 40.02           O  
 HETATM 5675  O  AHOH B1122      60.224  43.831  34.229  0.50 27.33           O  
 HETATM 5676  O   HOH B1123      23.851  44.297  30.756  1.00 32.84           O  
-MASTER      598    0    0   34   16    0    0    6 5427    2    0   68          
+MASTER      599    0    0   34   16    0    0    6 5427    2    0   68          
 END                                                                             

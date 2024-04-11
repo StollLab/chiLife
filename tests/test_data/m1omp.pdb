@@ -13,6 +13,7 @@ SOURCE   4 EXPRESSION_SYSTEM_VECTOR_TYPE: BACTERIAL
 KEYWDS    PERIPLASMIC BINDING PROTEIN                                           
 EXPDTA    X-RAY DIFFRACTION                                                     
 AUTHOR    A.J.SHARFF,F.A.QUIOCHO                                                
+REVDAT   6   14-FEB-24 1OMP    1       REMARK                                   
 REVDAT   5   14-AUG-19 1OMP    1       REMARK                                   
 REVDAT   4   17-JUL-19 1OMP    1       REMARK                                   
 REVDAT   3   24-FEB-09 1OMP    1       VERSN                                    

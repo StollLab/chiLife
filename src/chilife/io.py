@@ -332,14 +332,15 @@ def save(
                     file_name += ' ' + Path(protein.filename).name
                     file_name = file_name[:-4]
 
-        if file_name == '':
+        if file_name == '' and len(molecules['molcart']) > 0:
             file_name = "No_Name_Protein"
 
         # Add spin label information to file name
         if 0 < len(molecules['rotens']) < 3:
-            for rotens in molecules['rotens']:
-                file_name += f"_{rotens.name}"
-        else:
+            naml = [file_name] + [rotens.name for rotens in molecules['rotens']]
+            file_name = "_".join(naml)
+            file_name = file_name.strip('_')
+        elif len(molecules['rotens']) >= 3:
             file_name += "_many_labels"
 
         file_name += ".pdb"

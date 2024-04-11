@@ -791,6 +791,40 @@ def pose2mda(pose) -> MDAnalysis.Universe:
     return mda_protein
 
 
+def xplor2mda(xplor_sim) -> MDAnalysis.Universe:
+    """
+    Converts an Xplor-NIH xplor.simulation object to an MDAnalysis Universe object
+
+    Parameters
+    ----------
+    xplor_sim : xplor.simulation
+        an Xplor-NIH simulation object. (See https://nmr.cit.nih.gov/xplor-nih/doc/current/python/ref/simulation.html)
+    Returns
+    -------
+
+    """
+    n_atoms = xplor_sim.numAtoms()
+    a_names = np.array([xplor_sim.atomName(i) for i in range(n_atoms)])
+    a_types = np.array([xplor_sim.chemType(i)[0] for i in range(n_atoms)])
+
+    resnames = np.array([xplor_sim.residueName(i) for i in range(len(xplor_sim.residueNameArr()))])
+    resnums = np.array(xplor_sim.residueNumArr())
+
+    _, uidx = np.unique(resnums, return_index=True)
+    _, resindices = np.unique(resnums, return_inverse=True)
+
+    resnums = resnums[uidx]
+    resnames = resnames[uidx]
+
+    n_residues = len(resnames)
+    segindices = np.array([0] * n_residues)
+
+    mda_protein = make_mda_uni(a_names, a_types, resnames, resindices, resnums, segindices)
+    mda_protein.atoms.positions = np.array(xplor_sim.atomPosArr())
+
+    return mda_protein
+
+
 def guess_bonds(coords: ArrayLike, atom_types: ArrayLike) -> np.ndarray:
     """ Given a set of coordinates and their atom types (elements) guess the bonds based off an empirical metric.
 

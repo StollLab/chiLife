@@ -186,11 +186,17 @@ class RotamerEnsemble:
 
     def __str__(self):
         return (
-            f"Rotamer ensemble with {np.size(self.weights)} members\n"
-            f"  Name: {self.name}\n"
-            f"  Label: {self.res}\n"
-            f"  Site: {self.site}\n"
+            f"Rotamer ensemble with {np.size(self.weights)} members\n" +
+            f"  Name: {self.name}\n" +
+            f"  Label: {self.res}\n" +
+            f"  Site: {self.site}\n" +
+            f"  Dihedral definitions:\n" +
+            f"\n".join([f'    {d}' for d in self.dihedral_atoms]) +
+            f"\n"
         )
+
+    def __repr__(self):
+        return str(self)
 
     @classmethod
     def from_pdb(

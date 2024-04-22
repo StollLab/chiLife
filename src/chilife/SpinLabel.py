@@ -62,43 +62,9 @@ class SpinLabel(RotamerEnsemble):
         """Average location of all the label's `spin_coords` weighted based off of the rotamer weights"""
         return np.average(self.spin_centers, weights=self.weights, axis=0)
 
-    def protein_setup(self):
-
-        if isinstance(self.protein, (mda.AtomGroup, mda.Universe)):
-            if not hasattr(self.protein.universe._topology, "altLocs"):
-                self.protein.universe.add_TopologyAttr('altLocs', np.full(len(self.protein.universe.atoms), ""))
-
-        self.protein = self.protein.select_atoms("not (byres name OH2 or resname HOH)")
-        self.to_site()
-        self.backbone_to_site()
-        clash_ignore_idx = self.protein.select_atoms(f"resid {self.site} and segid {self.chain}").ix
-        self.clash_ignore_idx = np.argwhere(np.isin(self.protein.ix, clash_ignore_idx)).flatten()
-        self.resindex = self.protein.select_atoms(self.selstr).resindices[0]
-        self.segindex = self.protein.select_atoms(self.selstr).segindices[0]
-
-        if self.protein_tree is None:
-            self.protein_tree = cKDTree(self.protein.atoms.positions)
-
-        protein_clash_idx = self.protein_tree.query_ball_point(
-            self.clash_ori, self.clash_radius
-        )
-        self.protein_clash_idx = [
-            idx for idx in protein_clash_idx if idx not in self.clash_ignore_idx
-        ]
-
-        # Evaluate external clash energies and reweight rotamers
-        if self._minimize and self.eval_clash:
-            raise RuntimeError('Both `minimize` and `eval_clash` options have been selected, but they are incompatible.'
-                               'Please select only on. Also note that minimize performs its own clash evaluations so '
-                               'eval_clash is not necessary.')
-        elif self.eval_clash:
-            self.evaluate()
-
-        elif self._minimize:
-            self.minimize()
 
     @classmethod
-    def from_mmm(cls, label, site, protein=None, chain=None, **kwargs):
+    def from_mmm(cls, label, site=None, protein=None, chain=None, **kwargs):
         """Create a SpinLabel object using the default MMM protocol with any modifications passed via kwargs"""
 
         MMM_maxdist = {
@@ -147,7 +113,7 @@ class SpinLabel(RotamerEnsemble):
     def from_wizard(
         cls,
         label,
-        site=1,
+        site=None,
         protein=None,
         chain=None,
         to_find=200,
@@ -165,7 +131,7 @@ class SpinLabel(RotamerEnsemble):
         internal_coords = []
         i = 0
         if protein is not None:
-            protein_clash_idx = prelib.protein_tree.query_ball_point(prelib.centroid(), 19.0)
+            protein_clash_idx = prelib.protein_tree.query_ball_point(prelib.centroid, 19.0)
             protein_clash_idx = [idx for idx in protein_clash_idx if idx not in prelib.clash_ignore_idx]
 
         a, b = [list(x) for x in zip(*prelib.non_bonded)]

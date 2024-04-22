@@ -41,6 +41,25 @@ def test_with_sample():
     assert len(SL._coords) == len(SL.internal_coords)
 
 
+def test_sample_partial():
+    np.random.seed(200)
+    SL = chilife.RotamerEnsemble("R1M", 28, ubq, sample=200, dihedral_sigmas=[0, 0, 0, np.inf, np.inf])
+
+
+def test_update():
+    SL1= chilife.RotamerEnsemble('R1M', 28, ubq, eval_clash=True)
+    SL2 = chilife.RotamerEnsemble('R1M', 28, U, eval_clash=True)
+    maxdiff = np.linalg.norm(SL1.origin - SL2.origin).max()
+    assert maxdiff > 1
+
+    SL1.protein = U
+    SL1.update()
+
+    np.testing.assert_allclose(SL1.coords, SL2.coords, rtol=1e-5)
+    np.testing.assert_allclose(SL1.dihedrals, SL2.dihedrals, rtol=1e-5)
+    np.testing.assert_allclose(SL1.weights, SL2.weights, rtol=1e-5)
+
+
 def test_user_label():
     SL = chilife.SpinLabel("TRT", 28, ubq, "A")
     chilife.save("28TRT.pdb", SL, KDE=False)

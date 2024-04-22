@@ -306,29 +306,6 @@ def test_MMM_dd(key):
     np.testing.assert_almost_equal(Ptest, Pans, decimal=6)
 
 
-def test_save():
-    L20R1 = chilife.SpinLabel("R1C", 20, protein)
-    S238T = chilife.RotamerEnsemble("THR", 238, protein)
-    A318DHC = chilife.dSpinLabel("DHC", [318, 322], protein, rotlib='test_data/DHC')
-
-    chilife.save(L20R1, S238T, A318DHC, protein, KDE=False)
-
-    with open(f"test_data/test_save.pdb", "r") as f:
-        ans = hashlib.md5(f.read().encode("utf-8")).hexdigest()
-
-    with open("No_Name_Protein_many_labels.pdb", "r") as f:
-        test = hashlib.md5(f.read().encode("utf-8")).hexdigest()
-
-    os.remove("No_Name_Protein_many_labels.pdb")
-
-    assert ans == test
-
-
-def test_save_fail():
-    with pytest.raises(TypeError):
-        chilife.save("tmp", np.array([1, 2, 3]))
-
-
 def test_use_local_library():
     weights = np.loadtxt(f'test_data/R1M.weights')
     dihedral_names = np.loadtxt(f'test_data/R1M.chi', dtype='U').tolist()

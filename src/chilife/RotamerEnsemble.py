@@ -105,12 +105,12 @@ class RotamerEnsemble:
 
         self.site = int(site)
         self.resnum = self.site
-        self.protein = protein
-        self.nataa = ""
-        self.chain = chain if chain is not None else guess_chain(self.protein, self.site)
+        self.chain = chain if chain is not None else guess_chain(protein, self.site)
         self.selstr = f"resid {self.site} and segid {self.chain} and not altloc B"
+        self.nataa = ""
         self.input_kwargs = kwargs
         self.__dict__.update(assign_defaults(kwargs))
+        self.protein = protein
 
         # Convert string arguments for alignment_method to respective function
         if isinstance(self.alignment_method, str):
@@ -126,7 +126,10 @@ class RotamerEnsemble:
             self.set_dihedral_sampling_sigmas(self.dihedral_sigmas)
 
         self._rsigmas = np.deg2rad(self.sigmas)
-        self._rkappas = 1 / self._rsigmas**2
+        with np.errstate(divide='ignore'):
+            self._rkappas = 1 / self._rsigmas**2
+
+        self._rkappas = np.clip(self._rkappas, 0, 1e16)
 
         # Remove hydrogen atoms unless otherwise specified
         if not self.use_H:
@@ -154,24 +157,6 @@ class RotamerEnsemble:
         _, self.irmin_ij, self.ieps_ij, _ = chilife.prep_internal_clash(self)
         self.aidx, self.bidx = [list(x) for x in zip(*self.non_bonded)]
 
-        # Sample from library if requested
-        if self._sample_size and len(self.dihedral_atoms) > 0:
-            # Draw samples
-            self._coords = np.tile(self._coords[0], (self._sample_size, 1, 1))
-            self._coords, self.weights, self.internal_coords = self.sample(
-                self._sample_size, off_rotamer=True, return_dihedrals=True
-            )
-
-            # Remove structures with internal clashes
-            dist = np.linalg.norm(self._coords[:, self.aidx] - self._coords[:, self.bidx], axis=2)
-            sidx = np.atleast_1d(np.squeeze(np.argwhere(np.all(dist > 2, axis=1))))
-            self.internal_coords.use_frames(sidx)
-            self._dihedrals = np.asarray(
-                [self.internal_coords.get_dihedral(1, self.dihedral_atoms) for ts in self.internal_coords.trajectory]
-            )
-            self._dihedrals = np.rad2deg(self._dihedrals)
-            self._coords, self.weights = self._coords[sidx], self.weights[sidx]
-
         # Allocate variables for clash evaluations
         self.atom_energies = None
         self.clash_ignore_idx = None
@@ -180,7 +165,7 @@ class RotamerEnsemble:
         # Assign a name to the label
         self.name = self.rotlib
         if self.site is not None:
-            self.name = str(self.site) + self.rotlib
+            self.name = self.nataa + str(self.site) + self.rotlib
         if self.chain not in ('A', None):
             self.name += f"_{self.chain}"
 
@@ -189,11 +174,7 @@ class RotamerEnsemble:
             self.rmin2 = chilife.get_lj_rmin(self.atom_types[self.side_chain_idx])
             self.eps = chilife.get_lj_eps(self.atom_types[self.side_chain_idx])
 
-        if hasattr(self.protein, "atoms") and isinstance(self.protein.atoms, (mda.AtomGroup, chilife.MolecularSystemBase)):
-            self.protein_setup()
-            resname = self.protein.atoms[self.clash_ignore_idx[0]].resname
-            self.nataa = chilife.nataa_codes.get(resname, resname)
-            self.name = self.nataa + self.name
+        self.update(no_lib=True)
 
         # Store atom information as atom objects
         self.atoms = [
@@ -378,6 +359,66 @@ class RotamerEnsemble:
         kwargs.setdefault('eval_clash', False)
         return cls(resname, site, traj, chain, lib, **kwargs)
 
+    def update(self, no_lib=False):
+        # Sample from library if requested
+        if self._sample_size and len(self.dihedral_atoms) > 0:
+            mask = self.sigmas.sum(axis=0) == 0
+
+            # Draw samples
+            coords, weights, internal_coords = self.sample(self._sample_size, off_rotamer=~mask, return_dihedrals=True)
+
+            # Remove structures with internal clashes
+            dist = np.linalg.norm(coords[:, self.aidx] - coords[:, self.bidx], axis=2)
+            sidx = np.atleast_1d(np.squeeze(np.argwhere(np.all(dist > 2, axis=1))))
+            self.internal_coords = internal_coords
+            self.internal_coords.use_frames(sidx)
+            dihedrals = np.asarray(
+                [self.internal_coords.get_dihedral(1, self.dihedral_atoms) for ts in self.internal_coords.trajectory]
+            )
+            self._dihedrals = np.rad2deg(dihedrals)
+            self._coords, self.weights = coords[sidx], weights[sidx]
+
+        elif not no_lib:
+            # Reset to library
+            self._coords = self._lib_coords.copy()
+            self._dihedrals = self._lib_dihedrals.copy()
+            self.internal_coords = self._lib_IC
+            self.weights = self._weights.copy()
+
+        if self.protein is not None:
+            self.protein_setup()
+    def protein_setup(self):
+        self.to_site()
+        self.backbone_to_site()
+
+        # Get weight of current or closest rotamer
+        clash_ignore_idx = self.protein.select_atoms(f"resid {self.site} and segid {self.chain}").ix
+        self.clash_ignore_idx = np.argwhere(np.isin(self.protein.ix, clash_ignore_idx)).flatten()
+        protein_clash_idx = self.protein_tree.query_ball_point(self.clash_ori, self.clash_radius)
+        self.protein_clash_idx = [idx for idx in protein_clash_idx if idx not in self.clash_ignore_idx]
+
+        if self._coords.shape[1] == len(self.clash_ignore_idx):
+            RMSDs = np.linalg.norm(
+                self._coords - self.protein.atoms[self.clash_ignore_idx].positions[None, :, :],
+                axis=(1, 2)
+            )
+
+            idx = np.argmin(RMSDs)
+            self.current_weight = self.weights[idx]
+        else:
+            self.current_weight = 0
+
+        # Evaluate external clash energies and reweigh rotamers
+        if self._minimize and self.eval_clash:
+            raise RuntimeError('Both `minimize` and `eval_clash` options have been selected, but they are incompatible.'
+                               'Please select only one. Also note that minimize performs its own clash evaluations so '
+                               'eval_clash is not necessary.')
+        elif self.eval_clash:
+            self.evaluate()
+
+        elif self._minimize:
+            self.minimize()
+
     def to_rotlib(self,
                   libname: str = None,
                   description: str = None,
@@ -473,7 +514,7 @@ class RotamerEnsemble:
         for item in self.__dict__:
             if isinstance(item, np.ndarray) or item == 'internal_coords':
                 new_copy.__dict__[item] = self.__dict__[item].copy()
-            elif item not in  ("protein", '_lib_IC', '_rotlib'):
+            elif item not in  ("_protein", '_lib_IC', '_rotlib'):
                 new_copy.__dict__[item] = deepcopy(self.__dict__[item])
             elif self.__dict__[item] is None:
                 new_copy.protein = None
@@ -871,6 +912,7 @@ class RotamerEnsemble:
             f"{100 * (1-self.trim_tol):.2f}% of rotamer density for site {self.site}"
         )
 
+    @property
     def centroid(self):
         """Get the centroid of the whole rotamer ensemble."""
         return self._coords.mean(axis=(0, 1))
@@ -984,13 +1026,7 @@ class RotamerEnsemble:
             lib['skews'] = None
         return lib
 
-    def protein_setup(self):
-        """
-        Performs all tasks associated with setting up the RotamerEnsemble in the context of a protein. This includes
-        translating and rotating the RotamerEnsemble to align with the desired site, evaluating clashes with the protein
-        and/or performing a minimization of the ensemble in dihedral space.
-        """
-
+    def init_protein(self):
         if isinstance(self.protein, (mda.AtomGroup, mda.Universe)):
             if not hasattr(self.protein.universe._topology, "altLocs"):
                 self.protein.universe.add_TopologyAttr('altLocs', np.full(len(self.protein.universe.atoms), ""))
@@ -998,42 +1034,14 @@ class RotamerEnsemble:
         # Position library at selected residue
         self.resindex = self.protein.select_atoms(self.selstr).resindices[0]
         self.segindex = self.protein.select_atoms(self.selstr).segindices[0]
-        self.protein = self.protein.select_atoms("not (byres name OH2 or resname HOH)")
+        self._protein = self.protein.select_atoms("not (byres name OH2 or resname HOH)")
+        self.protein_tree = cKDTree(self._protein.atoms.positions)
 
-        if self.protein_tree is None:
-            self.protein_tree = cKDTree(self.protein.atoms.positions)
+        # Delete cached lennard jones parameters if they exist.
+        if hasattr(self, 'ermin_ij'):
+            del self.ermin_ij
+            del self.eeps_ij
 
-        self.to_site()
-        self.backbone_to_site()
-
-        # Get weight of current or closest rotamer
-        clash_ignore_idx = self.protein.select_atoms(f"resid {self.site} and segid {self.chain}").ix
-        self.clash_ignore_idx = np.argwhere(np.isin(self.protein.ix, clash_ignore_idx)).flatten()
-        protein_clash_idx = self.protein_tree.query_ball_point(self.clash_ori, self.clash_radius)
-        self.protein_clash_idx = [idx for idx in protein_clash_idx if idx not in self.clash_ignore_idx]
-
-        if self._coords.shape[1] == len(self.clash_ignore_idx):
-            RMSDs = np.linalg.norm(
-                self._coords - self.protein.atoms[self.clash_ignore_idx].positions[None, :, :],
-                axis=(1, 2)
-            )
-
-            idx = np.argmin(RMSDs)
-            self.current_weight = self.weights[idx]
-        else:
-            self.current_weight = 0
-
-        # Evaluate external clash energies and reweigh rotamers
-
-        if self._minimize and self.eval_clash:
-            raise RuntimeError('Both `minimize` and `eval_clash` options have been selected, but they are incompatible.'
-                               'Please select only one. Also note that minimize performs its own clash evaluations so '
-                               'eval_clash is not necessary.')
-        elif self.eval_clash:
-            self.evaluate()
-
-        elif self._minimize:
-            self.minimize()
 
     @property
     def bonds(self):
@@ -1086,7 +1094,7 @@ class RotamerEnsemble:
                 return self._clash_ori_inp
         elif isinstance(self._clash_ori_inp, str):
             if self._clash_ori_inp in ["cen", "centroid"]:
-                return self.centroid()
+                return self.centroid
             elif (ori_name := self._clash_ori_inp.upper()) in self.atom_names:
                 return np.squeeze(self._coords[0][ori_name == self.atom_names])
         else:
@@ -1141,7 +1149,7 @@ class RotamerEnsemble:
     @dihedrals.setter
     def dihedrals(self, dihedrals):
 
-        warnings.warn('WARNING: Setting dihedrals in this fashion will remove set all bond lengths and angles to that '
+        warnings.warn('WARNING: Setting dihedrals in this fashion will set all bond lengths and angles to that '
                       'of the first rotamer in the library effectively removing stereo-isomers from the ensemble. It '
                       'will also set all weights to .')
 
@@ -1180,6 +1188,27 @@ class RotamerEnsemble:
             raise ValueError("There is no CB atom in this side chain")
         cbidx = np.argwhere(self.atom_names == 'CB').flat[0]
         return self.coords[:, cbidx].mean(axis=0)
+
+    @property
+    def protein(self):
+        return self._protein
+
+    @protein.setter
+    def protein(self, protein):
+
+        if hasattr(protein, "atoms") and isinstance(protein.atoms, (mda.AtomGroup, chilife.MolecularSystemBase)):
+            self._protein = protein
+            self.init_protein()
+            resname = self.protein.select_atoms(self.selstr)[0].resname
+            self.nataa = chilife.nataa_codes.get(resname, resname)
+
+        elif protein is None:
+            self._protein = protein
+        else:
+            raise ValueError("The input protein must be an instance of MDAnalysis.Universe, MDAnalysis.AtomGroup, or "
+                             "chilife.MolSys")
+
+
 
     def get_sasa(self):
         """Calculate the solvent accessible surface area (SASA) of each rotamer in the protein environment."""

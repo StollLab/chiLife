@@ -1190,7 +1190,7 @@ def list_available_rotlibs():
     print(f"*{'DUNBRACK ROTLIBS':^78}*")
     print(f"*{'ARG, ASN, ASP, CSY, GLN, GLU, HIS, ILE, LEU, LYS, MET, PHE, PRO, SER,':^78}*")
     print(f"*{'THR, TRP, TYR, VAL':^78}*")
-    print(f"*{'(no ALA, GLY}':^78}*")
+    print(f"*{'(no ALA, GLY)':^78}*")
     print("*" * 80)
 
 
@@ -1454,7 +1454,7 @@ def repack(
             ]
             if not hasattr(SiteLibrary, "dummy_label"):
                 SiteLibrary.dummy_label = SiteLibrary.copy()
-                SiteLibrary.dummy_label.protein = protein
+                SiteLibrary.dummy_label._protein = protein
                 SiteLibrary.dummy_label.mask = np.isin(
                     protein.ix, SiteLibrary.clash_ignore_idx
                 )

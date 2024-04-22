@@ -332,14 +332,15 @@ def save(
                     file_name += ' ' + Path(protein.filename).name
                     file_name = file_name[:-4]
 
-        if file_name == '':
+        if file_name == '' and len(molecules['molcart']) > 0:
             file_name = "No_Name_Protein"
 
         # Add spin label information to file name
         if 0 < len(molecules['rotens']) < 3:
-            for rotens in molecules['rotens']:
-                file_name += f"_{rotens.name}"
-        else:
+            naml = [file_name] + [rotens.name for rotens in molecules['rotens']]
+            file_name = "_".join(naml)
+            file_name = file_name.strip('_')
+        elif len(molecules['rotens']) >= 3:
             file_name += "_many_labels"
 
         file_name += ".pdb"
@@ -360,6 +361,35 @@ def save(
 
     if len(molecules['rotens']) > 0:
         write_labels(pdb_file, *molecules['rotens'], **kwargs)
+
+
+def load_protein(struct_file: Union[str, Path],
+                 *traj_file: Union[str, Path]) -> MDAnalysis.AtomGroup:
+    """
+
+    Parameters
+    ----------
+    struct_file : Union[TextIO, str, Path]
+        Name, Path or TextIO object referencing the structure file (e.g. pdb, gro, psf)
+    *traj_file : Union[TextIO, str, Path] (optional)
+        Name, Path or TextIO object(s) referencing the trajectory file (e.g. pdb, xtc, dcd)
+
+
+    Returns
+    -------
+    protein: MDAnalysis.AtomGroup
+        An MDA AtomGroup object containing the protein structure and trajectory. The object is always loaded into
+        memory to allow coordinate manipulations.
+    """
+
+    if traj_file != []:
+        traj_file = [str(file) for file in traj_file]
+        protein = mda.Universe(str(struct_file), *traj_file, in_memory=True)
+    else:
+        protein = mda.Universe(struct_file, in_memory=True)
+
+    return protein
+
 
 
 def write_protein(pdb_file: TextIO, protein: Union[mda.Universe, mda.AtomGroup, MolecularSystemBase]) -> None:

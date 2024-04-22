@@ -1311,7 +1311,8 @@ def _print_rotlib_info(lib_file):
                                      f"Dihedral definitions: ",
                                      *[f'    {d}' for d in lib['dihedral_atoms']],
                                      f"Spin atoms: {lib.get('spin_atoms')}",
-                                     f"Number of atoms: {atom_counts}\n",
+                                     f"Number of atoms: {atom_counts}",
+                                     f"Number of heavy atoms: {np.sum(lib['atom_types'] != 'H')}",
                                      f"Reference: {lib['reference']}",
                                      f"chiLife rotlib format: {lib['format_version']}",
                                      f"*"*80)]

@@ -30,7 +30,7 @@ def test_load_protein(args):
 
 def test_save():
     L20R1 = xl.SpinLabel("R1C", 20, protein)
-    S238T = xl.RotamerEnsemble("THR", 238, protein)
+    S238T = xl.RotamerEnsemble("THR", 238, protein, eval_clash=False)
     A318DHC = xl.dSpinLabel("DHC", [318, 322], protein, rotlib='test_data/DHC')
 
     xl.save(L20R1, S238T, A318DHC, protein, KDE=False)

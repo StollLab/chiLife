@@ -1312,7 +1312,7 @@ def assign_defaults(kwargs):
         "alignment_method": "bisect",
         "dihedral_sigmas": 35,
         "weighted_sampling": False,
-        "eval_clash": False,
+        "eval_clash": True if not kwargs.get('minimize', False) else False,
         "use_H": False,
         "_exclude_nb_interactions": kwargs.pop('exclude_nb_interactions', 3),
         "_sample_size": kwargs.pop("sample", False),

@@ -13,7 +13,7 @@ traj = mda.Universe('test_data/xlsavetraj.pdb', in_memory=True)
 
 def test_from_mda():
     res16 = U.residues[16]
-    ensemble = chilife.RotamerEnsemble.from_mda(res16)
+    ensemble = chilife.RotamerEnsemble.from_mda(res16, eval_clash=False)
     ensemble.save_pdb("test_data/test_from_MDA.pdb")
 
     with open("test_data/ans_from_MDA.pdb", "r") as f:
@@ -208,8 +208,8 @@ def test_mem_sample():
 
 
 def test_label_as_library():
-    R1C = chilife.RotamerEnsemble("R1C", site=28, protein=ubq)
-    R1C_SL = chilife.SpinLabel("R1C", site=28, protein=ubq, eval_clash=False, trim=False)
+    R1C = chilife.RotamerEnsemble("R1C", site=28, protein=ubq, eval_clash=False)
+    R1C_SL = chilife.SpinLabel("R1C", site=28, protein=ubq, eval_clash=False)
     np.testing.assert_equal(R1C.coords, R1C_SL.coords)
     np.testing.assert_equal(R1C.weights, R1C_SL.weights)
     np.testing.assert_equal(R1C.internal_coords.trajectory.coords, R1C_SL.internal_coords.trajectory.coords)
@@ -426,9 +426,9 @@ def test_sample_persists():
 
 
 def test_trim_false():
-    rot1 = chilife.RotamerEnsemble('ARG', 28, ubq, eval_clash=True)
-    rot2 = chilife.RotamerEnsemble('ARG', 28, ubq, eval_clash=True, trim=False)
-    rot3 = chilife.RotamerEnsemble('ARG', 28, ubq)
+    rot1 = chilife.RotamerEnsemble('ARG', 28, ubq)
+    rot2 = chilife.RotamerEnsemble('ARG', 28, ubq, trim=False)
+    rot3 = chilife.RotamerEnsemble('ARG', 28, ubq, eval_clash=False)
 
     assert len(rot2) == len(rot3)
     most_probable = np.sort(rot2.weights)[::-1][:len(rot1)]

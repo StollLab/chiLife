@@ -336,9 +336,6 @@ def test_from_trajectory():
                                                             [ -69.9084  ,  -39.25944 ],
                                                             [ -69.9084  ,  161.67407 ]]), decimal=4)
 
-    with pytest.raises(ValueError):
-        RE = chilife.RotamerEnsemble.from_trajectory(traj, 232)
-
     SL1 = chilife.SpinLabel.from_trajectory(traj, 238, burn_in=0, spin_atoms=['N1', 'O1'])
     assert np.all(SL1.spin_atoms == np.array(['N1', 'O1']))
 

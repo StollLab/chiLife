@@ -21,6 +21,7 @@ def test_guess_bonds():
     np.testing.assert_equal(bonds, ans[sorted_args])
     np.testing.assert_allclose(dist, ans_dist[sorted_args])
 
+
 @pytest.mark.parametrize('prot', [ubqu, mbp])
 def test_get_angle_defs(prot):
     bonds = xl.guess_bonds(prot.atoms.positions, prot.atoms.types)
@@ -31,6 +32,7 @@ def test_get_angle_defs(prot):
     angles2 = set(guess_angles(prot.bonds))
 
     assert angles == angles2
+
 
 @pytest.mark.parametrize('prot', [ubqu, mbp])
 def test_get_dihedral_defs(prot):
@@ -85,3 +87,23 @@ def test_dihedrals_by_atom():
         ans = pickle.load(f)
 
     assert top.dihedrals_by_atoms == ans
+
+
+def test_has_cycles():
+    Y59 = ubq.select_atoms('resnum 59')
+    N60 = ubq.select_atoms('resnum 60')
+    Y59_top = Topology(Y59, xl.guess_bonds(Y59.positions, Y59.types))
+    N60_top = Topology(N60, xl.guess_bonds(N60.positions, N60.types))
+
+    assert Y59_top.has_cycle
+    assert not N60_top.has_cycle
+
+
+def test_cycle_idx():
+    Y59 = ubq.select_atoms('resnum 59')
+    N60 = ubq.select_atoms('resnum 60')
+    Y59_top = Topology(Y59, xl.guess_bonds(Y59.positions, Y59.types))
+    N60_top = Topology(N60, xl.guess_bonds(N60.positions, N60.types))
+
+    np.testing.assert_equal(Y59_top.cycle_idxs, [5, 6, 7, 8, 9, 10])
+    assert N60_top.cycle_idxs == []

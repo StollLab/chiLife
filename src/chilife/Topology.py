@@ -56,6 +56,24 @@ class Topology:
             c1 = self.atoms[c].segid
             self.dihedrals_by_resnum[c1, r1, n1, n2, n3, n4] = dihe
 
+    @property
+    def cycle_idxs(self):
+        fund_cycles = self.graph.fundamental_cycles()
+        cyverts = set()
+        for cycle in fund_cycles:
+            for edge in self.graph.es(cycle):
+                cyverts.update(edge.tuple)
+
+        return sorted(cyverts)
+
+    @property
+    def has_cycle(self):
+        if self.cycle_idxs == []:
+            return False
+        else:
+            return True
+
+
     def get_zmatrix_dihedrals(self):
         """
         Get the dihedral definitions for the z-matrix.

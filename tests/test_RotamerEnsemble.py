@@ -348,6 +348,33 @@ def test_spin_from_traj():
     np.testing.assert_equal(SL1.spin_atoms, ['N1', 'O1'])
     np.testing.assert_equal(SL1.spin_weights, [0.5, 0.5])
 
+def test_from_traj_dihedrals():
+    SL1 = chilife.RotamerEnsemble.from_trajectory(traj, 238, burn_in=0)
+    np.testing.assert_equal(SL1.dihedral_atoms, [['N', 'CA', 'CB', 'SG'],
+                                                 ['CA', 'CB', 'SG', 'SD'],
+                                                 ['CB', 'SG', 'SD', 'CE'],
+                                                 ['SG', 'SD', 'CE', 'C3'],
+                                                 ['SD', 'CE', 'C3', 'C4']])
+
+def test_from_traj_user_dihedrals():
+    U = chilife.load_protein('test_data/traj_io.pdb', 'test_data/traj_io.xtc')
+    dihedral_atoms = [['N', 'CA', 'CB', 'SG'],
+                      ['CA', 'CB', 'SG', 'S1L'],
+                      ['CB', 'SG', 'S1L', 'C1L'],
+                      ['SG', 'S1L', 'C1L', 'C1R'],
+                      ['S1L', 'C1L', 'C1R', 'C1']]
+    RL1 = chilife.RotamerEnsemble.from_trajectory(U, 2, chain='A', dihedral_atoms=dihedral_atoms)
+    np.testing.assert_equal(RL1.dihedral_atoms, dihedral_atoms)
+
+def test_from_traj_guess_dihedrals():
+    U = chilife.load_protein('test_data/traj_io.pdb', 'test_data/traj_io.xtc')
+    dihedral_atoms = [['N', 'CA', 'CB', 'SG'],
+                      ['CA', 'CB', 'SG', 'S1L'],
+                      ['CB', 'SG', 'S1L', 'C1L'],
+                      ['SG', 'S1L', 'C1L', 'C1R'],
+                      ['S1L', 'C1L', 'C1R', 'C2R']]
+    RL1 = chilife.RotamerEnsemble.from_trajectory(U, 2, chain='A')
+    np.testing.assert_equal(RL1.dihedral_atoms, dihedral_atoms)
 
 def test_to_rotlib():
 

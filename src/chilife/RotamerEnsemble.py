@@ -9,7 +9,7 @@ from numpy.typing import ArrayLike
 from itertools import combinations
 from scipy.spatial import cKDTree
 import igraph as ig
-from scipy.stats import skewnorm
+from scipy.stats import skewnorm, circstd
 import scipy.optimize as opt
 import MDAnalysis as mda
 import chilife
@@ -255,7 +255,7 @@ class RotamerEnsemble:
         return cls(res, site, protein, chain, **kwargs)
 
     @classmethod
-    def from_trajectory(cls, traj, site, chain=None, energy=None, burn_in=100, **kwargs):
+    def from_trajectory(cls, traj, site, chain=None, energy=None, burn_in=0, **kwargs):
         """
         Create a RotamerEnsemble object from a trajectory.
 
@@ -300,7 +300,7 @@ class RotamerEnsemble:
         res = traj.select_atoms(f"segid {chain} and resnum {site} and not altloc B")
 
         resname = res.residues[0].resname
-        dihedral_defs = kwargs.get('dihedral_atoms', chilife.dihedral_defs.get(resname, ()))
+        dihedral_defs = kwargs.pop('dihedral_atoms', chilife.dihedral_defs.get(resname, ()))
 
         traj = traj.universe if isinstance(traj, mda.AtomGroup) else traj
         coords = np.array([res.atoms.positions for ts in traj.trajectory[burn_in:]])
@@ -321,9 +321,36 @@ class RotamerEnsemble:
         weights = pi
         res = chilife.MolSys.from_atomsel(res, frames=unique_idx)
         ICs = chilife.MolSysIC.from_atoms(res)
-
-
         ICs.shift_resnum(-(site - 1))
+
+        if dihedral_defs == ():
+            sc_mask = ~np.isin(ICs.atom_names, ['N', 'CA', 'C', 'O', 'CB'])
+            ha_mask = ~(ICs.atom_types=='H')
+            mask = ha_mask * sc_mask
+            idxs = np.argwhere(mask).flatten()
+
+            #
+            cyverts = ICs.topology.cycle_idxs
+            rotatable_bonds = {}
+            _idxs = []
+            for idx in idxs:
+                dihedral = ICs.z_matrix_idxs[idx]
+                bond = tuple(dihedral[1:3])
+
+                # Skip duplicate dihedral defs
+                if bond in rotatable_bonds:
+                    continue
+
+                # Skip ring dihedrals
+                elif all(a in cyverts for a in bond):
+                    continue
+
+                else:
+                    rotatable_bonds[bond] = dihedral
+                    _idxs.append(idx)
+
+            idxs = _idxs
+            dihedral_defs = [ICs.z_matrix_names[idx][::-1] for idx in idxs]
 
         dihedrals = np.array([ic.get_dihedral(1, dihedral_defs) for ic in ICs])
         sigmas = kwargs.get('sigmas', np.array([]))

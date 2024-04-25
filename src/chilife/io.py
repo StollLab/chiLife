@@ -533,11 +533,15 @@ def write_labels(pdb_file: TextIO, *args: SpinLabel, KDE: bool = True, sorted: b
         spin_centers = np.atleast_2d(label.spin_centers)
 
         if KDE and len(spin_centers) > 5:
-            # Perform gaussian KDE to determine electron density
-            gkde = gaussian_kde(spin_centers.T, weights=label.weights)
+            try:
+                # Perform gaussian KDE to determine electron density
+                gkde = gaussian_kde(spin_centers.T, weights=label.weights)
 
-            # Map KDE density to pseudoatoms
-            vals = gkde.pdf(spin_centers.T)
+                # Map KDE density to pseudoatoms
+                vals = gkde.pdf(spin_centers.T)
+                
+            except:
+                vals = label.weights
 
         else:
             vals = label.weights

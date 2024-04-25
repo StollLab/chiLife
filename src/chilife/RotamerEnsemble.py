@@ -390,6 +390,7 @@ class RotamerEnsemble:
                     lib['spin_weights'] = f['spin_weights']
 
         kwargs.setdefault('eval_clash', False)
+        kwargs.setdefault('_match_backbone', False)
         return cls(resname, site, traj, chain, lib, **kwargs)
 
     def update(self, no_lib=False):
@@ -422,7 +423,6 @@ class RotamerEnsemble:
             self.protein_setup()
     def protein_setup(self):
         self.to_site()
-        self.backbone_to_site()
 
         # Get weight of current or closest rotamer
         clash_ignore_idx = self.protein.select_atoms(f"resid {self.site} and segid {self.chain}").ix
@@ -586,6 +586,8 @@ class RotamerEnsemble:
 
         self._coords = np.einsum("ijk,kl->ijl", self._coords, cmx) + ori
         self.ICs_to_site(ori, mx)
+        if self._match_backbone:
+            self.backbone_to_site()
 
     def ICs_to_site(self, cori, cmx):
         """ Modify the internal coordinates to be aligned with the site that the RotamerEnsemble is attached to"""
@@ -1196,7 +1198,8 @@ class RotamerEnsemble:
         self.internal_coords = self.internal_coords.copy()
         self.internal_coords.load_new(z_matrix)
         self._coords = self.internal_coords.protein.trajectory.coordinate_array.copy()[:, self.ic_mask]
-        self.backbone_to_site()
+        if self._match_backbone:
+            self.backbone_to_site()
 
         # Apply uniform weights
         self.weights = np.ones(len(self._dihedrals))
@@ -1314,6 +1317,7 @@ def assign_defaults(kwargs):
         "weighted_sampling": False,
         "eval_clash": True if not kwargs.get('minimize', False) else False,
         "use_H": False,
+        '_match_backbone': True,
         "_exclude_nb_interactions": kwargs.pop('exclude_nb_interactions', 3),
         "_sample_size": kwargs.pop("sample", False),
         "energy_func": chilife.get_lj_rep,

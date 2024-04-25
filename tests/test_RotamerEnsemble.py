@@ -373,6 +373,19 @@ def test_from_traj_guess_dihedrals():
     RL1 = chilife.RotamerEnsemble.from_trajectory(U, 2, chain='A')
     np.testing.assert_equal(RL1.dihedral_atoms, dihedral_atoms)
 
+
+def test_from_traj_mobile_bb():
+    U = chilife.load_protein('test_data/traj_io.pdb', 'test_data/traj_io.xtc')
+    RL1 = chilife.RotamerEnsemble.from_trajectory(U, 2, chain='A')
+    test = np.squeeze(RL1.coords[:, RL1.backbone_idx])
+    ans = np.load('test_data/from_traj_mobile_bb.npy')
+    np.testing.assert_allclose(test, ans)
+
+
+def test_intra_fit():
+    pass
+
+
 def test_to_rotlib():
 
     # Generate rotamer library from trajectory

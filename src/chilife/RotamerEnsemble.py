@@ -1244,6 +1244,16 @@ class RotamerEnsemble:
             raise ValueError("The input protein must be an instance of MDAnalysis.Universe, MDAnalysis.AtomGroup, or "
                              "chilife.MolSys")
 
+    def intra_fit(self):
+        target = self.backbone
+
+        tmx, tori = self.alignment_method(*target)
+        bbs = np.squeeze(self.coords[:,self.backbone_idx])
+        mxs, oris = [np.array(x) for x in zip(*[self.alignment_method(*bb) for bb in bbs])]
+        mxs = mxs.transpose(0, 2, 1) @ tmx
+
+        self._coords = (self.coords - oris[:, None, :]) @ mxs + tori[None, None, :]
+        self.ICs_to_site(tori, tmx)
 
 
     def get_sasa(self):

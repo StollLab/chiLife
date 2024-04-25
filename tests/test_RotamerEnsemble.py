@@ -383,7 +383,13 @@ def test_from_traj_mobile_bb():
 
 
 def test_intra_fit():
-    pass
+    U = chilife.load_protein('test_data/traj_io.pdb', 'test_data/traj_io.xtc')
+    RL1 = chilife.RotamerEnsemble.from_trajectory(U, 2, chain='A')
+    RL1.intra_fit()
+    bbs = np.squeeze(RL1.coords[:, RL1.backbone_idx])
+    bbref = RL1.backbone
+
+    assert np.all(np.linalg.norm(bbs - bbref, axis=(1, 2)) < 0.2)
 
 
 def test_to_rotlib():

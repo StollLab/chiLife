@@ -89,14 +89,14 @@ def test_dihedrals_by_atom():
     assert top.dihedrals_by_atoms == ans
 
 
-def test_has_cycles():
+def test_has_rings():
     Y59 = ubq.select_atoms('resnum 59')
     N60 = ubq.select_atoms('resnum 60')
     Y59_top = Topology(Y59, xl.guess_bonds(Y59.positions, Y59.types))
     N60_top = Topology(N60, xl.guess_bonds(N60.positions, N60.types))
 
-    assert Y59_top.has_cycle
-    assert not N60_top.has_cycle
+    assert Y59_top.has_rings
+    assert not N60_top.has_rings
 
 
 def test_cycle_idx():
@@ -105,5 +105,5 @@ def test_cycle_idx():
     Y59_top = Topology(Y59, xl.guess_bonds(Y59.positions, Y59.types))
     N60_top = Topology(N60, xl.guess_bonds(N60.positions, N60.types))
 
-    np.testing.assert_equal(Y59_top.cycle_idxs, [5, 6, 7, 8, 9, 10])
-    assert N60_top.cycle_idxs == []
+    np.testing.assert_equal(Y59_top.ring_idxs, [5, 6, 7, 8, 9, 10])
+    assert N60_top.ring_idxs == []

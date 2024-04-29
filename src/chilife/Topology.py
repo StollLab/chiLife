@@ -57,7 +57,7 @@ class Topology:
             self.dihedrals_by_resnum[c1, r1, n1, n2, n3, n4] = dihe
 
     @property
-    def cycle_idxs(self):
+    def ring_idxs(self):
         fund_cycles = self.graph.fundamental_cycles()
         cyverts = set()
         for cycle in fund_cycles:
@@ -67,8 +67,8 @@ class Topology:
         return sorted(cyverts)
 
     @property
-    def has_cycle(self):
-        if self.cycle_idxs == []:
+    def has_rings(self):
+        if self.ring_idxs == []:
             return False
         else:
             return True

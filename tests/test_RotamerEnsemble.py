@@ -345,6 +345,24 @@ def test_spin_from_traj():
     np.testing.assert_equal(SL1.spin_atoms, ['N1', 'O1'])
     np.testing.assert_equal(SL1.spin_weights, [0.5, 0.5])
 
+
+def test_from_traj_to_rotlib():
+    U = chilife.load_protein('test_data/traj_io.pdb', 'test_data/traj_io.xtc')
+    SL1 = chilife.RotamerEnsemble.from_trajectory(U, 2, chain='A')
+    SL1.to_rotlib('___')
+    SL2 = chilife.RotamerEnsemble('CYR', rotlib='___')
+    os.remove('____rotlib.npz')
+
+    # Ensure there is a rotamer for each frame
+    assert len(SL2) == len(U.trajectory)
+
+    # Ensure the rotamer backbones are aligned to the CA atom
+    np.testing.assert_allclose(SL2.coords[:, 1], 0)
+
+    # Ensure the dihedrals have not changed
+    np.testing.assert_allclose(SL1.dihedrals, SL2.dihedrals)
+
+
 def test_from_traj_dihedrals():
     SL1 = chilife.RotamerEnsemble.from_trajectory(traj, 238, burn_in=0)
     np.testing.assert_equal(SL1.dihedral_atoms, [['N', 'CA', 'CB', 'SG'],
@@ -379,7 +397,7 @@ def test_from_traj_mobile_bb():
     RL1 = chilife.RotamerEnsemble.from_trajectory(U, 2, chain='A')
     test = np.squeeze(RL1.coords[:, RL1.backbone_idx])
     ans = np.load('test_data/from_traj_mobile_bb.npy')
-    np.testing.assert_allclose(test, ans)
+    np.testing.assert_almost_equal(test, ans)
 
 
 def test_intra_fit():

@@ -9,7 +9,7 @@ from numpy.typing import ArrayLike
 from itertools import combinations
 from scipy.spatial import cKDTree
 import igraph as ig
-from scipy.stats import skewnorm
+from scipy.stats import skewnorm, circstd
 import scipy.optimize as opt
 import MDAnalysis as mda
 import chilife
@@ -186,11 +186,17 @@ class RotamerEnsemble:
 
     def __str__(self):
         return (
-            f"Rotamer ensemble with {np.size(self.weights)} members\n"
-            f"  Name: {self.name}\n"
-            f"  Label: {self.res}\n"
-            f"  Site: {self.site}\n"
+            f"Rotamer ensemble with {np.size(self.weights)} members\n" +
+            f"  Name: {self.name}\n" +
+            f"  Label: {self.res}\n" +
+            f"  Site: {self.site}\n" +
+            f"  Dihedral definitions:\n" +
+            f"\n".join([f'    {d}' for d in self.dihedral_atoms]) +
+            f"\n"
         )
+
+    def __repr__(self):
+        return str(self)
 
     @classmethod
     def from_pdb(
@@ -249,7 +255,7 @@ class RotamerEnsemble:
         return cls(res, site, protein, chain, **kwargs)
 
     @classmethod
-    def from_trajectory(cls, traj, site, chain=None, energy=None, burn_in=100, **kwargs):
+    def from_trajectory(cls, traj, site, chain=None, energy=None, burn_in=0, **kwargs):
         """
         Create a RotamerEnsemble object from a trajectory.
 
@@ -294,7 +300,7 @@ class RotamerEnsemble:
         res = traj.select_atoms(f"segid {chain} and resnum {site} and not altloc B")
 
         resname = res.residues[0].resname
-        dihedral_defs = kwargs.get('dihedral_atoms', chilife.dihedral_defs.get(resname, ()))
+        dihedral_defs = kwargs.pop('dihedral_atoms', chilife.dihedral_defs.get(resname, ()))
 
         traj = traj.universe if isinstance(traj, mda.AtomGroup) else traj
         coords = np.array([res.atoms.positions for ts in traj.trajectory[burn_in:]])
@@ -313,11 +319,44 @@ class RotamerEnsemble:
 
         pi /= pi.sum()
         weights = pi
-        res = chilife.MolSys.from_atomsel(res, frames=unique_idx)
+
+        if not kwargs.setdefault('use_H', True):
+            res = res.select_atoms('not type H')
+
+        res = chilife.MolSys.from_atomsel(res, frames = unique_idx)
+
         ICs = chilife.MolSysIC.from_atoms(res)
-
-
         ICs.shift_resnum(-(site - 1))
+
+        if dihedral_defs == ():
+            # TODO: move code to a guess_dihedral_defs() function
+            sc_mask = ~np.isin(ICs.atom_names, ['N', 'CA', 'C', 'O', 'CB'])
+            ha_mask = ~(ICs.atom_types=='H')
+            mask = ha_mask * sc_mask
+            idxs = np.argwhere(mask).flatten()
+
+            #
+            cyverts = ICs.topology.ring_idxs
+            rotatable_bonds = {}
+            _idxs = []
+            for idx in idxs:
+                dihedral = ICs.z_matrix_idxs[idx]
+                bond = tuple(dihedral[1:3])
+
+                # Skip duplicate dihedral defs
+                if bond in rotatable_bonds:
+                    continue
+
+                # Skip ring dihedrals
+                elif all(a in cyverts for a in bond):
+                    continue
+
+                else:
+                    rotatable_bonds[bond] = dihedral
+                    _idxs.append(idx)
+
+            idxs = _idxs
+            dihedral_defs = [ICs.z_matrix_names[idx][::-1] for idx in idxs]
 
         dihedrals = np.array([ic.get_dihedral(1, dihedral_defs) for ic in ICs])
         sigmas = kwargs.get('sigmas', np.array([]))
@@ -357,7 +396,8 @@ class RotamerEnsemble:
                     lib['spin_weights'] = f['spin_weights']
 
         kwargs.setdefault('eval_clash', False)
-        return cls(resname, site, traj, chain, lib, **kwargs)
+        kwargs.setdefault('_match_backbone', False)
+        return cls(resname, site, chain=chain, rotlib=lib, **kwargs)
 
     def update(self, no_lib=False):
         # Sample from library if requested
@@ -387,9 +427,9 @@ class RotamerEnsemble:
 
         if self.protein is not None:
             self.protein_setup()
+
     def protein_setup(self):
         self.to_site()
-        self.backbone_to_site()
 
         # Get weight of current or closest rotamer
         clash_ignore_idx = self.protein.select_atoms(f"resid {self.site} and segid {self.chain}").ix
@@ -444,11 +484,20 @@ class RotamerEnsemble:
         if description is None:
             description = (f'Rotamer library made with chiLife version {chilife.__version__} using `to_rotlib` method'
                            f'of a rotamer ensemble.')
+        ICs = self.internal_coords.copy()
+
+        # Remove chain operators to align all labels on backbone
+        # ICs.chain_operators = None
+        coords = ICs.protein.trajectory.coordinate_array
+        bb_idx = np.argwhere(np.isin(ICs.atom_names, ['N', 'CA', 'C'])).flatten()
+        for i in range(len(coords)):
+            ori, mx = chilife.local_mx(*coords[i, bb_idx])
+            coords[i] = (coords[i] - ori) @ mx
 
         lib = {'rotlib': libname,
                'resname': self.res,
-               'coords': self.coords,
-               'internal_coords': self.internal_coords,
+               'coords': coords,
+               'internal_coords': ICs,
                'weights': self.weights,
                'atom_types': self.atom_types.copy(),
                'atom_names': self.atom_names.copy(),
@@ -459,7 +508,7 @@ class RotamerEnsemble:
                'description': description,
                'comment': comment,
                'reference': reference,
-               'format_version': 1.2}
+               'format_version': 1.3}
 
         if hasattr(self, 'spin_atoms'):
             lib['spin_atoms'] = self.spin_atoms
@@ -553,6 +602,8 @@ class RotamerEnsemble:
 
         self._coords = np.einsum("ijk,kl->ijl", self._coords, cmx) + ori
         self.ICs_to_site(ori, mx)
+        if self._match_backbone:
+            self.backbone_to_site()
 
     def ICs_to_site(self, cori, cmx):
         """ Modify the internal coordinates to be aligned with the site that the RotamerEnsemble is attached to"""
@@ -1163,7 +1214,8 @@ class RotamerEnsemble:
         self.internal_coords = self.internal_coords.copy()
         self.internal_coords.load_new(z_matrix)
         self._coords = self.internal_coords.protein.trajectory.coordinate_array.copy()[:, self.ic_mask]
-        self.backbone_to_site()
+        if self._match_backbone:
+            self.backbone_to_site()
 
         # Apply uniform weights
         self.weights = np.ones(len(self._dihedrals))
@@ -1208,6 +1260,16 @@ class RotamerEnsemble:
             raise ValueError("The input protein must be an instance of MDAnalysis.Universe, MDAnalysis.AtomGroup, or "
                              "chilife.MolSys")
 
+    def intra_fit(self):
+        target = self.backbone
+
+        tmx, tori = self.alignment_method(*target)
+        bbs = np.squeeze(self.coords[:,self.backbone_idx])
+        mxs, oris = [np.array(x) for x in zip(*[self.alignment_method(*bb) for bb in bbs])]
+        mxs = mxs.transpose(0, 2, 1) @ tmx
+
+        self._coords = (self.coords - oris[:, None, :]) @ mxs + tori[None, None, :]
+        self.ICs_to_site(tori, tmx)
 
 
     def get_sasa(self):
@@ -1279,8 +1341,9 @@ def assign_defaults(kwargs):
         "alignment_method": "bisect",
         "dihedral_sigmas": 35,
         "weighted_sampling": False,
-        "eval_clash": False,
+        "eval_clash": True if not kwargs.get('minimize', False) else False,
         "use_H": False,
+        '_match_backbone': True,
         "_exclude_nb_interactions": kwargs.pop('exclude_nb_interactions', 3),
         "_sample_size": kwargs.pop("sample", False),
         "energy_func": chilife.get_lj_rep,

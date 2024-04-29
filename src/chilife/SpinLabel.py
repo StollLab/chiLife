@@ -190,6 +190,11 @@ class SpinLabel(RotamerEnsemble):
         prelib.weights /= prelib.weights.sum()
         return prelib
 
+    def __str__(self):
+        return (super().__str__() +
+                f"  spin atoms:\n    {self.spin_atoms}")
+
+
 
     def _base_copy(self, rotlib=None):
         return chilife.SpinLabel(self.res, self.site, rotlib=rotlib, chain=self.chain)

@@ -13,7 +13,7 @@ traj = mda.Universe('test_data/xlsavetraj.pdb', in_memory=True)
 
 def test_from_mda():
     res16 = U.residues[16]
-    ensemble = chilife.RotamerEnsemble.from_mda(res16)
+    ensemble = chilife.RotamerEnsemble.from_mda(res16, eval_clash=False)
     ensemble.save_pdb("test_data/test_from_MDA.pdb")
 
     with open("test_data/ans_from_MDA.pdb", "r") as f:
@@ -208,8 +208,8 @@ def test_mem_sample():
 
 
 def test_label_as_library():
-    R1C = chilife.RotamerEnsemble("R1C", site=28, protein=ubq)
-    R1C_SL = chilife.SpinLabel("R1C", site=28, protein=ubq, eval_clash=False, trim=False)
+    R1C = chilife.RotamerEnsemble("R1C", site=28, protein=ubq, eval_clash=False)
+    R1C_SL = chilife.SpinLabel("R1C", site=28, protein=ubq, eval_clash=False)
     np.testing.assert_equal(R1C.coords, R1C_SL.coords)
     np.testing.assert_equal(R1C.weights, R1C_SL.weights)
     np.testing.assert_equal(R1C.internal_coords.trajectory.coords, R1C_SL.internal_coords.trajectory.coords)
@@ -336,9 +336,6 @@ def test_from_trajectory():
                                                             [ -69.9084  ,  -39.25944 ],
                                                             [ -69.9084  ,  161.67407 ]]), decimal=4)
 
-    with pytest.raises(ValueError):
-        RE = chilife.RotamerEnsemble.from_trajectory(traj, 232)
-
     SL1 = chilife.SpinLabel.from_trajectory(traj, 238, burn_in=0, spin_atoms=['N1', 'O1'])
     assert np.all(SL1.spin_atoms == np.array(['N1', 'O1']))
 
@@ -347,6 +344,70 @@ def test_spin_from_traj():
     SL1 = chilife.RotamerEnsemble.from_trajectory(traj, 238, burn_in=0)
     np.testing.assert_equal(SL1.spin_atoms, ['N1', 'O1'])
     np.testing.assert_equal(SL1.spin_weights, [0.5, 0.5])
+
+
+def test_from_traj_to_rotlib():
+    U = chilife.load_protein('test_data/traj_io.pdb', 'test_data/traj_io.xtc')
+    SL1 = chilife.RotamerEnsemble.from_trajectory(U, 2, chain='A')
+    SL1.to_rotlib('___')
+    SL2 = chilife.RotamerEnsemble('CYR', rotlib='___')
+    os.remove('____rotlib.npz')
+
+    # Ensure there is a rotamer for each frame
+    assert len(SL2) == len(U.trajectory)
+
+    # Ensure the rotamer backbones are aligned to the CA atom
+    np.testing.assert_allclose(SL2.coords[:, 1], 0)
+
+    # Ensure the dihedrals have not changed
+    np.testing.assert_allclose(SL1.dihedrals, SL2.dihedrals)
+
+
+def test_from_traj_dihedrals():
+    SL1 = chilife.RotamerEnsemble.from_trajectory(traj, 238, burn_in=0)
+    np.testing.assert_equal(SL1.dihedral_atoms, [['N', 'CA', 'CB', 'SG'],
+                                                 ['CA', 'CB', 'SG', 'SD'],
+                                                 ['CB', 'SG', 'SD', 'CE'],
+                                                 ['SG', 'SD', 'CE', 'C3'],
+                                                 ['SD', 'CE', 'C3', 'C4']])
+
+def test_from_traj_user_dihedrals():
+    U = chilife.load_protein('test_data/traj_io.pdb', 'test_data/traj_io.xtc')
+    dihedral_atoms = [['N', 'CA', 'CB', 'SG'],
+                      ['CA', 'CB', 'SG', 'S1L'],
+                      ['CB', 'SG', 'S1L', 'C1L'],
+                      ['SG', 'S1L', 'C1L', 'C1R'],
+                      ['S1L', 'C1L', 'C1R', 'C1']]
+    RL1 = chilife.RotamerEnsemble.from_trajectory(U, 2, chain='A', dihedral_atoms=dihedral_atoms)
+    np.testing.assert_equal(RL1.dihedral_atoms, dihedral_atoms)
+
+def test_from_traj_guess_dihedrals():
+    U = chilife.load_protein('test_data/traj_io.pdb', 'test_data/traj_io.xtc')
+    dihedral_atoms = [['N', 'CA', 'CB', 'SG'],
+                      ['CA', 'CB', 'SG', 'S1L'],
+                      ['CB', 'SG', 'S1L', 'C1L'],
+                      ['SG', 'S1L', 'C1L', 'C1R'],
+                      ['S1L', 'C1L', 'C1R', 'C2R']]
+    RL1 = chilife.RotamerEnsemble.from_trajectory(U, 2, chain='A')
+    np.testing.assert_equal(RL1.dihedral_atoms, dihedral_atoms)
+
+
+def test_from_traj_mobile_bb():
+    U = chilife.load_protein('test_data/traj_io.pdb', 'test_data/traj_io.xtc')
+    RL1 = chilife.RotamerEnsemble.from_trajectory(U, 2, chain='A')
+    test = np.squeeze(RL1.coords[:, RL1.backbone_idx])
+    ans = np.load('test_data/from_traj_mobile_bb.npy')
+    np.testing.assert_almost_equal(test, ans)
+
+
+def test_intra_fit():
+    U = chilife.load_protein('test_data/traj_io.pdb', 'test_data/traj_io.xtc')
+    RL1 = chilife.RotamerEnsemble.from_trajectory(U, 2, chain='A')
+    RL1.intra_fit()
+    bbs = np.squeeze(RL1.coords[:, RL1.backbone_idx])
+    bbref = RL1.backbone
+
+    assert np.all(np.linalg.norm(bbs - bbref, axis=(1, 2)) < 0.2)
 
 
 def test_to_rotlib():
@@ -402,9 +463,9 @@ def test_sample_persists():
 
 
 def test_trim_false():
-    rot1 = chilife.RotamerEnsemble('ARG', 28, ubq, eval_clash=True)
-    rot2 = chilife.RotamerEnsemble('ARG', 28, ubq, eval_clash=True, trim=False)
-    rot3 = chilife.RotamerEnsemble('ARG', 28, ubq)
+    rot1 = chilife.RotamerEnsemble('ARG', 28, ubq)
+    rot2 = chilife.RotamerEnsemble('ARG', 28, ubq, trim=False)
+    rot3 = chilife.RotamerEnsemble('ARG', 28, ubq, eval_clash=False)
 
     assert len(rot2) == len(rot3)
     most_probable = np.sort(rot2.weights)[::-1][:len(rot1)]

@@ -314,12 +314,17 @@ class MolSysIC:
                         '    3) a list with one dict to set all all frames to the same chain operator.'
 
         if op is None:
+            if hasattr(self, '_chain_operators'):
+                from_list = True if isinstance(self._chain_operators, list) else False
+            else:
+                from_list=False
+
             logging.info("No protein chain origins have been provided. All chains will start at [0, 0, 0]")
 
             op = {idx: {"ori": np.array([0, 0, 0]), "mx": np.identity(3)}for idx in self._chain_operator_idxs}
             self.has_chain_operators = False
             self._chain_operators = op
-            self.apply_chain_operators()
+            self.apply_chain_operators(from_list=from_list)
         else:
             self.has_chain_operators = True
             if isinstance(op, dict):
@@ -749,7 +754,7 @@ class MolSysIC:
         else:
             self.apply_chain_operators()
 
-    def apply_chain_operators(self, idx=None):
+    def apply_chain_operators(self, idx=None, from_list=False):
         """
         Apply chain operators to the specified frames (``idx``) of the MolSysIC trajectory. If no ``idx`` is provided
         then all chain operators will be applied to all frames.
@@ -764,13 +769,23 @@ class MolSysIC:
 
         cart_coords = self.protein.trajectory.coordinate_array
         if isinstance(self._chain_operators, list):
-            for i, op in zip(idx, self._chain_operators[idx]):
+            for i, op in zip(idx, self._chain_operators):
                 for start, stop in self._chain_segs:
                     current_mx, current_ori = chilife.ic_mx(*cart_coords[i, start:start+3])
                     mx = self.chain_operators[start]['mx']
                     ori = self.chain_operators[start]['ori']
                     m2m3 = current_mx @ mx
                     cart_coords[i, start:stop] = (cart_coords[i, start:stop] - current_ori) @ m2m3 + ori
+
+        elif from_list:
+            for i in range(len(cart_coords)):
+                for start, stop in self._chain_segs:
+                    current_mx, current_ori = chilife.ic_mx(*cart_coords[i, start:start+3])
+                    mx = self.chain_operators[start]['mx']
+                    ori = self.chain_operators[start]['ori']
+                    m2m3 = current_mx @ mx
+                    cart_coords[i, start:stop] = (cart_coords[i, start:stop] - current_ori) @ m2m3 + ori
+
         elif isinstance(self._chain_operators, dict):
             for start, end in self._chain_segs:
                 current_mx, current_ori = chilife.ic_mx(*cart_coords[0, start:start + 3])
@@ -778,6 +793,7 @@ class MolSysIC:
                 ori = self.chain_operators[start]['ori']
                 m2m3 = current_mx.T @ mx
                 cart_coords[:, start:end] = np.einsum('ijk,kl->ijl', cart_coords[:, start:end] - current_ori, m2m3) + ori
+
 
     def use_frames(self, idxs):
         """

@@ -319,18 +319,24 @@ class RotamerEnsemble:
 
         pi /= pi.sum()
         weights = pi
-        res = chilife.MolSys.from_atomsel(res, frames=unique_idx)
+
+        if not kwargs.setdefault('use_H', True):
+            res = res.select_atoms('not type H')
+
+        res = chilife.MolSys.from_atomsel(res, frames = unique_idx)
+
         ICs = chilife.MolSysIC.from_atoms(res)
         ICs.shift_resnum(-(site - 1))
 
         if dihedral_defs == ():
+            # TODO: move code to a guess_dihedral_defs() function
             sc_mask = ~np.isin(ICs.atom_names, ['N', 'CA', 'C', 'O', 'CB'])
             ha_mask = ~(ICs.atom_types=='H')
             mask = ha_mask * sc_mask
             idxs = np.argwhere(mask).flatten()
 
             #
-            cyverts = ICs.topology.cycle_idxs
+            cyverts = ICs.topology.ring_idxs
             rotatable_bonds = {}
             _idxs = []
             for idx in idxs:
@@ -391,7 +397,7 @@ class RotamerEnsemble:
 
         kwargs.setdefault('eval_clash', False)
         kwargs.setdefault('_match_backbone', False)
-        return cls(resname, site, traj, chain, lib, **kwargs)
+        return cls(resname, site, chain=chain, rotlib=lib, **kwargs)
 
     def update(self, no_lib=False):
         # Sample from library if requested
@@ -421,6 +427,7 @@ class RotamerEnsemble:
 
         if self.protein is not None:
             self.protein_setup()
+
     def protein_setup(self):
         self.to_site()
 
@@ -477,11 +484,20 @@ class RotamerEnsemble:
         if description is None:
             description = (f'Rotamer library made with chiLife version {chilife.__version__} using `to_rotlib` method'
                            f'of a rotamer ensemble.')
+        ICs = self.internal_coords.copy()
+
+        # Remove chain operators to align all labels on backbone
+        # ICs.chain_operators = None
+        coords = ICs.protein.trajectory.coordinate_array
+        bb_idx = np.argwhere(np.isin(ICs.atom_names, ['N', 'CA', 'C'])).flatten()
+        for i in range(len(coords)):
+            ori, mx = chilife.local_mx(*coords[i, bb_idx])
+            coords[i] = (coords[i] - ori) @ mx
 
         lib = {'rotlib': libname,
                'resname': self.res,
-               'coords': self.coords,
-               'internal_coords': self.internal_coords,
+               'coords': coords,
+               'internal_coords': ICs,
                'weights': self.weights,
                'atom_types': self.atom_types.copy(),
                'atom_names': self.atom_names.copy(),
@@ -492,7 +508,7 @@ class RotamerEnsemble:
                'description': description,
                'comment': comment,
                'reference': reference,
-               'format_version': 1.2}
+               'format_version': 1.3}
 
         if hasattr(self, 'spin_atoms'):
             lib['spin_atoms'] = self.spin_atoms

@@ -769,7 +769,7 @@ class MolSysIC:
 
         cart_coords = self.protein.trajectory.coordinate_array
         if isinstance(self._chain_operators, list):
-            for i, op in zip(idx, self._chain_operators):
+            for i, op in zip(idx, self._chain_operators[idx]):
                 for start, stop in self._chain_segs:
                     current_mx, current_ori = chilife.ic_mx(*cart_coords[i, start:start+3])
                     mx = self.chain_operators[start]['mx']
@@ -778,7 +778,7 @@ class MolSysIC:
                     cart_coords[i, start:stop] = (cart_coords[i, start:stop] - current_ori) @ m2m3 + ori
 
         elif from_list:
-            for i in range(len(cart_coords)):
+            for i in idx:
                 for start, stop in self._chain_segs:
                     current_mx, current_ori = chilife.ic_mx(*cart_coords[i, start:start+3])
                     mx = self.chain_operators[start]['mx']

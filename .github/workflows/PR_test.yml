@@ -4,6 +4,15 @@ on:
     branches:
     - "**"
 
+  workflow_dispatch:
+    inputs:
+      myCommit:
+        description: 'Commit SHA1'
+        required: true
+        default: 'undefined'
+        type: string
+
+
 jobs:
   tests:
     runs-on: ${{ matrix.os }}

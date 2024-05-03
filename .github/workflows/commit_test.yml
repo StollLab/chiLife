@@ -1,8 +1,13 @@
-name: Test on PR activity
+name: Test specified commit
 on:
-  pull_request:
-    branches:
-    - "**"
+  workflow_dispatch:
+    inputs:
+      myCommit:
+        description: 'Commit SHA1'
+        required: true
+        default: 'undefined'
+        type: string
+
 
 jobs:
   tests:
@@ -15,6 +20,9 @@ jobs:
 
     steps:
       - uses: actions/checkout@v3
+        with:
+          ref: ${{ inputs.myCommit }}
+
       
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v3

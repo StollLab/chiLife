@@ -1,3 +1,6 @@
+import logging
+logging.getLogger("MDAnalysis").setLevel(logging.ERROR)
+
 from .chilife import *
 from .io import *
 from .alignment_methods import parse_backbone

@@ -391,9 +391,8 @@ def fetch(accession_number: str, save: bool = False) -> MDAnalysis.Universe:
     else:
         urllib.request.urlretrieve(f"http://files.rcsb.org/download/{pdb_name}", pdb_name)
 
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore")
-        U = mda.Universe(pdb_name, in_memory=True)
+
+    U = mda.Universe(pdb_name, in_memory=True)
 
     if not save:
         os.remove(pdb_name)
@@ -422,13 +421,9 @@ def load_protein(struct_file: Union[str, Path],
 
     if traj_file != []:
         traj_file = [str(file) for file in traj_file]
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
-            protein = mda.Universe(str(struct_file), *traj_file, in_memory=True)
+        protein = mda.Universe(str(struct_file), *traj_file, in_memory=True)
     else:
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
-            protein = mda.Universe(struct_file, in_memory=True)
+        protein = mda.Universe(struct_file, in_memory=True)
 
     return protein
 

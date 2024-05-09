@@ -1,5 +1,7 @@
 from typing import Tuple, Dict, Union, BinaryIO, TextIO, Protocol
-
+import warnings
+import os
+import urllib
 import MDAnalysis
 from numpy.typing import ArrayLike
 from collections import defaultdict
@@ -363,6 +365,42 @@ def save(
         write_labels(pdb_file, *molecules['rotens'], **kwargs)
 
 
+def fetch(accession_number: str, save: bool = False) -> MDAnalysis.Universe:
+    """Fetch pdb file from the protein data bank or the AlphaFold Database and optionally save to disk.
+
+    Parameters
+    ----------
+    accession_number : str
+        4 letter structure PDB ID or alpha fold accession number. Note that AlphaFold accession numbers must begin with
+        'AF-'.
+    save : bool
+        If true the fetched PDB will be saved to the disk.
+
+    Returns
+    -------
+    U : MDAnalysis.Universe
+        MDAnalysis Universe object of the protein corresponding to the provided PDB ID or AlphaFold accession number
+
+    """
+    accession_number = accession_number.split('.pdb')[0]
+    pdb_name = accession_number + '.pdb'
+
+    if accession_number.startswith('AF-'):
+        print(f"https://alphafold.ebi.ac.uk/files/{accession_number}-F1-model_v3.pdb")
+        urllib.request.urlretrieve(f"https://alphafold.ebi.ac.uk/files/{accession_number}-F1-model_v3.pdb", pdb_name)
+    else:
+        urllib.request.urlretrieve(f"http://files.rcsb.org/download/{pdb_name}", pdb_name)
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        U = mda.Universe(pdb_name, in_memory=True)
+
+    if not save:
+        os.remove(pdb_name)
+
+    return U
+
+
 def load_protein(struct_file: Union[str, Path],
                  *traj_file: Union[str, Path]) -> MDAnalysis.AtomGroup:
     """
@@ -384,9 +422,13 @@ def load_protein(struct_file: Union[str, Path],
 
     if traj_file != []:
         traj_file = [str(file) for file in traj_file]
-        protein = mda.Universe(str(struct_file), *traj_file, in_memory=True)
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            protein = mda.Universe(str(struct_file), *traj_file, in_memory=True)
     else:
-        protein = mda.Universe(struct_file, in_memory=True)
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            protein = mda.Universe(struct_file, in_memory=True)
 
     return protein
 

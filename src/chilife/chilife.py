@@ -16,7 +16,6 @@ from numpy.typing import ArrayLike
 from scipy.spatial.distance import cdist
 from scipy.stats import t
 import MDAnalysis as mda
-import MDAnalysis.transformations
 
 import chilife
 from .protein_utils import dihedral_defs, local_mx, sort_pdb, mutate, get_min_topol

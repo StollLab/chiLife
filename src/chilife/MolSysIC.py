@@ -940,7 +940,11 @@ def zmatrix_idxs_to_local(zmatrix_idxs):
             d = [np.nan for i in range(4 - dl)] + d
         new_zmatrix_idxs.append(d[::-1])
 
-    return np.array(new_zmatrix_idxs).astype(int)
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        new_z_matrix_idxs = np.array(new_zmatrix_idxs).astype(int)
+
+    return new_z_matrix_idxs
 
 
 def get_chainbreak_idxs(z_matrix_idxs):

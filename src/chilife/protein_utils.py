@@ -1,10 +1,10 @@
-import os, urllib, pickle, math, rtoml
+import pickle, math, rtoml
 from operator import itemgetter
 from pathlib import Path
 from typing import Set, List, Union, Tuple
 from numpy.typing import ArrayLike
 from dataclasses import dataclass
-from collections import Counter, defaultdict
+from collections import defaultdict
 import MDAnalysis
 import numpy as np
 from scipy.spatial import cKDTree
@@ -664,40 +664,6 @@ def get_sas_res(
              atom_sasa[0, residue.atoms.ix].sum() >= cutoff}
 
     return SASAs
-
-
-def fetch(accession_number: str, save: bool = False) -> MDAnalysis.Universe:
-    """Fetch pdb file from the protein data bank or the AlphaFold Database and optionally save to disk.
-
-    Parameters
-    ----------
-    accession_number : str
-        4 letter structure PDB ID or alpha fold accession number. Note that AlphaFold accession numbers must begin with
-        'AF-'.
-    save : bool
-        If true the fetched PDB will be saved to the disk.
-
-    Returns
-    -------
-    U : MDAnalysis.Universe
-        MDAnalysis Universe object of the protein corresponding to the provided PDB ID or AlphaFold accession number
-
-    """
-    accession_number = accession_number.split('.pdb')[0]
-    pdb_name = accession_number + '.pdb'
-
-    if accession_number.startswith('AF-'):
-        print(f"https://alphafold.ebi.ac.uk/files/{accession_number}-F1-model_v3.pdb")
-        urllib.request.urlretrieve(f"https://alphafold.ebi.ac.uk/files/{accession_number}-F1-model_v3.pdb", pdb_name)
-    else:
-        urllib.request.urlretrieve(f"http://files.rcsb.org/download/{pdb_name}", pdb_name)
-
-    U = mda.Universe(pdb_name, in_memory=True)
-
-    if not save:
-        os.remove(pdb_name)
-
-    return U
 
 
 def atom_sort_key(pdb_line: str) -> Tuple[str, int, int]:

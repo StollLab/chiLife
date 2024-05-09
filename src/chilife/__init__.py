@@ -1,3 +1,6 @@
+import logging
+logging.getLogger("MDAnalysis").setLevel(logging.ERROR)
+
 from .chilife import *
 from .io import *
 from .alignment_methods import parse_backbone
@@ -11,4 +14,4 @@ from .MolSysIC import *
 from .protein_utils import *
 from .scoring import *
 
-__version__ = '1.0.0.dev6'
+__version__ = '1.0.0'

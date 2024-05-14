@@ -760,6 +760,9 @@ class MolSysIC:
         then all chain operators will be applied to all frames.
         Parameters
         ----------
+        from_list : bool
+            A boolean argument to specify whether each frame previously had its own chain operators.
+
         idx : int, Array
             Frames or array of frames that should have the chain operators applied.
         """

@@ -291,8 +291,13 @@ def save(
         The Path to a pdb file to use as the protein object.
     mode : str
         Which mode to open the file in. Accepts 'w' or 'a' to overwrite or append.
+
     **kwargs :
         Additional arguments to pass to ``write_labels``
+        
+        write_spin_centers : bool
+            Write spin centers (atoms named NEN) as a seperate object with weights mapped to q-factor.
+
     """
 
     if isinstance(file_name, tuple(molecule_class.keys())):
@@ -507,7 +512,10 @@ def write_ic(pdb_file: TextIO, ic: MolSysIC) -> None:
     pdb_file.write('ENDMDL\n')
 
 
-def write_labels(pdb_file: TextIO, *args: SpinLabel, KDE: bool = True, sorted: bool = True) -> None:
+def write_labels(pdb_file: TextIO, *args: SpinLabel,
+                 KDE: bool = True,
+                 sorted: bool = True,
+                 write_spin_centers: bool = True) -> None:
     """Lower level helper function for saving SpinLabels and RotamerEnsembles. Loops over SpinLabel objects and appends
     atoms and electron coordinates to the provided file.
 
@@ -522,6 +530,9 @@ def write_labels(pdb_file: TextIO, *args: SpinLabel, KDE: bool = True, sorted: b
         RotamerEnsembles or RotamerEnsembles with lots of rotamers
     sorted : bool
         Sort rotamers by weight before saving.
+    write_spin_centers : bool
+        Write spin centers (atoms named NEN) as a seperate object with weights mapped to q-factor.
+
     Returns
     -------
     None
@@ -587,23 +598,25 @@ def write_labels(pdb_file: TextIO, *args: SpinLabel, KDE: bool = True, sorted: b
 
         else:
             vals = label.weights
-        norm_weights = vals / vals.max()
-        [
-            pdb_file.write(
-                fmt_str.format(
-                    i,
-                    "NEN",
-                    label.label[:3],
-                    label.chain,
-                    int(label.site),
-                    *spin_centers[i],
-                    norm_weights[i],
-                    1.00,
-                    "N",
+
+        if write_spin_centers:
+            norm_weights = vals / vals.max()
+            [
+                pdb_file.write(
+                    fmt_str.format(
+                        i,
+                        "NEN",
+                        label.label[:3],
+                        label.chain,
+                        int(label.site),
+                        *spin_centers[i],
+                        norm_weights[i],
+                        1.00,
+                        "N",
+                    )
                 )
-            )
-            for i in range(len(norm_weights))
-        ]
+                for i in range(len(norm_weights))
+            ]
 
         pdb_file.write("TER\n")
 

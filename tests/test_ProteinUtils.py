@@ -245,7 +245,7 @@ def test_get_dihedral():
     assert dihe - np.deg2rad(37.20999032936247) < 1e-6
 
 
-def test_get_diehdrals():
+def test_get_dihedrals():
     N1s = ubq.select_atoms('name N').positions[:-1]
     CAs = ubq.select_atoms('name CA').positions[:-1]
     Cs = ubq.select_atoms('name C').positions[:-1]
@@ -254,6 +254,27 @@ def test_get_diehdrals():
     dihes = chilife.get_dihedrals(N1s, CAs, Cs, N2s)
     ans = [chilife.get_dihedral([N1, CA, C, N2]) for N1, CA, C, N2 in zip(N1s, CAs, Cs, N2s)]
     np.testing.assert_almost_equal(dihes, ans, decimal=6)
+
+
+def test_guess_mobile_dihedrals():
+    label = chilife.MolSys.from_pdb('test_data/TEP.pdb')
+
+    ICs = chilife.MolSysIC.from_atoms(label)
+    mbd = chilife.guess_mobile_dihedrals(ICs)
+
+    ans = [['N', 'CA', 'CB', 'CB2'],
+           ['CA', 'CB', 'CB2', 'NG'],
+           ['ND', 'CE3', 'CZ3', 'C31'],
+           ['CZ1', 'C11', 'C12', 'O12'],
+           ['C11', 'C12', 'N12', 'C13'],
+           ['C12', 'N12', 'C13', 'C14'],
+           ['N12', 'C13', 'C14', 'C16'],
+           ['C14', 'C15', 'C18', 'C19'],
+           ['C14', 'C15', 'C20', 'C21'],
+           ['C16', 'C17', 'C22', 'C23'],
+           ['C16', 'C17', 'C24', 'C25']]
+
+    np.testing.assert_equal(mbd, ans)
 
 # def test_preferred_dihedrals():
 #     dih = [['N', 'CA', 'CB', 'CB2'],

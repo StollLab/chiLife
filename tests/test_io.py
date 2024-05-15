@@ -49,3 +49,27 @@ def test_save():
 def test_save_fail():
     with pytest.raises(TypeError):
         xl.save("tmp", np.array([1, 2, 3]))
+
+
+def test_save_multiple_groups():
+    CAs = U.select_atoms('name CA')
+    CBs = U.select_atoms('name CB')
+
+    xl.save(U.atoms, CAs, CBs)
+
+    names = ['m1omp', 'm1omp1', 'm1omp2']
+
+    with open(f"No_Name_Protein.pdb", "r") as f:
+        for line in f:
+            for name in iter(names):
+                sen = f"HEADER {name}\n"
+                if line == sen:
+                    names.remove(name)
+                if len(names) ==0:
+                    break
+            if len(names) == 0:
+                break
+
+    assert len(names) == 0
+
+    os.remove('No_Name_Protein.pdb')

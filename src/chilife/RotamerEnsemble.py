@@ -400,6 +400,8 @@ class RotamerEnsemble:
 
         if self.protein is not None:
             self.protein_setup()
+        else:
+            self.ICs_to_site(self.origin, self.mx)
 
     def protein_setup(self):
         self.to_site()

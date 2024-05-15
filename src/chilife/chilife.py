@@ -389,6 +389,10 @@ def create_library(
                                                   preferred_dihedrals=dihedral_atoms,
                                                   bonds=bonds,
                                                   use_chain_operators=False)
+
+    if dihedral_atoms is None:
+        dihedral_atoms = chilife.guess_mobile_dihedrals(internal_coords)
+
     internal_coords.shift_resnum(-(site - 1))
 
     if len(internal_coords.chains) > 1:

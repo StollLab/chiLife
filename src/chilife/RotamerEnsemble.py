@@ -13,9 +13,9 @@ from scipy.stats import skewnorm, circstd
 import scipy.optimize as opt
 import MDAnalysis as mda
 import chilife
+
 from .numba_utils import batch_ic2cart
 from .alignment_methods import alignment_methods
-
 
 class RotamerEnsemble:
     """Create new RotamerEnsemble object.
@@ -329,34 +329,7 @@ class RotamerEnsemble:
         ICs.shift_resnum(-(site - 1))
 
         if dihedral_defs == ():
-            # TODO: move code to a guess_dihedral_defs() function
-            sc_mask = ~np.isin(ICs.atom_names, ['N', 'CA', 'C', 'O', 'CB'])
-            ha_mask = ~(ICs.atom_types=='H')
-            mask = ha_mask * sc_mask
-            idxs = np.argwhere(mask).flatten()
-
-            #
-            cyverts = ICs.topology.ring_idxs
-            rotatable_bonds = {}
-            _idxs = []
-            for idx in idxs:
-                dihedral = ICs.z_matrix_idxs[idx]
-                bond = tuple(dihedral[1:3])
-
-                # Skip duplicate dihedral defs
-                if bond in rotatable_bonds:
-                    continue
-
-                # Skip ring dihedrals
-                elif all(a in cyverts for a in bond):
-                    continue
-
-                else:
-                    rotatable_bonds[bond] = dihedral
-                    _idxs.append(idx)
-
-            idxs = _idxs
-            dihedral_defs = [ICs.z_matrix_names[idx][::-1] for idx in idxs]
+            dihedral_defs = chilife.guess_mobile_dihedrals(ICs)
 
         dihedrals = np.array([ic.get_dihedral(1, dihedral_defs) for ic in ICs])
         sigmas = kwargs.get('sigmas', np.array([]))
@@ -479,7 +452,7 @@ class RotamerEnsemble:
             References associated with the rotamer library.
         """
         if libname is None:
-            libname = self.name
+            libname = self.name.lstrip('0123456789.- ')
 
         if description is None:
             description = (f'Rotamer library made with chiLife version {chilife.__version__} using `to_rotlib` method'

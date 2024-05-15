@@ -430,7 +430,7 @@ class MolSysIC:
                 raise RuntimeError(f'{atoms} is not a recognized dihedrals of residue {resi}. Please make sure you '
                                    f'have the correct residue number and atom names.')
 
-            pert_idxs = self.chain_res_name_map[tag]
+            pert_idxs = self.chain_res_name_map[tag]  + self.chain_res_name_map.get((chain, resi, atoms[2], atoms[1]), [])
             for idx in pert_idxs:
                 protein_atom_names = self.z_matrix_names[idx][::-1]
                 if tuple(protein_atom_names) == tuple(atoms):
@@ -485,7 +485,7 @@ class MolSysIC:
                 raise RuntimeError(f'{atoms} is not a recognized dihedrals of residue {resi}. Please make sure you '
                                    f'have the correct residue number and atom names.')
 
-            pert_idxs = self.chain_res_name_map[tag]
+            pert_idxs = self.chain_res_name_map[tag] + self.chain_res_name_map.get((chain, resi, atoms[2], atoms[1]), [])
             for idx in pert_idxs:
                 protein_atom_names = self.z_matrix_names[idx][::-1]
                 if tuple(protein_atom_names) == tuple(atoms):
@@ -760,6 +760,9 @@ class MolSysIC:
         then all chain operators will be applied to all frames.
         Parameters
         ----------
+        from_list : bool
+            A boolean argument to specify whether each frame previously had its own chain operators.
+
         idx : int, Array
             Frames or array of frames that should have the chain operators applied.
         """

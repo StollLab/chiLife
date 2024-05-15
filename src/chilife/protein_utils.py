@@ -307,6 +307,37 @@ def global_mx(*p: ArrayLike, method: Union[str, callable] = "bisect") -> Tuple[A
     rotation_matrix, origin = method(*p)
     return rotation_matrix, origin
 
+def guess_mobile_dihedrals(ICs):
+    sc_mask = ~np.isin(ICs.atom_names, ['N', 'CA', 'C', 'O', 'CB'])
+    ha_mask = ~(ICs.atom_types=='H')
+    mask = ha_mask * sc_mask
+    idxs = np.argwhere(mask).flatten()
+
+    cyverts = ICs.topology.ring_idxs
+    rotatable_bonds = {}
+    _idxs = []
+    for idx in idxs:
+        dihedral = ICs.z_matrix_idxs[idx]
+        bond = tuple(dihedral[1:3])
+
+        # Skip duplicate dihedral defs
+        if bond in rotatable_bonds:
+            continue
+
+        # Skip ring dihedrals
+        elif any(all(a in ring for a in bond) for ring in cyverts):
+            continue
+
+        else:
+            rotatable_bonds[bond] = dihedral
+            _idxs.append(idx)
+
+    idxs = _idxs
+    dihedral_defs = [ICs.z_matrix_names[idx][::-1] for idx in idxs]
+
+    return dihedral_defs
+
+
 
 @dataclass
 class FreeAtom:

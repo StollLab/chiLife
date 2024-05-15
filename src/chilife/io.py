@@ -291,8 +291,13 @@ def save(
         The Path to a pdb file to use as the protein object.
     mode : str
         Which mode to open the file in. Accepts 'w' or 'a' to overwrite or append.
+
     **kwargs :
         Additional arguments to pass to ``write_labels``
+
+        write_spin_centers : bool
+            Write spin centers (atoms named NEN) as a seperate object with weights mapped to q-factor.
+
     """
 
     if isinstance(file_name, tuple(molecule_class.keys())):
@@ -355,8 +360,24 @@ def save(
     else:
         pdb_file = open(file_name, mode)
 
+    used_names = {}
     for protein in molecules['molcart']:
-        write_protein(pdb_file, protein)
+
+        if isinstance(protein, (mda.AtomGroup, mda.Universe)):
+            name = Path(protein.universe.filename) if protein.universe.filename is not None else Path(pdb_file.name)
+            name = name.name
+        else:
+            name = protein.fname if hasattr(protein, 'fname') else None
+
+        if name is None:
+            name = Path(pdb_file.name).name
+
+        name = name[:-4] if name.endswith(".pdb") else name
+        name_ = name + str(used_names[name]) if name in used_names else name
+
+        used_names[name] = used_names.setdefault(name, 0) + 1
+
+        write_protein(pdb_file, protein, name_)
 
     for ic in molecules['molic']:
         write_ic(pdb_file, ic)
@@ -391,8 +412,9 @@ def fetch(accession_number: str, save: bool = False) -> MDAnalysis.Universe:
     else:
         urllib.request.urlretrieve(f"http://files.rcsb.org/download/{pdb_name}", pdb_name)
 
-
-    U = mda.Universe(pdb_name, in_memory=True)
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        U = mda.Universe(pdb_name, in_memory=True)
 
     if not save:
         os.remove(pdb_name)
@@ -421,15 +443,19 @@ def load_protein(struct_file: Union[str, Path],
 
     if traj_file != []:
         traj_file = [str(file) for file in traj_file]
-        protein = mda.Universe(str(struct_file), *traj_file, in_memory=True)
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            protein = mda.Universe(str(struct_file), *traj_file, in_memory=True)
     else:
-        protein = mda.Universe(struct_file, in_memory=True)
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            protein = mda.Universe(struct_file, in_memory=True)
 
     return protein
 
 
 
-def write_protein(pdb_file: TextIO, protein: Union[mda.Universe, mda.AtomGroup, MolecularSystemBase]) -> None:
+def write_protein(pdb_file: TextIO, protein: Union[mda.Universe, mda.AtomGroup, MolecularSystemBase], name: str = None) -> None:
     """
     Helper function to write protein PDBs from MDAnalysis and MolSys objects.
 
@@ -439,6 +465,8 @@ def write_protein(pdb_file: TextIO, protein: Union[mda.Universe, mda.AtomGroup, 
         File to save the protein to
     protein : MDAnalysis.Universe, MDAnalysis.AtomGroup, MolSys
         MDAnalysis or MolSys object to save
+    name : str
+        Name of the protein to put in the header
     """
 
     # Change chain identifier if longer than 1
@@ -446,18 +474,8 @@ def write_protein(pdb_file: TextIO, protein: Union[mda.Universe, mda.AtomGroup, 
     for seg in protein.segments:
         if len(seg.segid) > 1:
             seg.segid = next(available_segids)
-    if isinstance(protein, (mda.AtomGroup, mda.Universe)):
-        traj = protein.universe.trajectory
-        name = Path(protein.universe.filename) if protein.universe.filename is not None else Path(pdb_file.name)
-        name = name.name
-    else:
-        traj = protein.trajectory
-        name = protein.fname if hasattr(protein, 'fname') else None
 
-    if name is None:
-        name = Path(pdb_file.name).name
-
-    name = name[:-4] if name.endswith(".pdb") else name
+    traj = protein.universe.trajectory
 
     pdb_file.write(f'HEADER {name}\n')
     for mdl, ts in enumerate(traj):
@@ -502,7 +520,10 @@ def write_ic(pdb_file: TextIO, ic: MolSysIC) -> None:
     pdb_file.write('ENDMDL\n')
 
 
-def write_labels(pdb_file: TextIO, *args: SpinLabel, KDE: bool = True, sorted: bool = True) -> None:
+def write_labels(pdb_file: TextIO, *args: SpinLabel,
+                 KDE: bool = True,
+                 sorted: bool = True,
+                 write_spin_centers: bool = True) -> None:
     """Lower level helper function for saving SpinLabels and RotamerEnsembles. Loops over SpinLabel objects and appends
     atoms and electron coordinates to the provided file.
 
@@ -517,6 +538,9 @@ def write_labels(pdb_file: TextIO, *args: SpinLabel, KDE: bool = True, sorted: b
         RotamerEnsembles or RotamerEnsembles with lots of rotamers
     sorted : bool
         Sort rotamers by weight before saving.
+    write_spin_centers : bool
+        Write spin centers (atoms named NEN) as a seperate object with weights mapped to q-factor.
+
     Returns
     -------
     None
@@ -582,23 +606,25 @@ def write_labels(pdb_file: TextIO, *args: SpinLabel, KDE: bool = True, sorted: b
 
         else:
             vals = label.weights
-        norm_weights = vals / vals.max()
-        [
-            pdb_file.write(
-                fmt_str.format(
-                    i,
-                    "NEN",
-                    label.label[:3],
-                    label.chain,
-                    int(label.site),
-                    *spin_centers[i],
-                    norm_weights[i],
-                    1.00,
-                    "N",
+
+        if write_spin_centers:
+            norm_weights = vals / vals.max()
+            [
+                pdb_file.write(
+                    fmt_str.format(
+                        i,
+                        "NEN",
+                        label.label[:3],
+                        label.chain,
+                        int(label.site),
+                        *spin_centers[i],
+                        norm_weights[i],
+                        1.00,
+                        "N",
+                    )
                 )
-            )
-            for i in range(len(norm_weights))
-        ]
+                for i in range(len(norm_weights))
+            ]
 
         pdb_file.write("TER\n")
 

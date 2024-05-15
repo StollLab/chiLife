@@ -58,13 +58,17 @@ class Topology:
 
     @property
     def ring_idxs(self):
-        fund_cycles = self.graph.fundamental_cycles()
-        cyverts = set()
-        for cycle in fund_cycles:
+        found_cycle_edges = self.graph.fundamental_cycles()
+        found_cycle_nodes = []
+
+        for cycle in found_cycle_edges:
+            cyverts = set()
             for edge in self.graph.es(cycle):
                 cyverts.update(edge.tuple)
 
-        return sorted(cyverts)
+            found_cycle_nodes.append(sorted(cyverts))
+
+        return found_cycle_nodes
 
     @property
     def has_rings(self):

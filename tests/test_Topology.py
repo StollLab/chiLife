@@ -105,5 +105,5 @@ def test_cycle_idx():
     Y59_top = Topology(Y59, xl.guess_bonds(Y59.positions, Y59.types))
     N60_top = Topology(N60, xl.guess_bonds(N60.positions, N60.types))
 
-    np.testing.assert_equal(Y59_top.ring_idxs, [5, 6, 7, 8, 9, 10])
+    np.testing.assert_equal(Y59_top.ring_idxs, [[5, 6, 7, 8, 9, 10]])
     assert N60_top.ring_idxs == []

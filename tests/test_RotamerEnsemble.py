@@ -254,6 +254,28 @@ def test_dihedral_setter():
     np.testing.assert_allclose(R1C1.dihedrals, R1C2.dihedrals)
 
 
+def test_H_dihedral_setter():
+    R1M = chilife.SpinLabel('R1M', 28, ubq, use_H=True)
+    R1M2 = chilife.SpinLabel('R1M', 28, ubq, use_H=True)
+
+    R1M.dihedrals = R1M.dihedrals + [180, 0, 0, 0, 0]
+
+    Hidx = np.argwhere(R1M.atom_names == 'HA').flatten()
+
+    np.testing.assert_allclose(R1M.coords[:, Hidx], R1M2.coords[:, Hidx])
+
+
+def test_dihedral_setter_no_protein():
+    R1M = chilife.SpinLabel('R1M', use_H=True)
+    R1M2 = chilife.SpinLabel('R1M', use_H=True)
+    R1M2.name += '2'
+
+    R1M.dihedrals = R1M.dihedrals + [180, 0, 0, 0, 0]
+
+    # Assert that the backbone does not move when
+    np.testing.assert_allclose(R1M.backbone, R1M2.backbone)
+
+
 def test_get_sasa():
     R1C = chilife.RotamerEnsemble("R1C")
     sasas = R1C.get_sasa()

@@ -3,7 +3,7 @@ import tempfile, logging, os, rtoml, re, textwrap
 import zipfile, shutil
 from copy import deepcopy
 from pathlib import Path
-from itertools import combinations, product, chain
+from itertools import combinations, chain
 from collections import Counter
 from typing import Callable, Tuple, Union, List, Dict
 from unittest import mock
@@ -17,10 +17,15 @@ from scipy.spatial.distance import cdist
 from scipy.stats import t
 import MDAnalysis as mda
 
-import chilife
-from .protein_utils import dihedral_defs, local_mx, sort_pdb, mutate, get_min_topol
+import chilife.io as io
+from .globals import (RL_DIR, USER_RL_DIR, DATA_DIR, SUPPORTED_RESIDUES, USER_LIBRARIES, USER_dLIBRARIES,
+                      rotlib_defaults, dihedral_defs)
+from .alignment_methods import local_mx
+from .Topology import get_min_topol, guess_bonds
+from .pdb_utils import sort_pdb
+from .protein_utils import mutate, guess_mobile_dihedrals
 from .MolSysIC import MolSysIC
-from .scoring import get_lj_rep, GAS_CONST, get_lj_params, reweight_rotamers
+from .scoring import get_lj_rep, GAS_CONST, reweight_rotamers
 from .numba_utils import get_delta_r, normdist
 from .SpinLabel import SpinLabel
 from .RotamerEnsemble import RotamerEnsemble
@@ -28,22 +33,6 @@ from .SpinLabelTraj import SpinLabelTraj
 
 logging.captureWarnings(True)
 
-# Define useful global variables
-SUPPORTED_BB_LABELS = ("R1C",)
-DATA_DIR = Path(__file__).parent.absolute() / "data/"
-RL_DIR = Path(__file__).parent.absolute() / "data/rotamer_libraries/"
-
-with open(RL_DIR / 'additional_rotlib_dirs.txt', 'r') as f:
-    USER_RL_DIR = [Path(x.strip()) for x in f.readlines()]
-
-with open(RL_DIR / "defaults.toml", "r") as f:
-    rotlib_defaults = rtoml.load(f)
-
-USER_LIBRARIES = {f.name[:-11] for f in (RL_DIR / "user_rotlibs").glob("*rotlib.npz")}
-USER_dLIBRARIES = {f.name[:-12] for f in (RL_DIR / "user_rotlibs").glob("*drotlib.zip")}
-USER_dLIBRARIES = USER_dLIBRARIES | {f.name[:-15] for f in (RL_DIR / "user_rotlibs").glob("*drotlib.zip")}
-SUPPORTED_RESIDUES = set(dihedral_defs.keys())
-[SUPPORTED_RESIDUES.remove(lab) for lab in ("CYR1", "MTN")]
 
 
 def distance_distribution(
@@ -177,10 +166,14 @@ def pair_dd(*args, r: ArrayLike, sigma: float = 1.0, use_spin_centers: bool = Tr
         weights.append(np.outer(weights1, weights2).flatten())
 
         if dependent:
+            if SL1.forcefield != SL2.forcefield:
+                raise RuntimeError('At least two labels passed use different forcefield parameters. Make sure all '
+                                   'labels use the same forcefields when setting `dependent=True`')
+
             nrot1, nrot2 = len(SL1), len(SL2)
             nat1, nat2 = len(SL1.side_chain_idx), len(SL2.side_chain_idx)
-            join_rmin = chilife.get_lj_rmin("join_protocol")[()]
-            join_eps = chilife.get_lj_eps("join_protocol")[()]
+            join_rmin = SL1.forcefield.get_lj_rmin("join_protocol")[()]
+            join_eps = SL1.forcefield.get_lj_eps("join_protocol")[()]
 
             rmin_ij = join_rmin(SL1.rmin2, SL2.rmin2)
             eps_ij = join_eps(SL1.eps, SL2.eps)
@@ -385,13 +378,13 @@ def create_library(
                            "https://www.wwpdb.org/documentation/file-format-content/format33/sect10.html")
 
     # Convert loaded rotamer ensemble to internal coords
-    internal_coords = chilife.MolSysIC.from_atoms(resi_selection,
+    internal_coords = MolSysIC.from_atoms(resi_selection,
                                                   preferred_dihedrals=dihedral_atoms,
                                                   bonds=bonds,
                                                   use_chain_operators=False)
 
     if dihedral_atoms is None:
-        dihedral_atoms = chilife.guess_mobile_dihedrals(internal_coords)
+        dihedral_atoms = guess_mobile_dihedrals(internal_coords)
 
     internal_coords.shift_resnum(-(site - 1))
 
@@ -581,7 +574,7 @@ def create_dlibrary(
     if not continuous_topol(res1, res1_bonds):
         raise RuntimeError(error_message)
 
-    IC1 = chilife.MolSysIC.from_atoms(res1, dihedral_atoms[0], res1_bonds, use_chain_operators=False)
+    IC1 = MolSysIC.from_atoms(res1, dihedral_atoms[0], res1_bonds, use_chain_operators=False)
 
     ovlp2_selection = struct.atoms[cap2_idxs]
     ovlp2_selection.residues.resnums = site2
@@ -592,7 +585,7 @@ def create_dlibrary(
     if not continuous_topol(res2, res2_bonds):
         raise RuntimeError(error_message)
 
-    IC2 = chilife.MolSysIC.from_atoms(res2, dihedral_atoms[1], res2_bonds, use_chain_operators=False)
+    IC2 = MolSysIC.from_atoms(res2, dihedral_atoms[1], res2_bonds, use_chain_operators=False)
 
     IC1.shift_resnum(-(site1 - 1))
     IC2.shift_resnum(-(site2 - 1))
@@ -647,7 +640,7 @@ def pre_add_library(
         spin_atoms: List[str],
         uniform_topology: bool = True,
         sort_atoms = True,
-) -> Tuple[MDAnalysis.Universe, Dict]:
+) -> Tuple[mda.Universe, Dict]:
     """Helper function to sort PDBs, save spin atoms, update lists, etc. when adding a SpinLabel or dSpinLabel.
 
     Parameters
@@ -692,7 +685,7 @@ def pre_add_library(
         os.remove(tmpfile.name)
     else:
         struct = mda.Universe(pdb, in_memory=True)
-        bonds = chilife.guess_bonds(struct.atoms.positions, struct.atoms.types)
+        bonds = guess_bonds(struct.atoms.positions, struct.atoms.types)
         struct.add_bonds(bonds)
 
     # Store spin atoms if provided
@@ -885,7 +878,7 @@ def add_library(filename: Union[str, Path], libname: str = None, default: bool =
     if libname is None:
         libname = re.sub("_d{0,1}rotlib.(npz|zip)", "", filename.name)
 
-    library = chilife.read_library(Path(filename), None, None)
+    library = io.read_library(Path(filename), None, None)
     drotlib = False
     if isinstance(library, tuple):
         drotlib = True
@@ -926,7 +919,7 @@ def add_dihedral_def(name: str, dihedrals: ArrayLike, force: bool = False) -> No
         raise ValueError(f'There is already a dihedral definition for {name}. Please choose a different name.')
 
     # Add to active dihedral def dict
-    chilife.dihedral_defs[name] = dihedrals
+    dihedral_defs[name] = dihedrals
 
 
 def remove_library(name: str, prompt: bool = True):
@@ -1052,13 +1045,13 @@ def add_to_defaults(resname: str, rotlib_name: str, default: bool = False):
 
     if resname not in local:
         local[resname] = []
-    if resname not in chilife.rotlib_defaults:
-        chilife.rotlib_defaults[resname] = []
+    if resname not in rotlib_defaults:
+        rotlib_defaults[resname] = []
 
     pos = 0 if default else len(local[resname])
 
-    if rotlib_name not in chilife.rotlib_defaults[resname]:
-        chilife.rotlib_defaults[resname].insert(pos, rotlib_name)
+    if rotlib_name not in rotlib_defaults[resname]:
+        rotlib_defaults[resname].insert(pos, rotlib_name)
     if rotlib_name not in local[resname]:
         local[resname].insert(pos, rotlib_name)
 
@@ -1081,7 +1074,7 @@ def remove_from_defaults(rotlib_name: str):
     keys = [key for key, val in local.items() if rotlib_name in val]
 
     for key in keys:
-        chilife.rotlib_defaults[key].remove(rotlib_name)
+        rotlib_defaults[key].remove(rotlib_name)
         local[key].remove(rotlib_name)
         if local[key] == []:
             del local[key]
@@ -1197,74 +1190,7 @@ def list_available_rotlibs():
     print("*" * 80)
 
 
-def get_possible_rotlibs(rotlib: str,
-                         suffix: str,
-                         extension: str,
-                         return_all: bool = False,
-                         was_none: bool = False) -> Union[Path, None]:
-    """
-    Search all known rotlib directories and the current working directory for rotlib(s) that match the provided
-    information.
 
-    Parameters
-    ----------
-    rotlib: str
-        Fullname, base name or partial name of the rotamer libraries to search for.
-    suffix: str
-        possible suffixes the rotamer library may have, e.g. ip2 to indicate an i+2 rotamer library.
-    extension: str
-        filetype extension to look for. This will be either `npz` for monofunctional rotlibs or zip for bifunctional
-        rotlibs.
-    return_all: bool
-        By default, only the first found rotlib will be returned unless ``return_all = True``, in which case
-    was_none: bool
-        For internal use only.
-
-    Returns
-    -------
-    rotlib: Path, List[Path], None
-        The path to the found rotlib or a list of paths to the rotlibs that match the search criteri, or ``None`` if
-        no rotlibs are found.
-    """
-    cwd = Path.cwd()
-    sufplusex = '_' + suffix + extension
-    # Assemble a list of possible rotlib paths starting in the current directory
-    possible_rotlibs = [Path(rotlib),
-                        cwd / rotlib,
-                        cwd / (rotlib + extension),
-                        cwd / (rotlib + sufplusex)]
-
-    possible_rotlibs += list(cwd.glob(f'{rotlib}*{sufplusex}'))
-    # Then in the user defined rotamer library directory
-    for pth in chilife.USER_RL_DIR:
-        possible_rotlibs += list(pth.glob(f'{rotlib}*{sufplusex}'))
-
-    if not was_none:
-        possible_rotlibs += list((chilife.RL_DIR / 'user_rotlibs').glob(f'*{rotlib}*'))
-
-    if return_all:
-        rotlib = []
-    for possible_file in possible_rotlibs:
-        if possible_file.exists() and return_all:
-                rotlib.append(possible_file)
-        elif possible_file.exists() and not possible_file.is_dir():
-            rotlib = possible_file
-            break
-    else:
-        if isinstance(rotlib, str) and was_none and rotlib in chilife.rotlib_defaults:
-            rotlib = chilife.RL_DIR / 'user_rotlibs' / (chilife.rotlib_defaults[rotlib][0] + sufplusex)
-
-        elif not isinstance(rotlib, list) or rotlib == []:
-            rotlib = None
-
-    # rotlib lists need to be sorted to prevent position mismatches for results with tests.
-    if isinstance(rotlib, list):
-        rotlib = [rot for rot in rotlib if str(rot).endswith(extension)]
-        rotlib = sorted(rotlib)
-    else:
-        rotlib = rotlib if str(rotlib).endswith(extension) else None
-
-    return rotlib
 
 
 def rotlib_info(rotlib: Union[str, Path]):
@@ -1276,8 +1202,8 @@ def rotlib_info(rotlib: Union[str, Path]):
     rotlib : str, Path
         Name of the rotamer library to print the information of.
     """
-    mono_rotlib = chilife.get_possible_rotlibs(rotlib, suffix='rotlib', extension='.npz', was_none=False, return_all=True)
-    bifunc_rotlib = chilife.get_possible_rotlibs(rotlib, suffix='drotlib', extension='.zip', was_none=False, return_all=True)
+    mono_rotlib = io.get_possible_rotlibs(rotlib, suffix='rotlib', extension='.npz', was_none=False, return_all=True)
+    bifunc_rotlib = io.get_possible_rotlibs(rotlib, suffix='drotlib', extension='.zip', was_none=False, return_all=True)
 
     if (mono_rotlib is None) and (bifunc_rotlib is None):
         print("No rotlib has been found with this name. Please make sure it is spelled correctly and that " /
@@ -1297,7 +1223,7 @@ def rotlib_info(rotlib: Union[str, Path]):
 
 
 def _print_rotlib_info(lib_file):
-    lib = chilife.read_rotlib(lib_file)
+    lib = io.read_rotlib(lib_file)
     wrapper = textwrap.TextWrapper(width=80, subsequent_indent="    ", replace_whitespace=False, drop_whitespace=False)
 
     print()
@@ -1323,7 +1249,7 @@ def _print_rotlib_info(lib_file):
     print("\n".join(list(chain.from_iterable(myl))))
 
 def _print_drotlib_info(lib_file):
-    lib = chilife.read_drotlib(lib_file)
+    lib = io.read_drotlib(lib_file)
     wrapper = textwrap.TextWrapper(width=80, subsequent_indent="    ", replace_whitespace=False, drop_whitespace=False)
 
     libA, libB, csts = lib
@@ -1415,7 +1341,7 @@ def repack(
         RotamerEnsemble.from_mda(res, **repack_res_kwargs)
         for res in repack_residues
         if res.resname not in ["GLY", "ALA"]
-           and res.resname in chilife.SUPPORTED_RESIDUES
+           and res.resname in SUPPORTED_RESIDUES
     ]
     repack_residue_libraries += list(spin_labels)
 
@@ -1428,7 +1354,7 @@ def repack(
         RotamerEnsemble.from_mda(res, **repack_res_kwargs)
         for res in repack_residues
         if res.resname not in ["GLY", "ALA"]
-           and res.resname in chilife.SUPPORTED_RESIDUES
+           and res.resname in SUPPORTED_RESIDUES
     ]
     repack_residue_libraries += [RotamerEnsemble(RL.res, RL.site, protein, chain=RL.chain, rotlib=RL._rotlib,
                                                  **repack_res_kwargs)

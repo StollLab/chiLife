@@ -5,7 +5,7 @@ from functools import partial, update_wrapper
 
 import MDAnalysis
 
-from .protein_utils import sort_pdb
+from .pdb_utils import sort_pdb
 from .Topology import Topology
 import numpy as np
 from numpy.typing import ArrayLike

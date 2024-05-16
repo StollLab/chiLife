@@ -12,8 +12,11 @@ from scipy.spatial import cKDTree
 import scipy.optimize as opt
 import MDAnalysis as mda
 
-import chilife
-
+import chilife.scoring as scoring
+import chilife.io as io
+import chilife.RotamerEnsemble as re
+from chilife.protein_utils import make_mda_uni
+from .MolSysIC import MolSysIC
 
 class dRotamerEnsemble:
     """Create new dRotamerEnsemble object.
@@ -51,6 +54,9 @@ class dRotamerEnsemble:
                 effect on each other.
             eval_clash : bool
                 Switch to turn clash evaluation on (True) and off (False).
+            forcefield: str
+                Name of the forcefield you wish to use to parameterize atoms for the energy function. Currently,
+                supports `charmm` and `uff`
             energy_func : callable
                Python function or callable object that takes a protein and a RotamerEnsemble object as input and
                returns an energy value (kcal/mol) for each atom of each rotamer in the ensemble. See also
@@ -130,6 +136,9 @@ class dRotamerEnsemble:
         self.input_kwargs = kwargs
         self.__dict__.update(dassign_defaults(kwargs))
 
+        if isinstance(self.forcefield, str):
+            self.forcefield = scoring.ForceField(self.forcefield)
+
         self.get_lib(rotlib)
         self.create_ensembles()
 
@@ -165,8 +174,8 @@ class dRotamerEnsemble:
         if self.clash_radius is None:
             self.clash_radius = np.linalg.norm(self.clash_ori - self.coords, axis=-1).max() + 5
 
-        self.rmin2 = chilife.get_lj_rmin(self.atom_types[self.side_chain_idx])
-        self.eps = chilife.get_lj_eps(self.atom_types[self.side_chain_idx])
+        self.rmin2 = self.forcefield.get_lj_rmin(self.atom_types[self.side_chain_idx])
+        self.eps = self.forcefield.get_lj_eps(self.atom_types[self.side_chain_idx])
 
         self.protein_setup()
         self.sub_labels = (self.RE1, self.RE2)
@@ -364,8 +373,8 @@ class dRotamerEnsemble:
             idx for idx in protein_clash_idx if idx not in self.clash_ignore_idx
         ]
 
-        _, self.irmin_ij, self.ieps_ij, _ = chilife.prep_internal_clash(self)
-        _, self.ermin_ij, self.eeps_ij = chilife.prep_external_clash(self)
+        _, self.irmin_ij, self.ieps_ij, _ = scoring.prep_internal_clash(self)
+        _, self.ermin_ij, self.eeps_ij = scoring.prep_external_clash(self)
 
         self.aidx, self.bidx = [list(x) for x in zip(*self.non_bonded)]
 
@@ -409,11 +418,11 @@ class dRotamerEnsemble:
             rotlib += f'ip{self.increment}'
 
         # Check if any exist
-        rotlib_path = chilife.get_possible_rotlibs(rotlib, suffix='drotlib', extension='.zip')
+        rotlib_path = io.get_possible_rotlibs(rotlib, suffix='drotlib', extension='.zip')
 
         if rotlib_path is None:
             # Check if libraries exist but for different i+n
-            rotlib_path = chilife.get_possible_rotlibs(rotlib.replace(f'ip{self.increment}', ''),
+            rotlib_path = io.get_possible_rotlibs(rotlib.replace(f'ip{self.increment}', ''),
                                                        suffix='drotlib',
                                                        extension='.zip',
                                                        return_all=True)
@@ -429,12 +438,12 @@ class dRotamerEnsemble:
                               f'set to 1/len(rotlib)')
 
         if isinstance(rotlib_path, Path):
-            libA, libB, csts = chilife.read_library(rotlib_path)
+            libA, libB, csts = io.read_library(rotlib_path)
 
         elif isinstance(rotlib_path, list):
 
             cctA, cctB, ccsts = {}, {}, {}
-            libA, libB, csts = chilife.read_library(rotlib_path[0])
+            libA, libB, csts = io.read_library(rotlib_path[0])
             unis = []
 
             for lib in (libA, libB):
@@ -443,11 +452,11 @@ class dRotamerEnsemble:
                 resnames, resids = np.array([self.res]), np.array([1])
                 segidx = np.array([0])
 
-                uni = chilife.make_mda_uni(names, types, resnames, residxs, resids, segidx)
+                uni = make_mda_uni(names, types, resnames, residxs, resids, segidx)
                 unis.append(uni)
 
             for p in rotlib_path:
-                tlibA, tlibB, tcsts = chilife.read_library(p)
+                tlibA, tlibB, tcsts = io.read_library(p)
                 for lib, tlib, cct, uni in zip((libA, libB), (tlibA, tlibB), (cctA, cctB), unis):
 
                     # Libraries must have the same atom order
@@ -464,7 +473,7 @@ class dRotamerEnsemble:
                     lib_ic, tlib_ic = lib['internal_coords'], tlib['internal_coords']
                     if np.any(lib_ic.atom_names != tlib_ic.atom_names):
                         uni.load_new(cct['coords'][-1])
-                        tlib_ic = chilife.MolSysIC.from_atoms(uni, lib['dihedral_atoms'], lib_ic.bonds)
+                        tlib_ic = MolSysIC.from_atoms(uni, lib['dihedral_atoms'], lib_ic.bonds)
 
                     tlib['zmats'] = tlib_ic.trajectory.coordinate_array
                     cct.setdefault('dihedrals', []).append(tlib['dihedrals'])
@@ -484,19 +493,19 @@ class dRotamerEnsemble:
 
     def create_ensembles(self):
 
-        self.RE1 = chilife.RotamerEnsemble(self.res,
-                                           self.site1,
-                                           self.protein,
-                                           self.chain,
-                                           self.libA,
-                                           **self.kwargs)
+        self.RE1 = re.RotamerEnsemble(self.res,
+                                   self.site1,
+                                   self.protein,
+                                   self.chain,
+                                   self.libA,
+                                   **self.kwargs)
 
-        self.RE2 = chilife.RotamerEnsemble(self.res,
-                                           self.site2,
-                                           self.protein,
-                                           self.chain,
-                                           self.libB,
-                                           **self.kwargs)
+        self.RE2 = re.RotamerEnsemble(self.res,
+                                   self.site2,
+                                   self.protein,
+                                   self.chain,
+                                   self.libB,
+                                   **self.kwargs)
 
 
     def save_pdb(self, name: str = None):
@@ -513,7 +522,7 @@ class dRotamerEnsemble:
         if not name.endswith(".pdb"):
             name += ".pdb"
 
-        chilife.save(name, self.RE1, self.RE2)
+        io.save(name, self.RE1, self.RE2)
 
     def minimize(self, callback=None):
         """
@@ -550,7 +559,7 @@ class dRotamerEnsemble:
         self.score_base = scores.min()
         scores -= scores.min()
         self.rotamer_scores = scores + self.score_base
-        self.weights *= np.exp(-scores / (chilife.GAS_CONST * self.temp) / np.exp(-scores).sum())
+        self.weights *= np.exp(-scores / (scoring.GAS_CONST * self.temp) / np.exp(-scores).sum())
         self.weights /= self.weights.sum()
 
     def _objective(self, dihedrals, ic1, ic2):
@@ -660,7 +669,7 @@ class dRotamerEnsemble:
         energies = self.energy_func(self)
         self.rot_clash_energy = energies
         # Calculate total weights (combining internal and external)
-        self.weights, self.partition = chilife.reweight_rotamers(energies, self.temp, self.weights)
+        self.weights, self.partition = scoring.reweight_rotamers(energies, self.temp, self.weights)
         logging.info(f"Relative partition function: {self.partition:.3}")
 
         # Remove low-weight rotamers from ensemble
@@ -673,11 +682,11 @@ class dRotamerEnsemble:
 
     def copy(self):
         """Create a deep copy of the dRotamerEnsemble object"""
-        new_copy = chilife.dRotamerEnsemble(self.res, (self.site1, self.site2), chain=self.chain,
-                                            protein=self.protein,
-                                            rotlib={'csts': self.csts, 'libA': self.libA, 'libB': self.libB},
-                                            minimize=False,
-                                            eval_clash=False)
+        new_copy = dRotamerEnsemble(self.res, (self.site1, self.site2), chain=self.chain,
+                                    protein=self.protein,
+                                    rotlib={'csts': self.csts, 'libA': self.libA, 'libB': self.libB},
+                                    minimize=False,
+                                    eval_clash=False)
         for item in self.__dict__:
             if isinstance(self.dict[item], np.ndarray):
                 new_copy.__dict__[item] = self.__dict__[item].copy()
@@ -720,7 +729,7 @@ def dassign_defaults(kwargs):
     # Default parameters
     defaults = {
         "eval_clash": True,
-
+        "forcefield": 'charmm',
         "forgive": 0.95,
         "temp": 298,
         "clash_radius": None,
@@ -733,7 +742,7 @@ def dassign_defaults(kwargs):
         "use_H": False,
         "_exclude_nb_interactions": kwargs.pop('exclude_nb_interactions', 3),
 
-        "energy_func": chilife.get_lj_energy,
+        "energy_func": scoring.get_lj_energy,
         "_minimize": kwargs.pop('minimize', True),
         "min_method": 'L-BFGS-B',
         "_do_trim": kwargs.pop('trim', True),

@@ -57,5 +57,6 @@ def test_molar_gas_constant():
 
 
 def test_get_lj_case_sensitivity():
-    x = chilife.get_lj_rmin(['CA', 'Ca', 'ca'])
+    ff = chilife.ForceField('charmm')
+    x = ff.get_lj_rmin(['CA', 'Ca', 'ca'])
     assert np.all(x == 1.367)

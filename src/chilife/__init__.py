@@ -14,4 +14,4 @@ from .MolSysIC import *
 from .protein_utils import *
 from .scoring import *
 
-__version__ = '0.2.0'
+__version__ = '0.2.1'

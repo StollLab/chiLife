@@ -9,10 +9,9 @@ import igraph as ig
 import numpy as np
 from numpy.typing import ArrayLike
 
-import chilife
 from .MolSys import MolecularSystemBase, Trajectory, MolSys
-from .Topology import Topology
-from .protein_utils import get_angles, get_dihedrals, guess_bonds
+from .Topology import Topology, guess_bonds
+from .protein_utils import get_angles, get_dihedrals
 from .numba_utils import _ic_to_cart, batch_ic2cart
 
 
@@ -774,7 +773,7 @@ class MolSysIC:
         if isinstance(self._chain_operators, list):
             for i, op in zip(idx, self._chain_operators[idx]):
                 for start, stop in self._chain_segs:
-                    current_mx, current_ori = chilife.ic_mx(*cart_coords[i, start:start+3])
+                    current_mx, current_ori = ic_mx(*cart_coords[i, start:start+3])
                     mx = self.chain_operators[start]['mx']
                     ori = self.chain_operators[start]['ori']
                     m2m3 = current_mx @ mx
@@ -783,7 +782,7 @@ class MolSysIC:
         elif from_list:
             for i in idx:
                 for start, stop in self._chain_segs:
-                    current_mx, current_ori = chilife.ic_mx(*cart_coords[i, start:start+3])
+                    current_mx, current_ori = ic_mx(*cart_coords[i, start:start+3])
                     mx = self.chain_operators[start]['mx']
                     ori = self.chain_operators[start]['ori']
                     m2m3 = current_mx @ mx
@@ -791,7 +790,7 @@ class MolSysIC:
 
         elif isinstance(self._chain_operators, dict):
             for start, end in self._chain_segs:
-                current_mx, current_ori = chilife.ic_mx(*cart_coords[0, start:start + 3])
+                current_mx, current_ori = ic_mx(*cart_coords[0, start:start + 3])
                 mx = self.chain_operators[start]['mx']
                 ori = self.chain_operators[start]['ori']
                 m2m3 = current_mx.T @ mx

@@ -17,10 +17,11 @@ from scipy.stats import gaussian_kde
 from memoization import cached, suppress_warnings
 import MDAnalysis as mda
 
-import chilife
-from .RotamerEnsemble import RotamerEnsemble
-from .SpinLabel import SpinLabel
-from .dRotamerEnsemble import dRotamerEnsemble
+import chilife.RotamerEnsemble as re
+import chilife.SpinLabel as sl
+import chilife.dRotamerEnsemble as dre
+from .globals import dihedral_defs, rotlib_indexes, RL_DIR, SUPPORTED_BB_LABELS, USER_RL_DIR, rotlib_defaults
+from .alignment_methods import local_mx
 from .IntrinsicLabel import IntrinsicLabel
 from .MolSys import MolecularSystemBase
 from .MolSysIC import MolSysIC
@@ -79,6 +80,76 @@ def hash_file(file: Union[Path, BinaryIO]):
             hash.update(block)
 
     return hash.hexdigest()
+
+
+def get_possible_rotlibs(rotlib: str,
+                         suffix: str,
+                         extension: str,
+                         return_all: bool = False,
+                         was_none: bool = False) -> Union[Path, None]:
+    """
+    Search all known rotlib directories and the current working directory for rotlib(s) that match the provided
+    information.
+
+    Parameters
+    ----------
+    rotlib: str
+        Fullname, base name or partial name of the rotamer libraries to search for.
+    suffix: str
+        possible suffixes the rotamer library may have, e.g. ip2 to indicate an i+2 rotamer library.
+    extension: str
+        filetype extension to look for. This will be either `npz` for monofunctional rotlibs or zip for bifunctional
+        rotlibs.
+    return_all: bool
+        By default, only the first found rotlib will be returned unless ``return_all = True``, in which case
+    was_none: bool
+        For internal use only.
+
+    Returns
+    -------
+    rotlib: Path, List[Path], None
+        The path to the found rotlib or a list of paths to the rotlibs that match the search criteri, or ``None`` if
+        no rotlibs are found.
+    """
+    cwd = Path.cwd()
+    sufplusex = '_' + suffix + extension
+    # Assemble a list of possible rotlib paths starting in the current directory
+    possible_rotlibs = [Path(rotlib),
+                        cwd / rotlib,
+                        cwd / (rotlib + extension),
+                        cwd / (rotlib + sufplusex)]
+
+    possible_rotlibs += list(cwd.glob(f'{rotlib}*{sufplusex}'))
+    # Then in the user defined rotamer library directory
+    for pth in USER_RL_DIR:
+        possible_rotlibs += list(pth.glob(f'{rotlib}*{sufplusex}'))
+
+    if not was_none:
+        possible_rotlibs += list((RL_DIR / 'user_rotlibs').glob(f'*{rotlib}*'))
+
+    if return_all:
+        rotlib = []
+    for possible_file in possible_rotlibs:
+        if possible_file.exists() and return_all:
+                rotlib.append(possible_file)
+        elif possible_file.exists() and not possible_file.is_dir():
+            rotlib = possible_file
+            break
+    else:
+        if isinstance(rotlib, str) and was_none and rotlib in rotlib_defaults:
+            rotlib = RL_DIR / 'user_rotlibs' / (rotlib_defaults[rotlib][0] + sufplusex)
+
+        elif not isinstance(rotlib, list) or rotlib == []:
+            rotlib = None
+
+    # rotlib lists need to be sorted to prevent position mismatches for results with tests.
+    if isinstance(rotlib, list):
+        rotlib = [rot for rot in rotlib if str(rot).endswith(extension)]
+        rotlib = sorted(rotlib)
+    else:
+        rotlib = rotlib if str(rotlib).endswith(extension) else None
+
+    return rotlib
 
 
 suppress_warnings()
@@ -169,20 +240,20 @@ def read_bbdep(res: str, Phi: int, Psi: int) -> Dict:
     Phi, Psi = str(Phi), str(Psi)
 
     # Read residue internal coordinate structure
-    with open(chilife.RL_DIR / f"residue_internal_coords/{res.lower()}_ic.pkl", "rb") as f:
+    with open(RL_DIR / f"residue_internal_coords/{res.lower()}_ic.pkl", "rb") as f:
         ICs = pickle.load(f)
 
     atom_types = ICs.atom_types.copy()
     atom_names = ICs.atom_names.copy()
 
-    maxchi = 5 if res in chilife.SUPPORTED_BB_LABELS else 4
-    nchi = np.minimum(len(chilife.dihedral_defs[res]), maxchi)
+    maxchi = 5 if res in SUPPORTED_BB_LABELS else 4
+    nchi = np.minimum(len(dihedral_defs[res]), maxchi)
 
     if res not in ("ALA", "GLY"):
-        library = "R1C.lib" if res in chilife.SUPPORTED_BB_LABELS else "ALL.bbdep.rotamers.lib"
-        start, length = chilife.rotlib_indexes[f"{res}  {Phi:>4}{Psi:>5}"]
+        library = "R1C.lib" if res in SUPPORTED_BB_LABELS else "ALL.bbdep.rotamers.lib"
+        start, length = rotlib_indexes[f"{res}  {Phi:>4}{Psi:>5}"]
 
-        with open(chilife.RL_DIR / library, "rb") as f:
+        with open(RL_DIR / library, "rb") as f:
             f.seek(start)
             rotlib_string = f.read(length).decode()
             s = StringIO(rotlib_string)
@@ -192,7 +263,7 @@ def read_bbdep(res: str, Phi: int, Psi: int) -> Dict:
         lib["weights"] = data[:, 0]
         lib["dihedrals"] = data[:, 1: nchi + 1]
         lib["sigmas"] = data[:, maxchi + 1: maxchi + nchi + 1]
-        dihedral_atoms = chilife.dihedral_defs[res][:nchi]
+        dihedral_atoms = dihedral_defs[res][:nchi]
 
         # Calculate cartesian coordinates for each rotamer
         z_matrix = ICs.batch_set_dihedrals(np.zeros(len(lib['dihedrals']), dtype=int), np.deg2rad(lib['dihedrals']), 1, dihedral_atoms)
@@ -209,7 +280,7 @@ def read_bbdep(res: str, Phi: int, Psi: int) -> Dict:
 
     # Get origin and rotation matrix of local frame
     mask = np.in1d(atom_names, ["N", "CA", "C"])
-    ori, mx = chilife.local_mx(*coords[0, mask])
+    ori, mx = local_mx(*coords[0, mask])
 
     # Set coords in local frame and prepare output
     coords -= ori
@@ -272,7 +343,7 @@ def read_library(rotlib: str, Phi: float = None, Psi: float = None) -> Dict:
 
 def save(
         file_name: str,
-        *molecules: Union[RotamerEnsemble, MolecularSystemBase, mda.Universe, mda.AtomGroup, str],
+        *molecules: Union[re.RotamerEnsemble, MolecularSystemBase, mda.Universe, mda.AtomGroup, str],
         protein_path: Union[str, Path] = None,
         mode: str = 'w',
         **kwargs,
@@ -520,7 +591,7 @@ def write_ic(pdb_file: TextIO, ic: MolSysIC) -> None:
     pdb_file.write('ENDMDL\n')
 
 
-def write_labels(pdb_file: TextIO, *args: SpinLabel,
+def write_labels(pdb_file: TextIO, *args: sl.SpinLabel,
                  KDE: bool = True,
                  sorted: bool = True,
                  write_spin_centers: bool = True) -> None:
@@ -554,7 +625,7 @@ def write_labels(pdb_file: TextIO, *args: SpinLabel,
 
         sorted_index = np.argsort(label.weights)[::-1] if sorted else np.arange(len(label.weights))
         norm_weights = label.weights / label.weights.max()
-        if isinstance(label, dRotamerEnsemble):
+        if isinstance(label, dre.dRotamerEnsemble):
             sites = np.concatenate([np.ones(len(label.RE1.atoms), dtype=int) * int(label.site1),
                                     np.ones(len(label.RE2.atoms), dtype=int) * int(label.site2)])
         else:
@@ -659,8 +730,8 @@ def write_atoms(file: TextIO,
         )
 
 
-molecule_class = {RotamerEnsemble: 'rotens',
-                  dRotamerEnsemble: 'rotens',
+molecule_class = {re.RotamerEnsemble: 'rotens',
+                  dre.dRotamerEnsemble: 'rotens',
                   IntrinsicLabel: 'rotens',
                   mda.Universe: 'molcart',
                   mda.AtomGroup: 'molcart',

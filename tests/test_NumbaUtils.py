@@ -111,10 +111,11 @@ def test_get_sasa1():
     ubq = mda.Universe('test_data/1ubq.pdb').select_atoms('protein')
     SL = xl.SpinLabel('R1M', 28, ubq)
     atom_coords = SL.coords[0]
-    atom_radii = xl.get_lj_rmin(SL.atom_types)
+    ff = xl.ForceField('charmm')
+    atom_radii = ff.get_lj_rmin(SL.atom_types)
 
     environment_coords = SL.protein.atoms[SL.protein_clash_idx].positions
-    environment_radii = xl.get_lj_rmin(SL.protein.atoms[SL.protein_clash_idx].types)
+    environment_radii = ff.get_lj_rmin(SL.protein.atoms[SL.protein_clash_idx].types)
 
     area = nu.get_sasa(atom_coords, atom_radii, environment_coords, environment_radii)
 
@@ -125,7 +126,8 @@ def test_get_sasa2():
     ubq = mda.Universe('test_data/1ubq.pdb').select_atoms('protein')
 
     atom_coords = ubq.atoms.positions
-    atom_radii = xl.get_lj_rmin(ubq.atoms.types)
+    ff = xl.ForceField('charmm')
+    atom_radii = ff.get_lj_rmin(ubq.atoms.types)
 
     area = nu.get_sasa(atom_coords, atom_radii, by_atom=True)
 

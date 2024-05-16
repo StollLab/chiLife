@@ -1,11 +1,9 @@
-from copy import deepcopy
 from functools import partial
 import numpy as np
 from scipy.spatial.distance import cdist
-from scipy.spatial import cKDTree
-import MDAnalysis as mda
+
+from .scoring import ForceField, get_lj_energy
 from .RotamerEnsemble import RotamerEnsemble
-import chilife
 
 
 class SpinLabel(RotamerEnsemble):
@@ -68,30 +66,29 @@ class SpinLabel(RotamerEnsemble):
         """Create a SpinLabel object using the default MMM protocol with any modifications passed via kwargs"""
 
         MMM_maxdist = {
-            "R1M": 9.550856367392733,
-            "R7M": 9.757254987175209,
-            "V1M": 8.237071322458029,
-            "M1M": 8.985723827323680,
-            "I1M": 12.952083029729994,
+            "R1M": 9.550856367392733 + 4,
+            "R7M": 9.757254987175209 + 4,
+            "V1M": 8.237071322458029 + 4,
+            "M1M": 8.985723827323680 + 4,
+            "I1M": 12.952083029729994 + 4,
         }
 
-        # Store the force field parameter set being used before creating the spin label
-        curr_lj = chilife.using_lj_param
-        user_lj = kwargs.pop("lj_params", "uff")
-        # Set MMM defaults or user defined overrides
-        chilife.set_lj_params(user_lj)
+        # Set forcefield
+        ff = kwargs.pop('forcefield', 'uff')
+        if isinstance(ff, str):
+            ff = ForceField(ff)
 
-        clash_radius = kwargs.pop("clash_radius", MMM_maxdist[label] + 4)
+        clash_radius = kwargs.pop("clash_radius", MMM_maxdist.get(label, None))
         alignment_method = kwargs.pop("alignment_method", "mmm")
         clash_ori = kwargs.pop("clash_ori", "CA")
         energy_func = kwargs.pop(
-            "energy_func", partial(chilife.get_lj_energy, cap=np.inf)
+            "energy_func", partial(get_lj_energy, cap=np.inf)
         )
         use_H = kwargs.pop("use_H", True)
         forgive = kwargs.pop("forgive", 0.5)
 
         # Calculate the SpinLabel
-        SL = chilife.SpinLabel(
+        SL = SpinLabel(
             label,
             site,
             protein,
@@ -102,11 +99,10 @@ class SpinLabel(RotamerEnsemble):
             energy_func=energy_func,
             use_H=use_H,
             forgive=forgive,
+            forcefield = ff,
             **kwargs,
         )
 
-        # restore the force field parameter set being used before creating the spin label
-        chilife.set_lj_params(curr_lj)
         return SL
 
     @classmethod
@@ -197,4 +193,4 @@ class SpinLabel(RotamerEnsemble):
 
 
     def _base_copy(self, rotlib=None):
-        return chilife.SpinLabel(self.res, self.site, rotlib=rotlib, chain=self.chain)
+        return SpinLabel(self.res, self.site, rotlib=rotlib, chain=self.chain)

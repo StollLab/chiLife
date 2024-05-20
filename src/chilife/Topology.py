@@ -44,7 +44,7 @@ class Topology:
         self.graph = kwargs.get('graph', self._make_graph())
         self.angles = kwargs.get('angles', get_angle_defs(self.graph))
         self.dihedrals = kwargs.get('dihedrals', get_dihedral_defs(self.graph))
-
+        self.degree = []
         self.dihedrals_by_bonds = {}
         self.dihedrals_by_atoms = {}
         self.dihedrals_by_resnum = {}

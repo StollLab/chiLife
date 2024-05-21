@@ -1194,16 +1194,24 @@ class RotamerEnsemble:
     @dihedrals.setter
     def dihedrals(self, dihedrals):
 
-        warnings.warn('WARNING: Setting dihedrals in this fashion will set all bond lengths and angles to that '
-                      'of the first rotamer in the library effectively removing stereo-isomers from the ensemble. It '
-                      'will also set all weights to .')
-
         dihedrals = dihedrals if dihedrals.ndim == 2 else dihedrals[None, :]
         if dihedrals.shape[1] != self.dihedrals.shape[1]:
             raise ValueError('The input array does not have the correct number of dihedrals')
 
+        if len(dihedrals) != self.dihedrals.shape[0]:
+
+            warnings.warn('WARNING: Setting dihedrals in this fashion will set all bond lengths and angles to that '
+                          'of the first rotamer in the library effectively removing stereo-isomers from the ensemble. It '
+                          'will also set all weights to .')
+
+            # Apply uniform weights
+            self.weights = np.ones(len(dihedrals))
+            self.weights /= self.weights.sum()
+            idxs = [0 for _ in range(len(dihedrals))]
+        else:
+            idxs = np.arange(len(dihedrals))
+
         self._dihedrals = dihedrals
-        idxs = [0 for _ in range(len(dihedrals))]
         z_matrix = self.internal_coords.batch_set_dihedrals(idxs, np.deg2rad(dihedrals), 1, self.dihedral_atoms)
         self.internal_coords = self.internal_coords.copy()
         self.internal_coords.load_new(z_matrix)
@@ -1211,9 +1219,7 @@ class RotamerEnsemble:
         if self._match_backbone:
             self.backbone_to_site()
 
-        # Apply uniform weights
-        self.weights = np.ones(len(self._dihedrals))
-        self.weights /= self.weights.sum()
+
 
     @property
     def mx(self):

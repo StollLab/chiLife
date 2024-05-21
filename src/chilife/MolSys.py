@@ -271,8 +271,6 @@ class MolSys(MolecularSystemBase):
         self.charges = charges.copy()
         self._fname = name
 
-        self.topology = Topology(bonds) if bonds is not None else None
-
         self.ix = np.arange(len(self.atomids))
         self.mask = np.arange(len(self.atomids))
 
@@ -337,6 +335,7 @@ class MolSys(MolecularSystemBase):
                                 'around': update_wrapper(partial(within, molsys=self.molsys), within)}
 
         self.atoms = AtomSelection(self, self.mask)
+        self.topology = Topology(self, bonds) if bonds is not None else None
 
     @classmethod
     def from_pdb(cls, file_name, sort_atoms=False):
@@ -410,6 +409,7 @@ class MolSys(MolecularSystemBase):
                     segindices: ArrayLike,
                     segids: ArrayLike = None,
                     trajectory: ArrayLike = None,
+                    **kwargs
                     ) -> MolSys:
         """
         Create a MolSys object from a minimal set of arrays.
@@ -474,10 +474,10 @@ class MolSys(MolecularSystemBase):
 
         occupancies = np.ones(n_atoms)
         bs = np.ones(n_atoms)
-        charges = np.zeros(n_atoms)
+        charges = kwargs.pop('charges', np.zeros(n_atoms))
 
         return cls(atomids, anames, altlocs, resnames, resnums, chains,
-                   trajectory, occupancies, bs, segids, atypes, charges)
+                   trajectory, occupancies, bs, segids, atypes, charges, **kwargs)
 
     @classmethod
     def from_atomsel(cls, atomsel, frames=None):
@@ -1077,6 +1077,7 @@ class Atom(MolecularSystemBase):
         self.resnum = self.resi
         self.chain = molsys.segids[self.index]
         self.segid = molsys.chains[self.index]
+        self.charge = molsys.charges[self.index]
 
     @property
     def position(self):

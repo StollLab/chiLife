@@ -271,9 +271,16 @@ def test_dihedral_setter_no_protein():
     R1M2.name += '2'
 
     R1M.dihedrals = R1M.dihedrals + [180, 0, 0, 0, 0]
+    sorted_idxs = np.argsort(R1M.weights)[::-1]
 
     # Assert that the backbone does not move when
     np.testing.assert_allclose(R1M.backbone, R1M2.backbone)
+    ic = R1M.internal_coords
+    ic_angles = np.rad2deg([ic.get_dihedral(1, ['N', 'CA', 'CB', 'SG']) for ts in ic.trajectory])
+    assert np.max(np.abs((ic_angles - R1M.dihedrals[:, 0])) % 360) < 1e-6
+    assert np.max(np.abs(np.abs(ic_angles - R1M2.dihedrals[:, 0]) % 360  - 180)) < 1e-6
+
+
 
 
 def test_get_sasa():

@@ -13,6 +13,7 @@ SOURCE   6 GENE: MALE
 KEYWDS    PERIPLASMIC BINDING PROTEIN, SUGAR TRANSPORT                          
 EXPDTA    X-RAY DIFFRACTION                                                     
 AUTHOR    J.C.SPURLINO,F.A.QUIOCHO                                              
+REVDAT   6   22-MAY-24 1ANF    1       REMARK                                   
 REVDAT   5   02-AUG-23 1ANF    1       HETSYN                                   
 REVDAT   4   29-JUL-20 1ANF    1       COMPND REMARK HETNAM LINK                
 REVDAT   4 2                   1       SITE   ATOM                              

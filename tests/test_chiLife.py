@@ -5,6 +5,7 @@ from scipy.stats import norm, t
 import pytest
 import MDAnalysis as mda
 import chilife
+from chilife.chilife import pair_dd
 import matplotlib.pyplot as plt
 import matplotlib as mpl
 from pathlib import Path
@@ -17,6 +18,7 @@ U = mda.Universe("test_data/m1omp.pdb")
 protein = U.select_atoms("protein")
 r = np.linspace(0, 100, 2 ** 8)
 old_ef = lambda protein, ensemble: chilife.get_lj_rep(protein, ensemble, forgive=0.8)
+ff = chilife.ForceField('charmm')
 
 with open('test_data/test_from_MMM.pkl', 'rb') as f:
     from_mmm_Ps, from_mmm_rotlibs = pickle.load(f)
@@ -65,7 +67,7 @@ def test_unfiltered_dd():
     SL1.weights = np.array([0.5, 0.5])
     SL2.weights = np.array([0.1, 0.3, 0.6])
 
-    y = chilife.pair_dd(SL1, SL2, r=r)
+    y = pair_dd(SL1, SL2, r=r)
     y_ans = np.load("test_data/pwdd.npy")
 
     np.testing.assert_almost_equal(y_ans, y)
@@ -97,11 +99,11 @@ def test_unfiltered_dd():
 
 
 def test_get_lj_rmin():
-    assert np.all(rmin_params == chilife.get_lj_rmin(atom_names))
+    assert np.all(rmin_params == ff.get_lj_rmin(atom_names))
 
 
 def test_get_lj_eps():
-    assert np.all(eps_params == chilife.get_lj_eps(atom_names))
+    assert np.all(eps_params == ff.get_lj_eps(atom_names))
 
 
 @pytest.mark.parametrize("args, kws, expected", zip(args, kws, ans))
@@ -278,12 +280,12 @@ def test_single_chain_error():
                                 spin_atoms='Cu1')
 
 
-def test_set_params():
-    chilife.set_lj_params("uff")
-    assert 3.851 == chilife.get_lj_rmin("C")
-    assert -0.105 == chilife.get_lj_eps("C")
-    assert chilife.get_lj_rmin("join_protocol")[()] == chilife.join_geom
-    chilife.set_lj_params("charmm")
+def test_ff():
+    ff = chilife.ForceField("uff")
+    assert 3.851 == ff.get_lj_rmin("C")
+    assert -0.105 == ff.get_lj_eps("C")
+    assert ff.get_lj_rmin("join_protocol")[()] == chilife.join_geom
+
 
 
 @pytest.mark.parametrize('key', from_mmm_rotlibs.keys())
@@ -304,29 +306,6 @@ def test_MMM_dd(key):
 
     Ptest = chilife.distance_distribution(SL1, SL2, from_mmm_r)
     np.testing.assert_almost_equal(Ptest, Pans, decimal=6)
-
-
-def test_save():
-    L20R1 = chilife.SpinLabel("R1C", 20, protein)
-    S238T = chilife.RotamerEnsemble("THR", 238, protein)
-    A318DHC = chilife.dSpinLabel("DHC", [318, 322], protein, rotlib='test_data/DHC')
-
-    chilife.save(L20R1, S238T, A318DHC, protein, KDE=False)
-
-    with open(f"test_data/test_save.pdb", "r") as f:
-        ans = hashlib.md5(f.read().encode("utf-8")).hexdigest()
-
-    with open("No_Name_Protein_many_labels.pdb", "r") as f:
-        test = hashlib.md5(f.read().encode("utf-8")).hexdigest()
-
-    os.remove("No_Name_Protein_many_labels.pdb")
-
-    assert ans == test
-
-
-def test_save_fail():
-    with pytest.raises(TypeError):
-        chilife.save("tmp", np.array([1, 2, 3]))
 
 
 def test_use_local_library():

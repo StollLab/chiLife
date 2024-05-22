@@ -1,4 +1,7 @@
+from typing import Union, List, Tuple
+
 import numpy as np
+from numpy.typing import ArrayLike
 alignment_methods = {}
 
 
@@ -246,3 +249,77 @@ def parse_backbone(rotamer_ensemble, kind):
             f"resnum {rotamer_ensemble.site} "
             f"and name N CA C and not altloc B"
         ).positions
+
+
+
+
+def local_mx(*p, method: Union[str, callable] = "bisect") -> Tuple[ArrayLike, ArrayLike]:
+    """Calculates a translation vector and rotation matrix to transform a set of coordinates from the global
+    coordinate frame to a local coordinate frame defined by ``p`` , using the specified method.
+
+    Parameters
+    ----------
+    p : ArrayLike
+        3D coordinates of the three points defining the coordinate system (Usually N, CA, C).
+    method : str, callable
+        Method to use for generation of rotation matrix
+
+    Returns
+    -------
+    origin : np.ndarray
+        Cartesian coordinate of the origin to be subtracted from the coordinates before applying the rotation matrix.
+    rotation_matrix : np.ndarray
+        Rotation matrix to transform a set of coordinates to the local frame defined by p and the selected method.
+    """
+
+    if isinstance(method, str):
+        method = alignment_methods[method]
+
+    p1, p2, p3 = p
+
+    if method.__name__ == 'fit_alignment':
+        rotation_matrix, _ = method(p1, p2, p3)
+        origin = np.mean([p1[0], p2[0], p3[0]], axis=0)
+    else:
+        # Transform coordinates such that the CA atom is at the origin
+        p1n = p1 - p2
+        p3n = p3 - p2
+        p2n = p2 - p2
+
+        origin = p2
+
+        # Local Rotation matrix is the inverse of the global rotation matrix
+        rotation_matrix, _ = method(p1n, p2n, p3n)
+
+    rotation_matrix = rotation_matrix.T
+
+    return origin, rotation_matrix
+
+
+def global_mx(*p: ArrayLike, method: Union[str, callable] = "bisect") -> Tuple[ArrayLike, ArrayLike]:
+    """Calculates a translation vector and rotation matrix to transform the a set of coordinates from the local
+    coordinate frame to the global coordinate frame using the specified method.
+
+    Parameters
+    ----------
+    p : ArrayLike
+        3D coordinates of the three points used to define the new coordinate system (Usually N, CA, C)
+    method : str
+        Method to use for generation of rotation matrix
+
+    Returns
+    -------
+    rotation_matrix : np.ndarray
+        Rotation matrix to be applied to the set of coordinates before translating
+    origin : np.ndarray
+        Vector to be added to the coordinates after rotation to translate the coordinates to the global frame.
+    """
+
+    if isinstance(method, str):
+        method = alignment_methods[method]
+
+    if method.__name__ == 'fit_alignment':
+        p = [pi[::-1] for pi in p]
+
+    rotation_matrix, origin = method(*p)
+    return rotation_matrix, origin

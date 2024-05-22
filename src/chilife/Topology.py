@@ -1,9 +1,14 @@
-from typing import List, Tuple
+from typing import List, Tuple, Set
 from itertools import combinations, product
+from operator import itemgetter
 
 import numpy as np
+from numpy.typing import ArrayLike
+from scipy.spatial import cKDTree
+
 import igraph as ig
 
+from .globals import bond_hmax_dict
 
 class Topology:
     """
@@ -39,7 +44,7 @@ class Topology:
         self.graph = kwargs.get('graph', self._make_graph())
         self.angles = kwargs.get('angles', get_angle_defs(self.graph))
         self.dihedrals = kwargs.get('dihedrals', get_dihedral_defs(self.graph))
-
+        self.degree = []
         self.dihedrals_by_bonds = {}
         self.dihedrals_by_atoms = {}
         self.dihedrals_by_resnum = {}
@@ -55,6 +60,28 @@ class Topology:
             r1 = self.atoms[c].resnum
             c1 = self.atoms[c].segid
             self.dihedrals_by_resnum[c1, r1, n1, n2, n3, n4] = dihe
+
+    @property
+    def ring_idxs(self):
+        found_cycle_edges = self.graph.fundamental_cycles()
+        found_cycle_nodes = []
+
+        for cycle in found_cycle_edges:
+            cyverts = set()
+            for edge in self.graph.es(cycle):
+                cyverts.update(edge.tuple)
+
+            found_cycle_nodes.append(sorted(cyverts))
+
+        return found_cycle_nodes
+
+    @property
+    def has_rings(self):
+        if self.ring_idxs == []:
+            return False
+        else:
+            return True
+
 
     def get_zmatrix_dihedrals(self):
         """
@@ -158,3 +185,140 @@ def get_dihedral_defs(graph):
             dihedrals += [tuple(a) for a in bond_dihedrals]
 
     return tuple(dihedrals)
+
+
+def get_min_topol(lines: List[List[str]],
+                  forced_bonds: set = None) -> Set[Tuple[int, int]]:
+    """ Git the minimum topology shared by all the states/models a PDB ensemble. This is to ensure a consistent
+    internal coordinate system between all conformers of an ensemble even when there are minor differences in topology.
+    e.g. when dHis-Cu-NTA has the capping ligand in different bond orientations.
+
+    Parameters
+    ----------
+    lines : List[List[str]]
+        List of lists corresponding to individual states/models of a pdb file. All models must have the same stoma in
+        the same order and only the coordinates should differ.
+    forced_bonds : set
+        A set of bonds to that must be used regardless even if the bond lengths are not physically reasonable.
+    Returns
+    -------
+    minimal_bond_set : Set[Tuple[int, int]]
+        A set of tuples holding the indices of atom pairs which are thought to be bonded in all states/models.
+    """
+    bonds_list = []
+    if isinstance(lines[0], str):
+        lines = [lines]
+
+    # Get bonds for all structures
+    for struct in lines:
+        coords = np.array([(line[30:38], line[38:46], line[46:54]) for line in struct], dtype=float)
+        atypes = np.array([line[76:78].strip() for line in struct])
+        pairs = guess_bonds(coords, atypes)
+        bonds = set(tuple(pair) for pair in pairs)
+        bonds_list.append(bonds)
+
+    # Get the shared bonds between all structures.
+    minimal_bond_set = set.intersection(*bonds_list)
+    # Include any forced bonds
+    if forced_bonds is not None:
+        minimal_bond_set |= forced_bonds
+
+    return minimal_bond_set
+
+
+def guess_bonds(coords: ArrayLike, atom_types: ArrayLike) -> np.ndarray:
+    """ Given a set of coordinates and their atom types (elements) guess the bonds based off an empirical metric.
+
+    Parameters
+    ----------
+    coords : ArrayLike
+        Array of three-dimensional coordinates of the atoms of a molecule or set of molecules for which you would like
+        to guess the bonds of.
+    atom_types : ArrayLike
+        Array of the element symbols corresponding to the atoms of ``coords``
+
+    Returns
+    -------
+    bonds : np.ndarray
+        An array of the atom index pairs corresponding to the atom pairs that are thought ot form bonds.
+    """
+    atom_types = np.array([a.title() for a in atom_types])
+    kdtree = cKDTree(coords)
+    pairs = kdtree.query_pairs(4., output_type='ndarray')
+    pair_names = [tuple(x) for x in atom_types[pairs].tolist()]
+    bond_lengths = itemgetter(*pair_names)(bond_hmax_dict)
+    a_atoms = pairs[:, 0]
+    b_atoms = pairs[:, 1]
+
+    dist = np.linalg.norm(coords[a_atoms] - coords[b_atoms], axis=1)
+    bonds = pairs[dist < bond_lengths]
+    sorted_args = np.lexsort((bonds[:, 0], bonds[:,1]))
+    return bonds[sorted_args]
+
+
+def neighbors(edges, node):
+    """
+    Given a graph defined by edges and a node, find all neighbors of that node.
+
+    Parameters
+    ----------
+    edges : ArrayLike
+        Array of tuples defining all edges between nodes
+    node : int
+        The node of the graph for which to find neighbors.
+
+    Returns
+    -------
+    nbs : ArrayLike
+        Neighbor nodes.
+    """
+    nbs = []
+    for edge in edges:
+        if node not in edge:
+            continue
+        elif node == edge[0]:
+            nbs.append(edge[1])
+        elif node == edge[1]:
+            nbs.append(edge[0])
+    return nbs
+
+
+def bfs_edges(edges, root):
+    """
+    Breadth first search of nodes given a set of edges
+    Parameters
+    ----------
+    edges : ArrayLike
+        Array of tuples defining edges between nodes.
+    root : int
+        Starting (root) node to begin the breadth first search at.
+
+    Yields
+    ------
+    parent : int
+        The node from which the children node stem
+    child: List[int]
+        All children node of parent.
+    """
+    nodes = np.unique(edges)
+
+    depth_limit = len(nodes)
+    seen = {root}
+
+    n = len(nodes)
+    depth = 0
+    next_parents_children = [(root, neighbors(edges, root))]
+
+    while next_parents_children and depth < depth_limit:
+        this_parents_children = next_parents_children
+        next_parents_children = []
+        for parent, children in this_parents_children:
+            for child in children:
+                if child not in seen:
+                    seen.add(child)
+                    next_parents_children.append((child, neighbors(edges, child)))
+                    yield parent, child
+            if len(seen) == n:
+                return
+        depth += 1
+

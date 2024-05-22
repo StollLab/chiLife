@@ -1,11 +1,9 @@
-from copy import deepcopy
 from functools import partial
 import numpy as np
 from scipy.spatial.distance import cdist
-from scipy.spatial import cKDTree
-import MDAnalysis as mda
+
+from .scoring import ForceField, get_lj_energy
 from .RotamerEnsemble import RotamerEnsemble
-import chilife
 
 
 class SpinLabel(RotamerEnsemble):
@@ -62,70 +60,35 @@ class SpinLabel(RotamerEnsemble):
         """Average location of all the label's `spin_coords` weighted based off of the rotamer weights"""
         return np.average(self.spin_centers, weights=self.weights, axis=0)
 
-    def protein_setup(self):
-
-        if isinstance(self.protein, (mda.AtomGroup, mda.Universe)):
-            if not hasattr(self.protein.universe._topology, "altLocs"):
-                self.protein.universe.add_TopologyAttr('altLocs', np.full(len(self.protein.universe.atoms), ""))
-
-        self.protein = self.protein.select_atoms("not (byres name OH2 or resname HOH)")
-        self.to_site()
-        self.backbone_to_site()
-        clash_ignore_idx = self.protein.select_atoms(f"resid {self.site} and segid {self.chain}").ix
-        self.clash_ignore_idx = np.argwhere(np.isin(self.protein.ix, clash_ignore_idx)).flatten()
-        self.resindex = self.protein.select_atoms(self.selstr).resindices[0]
-        self.segindex = self.protein.select_atoms(self.selstr).segindices[0]
-
-        if self.protein_tree is None:
-            self.protein_tree = cKDTree(self.protein.atoms.positions)
-
-        protein_clash_idx = self.protein_tree.query_ball_point(
-            self.clash_ori, self.clash_radius
-        )
-        self.protein_clash_idx = [
-            idx for idx in protein_clash_idx if idx not in self.clash_ignore_idx
-        ]
-
-        # Evaluate external clash energies and reweight rotamers
-        if self._minimize and self.eval_clash:
-            raise RuntimeError('Both `minimize` and `eval_clash` options have been selected, but they are incompatible.'
-                               'Please select only on. Also note that minimize performs its own clash evaluations so '
-                               'eval_clash is not necessary.')
-        elif self.eval_clash:
-            self.evaluate()
-
-        elif self._minimize:
-            self.minimize()
 
     @classmethod
-    def from_mmm(cls, label, site, protein=None, chain=None, **kwargs):
+    def from_mmm(cls, label, site=None, protein=None, chain=None, **kwargs):
         """Create a SpinLabel object using the default MMM protocol with any modifications passed via kwargs"""
 
         MMM_maxdist = {
-            "R1M": 9.550856367392733,
-            "R7M": 9.757254987175209,
-            "V1M": 8.237071322458029,
-            "M1M": 8.985723827323680,
-            "I1M": 12.952083029729994,
+            "R1M": 9.550856367392733 + 4,
+            "R7M": 9.757254987175209 + 4,
+            "V1M": 8.237071322458029 + 4,
+            "M1M": 8.985723827323680 + 4,
+            "I1M": 12.952083029729994 + 4,
         }
 
-        # Store the force field parameter set being used before creating the spin label
-        curr_lj = chilife.using_lj_param
-        user_lj = kwargs.pop("lj_params", "uff")
-        # Set MMM defaults or user defined overrides
-        chilife.set_lj_params(user_lj)
+        # Set forcefield
+        ff = kwargs.pop('forcefield', 'uff')
+        if isinstance(ff, str):
+            ff = ForceField(ff)
 
-        clash_radius = kwargs.pop("clash_radius", MMM_maxdist[label] + 4)
+        clash_radius = kwargs.pop("clash_radius", MMM_maxdist.get(label, None))
         alignment_method = kwargs.pop("alignment_method", "mmm")
         clash_ori = kwargs.pop("clash_ori", "CA")
         energy_func = kwargs.pop(
-            "energy_func", partial(chilife.get_lj_energy, cap=np.inf)
+            "energy_func", partial(get_lj_energy, cap=np.inf)
         )
         use_H = kwargs.pop("use_H", True)
         forgive = kwargs.pop("forgive", 0.5)
 
         # Calculate the SpinLabel
-        SL = chilife.SpinLabel(
+        SL = SpinLabel(
             label,
             site,
             protein,
@@ -136,18 +99,17 @@ class SpinLabel(RotamerEnsemble):
             energy_func=energy_func,
             use_H=use_H,
             forgive=forgive,
+            forcefield = ff,
             **kwargs,
         )
 
-        # restore the force field parameter set being used before creating the spin label
-        chilife.set_lj_params(curr_lj)
         return SL
 
     @classmethod
     def from_wizard(
         cls,
         label,
-        site=1,
+        site=None,
         protein=None,
         chain=None,
         to_find=200,
@@ -165,7 +127,7 @@ class SpinLabel(RotamerEnsemble):
         internal_coords = []
         i = 0
         if protein is not None:
-            protein_clash_idx = prelib.protein_tree.query_ball_point(prelib.centroid(), 19.0)
+            protein_clash_idx = prelib.protein_tree.query_ball_point(prelib.centroid, 19.0)
             protein_clash_idx = [idx for idx in protein_clash_idx if idx not in prelib.clash_ignore_idx]
 
         a, b = [list(x) for x in zip(*prelib.non_bonded)]
@@ -224,6 +186,11 @@ class SpinLabel(RotamerEnsemble):
         prelib.weights /= prelib.weights.sum()
         return prelib
 
+    def __str__(self):
+        return (super().__str__() +
+                f"  spin atoms:\n    {self.spin_atoms}")
+
+
 
     def _base_copy(self, rotlib=None):
-        return chilife.SpinLabel(self.res, self.site, rotlib=rotlib, chain=self.chain)
+        return SpinLabel(self.res, self.site, rotlib=rotlib, chain=self.chain)

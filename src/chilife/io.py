@@ -1,5 +1,7 @@
 from typing import Tuple, Dict, Union, BinaryIO, TextIO, Protocol
-
+import warnings
+import os
+import urllib
 import MDAnalysis
 from numpy.typing import ArrayLike
 from collections import defaultdict
@@ -15,10 +17,11 @@ from scipy.stats import gaussian_kde
 from memoization import cached, suppress_warnings
 import MDAnalysis as mda
 
-import chilife
-from .RotamerEnsemble import RotamerEnsemble
-from .SpinLabel import SpinLabel
-from .dRotamerEnsemble import dRotamerEnsemble
+import chilife.RotamerEnsemble as re
+import chilife.SpinLabel as sl
+import chilife.dRotamerEnsemble as dre
+from .globals import dihedral_defs, rotlib_indexes, RL_DIR, SUPPORTED_BB_LABELS, USER_RL_DIR, rotlib_defaults
+from .alignment_methods import local_mx
 from .IntrinsicLabel import IntrinsicLabel
 from .MolSys import MolecularSystemBase
 from .MolSysIC import MolSysIC
@@ -77,6 +80,76 @@ def hash_file(file: Union[Path, BinaryIO]):
             hash.update(block)
 
     return hash.hexdigest()
+
+
+def get_possible_rotlibs(rotlib: str,
+                         suffix: str,
+                         extension: str,
+                         return_all: bool = False,
+                         was_none: bool = False) -> Union[Path, None]:
+    """
+    Search all known rotlib directories and the current working directory for rotlib(s) that match the provided
+    information.
+
+    Parameters
+    ----------
+    rotlib: str
+        Fullname, base name or partial name of the rotamer libraries to search for.
+    suffix: str
+        possible suffixes the rotamer library may have, e.g. ip2 to indicate an i+2 rotamer library.
+    extension: str
+        filetype extension to look for. This will be either `npz` for monofunctional rotlibs or zip for bifunctional
+        rotlibs.
+    return_all: bool
+        By default, only the first found rotlib will be returned unless ``return_all = True``, in which case
+    was_none: bool
+        For internal use only.
+
+    Returns
+    -------
+    rotlib: Path, List[Path], None
+        The path to the found rotlib or a list of paths to the rotlibs that match the search criteri, or ``None`` if
+        no rotlibs are found.
+    """
+    cwd = Path.cwd()
+    sufplusex = '_' + suffix + extension
+    # Assemble a list of possible rotlib paths starting in the current directory
+    possible_rotlibs = [Path(rotlib),
+                        cwd / rotlib,
+                        cwd / (rotlib + extension),
+                        cwd / (rotlib + sufplusex)]
+
+    possible_rotlibs += list(cwd.glob(f'{rotlib}*{sufplusex}'))
+    # Then in the user defined rotamer library directory
+    for pth in USER_RL_DIR:
+        possible_rotlibs += list(pth.glob(f'{rotlib}*{sufplusex}'))
+
+    if not was_none:
+        possible_rotlibs += list((RL_DIR / 'user_rotlibs').glob(f'*{rotlib}*'))
+
+    if return_all:
+        rotlib = []
+    for possible_file in possible_rotlibs:
+        if possible_file.exists() and return_all:
+                rotlib.append(possible_file)
+        elif possible_file.exists() and not possible_file.is_dir():
+            rotlib = possible_file
+            break
+    else:
+        if isinstance(rotlib, str) and was_none and rotlib in rotlib_defaults:
+            rotlib = RL_DIR / 'user_rotlibs' / (rotlib_defaults[rotlib][0] + sufplusex)
+
+        elif not isinstance(rotlib, list) or rotlib == []:
+            rotlib = None
+
+    # rotlib lists need to be sorted to prevent position mismatches for results with tests.
+    if isinstance(rotlib, list):
+        rotlib = [rot for rot in rotlib if str(rot).endswith(extension)]
+        rotlib = sorted(rotlib)
+    else:
+        rotlib = rotlib if str(rotlib).endswith(extension) else None
+
+    return rotlib
 
 
 suppress_warnings()
@@ -167,20 +240,20 @@ def read_bbdep(res: str, Phi: int, Psi: int) -> Dict:
     Phi, Psi = str(Phi), str(Psi)
 
     # Read residue internal coordinate structure
-    with open(chilife.RL_DIR / f"residue_internal_coords/{res.lower()}_ic.pkl", "rb") as f:
+    with open(RL_DIR / f"residue_internal_coords/{res.lower()}_ic.pkl", "rb") as f:
         ICs = pickle.load(f)
 
     atom_types = ICs.atom_types.copy()
     atom_names = ICs.atom_names.copy()
 
-    maxchi = 5 if res in chilife.SUPPORTED_BB_LABELS else 4
-    nchi = np.minimum(len(chilife.dihedral_defs[res]), maxchi)
+    maxchi = 5 if res in SUPPORTED_BB_LABELS else 4
+    nchi = np.minimum(len(dihedral_defs[res]), maxchi)
 
     if res not in ("ALA", "GLY"):
-        library = "R1C.lib" if res in chilife.SUPPORTED_BB_LABELS else "ALL.bbdep.rotamers.lib"
-        start, length = chilife.rotlib_indexes[f"{res}  {Phi:>4}{Psi:>5}"]
+        library = "R1C.lib" if res in SUPPORTED_BB_LABELS else "ALL.bbdep.rotamers.lib"
+        start, length = rotlib_indexes[f"{res}  {Phi:>4}{Psi:>5}"]
 
-        with open(chilife.RL_DIR / library, "rb") as f:
+        with open(RL_DIR / library, "rb") as f:
             f.seek(start)
             rotlib_string = f.read(length).decode()
             s = StringIO(rotlib_string)
@@ -190,7 +263,7 @@ def read_bbdep(res: str, Phi: int, Psi: int) -> Dict:
         lib["weights"] = data[:, 0]
         lib["dihedrals"] = data[:, 1: nchi + 1]
         lib["sigmas"] = data[:, maxchi + 1: maxchi + nchi + 1]
-        dihedral_atoms = chilife.dihedral_defs[res][:nchi]
+        dihedral_atoms = dihedral_defs[res][:nchi]
 
         # Calculate cartesian coordinates for each rotamer
         z_matrix = ICs.batch_set_dihedrals(np.zeros(len(lib['dihedrals']), dtype=int), np.deg2rad(lib['dihedrals']), 1, dihedral_atoms)
@@ -207,7 +280,7 @@ def read_bbdep(res: str, Phi: int, Psi: int) -> Dict:
 
     # Get origin and rotation matrix of local frame
     mask = np.in1d(atom_names, ["N", "CA", "C"])
-    ori, mx = chilife.local_mx(*coords[0, mask])
+    ori, mx = local_mx(*coords[0, mask])
 
     # Set coords in local frame and prepare output
     coords -= ori
@@ -270,7 +343,7 @@ def read_library(rotlib: str, Phi: float = None, Psi: float = None) -> Dict:
 
 def save(
         file_name: str,
-        *molecules: Union[RotamerEnsemble, MolecularSystemBase, mda.Universe, mda.AtomGroup, str],
+        *molecules: Union[re.RotamerEnsemble, MolecularSystemBase, mda.Universe, mda.AtomGroup, str],
         protein_path: Union[str, Path] = None,
         mode: str = 'w',
         **kwargs,
@@ -289,8 +362,13 @@ def save(
         The Path to a pdb file to use as the protein object.
     mode : str
         Which mode to open the file in. Accepts 'w' or 'a' to overwrite or append.
+
     **kwargs :
         Additional arguments to pass to ``write_labels``
+
+        write_spin_centers : bool
+            Write spin centers (atoms named NEN) as a seperate object with weights mapped to q-factor.
+
     """
 
     if isinstance(file_name, tuple(molecule_class.keys())):
@@ -332,14 +410,15 @@ def save(
                     file_name += ' ' + Path(protein.filename).name
                     file_name = file_name[:-4]
 
-        if file_name == '':
+        if file_name == '' and len(molecules['molcart']) > 0:
             file_name = "No_Name_Protein"
 
         # Add spin label information to file name
         if 0 < len(molecules['rotens']) < 3:
-            for rotens in molecules['rotens']:
-                file_name += f"_{rotens.name}"
-        else:
+            naml = [file_name] + [rotens.name for rotens in molecules['rotens']]
+            file_name = "_".join(naml)
+            file_name = file_name.strip('_')
+        elif len(molecules['rotens']) >= 3:
             file_name += "_many_labels"
 
         file_name += ".pdb"
@@ -352,8 +431,24 @@ def save(
     else:
         pdb_file = open(file_name, mode)
 
+    used_names = {}
     for protein in molecules['molcart']:
-        write_protein(pdb_file, protein)
+
+        if isinstance(protein, (mda.AtomGroup, mda.Universe)):
+            name = Path(protein.universe.filename) if protein.universe.filename is not None else Path(pdb_file.name)
+            name = name.name
+        else:
+            name = protein.fname if hasattr(protein, 'fname') else None
+
+        if name is None:
+            name = Path(pdb_file.name).name
+
+        name = name[:-4] if name.endswith(".pdb") else name
+        name_ = name + str(used_names[name]) if name in used_names else name
+
+        used_names[name] = used_names.setdefault(name, 0) + 1
+
+        write_protein(pdb_file, protein, name_)
 
     for ic in molecules['molic']:
         write_ic(pdb_file, ic)
@@ -362,7 +457,76 @@ def save(
         write_labels(pdb_file, *molecules['rotens'], **kwargs)
 
 
-def write_protein(pdb_file: TextIO, protein: Union[mda.Universe, mda.AtomGroup, MolecularSystemBase]) -> None:
+def fetch(accession_number: str, save: bool = False) -> MDAnalysis.Universe:
+    """Fetch pdb file from the protein data bank or the AlphaFold Database and optionally save to disk.
+
+    Parameters
+    ----------
+    accession_number : str
+        4 letter structure PDB ID or alpha fold accession number. Note that AlphaFold accession numbers must begin with
+        'AF-'.
+    save : bool
+        If true the fetched PDB will be saved to the disk.
+
+    Returns
+    -------
+    U : MDAnalysis.Universe
+        MDAnalysis Universe object of the protein corresponding to the provided PDB ID or AlphaFold accession number
+
+    """
+    accession_number = accession_number.split('.pdb')[0]
+    pdb_name = accession_number + '.pdb'
+
+    if accession_number.startswith('AF-'):
+        print(f"https://alphafold.ebi.ac.uk/files/{accession_number}-F1-model_v3.pdb")
+        urllib.request.urlretrieve(f"https://alphafold.ebi.ac.uk/files/{accession_number}-F1-model_v3.pdb", pdb_name)
+    else:
+        urllib.request.urlretrieve(f"http://files.rcsb.org/download/{pdb_name}", pdb_name)
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        U = mda.Universe(pdb_name, in_memory=True)
+
+    if not save:
+        os.remove(pdb_name)
+
+    return U
+
+
+def load_protein(struct_file: Union[str, Path],
+                 *traj_file: Union[str, Path]) -> MDAnalysis.AtomGroup:
+    """
+
+    Parameters
+    ----------
+    struct_file : Union[TextIO, str, Path]
+        Name, Path or TextIO object referencing the structure file (e.g. pdb, gro, psf)
+    *traj_file : Union[TextIO, str, Path] (optional)
+        Name, Path or TextIO object(s) referencing the trajectory file (e.g. pdb, xtc, dcd)
+
+
+    Returns
+    -------
+    protein: MDAnalysis.AtomGroup
+        An MDA AtomGroup object containing the protein structure and trajectory. The object is always loaded into
+        memory to allow coordinate manipulations.
+    """
+
+    if traj_file != []:
+        traj_file = [str(file) for file in traj_file]
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            protein = mda.Universe(str(struct_file), *traj_file, in_memory=True)
+    else:
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            protein = mda.Universe(struct_file, in_memory=True)
+
+    return protein
+
+
+
+def write_protein(pdb_file: TextIO, protein: Union[mda.Universe, mda.AtomGroup, MolecularSystemBase], name: str = None) -> None:
     """
     Helper function to write protein PDBs from MDAnalysis and MolSys objects.
 
@@ -372,6 +536,8 @@ def write_protein(pdb_file: TextIO, protein: Union[mda.Universe, mda.AtomGroup, 
         File to save the protein to
     protein : MDAnalysis.Universe, MDAnalysis.AtomGroup, MolSys
         MDAnalysis or MolSys object to save
+    name : str
+        Name of the protein to put in the header
     """
 
     # Change chain identifier if longer than 1
@@ -379,18 +545,8 @@ def write_protein(pdb_file: TextIO, protein: Union[mda.Universe, mda.AtomGroup, 
     for seg in protein.segments:
         if len(seg.segid) > 1:
             seg.segid = next(available_segids)
-    if isinstance(protein, (mda.AtomGroup, mda.Universe)):
-        traj = protein.universe.trajectory
-        name = Path(protein.universe.filename) if protein.universe.filename is not None else Path(pdb_file.name)
-        name = name.name
-    else:
-        traj = protein.trajectory
-        name = protein.fname if hasattr(protein, 'fname') else None
 
-    if name is None:
-        name = Path(pdb_file.name).name
-
-    name = name[:-4] if name.endswith(".pdb") else name
+    traj = protein.universe.trajectory
 
     pdb_file.write(f'HEADER {name}\n')
     for mdl, ts in enumerate(traj):
@@ -435,7 +591,10 @@ def write_ic(pdb_file: TextIO, ic: MolSysIC) -> None:
     pdb_file.write('ENDMDL\n')
 
 
-def write_labels(pdb_file: TextIO, *args: SpinLabel, KDE: bool = True, sorted: bool = True) -> None:
+def write_labels(pdb_file: TextIO, *args: sl.SpinLabel,
+                 KDE: bool = True,
+                 sorted: bool = True,
+                 write_spin_centers: bool = True) -> None:
     """Lower level helper function for saving SpinLabels and RotamerEnsembles. Loops over SpinLabel objects and appends
     atoms and electron coordinates to the provided file.
 
@@ -450,6 +609,9 @@ def write_labels(pdb_file: TextIO, *args: SpinLabel, KDE: bool = True, sorted: b
         RotamerEnsembles or RotamerEnsembles with lots of rotamers
     sorted : bool
         Sort rotamers by weight before saving.
+    write_spin_centers : bool
+        Write spin centers (atoms named NEN) as a seperate object with weights mapped to q-factor.
+
     Returns
     -------
     None
@@ -463,7 +625,7 @@ def write_labels(pdb_file: TextIO, *args: SpinLabel, KDE: bool = True, sorted: b
 
         sorted_index = np.argsort(label.weights)[::-1] if sorted else np.arange(len(label.weights))
         norm_weights = label.weights / label.weights.max()
-        if isinstance(label, dRotamerEnsemble):
+        if isinstance(label, dre.dRotamerEnsemble):
             sites = np.concatenate([np.ones(len(label.RE1.atoms), dtype=int) * int(label.site1),
                                     np.ones(len(label.RE2.atoms), dtype=int) * int(label.site2)])
         else:
@@ -503,31 +665,37 @@ def write_labels(pdb_file: TextIO, *args: SpinLabel, KDE: bool = True, sorted: b
         spin_centers = np.atleast_2d(label.spin_centers)
 
         if KDE and len(spin_centers) > 5:
-            # Perform gaussian KDE to determine electron density
-            gkde = gaussian_kde(spin_centers.T, weights=label.weights)
+            try:
+                # Perform gaussian KDE to determine electron density
+                gkde = gaussian_kde(spin_centers.T, weights=label.weights)
 
-            # Map KDE density to pseudoatoms
-            vals = gkde.pdf(spin_centers.T)
+                # Map KDE density to pseudoatoms
+                vals = gkde.pdf(spin_centers.T)
+
+            except:
+                vals = label.weights
 
         else:
             vals = label.weights
-        norm_weights = vals / vals.max()
-        [
-            pdb_file.write(
-                fmt_str.format(
-                    i,
-                    "NEN",
-                    label.label[:3],
-                    label.chain,
-                    int(label.site),
-                    *spin_centers[i],
-                    norm_weights[i],
-                    1.00,
-                    "N",
+
+        if write_spin_centers:
+            norm_weights = vals / vals.max()
+            [
+                pdb_file.write(
+                    fmt_str.format(
+                        i,
+                        "NEN",
+                        label.label[:3],
+                        label.chain,
+                        int(label.site),
+                        *spin_centers[i],
+                        norm_weights[i],
+                        1.00,
+                        "N",
+                    )
                 )
-            )
-            for i in range(len(norm_weights))
-        ]
+                for i in range(len(norm_weights))
+            ]
 
         pdb_file.write("TER\n")
 
@@ -556,14 +724,14 @@ def write_atoms(file: TextIO,
         coords = atoms.positions
 
     for atom, coord in zip(atoms, coords):
-        f.write(
+        file.write(
             f"ATOM  {atom.index + 1:5d} {atom.name:^4s} {atom.resname:3s} {'A':1s}{atom.resnum:4d}    "
             f"{coord[0]:8.3f}{coord[1]:8.3f}{coord[2]:8.3f}{1.0:6.2f}{1.0:6.2f}          {atom.type:>2s}  \n"
         )
 
 
-molecule_class = {RotamerEnsemble: 'rotens',
-                  dRotamerEnsemble: 'rotens',
+molecule_class = {re.RotamerEnsemble: 'rotens',
+                  dre.dRotamerEnsemble: 'rotens',
                   IntrinsicLabel: 'rotens',
                   mda.Universe: 'molcart',
                   mda.AtomGroup: 'molcart',

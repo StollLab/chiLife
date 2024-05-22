@@ -5,7 +5,7 @@ from functools import partial, update_wrapper
 
 import MDAnalysis
 
-from .protein_utils import sort_pdb
+from .pdb_utils import sort_pdb
 from .Topology import Topology
 import numpy as np
 from numpy.typing import ArrayLike
@@ -62,7 +62,7 @@ class MolecularSystemBase:
 
         Returns
         -------
-        atoms : :class:`~AtomGroup`
+        atoms : :class:`~AtomSelection`
             Selected atoms
         """
 
@@ -271,8 +271,6 @@ class MolSys(MolecularSystemBase):
         self.charges = charges.copy()
         self._fname = name
 
-        self.topology = Topology(bonds) if bonds is not None else None
-
         self.ix = np.arange(len(self.atomids))
         self.mask = np.arange(len(self.atomids))
 
@@ -337,6 +335,7 @@ class MolSys(MolecularSystemBase):
                                 'around': update_wrapper(partial(within, molsys=self.molsys), within)}
 
         self.atoms = AtomSelection(self, self.mask)
+        self.topology = Topology(self, bonds) if bonds is not None else None
 
     @classmethod
     def from_pdb(cls, file_name, sort_atoms=False):
@@ -410,6 +409,7 @@ class MolSys(MolecularSystemBase):
                     segindices: ArrayLike,
                     segids: ArrayLike = None,
                     trajectory: ArrayLike = None,
+                    **kwargs
                     ) -> MolSys:
         """
         Create a MolSys object from a minimal set of arrays.
@@ -474,10 +474,10 @@ class MolSys(MolecularSystemBase):
 
         occupancies = np.ones(n_atoms)
         bs = np.ones(n_atoms)
-        charges = np.zeros(n_atoms)
+        charges = kwargs.pop('charges', np.zeros(n_atoms))
 
         return cls(atomids, anames, altlocs, resnames, resnums, chains,
-                   trajectory, occupancies, bs, segids, atypes, charges)
+                   trajectory, occupancies, bs, segids, atypes, charges, **kwargs)
 
     @classmethod
     def from_atomsel(cls, atomsel, frames=None):
@@ -488,7 +488,7 @@ class MolSys(MolecularSystemBase):
         Parameters
         ----------
         atomsel : :class:`~AtomSelection`, MDAnalysis.AtomGroup
-            The :class:`~AtomSelection` or :class:`~MDAnalysis.AtomGroup` from which to create the new MolSys object.
+            The :class:`~AtomSelection` or MDAnalysis.AtomGroup from which to create the new MolSys object.
         frames : int, Slice, ArrayLike
             Frame index, slice or array of frame indices corresponding to the frames of the atom selection you wish to
             extract into a new :class:`~MolSys` object.
@@ -549,6 +549,7 @@ class MolSys(MolecularSystemBase):
     def load_new(self, coordinates):
         """
         Load a new set (trajectory or ensemble) of 3-dimensional coordinates into the MolSys.
+
         Parameters
         ----------
         coordinates : ArrayLike
@@ -566,7 +567,7 @@ class MolSys(MolecularSystemBase):
 class Trajectory:
     """
     Object containing and managing 3-dimensional coordinates of :class:`~MolSys` objects, particularly when there are
-    multiple states or time steps
+    multiple states or time steps.
 
     Parameters
     ----------
@@ -991,14 +992,14 @@ class ResidueSelection(MolecularSystemBase):
         return len(self.first_ix)
 
     def __iter__(self):
-        for resnum in self.resnums:
-            mask = self.molsys.resnums == resnum
+        for resnum, segid in zip(self.resnums, self.segids):
+            mask = (self.molsys.resnums == resnum) * (self.molsys.segids == segid)
             yield Residue(self.molsys, mask)
 
 
 class SegmentSelection(MolecularSystemBase):
     """
-    An object containing a group of segements and all their atoms from a :class:`~MolSys` object. Note that if one atom 
+    An object containing a group of segments and all their atoms from a :class:`~MolSys` object. Note that if one atom
     of a segment is present in the AtomSelection used to create the group, all atoms of that segment will be present in
     the SegmentSelection object.
 
@@ -1076,6 +1077,7 @@ class Atom(MolecularSystemBase):
         self.resnum = self.resi
         self.chain = molsys.segids[self.index]
         self.segid = molsys.chains[self.index]
+        self.charge = molsys.charges[self.index]
 
     @property
     def position(self):
@@ -1155,14 +1157,14 @@ class Residue(MolecularSystemBase):
 
 class Segment(MolecularSystemBase):
     """
-    An object represeting a single segment of a molecular system.
+    An object representing a single segment of a molecular system.
 
     Parameters
     ----------
-    molsys : :class:`~MolSys`
+    molsys : MolSys
         The :class:`~MolSys` object from which the segment belongs to.
     mask : int
-        An array of atom indices that defines the atoms of the segment
+        An array of atom indices that defines the atoms of the segment.
     """
 
     def __init__(self, molsys, mask):

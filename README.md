@@ -1,3 +1,23 @@
+
+> [!NOTE]
+> # Announcement:
+>
+> We are pleased to announce a free online workshop about chiLife.
+>
+> This workshop is held online on Wednesday, May 22, 2024 at 6:00am Pacific Time. The workshop will last about 3 hours.
+> 
+> To participate, please register using the online registration form at https://forms.gle/r6VHt1LWKhrsK7Ww7.
+>
+> All registered participants will receive an email with information on how to access the online workshop and materials a few days prior to the workshop. There is no need to install chiLife or Python ahead of time.
+>
+> Please share this announcement with anyone potentially interested in participating.
+> 
+> We look forward to seeing many of you!
+>
+> Best regards,
+> Maxx Tessmer and Stefan Stoll
+>  
+
 # chiLife
 chiLife (or χLife) is a python package for modeling non-canonical amino acid side chain ensembles, primarily site 
 directed spin labels (SDSLs), and using those ensembles to predict experimental results. The goal of chiLife is to provide a 
@@ -126,6 +146,12 @@ created in the MCMC sampling trajectory. This can be done using the `from_trajec
 traj, de = xl.repack(SL1, SL2, protein=MBP, off_rotamer=True) 
 SL1 = xl.SpinLabel.from_trajectory(traj, site=238)
 ```
+
+>Note: if you are creating a SpinLabel object from a label that is unknown to chilife you will have to specify which
+> atoms the spin density primarily resides on. this is done with the ``spin_atoms`` kwarg, e.g.
+> ```python
+> SL1 = xl.SpinLabel.from_trajectory(traj, site=238, spin_atoms=['N1', 'O1'])
+> ```
 
 Off rotamer sampling can be controlled on a per dihedral basis when repacking with chiLife by passing a list of bools to 
 the off_rotamer variable. For example, passing `off_rotamer = [False, False, False, True, True]` will allow for off 

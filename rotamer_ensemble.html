@@ -17,14 +17,14 @@
         <script src="_static/jquery.js?v=5d32c60e"></script>
         <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
         <script src="_static/documentation_options.js?v=5929fcd5"></script>
-        <script src="_static/doctools.js?v=888ff710"></script>
+        <script src="_static/doctools.js?v=9a2dae69"></script>
         <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
         <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
     <link rel="next" title="Rotamer Libraries" href="rotamer_libraries.html" />
-    <link rel="prev" title="χLife" href="chilife.html" /> 
+    <link rel="prev" title="chilife Functions" href="chilife.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -47,7 +47,7 @@
 </div>
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <ul class="current">
-<li class="toctree-l1"><a class="reference internal" href="chilife.html">χLife</a></li>
+<li class="toctree-l1"><a class="reference internal" href="chilife.html">chilife Functions</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Side chain ensembles</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#rotamerensemble">RotamerEnsemble</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#chilife.RotamerEnsemble"><code class="docutils literal notranslate"><span class="pre">RotamerEnsemble</span></code></a><ul>
@@ -64,11 +64,10 @@
 <li class="toctree-l4"><a class="reference internal" href="#chilife.RotamerEnsemble.update_weight"><code class="docutils literal notranslate"><span class="pre">RotamerEnsemble.update_weight()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#chilife.RotamerEnsemble.minimize"><code class="docutils literal notranslate"><span class="pre">RotamerEnsemble.minimize()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#chilife.RotamerEnsemble.trim_rotamers"><code class="docutils literal notranslate"><span class="pre">RotamerEnsemble.trim_rotamers()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#chilife.RotamerEnsemble.centroid"><code class="docutils literal notranslate"><span class="pre">RotamerEnsemble.centroid()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#chilife.RotamerEnsemble.centroid"><code class="docutils literal notranslate"><span class="pre">RotamerEnsemble.centroid</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#chilife.RotamerEnsemble.evaluate"><code class="docutils literal notranslate"><span class="pre">RotamerEnsemble.evaluate()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#chilife.RotamerEnsemble.save_pdb"><code class="docutils literal notranslate"><span class="pre">RotamerEnsemble.save_pdb()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#chilife.RotamerEnsemble.get_lib"><code class="docutils literal notranslate"><span class="pre">RotamerEnsemble.get_lib()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#chilife.RotamerEnsemble.protein_setup"><code class="docutils literal notranslate"><span class="pre">RotamerEnsemble.protein_setup()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#chilife.RotamerEnsemble.bonds"><code class="docutils literal notranslate"><span class="pre">RotamerEnsemble.bonds</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#chilife.RotamerEnsemble.non_bonded"><code class="docutils literal notranslate"><span class="pre">RotamerEnsemble.non_bonded</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#chilife.RotamerEnsemble.clash_ori"><code class="docutils literal notranslate"><span class="pre">RotamerEnsemble.clash_ori</span></code></a></li>
@@ -88,7 +87,6 @@
 <li class="toctree-l4"><a class="reference internal" href="#chilife.SpinLabel.spin_coords"><code class="docutils literal notranslate"><span class="pre">SpinLabel.spin_coords</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#chilife.SpinLabel.spin_centers"><code class="docutils literal notranslate"><span class="pre">SpinLabel.spin_centers</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#chilife.SpinLabel.spin_centroid"><code class="docutils literal notranslate"><span class="pre">SpinLabel.spin_centroid</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#chilife.SpinLabel.protein_setup"><code class="docutils literal notranslate"><span class="pre">SpinLabel.protein_setup()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#chilife.SpinLabel.from_mmm"><code class="docutils literal notranslate"><span class="pre">SpinLabel.from_mmm()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#chilife.SpinLabel.from_wizard"><code class="docutils literal notranslate"><span class="pre">SpinLabel.from_wizard()</span></code></a></li>
 </ul>
@@ -216,6 +214,9 @@ effect on each other.</p>
 </dd>
 <dt>eval_clash<span class="classifier">bool</span></dt><dd><p>Switch to turn clash evaluation on (True) and off (False).</p>
 </dd>
+<dt>forcefield: str</dt><dd><p>Name of the forcefield you wish to use to parameterize atoms for the energy function. Currently, supports
+<cite>charmm</cite> and <cite>uff</cite></p>
+</dd>
 <dt>energy_func<span class="classifier">callable</span></dt><dd><p>Python function or callable object that takes a protein and a RotamerEnsemble object as input and
 returns an energy value (kcal/mol) for each atom of each rotamer in the ensemble. See also
 <code class="xref py py-mod docutils literal notranslate"><span class="pre">Scoring</span></code> . Defaults to <code class="xref py py-mod docutils literal notranslate"><span class="pre">chiLife.get_lj_rep</span></code> .</p>
@@ -268,7 +269,7 @@ Defaults to False.</p>
 <dd><dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>pdb_file</strong> – </p></li>
+<li><p><strong>pdb_file</strong></p></li>
 <li><p><strong>res</strong> – (Default value = None)</p></li>
 <li><p><strong>site</strong> – (Default value = None)</p></li>
 <li><p><strong>protein</strong> – (Default value = None)</p></li>
@@ -285,7 +286,7 @@ Defaults to False.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>residue</strong> (<em>MDAnalysis.Residue</em><em>, </em><em>chiLife.Residue</em>) – Residue object from which to create the RotamerEnsemble.</p></li>
+<li><p><strong>residue</strong> (<em>MDAnalysis.Residue</em><em>, </em><em>chiLife.Residue</em>) – A Residue object from which to create the RotamerEnsemble.</p></li>
 <li><p><strong>**kwargs</strong> (<em>dict</em>) – Additional keyword arguments to use for creating the RotamerEnsemble.</p></li>
 </ul>
 </dd>
@@ -300,7 +301,7 @@ Defaults to False.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="chilife.RotamerEnsemble.from_trajectory">
-<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">from_trajectory</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">traj</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">site</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">chain</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">energy</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">burn_in</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">100</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#chilife.RotamerEnsemble.from_trajectory" title="Link to this definition"></a></dt>
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">from_trajectory</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">traj</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">site</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">chain</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">energy</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">burn_in</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#chilife.RotamerEnsemble.from_trajectory" title="Link to this definition"></a></dt>
 <dd><p>Create a RotamerEnsemble object from a trajectory.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -309,8 +310,19 @@ Defaults to False.</p>
 <li><p><strong>site</strong> (<em>res</em>) – Residue number of the residue to create a rotamer ensemble for.</p></li>
 <li><p><strong>chain</strong> (<em>str</em>) – Chain identifier of the residue to create a RotamerEnsemble for.</p></li>
 <li><p><strong>energy</strong> (<em>ArrayLike</em>) – Potential energy of the residue at each frame of the trajectory in kcal/mol</p></li>
-<li><p><strong>burn_in</strong> (<em>int</em>) – Number of frames to skip from the trajectory. Used to skip burn-in period when performin MCMC sampling.</p></li>
-<li><p><strong>**kwargs</strong> (<em>dict</em>) – Additional keyword arguments to use for creating the RotamerEnsemble.</p></li>
+<li><p><strong>burn_in</strong> (<em>int</em>) – Number of frames to skip from the trajectory. Used to skip burn-in period when performing MCMC sampling.</p></li>
+<li><p><strong>**kwargs</strong> (<em>dict</em>) – <p>Additional keyword arguments to use for creating the RotamerEnsemble.</p>
+<dl class="simple">
+<dt>dihedral_atoms<span class="classifier">list</span></dt><dd><p>A list of atoms defining the mobile dihedral angles of the residue. Primarily used when creating an
+ensemble of a residue type chiLife is unaware of (see <a class="reference internal" href="rotamer_libraries.html#mobile-dihedrals"><span class="std std-ref">Defining Mobile Dihedrals</span></a></p>
+</dd>
+<dt>temp<span class="classifier">float</span></dt><dd><p>Temperature to use when evaluating conformational populations from user supplied <code class="docutils literal notranslate"><span class="pre">energy</span></code> argument.</p>
+</dd>
+<dt>spin_atoms<span class="classifier">list, dict</span></dt><dd><p>A list or dict defining the spin atoms of the label and their relative populations (see
+<a class="reference internal" href="rotamer_libraries.html#spin-atoms"><span class="std std-ref">Defining Spin-atoms and Their Weights</span></a>).</p>
+</dd>
+</dl>
+</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
@@ -463,9 +475,9 @@ for details.</p>
 </dl>
 </dd></dl>
 
-<dl class="py method">
+<dl class="py property">
 <dt class="sig sig-object py" id="chilife.RotamerEnsemble.centroid">
-<span class="sig-name descname"><span class="pre">centroid</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#chilife.RotamerEnsemble.centroid" title="Link to this definition"></a></dt>
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">centroid</span></span><a class="headerlink" href="#chilife.RotamerEnsemble.centroid" title="Link to this definition"></a></dt>
 <dd><p>Get the centroid of the whole rotamer ensemble.</p>
 </dd></dl>
 
@@ -501,14 +513,6 @@ for details.</p>
 <dd class="field-odd"><p><em>dict</em></p>
 </dd>
 </dl>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="chilife.RotamerEnsemble.protein_setup">
-<span class="sig-name descname"><span class="pre">protein_setup</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#chilife.RotamerEnsemble.protein_setup" title="Link to this definition"></a></dt>
-<dd><p>Performs all tasks associated with setting up the RotamerEnsemble in the context of a protein. This includes
-translating and rotating the RotamerEnsemble to align with the desired site, evaluating clashes with the protein
-and/or performing a minimization of the ensemble in dihedral space.</p>
 </dd></dl>
 
 <dl class="py property">
@@ -625,22 +629,14 @@ modeling.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="chilife.SpinLabel.protein_setup">
-<span class="sig-name descname"><span class="pre">protein_setup</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#chilife.SpinLabel.protein_setup" title="Link to this definition"></a></dt>
-<dd><p>Performs all tasks associated with setting up the RotamerEnsemble in the context of a protein. This includes
-translating and rotating the RotamerEnsemble to align with the desired site, evaluating clashes with the protein
-and/or performing a minimization of the ensemble in dihedral space.</p>
-</dd></dl>
-
-<dl class="py method">
 <dt class="sig sig-object py" id="chilife.SpinLabel.from_mmm">
-<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">from_mmm</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">label</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">site</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">protein</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">chain</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#chilife.SpinLabel.from_mmm" title="Link to this definition"></a></dt>
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">from_mmm</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">label</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">site</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">protein</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">chain</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#chilife.SpinLabel.from_mmm" title="Link to this definition"></a></dt>
 <dd><p>Create a SpinLabel object using the default MMM protocol with any modifications passed via kwargs</p>
 </dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="chilife.SpinLabel.from_wizard">
-<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">from_wizard</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">label</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">site</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">protein</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">chain</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">to_find</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">200</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">to_try</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">vdw</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2.5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">clashes</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">5</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#chilife.SpinLabel.from_wizard" title="Link to this definition"></a></dt>
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">from_wizard</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">label</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">site</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">protein</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">chain</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">to_find</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">200</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">to_try</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">vdw</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2.5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">clashes</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">5</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#chilife.SpinLabel.from_wizard" title="Link to this definition"></a></dt>
 <dd><p>Create a SpinLabel object using the default MTSSLWizard protocol with any modifications passed via kwargs</p>
 </dd></dl>
 
@@ -684,6 +680,9 @@ to ignore 1-3 interactions, i.e. atoms that are connected by 2 bonds or fewer wi
 effect on each other.</p>
 </dd>
 <dt>eval_clash<span class="classifier">bool</span></dt><dd><p>Switch to turn clash evaluation on (True) and off (False).</p>
+</dd>
+<dt>forcefield: str</dt><dd><p>Name of the forcefield you wish to use to parameterize atoms for the energy function. Currently,
+supports <cite>charmm</cite> and <cite>uff</cite></p>
 </dd>
 <dt>energy_func<span class="classifier">callable</span></dt><dd><p>Python function or callable object that takes a protein and a RotamerEnsemble object as input and
 returns an energy value (kcal/mol) for each atom of each rotamer in the ensemble. See also
@@ -1070,7 +1069,7 @@ spin density is distributed on several atoms with the same name on different res
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="chilife.html" class="btn btn-neutral float-left" title="χLife" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="chilife.html" class="btn btn-neutral float-left" title="chilife Functions" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
         <a href="rotamer_libraries.html" class="btn btn-neutral float-right" title="Rotamer Libraries" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 

@@ -1,5 +1,5 @@
-χLife
-======
+chilife Functions
+=================
 
 General Functions
 -----------------

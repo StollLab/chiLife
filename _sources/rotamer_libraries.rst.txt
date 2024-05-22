@@ -64,6 +64,7 @@ conformation is in a given protein environment.
 
 To allow our side chain a little flexibility we can tell chiLife what the mobile dihedrals are.
 
+.. _mobile_dihedrals:
 
 Defining Mobile Dihedrals
 --------------------------
@@ -105,6 +106,8 @@ Now our library can be used to perform accessible volume sampling!
 
 .. image:: _static/MBP_E278TSP_E322TSP.png
 
+
+.. _spin_atoms:
 
 Defining Spin-atoms and Their Weights
 --------------------------------------

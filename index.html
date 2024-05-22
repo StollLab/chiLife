@@ -17,13 +17,15 @@
         <script src="_static/jquery.js?v=5d32c60e"></script>
         <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
         <script src="_static/documentation_options.js?v=5929fcd5"></script>
-        <script src="_static/doctools.js?v=888ff710"></script>
+        <script src="_static/doctools.js?v=9a2dae69"></script>
         <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
         <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+        <script>window.MathJax = {"tex": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true}, "options": {"ignoreHtmlClass": "tex2jax_ignore|mathjax_ignore|document", "processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+        <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="χLife" href="chilife.html" /> 
+    <link rel="next" title="chilife Functions" href="chilife.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -46,7 +48,7 @@
 </div>
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <ul>
-<li class="toctree-l1"><a class="reference internal" href="chilife.html">χLife</a></li>
+<li class="toctree-l1"><a class="reference internal" href="chilife.html">chilife Functions</a></li>
 <li class="toctree-l1"><a class="reference internal" href="rotamer_ensemble.html">Side chain ensembles</a></li>
 <li class="toctree-l1"><a class="reference internal" href="rotamer_libraries.html">Rotamer Libraries</a></li>
 <li class="toctree-l1"><a class="reference internal" href="molsys.html">Molecular Systems</a></li>
@@ -81,6 +83,17 @@
              
   <section id="life">
 <h1>χLife<a class="headerlink" href="#life" title="Link to this heading"></a></h1>
+<blockquote>
+<div><p>[!NOTE]</p>
+<p>We are pleased to announce a free online workshop about chiLife.</p>
+<p>This workshop is held online on Wednesday, May 22, 2024 at 6:00am Pacific Time. The workshop will last about 3 hours.</p>
+<p>To participate, please register using the online registration form at <a class="reference external" href="https://forms.gle/r6VHt1LWKhrsK7Ww7">https://forms.gle/r6VHt1LWKhrsK7Ww7</a>.</p>
+<p>All registered participants will receive an email with information on how to access the online workshop and materials a few days prior to the workshop. There is no need to install chiLife or Python ahead of time.</p>
+<p>Please share this announcement with anyone potentially interested in participating.</p>
+<p>We look forward to seeing many of you!</p>
+<p>Best regards,
+Maxx Tessmer and Stefan Stoll</p>
+</div></blockquote>
 </section>
 <section id="chilife">
 <h1>chiLife<a class="headerlink" href="#chilife" title="Link to this heading"></a></h1>
@@ -145,10 +158,10 @@ protein model to retain the native amino acid.</p>
 </pre></div>
 </div>
 <a class="reference external image-reference" href="https://github.com/StollLab/chiLife/raw/main/img/L20R1_S238R1_Pr.png"><img alt="MBP L20R1 S238R1" src="https://github.com/StollLab/chiLife/raw/main/img/L20R1_S238R1_Pr.png" /></a>
-<p>The side chain ensembles can then be saved using a simple <code class="docutils literal notranslate"><span class="pre">save</span></code> function that accepts an arbitrary number of <code class="docutils literal notranslate"><span class="pre">RotamerEnsemble</span></code>, <code class="docutils literal notranslate"><span class="pre">SpinLabel</span></code>, <code class="docutils literal notranslate"><span class="pre">MDAnalyisis.Universe</span></code> and <code class="docutils literal notranslate"><span class="pre">MDAnalyiss.AtomGroup</span></code> objects. Because
+<p>The side chain ensembles can then be saved using a simple <code class="docutils literal notranslate"><span class="pre">save</span></code> function that accepts an arbitrary number of <span class="raw-html-md"><code class="docutils literal"><span class="pre"> RotamerEnsemble</span></code></span>, <code class="docutils literal notranslate"><span class="pre">SpinLabel</span></code>, <code class="docutils literal notranslate"><span class="pre">MDAnalyisis.Universe</span></code> and <code class="docutils literal notranslate"><span class="pre">MDAnalyiss.AtomGroup</span></code> objects. Because
 <code class="docutils literal notranslate"><span class="pre">RotamerEnsemble</span></code>/<code class="docutils literal notranslate"><span class="pre">SpinLabel</span></code> objects do not mutate the underlying protein, they are saved as separate multi-state
 objects and can be visualized with applications like pymol. If you do wish to permanently alter the underlying protein
-structure you can use the :ref:<code class="docutils literal notranslate"><span class="pre">`mutate</span></code> &lt;mutating-protein-structures&gt;` function described below.</p>
+structure you can use the <span class="raw-html-md"><a href="#mutating-protein-structures"><code class="docutils literal"><span class="pre">mutate</span></code></a></span> function described below.</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1"># Save structure</span>
 <span class="n">xl</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="s1">&#39;MBP_L20R1_S238R1.pdb&#39;</span><span class="p">,</span> <span class="n">SL1</span><span class="p">,</span> <span class="n">SL2</span><span class="p">,</span> <span class="n">MBP</span><span class="p">)</span>
 </pre></div>
@@ -202,6 +215,13 @@ created in the MCMC sampling trajectory. This can be done using the <code class=
 <span class="n">SL1</span> <span class="o">=</span> <span class="n">xl</span><span class="o">.</span><span class="n">SpinLabel</span><span class="o">.</span><span class="n">from_trajectory</span><span class="p">(</span><span class="n">traj</span><span class="p">,</span> <span class="n">site</span><span class="o">=</span><span class="mi">238</span><span class="p">)</span>
 </pre></div>
 </div>
+<blockquote>
+<div><p>Note: if you are creating a SpinLabel object from a label that is unknown to chilife you will have to specify which
+atoms the spin density primarily resides on. this is done with the <code class="docutils literal notranslate"><span class="pre">spin_atoms</span></code> kwarg, e.g.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">SL1</span> <span class="o">=</span> <span class="n">xl</span><span class="o">.</span><span class="n">SpinLabel</span><span class="o">.</span><span class="n">from_trajectory</span><span class="p">(</span><span class="n">traj</span><span class="p">,</span> <span class="n">site</span><span class="o">=</span><span class="mi">238</span><span class="p">,</span> <span class="n">spin_atoms</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;N1&#39;</span><span class="p">,</span> <span class="s1">&#39;O1&#39;</span><span class="p">])</span>
+</pre></div>
+</div>
+</div></blockquote>
 <p>Off rotamer sampling can be controlled on a per dihedral basis when repacking with chiLife by passing a list of bools to
 the off_rotamer variable. For example, passing <code class="docutils literal notranslate"><span class="pre">off_rotamer</span> <span class="pre">=</span> <span class="pre">[False,</span> <span class="pre">False,</span> <span class="pre">False,</span> <span class="pre">True,</span> <span class="pre">True]</span></code> will allow for off
 rotamer sampling of only &amp;chi;:raw-html-md:<cite>&lt;sub&gt;4&lt;/sub&gt; and &amp;chi;&lt;sub&gt;5&lt;/sub&gt;</cite>.</p>
@@ -290,7 +310,7 @@ Spin Label RX. Appl. Magn. Reson. 1–14.</p>
 on the rotamer libraries to check if there is any additional citations that should be referenced when being used.</p>
 <div class="toctree-wrapper compound">
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="chilife.html">χLife</a><ul>
+<li class="toctree-l1"><a class="reference internal" href="chilife.html">chilife Functions</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="chilife.html#module-chilife.chilife">General Functions</a></li>
 <li class="toctree-l2"><a class="reference internal" href="chilife.html#module-chilife.io">IO Functions</a></li>
 </ul>
@@ -359,7 +379,7 @@ on the rotamer libraries to check if there is any additional citations that shou
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="chilife.html" class="btn btn-neutral float-right" title="χLife" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="chilife.html" class="btn btn-neutral float-right" title="chilife Functions" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>

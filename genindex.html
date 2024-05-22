@@ -16,7 +16,7 @@
         <script src="_static/jquery.js?v=5d32c60e"></script>
         <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
         <script src="_static/documentation_options.js?v=5929fcd5"></script>
-        <script src="_static/doctools.js?v=888ff710"></script>
+        <script src="_static/doctools.js?v=9a2dae69"></script>
         <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
         <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
     <script src="_static/js/theme.js"></script>
@@ -44,7 +44,7 @@
 </div>
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <ul>
-<li class="toctree-l1"><a class="reference internal" href="chilife.html">χLife</a></li>
+<li class="toctree-l1"><a class="reference internal" href="chilife.html">chilife Functions</a></li>
 <li class="toctree-l1"><a class="reference internal" href="rotamer_ensemble.html">Side chain ensembles</a></li>
 <li class="toctree-l1"><a class="reference internal" href="rotamer_libraries.html">Rotamer Libraries</a></li>
 <li class="toctree-l1"><a class="reference internal" href="molsys.html">Molecular Systems</a></li>
@@ -101,6 +101,7 @@
  | <a href="#T"><strong>T</strong></a>
  | <a href="#U"><strong>U</strong></a>
  | <a href="#W"><strong>W</strong></a>
+ | <a href="#X"><strong>X</strong></a>
  | <a href="#Z"><strong>Z</strong></a>
  
 </div>
@@ -119,16 +120,14 @@
 </li>
       <li><a href="molsys.html#chilife.MolSysIC.MolSysIC.atom_dict">atom_dict (MolSysIC attribute)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="rotamer_ensemble.html#chilife.dRotamerEnsemble.atom_names">atom_names (dRotamerEnsemble property)</a>
 
       <ul>
         <li><a href="molsys.html#chilife.MolSysIC.MolSysIC.atom_names">(MolSysIC attribute)</a>
 </li>
       </ul></li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="protein_utils.html#chilife.protein_utils.atom_sort_key">atom_sort_key() (in module chilife.protein_utils)</a>
-</li>
       <li><a href="rotamer_ensemble.html#chilife.dRotamerEnsemble.atom_types">atom_types (dRotamerEnsemble property)</a>
 
       <ul>
@@ -151,12 +150,10 @@
 </li>
       <li><a href="molsys.html#chilife.MolSysIC.MolSysIC.batch_set_dihedrals">batch_set_dihedrals() (MolSysIC method)</a>
 </li>
-      <li><a href="protein_utils.html#chilife.protein_utils.bfs_edges">bfs_edges() (in module chilife.protein_utils)</a>
+      <li><a href="alignments.html#chilife.alignment_methods.bisect_alignment">bisect_alignment() (in module chilife.alignment_methods)</a>
 </li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="alignments.html#chilife.alignment_methods.bisect_alignment">bisect_alignment() (in module chilife.alignment_methods)</a>
-</li>
       <li><a href="molsys.html#chilife.MolSysIC.MolSysIC.bonded_pairs">bonded_pairs (MolSysIC attribute)</a>
 </li>
       <li><a href="rotamer_ensemble.html#chilife.dRotamerEnsemble.bonds">bonds (dRotamerEnsemble property)</a>
@@ -174,9 +171,11 @@
       <li><a href="rotamer_ensemble.html#chilife.RotamerEnsemble.CB">CB (RotamerEnsemble property)</a>
 </li>
       <li><a href="rotamer_ensemble.html#chilife.dRotamerEnsemble.centroid">centroid (dRotamerEnsemble property)</a>
+
+      <ul>
+        <li><a href="rotamer_ensemble.html#chilife.RotamerEnsemble.centroid">(RotamerEnsemble property)</a>
 </li>
-      <li><a href="rotamer_ensemble.html#chilife.RotamerEnsemble.centroid">centroid() (RotamerEnsemble method)</a>
-</li>
+      </ul></li>
       <li><a href="rotamer_ensemble.html#chilife.dRotamerEnsemble.chain">chain (dRotamerEnsemble attribute)</a>
 </li>
       <li><a href="molsys.html#chilife.MolSysIC.MolSysIC.chain_operator_idxs">chain_operator_idxs (MolSysIC property)</a>
@@ -327,8 +326,6 @@
 <h2 id="F">F</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="protein_utils.html#chilife.protein_utils.fetch">fetch() (in module chilife.protein_utils)</a>
-</li>
       <li><a href="numba_utils.html#chilife.numba_utils.fibonacci_points">fibonacci_points() (in module chilife.numba_utils)</a>
 </li>
       <li><a href="alignments.html#chilife.alignment_methods.fit_alignment">fit_alignment() (in module chilife.alignment_methods)</a>
@@ -341,10 +338,10 @@
 </li>
       <li><a href="molsys.html#chilife.MolSys.MolSys.from_arrays">from_arrays() (MolSys class method)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="molsys.html#chilife.MolSysIC.MolSysIC.from_atoms">from_atoms() (MolSysIC class method)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="molsys.html#chilife.MolSys.MolSys.from_atomsel">from_atomsel() (MolSys class method)</a>
 </li>
       <li><a href="rotamer_ensemble.html#chilife.RotamerEnsemble.from_mda">from_mda() (RotamerEnsemble class method)</a>
@@ -389,17 +386,13 @@
 </li>
       <li><a href="scoring.html#chilife.scoring.get_lj_attr">get_lj_attr() (in module chilife.scoring)</a>
 </li>
-      <li><a href="scoring.html#chilife.scoring.get_lj_energy">get_lj_energy() (in module chilife.scoring)</a>
-</li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="scoring.html#chilife.scoring.get_lj_params">get_lj_params() (in module chilife.scoring)</a>
+      <li><a href="scoring.html#chilife.scoring.get_lj_energy">get_lj_energy() (in module chilife.scoring)</a>
 </li>
       <li><a href="scoring.html#chilife.scoring.get_lj_rep">get_lj_rep() (in module chilife.scoring)</a>
 </li>
       <li><a href="scoring.html#chilife.scoring.get_lj_scwrl">get_lj_scwrl() (in module chilife.scoring)</a>
-</li>
-      <li><a href="protein_utils.html#chilife.protein_utils.get_min_topol">get_min_topol() (in module chilife.protein_utils)</a>
 </li>
       <li><a href="protein_utils.html#chilife.protein_utils.get_missing_residues">get_missing_residues() (in module chilife.protein_utils)</a>
 </li>
@@ -415,9 +408,7 @@
 </li>
       <li><a href="molsys.html#chilife.MolSysIC.MolSysIC.get_z_matrix_idxs">get_z_matrix_idxs() (MolSysIC method)</a>
 </li>
-      <li><a href="protein_utils.html#chilife.protein_utils.global_mx">global_mx() (in module chilife.protein_utils)</a>
-</li>
-      <li><a href="protein_utils.html#chilife.protein_utils.guess_bonds">guess_bonds() (in module chilife.protein_utils)</a>
+      <li><a href="alignments.html#chilife.alignment_methods.global_mx">global_mx() (in module chilife.alignment_methods)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -491,7 +482,7 @@
       </ul></li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="protein_utils.html#chilife.protein_utils.local_mx">local_mx() (in module chilife.protein_utils)</a>
+      <li><a href="alignments.html#chilife.alignment_methods.local_mx">local_mx() (in module chilife.alignment_methods)</a>
 </li>
       <li><a href="molsys.html#chilife.MolSys.MolecularSystemBase.logic_keywords">logic_keywords (MolecularSystemBase property)</a>
 </li>
@@ -566,8 +557,6 @@
       </ul></li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="protein_utils.html#chilife.protein_utils.neighbors">neighbors() (in module chilife.protein_utils)</a>
-</li>
       <li><a href="rotamer_ensemble.html#chilife.dRotamerEnsemble.non_bonded">non_bonded (dRotamerEnsemble property)</a>
 
       <ul>
@@ -598,8 +587,6 @@
 </li>
       <li><a href="alignments.html#chilife.alignment_methods.parse_backbone">parse_backbone() (in module chilife.alignment_methods)</a>
 </li>
-      <li><a href="protein_utils.html#chilife.protein_utils.parse_connect">parse_connect() (in module chilife.protein_utils)</a>
-</li>
       <li><a href="molsys.html#chilife.MolSysIC.MolSysIC.perturbed">perturbed (MolSysIC attribute)</a>
 </li>
       <li><a href="molsys.html#chilife.MolSysIC.MolSysIC.phi_idxs">phi_idxs() (MolSysIC method)</a>
@@ -618,12 +605,6 @@
 </li>
       <li><a href="rotamer_ensemble.html#chilife.dRotamerEnsemble.protein">protein (dRotamerEnsemble attribute)</a>
 </li>
-      <li><a href="rotamer_ensemble.html#chilife.RotamerEnsemble.protein_setup">protein_setup() (RotamerEnsemble method)</a>
-
-      <ul>
-        <li><a href="rotamer_ensemble.html#chilife.SpinLabel.protein_setup">(SpinLabel method)</a>
-</li>
-      </ul></li>
       <li><a href="molsys.html#chilife.MolSysIC.MolSysIC.psi_idxs">psi_idxs() (MolSysIC method)</a>
 </li>
       <li><a href="molsys.html#chilife.MolSys.Residue.psi_selection">psi_selection() (Residue method)</a>
@@ -718,8 +699,6 @@
       </ul></li>
       <li><a href="rotamer_ensemble.html#chilife.RotamerEnsemble.set_dihedral_sampling_sigmas">set_dihedral_sampling_sigmas() (RotamerEnsemble method)</a>
 </li>
-      <li><a href="scoring.html#chilife.scoring.set_lj_params">set_lj_params() (in module chilife.scoring)</a>
-</li>
       <li><a href="rotamer_ensemble.html#chilife.RotamerEnsemble.set_site">set_site() (RotamerEnsemble method)</a>
 </li>
       <li><a href="molsys.html#chilife.MolSysIC.MolSysIC.shift_resnum">shift_resnum() (MolSysIC method)</a>
@@ -735,8 +714,6 @@
       <li><a href="rotamer_ensemble.html#chilife.dSpinLabel.SL1">SL1 (dSpinLabel attribute)</a>
 </li>
       <li><a href="rotamer_ensemble.html#chilife.dSpinLabel.SL2">SL2 (dSpinLabel attribute)</a>
-</li>
-      <li><a href="protein_utils.html#chilife.protein_utils.sort_pdb">sort_pdb() (in module chilife.protein_utils)</a>
 </li>
       <li><a href="rotamer_ensemble.html#chilife.dSpinLabel.spin_atoms">spin_atoms (dSpinLabel property)</a>
 </li>
@@ -819,6 +796,14 @@
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="chilife.html#chilife.io.write_atoms">write_atoms() (in module chilife.io)</a>
+</li>
+  </ul></td>
+</tr></table>
+
+<h2 id="X">X</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="protein_utils.html#chilife.protein_utils.xplor2mda">xplor2mda() (in module chilife.protein_utils)</a>
 </li>
   </ul></td>
 </tr></table>

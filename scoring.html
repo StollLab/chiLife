@@ -17,7 +17,7 @@
         <script src="_static/jquery.js?v=5d32c60e"></script>
         <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
         <script src="_static/documentation_options.js?v=5929fcd5"></script>
-        <script src="_static/doctools.js?v=888ff710"></script>
+        <script src="_static/doctools.js?v=9a2dae69"></script>
         <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
         <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
     <script src="_static/js/theme.js"></script>
@@ -47,7 +47,7 @@
 </div>
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <ul class="current">
-<li class="toctree-l1"><a class="reference internal" href="chilife.html">χLife</a></li>
+<li class="toctree-l1"><a class="reference internal" href="chilife.html">chilife Functions</a></li>
 <li class="toctree-l1"><a class="reference internal" href="rotamer_ensemble.html">Side chain ensembles</a></li>
 <li class="toctree-l1"><a class="reference internal" href="rotamer_libraries.html">Rotamer Libraries</a></li>
 <li class="toctree-l1"><a class="reference internal" href="molsys.html">Molecular Systems</a></li>
@@ -64,10 +64,8 @@
 <li class="toctree-l3"><a class="reference internal" href="#chilife.scoring.prep_external_clash"><code class="docutils literal notranslate"><span class="pre">prep_external_clash()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#chilife.scoring.prep_internal_clash"><code class="docutils literal notranslate"><span class="pre">prep_internal_clash()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#chilife.scoring.reweight_rotamers"><code class="docutils literal notranslate"><span class="pre">reweight_rotamers()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="#chilife.scoring.get_lj_params"><code class="docutils literal notranslate"><span class="pre">get_lj_params()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#chilife.scoring.join_geom"><code class="docutils literal notranslate"><span class="pre">join_geom()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#chilife.scoring.join_arith"><code class="docutils literal notranslate"><span class="pre">join_arith()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="#chilife.scoring.set_lj_params"><code class="docutils literal notranslate"><span class="pre">set_lj_params()</span></code></a></li>
 </ul>
 </li>
 </ul>
@@ -242,7 +240,7 @@ the maximum allowed energy from a single atom pair interaction is the <cite>eps<
 
 <dl class="py function">
 <dt class="sig sig-object py" id="chilife.scoring.prep_external_clash">
-<span class="sig-name descname"><span class="pre">prep_external_clash</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ensemble</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#chilife.scoring.prep_external_clash" title="Link to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">prep_external_clash</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ensemble</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">forcefield</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#chilife.scoring.prep_external_clash" title="Link to this definition"></a></dt>
 <dd><p>Helper function to prepare the lj parameters of a rotamer ensemble, presumably with an associated protein.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -305,26 +303,6 @@ neighboring atoms are unfavorable while a large partition function suggests the 
 </dd></dl>
 
 <dl class="py function">
-<dt class="sig sig-object py" id="chilife.scoring.get_lj_params">
-<span class="sig-name descname"><span class="pre">get_lj_params</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ensemble</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#chilife.scoring.get_lj_params" title="Link to this definition"></a></dt>
-<dd><p>calculate the lennard jones parameters between atoms of a rotamer ensemble and associated protein.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>ensemble</strong> (<a class="reference internal" href="rotamer_ensemble.html#chilife.RotamerEnsemble" title="chilife.RotamerEnsemble"><em>RotamerEnsemble</em></a>) – The RotamerEnsemble to get the lj params for. Should have an associated protein object.</p>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p><ul class="simple">
-<li><p><strong>rmin_ij</strong> (<em>nummpy.ndarray</em>) – Vector of <code class="docutils literal notranslate"><span class="pre">rmin</span></code> lennard-jones parameters corresponding to atoms i and j of the RotamerEnsemble and the
-associated protein respectively.</p></li>
-<li><p><strong>eps_ij</strong> (<em>numpy.ndarray</em>) – Vector of <code class="docutils literal notranslate"><span class="pre">eps</span></code> lennard-jones parameters corresponding to atoms i and j of the RotamerEnsemble and the
-associated protein respectively.</p></li>
-</ul>
-</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py function">
 <dt class="sig sig-object py" id="chilife.scoring.join_geom">
 <span class="sig-name descname"><span class="pre">join_geom</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">a</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">b</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">flat</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#chilife.scoring.join_geom" title="Link to this definition"></a></dt>
 <dd><p>Function to join Lennard-Jones parameters (<code class="docutils literal notranslate"><span class="pre">rmin</span></code> or <code class="docutils literal notranslate"><span class="pre">eps</span></code>) using their geometric mean. Parameters can be
@@ -364,20 +342,6 @@ joined in two different ways (see keyword argument <code class="docutils literal
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>numpy.ndarray</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py function">
-<dt class="sig sig-object py" id="chilife.scoring.set_lj_params">
-<span class="sig-name descname"><span class="pre">set_lj_params</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">forcefield</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#chilife.scoring.set_lj_params" title="Link to this definition"></a></dt>
-<dd><blockquote>
-<div><p>Global setting for using different atom type parameterization for clash evaluations. Running this function
-once will set the parameters for the whole session.</p>
-</div></blockquote>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>forcefield</strong> (<em>str</em>) – Name of the forcefield to be used.</p>
 </dd>
 </dl>
 </dd></dl>

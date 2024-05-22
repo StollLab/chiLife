@@ -4,7 +4,7 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>χLife &mdash; χLife  documentation</title>
+  <title>chilife Functions &mdash; χLife  documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=80d5e7a1" />
       <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=19f00094" />
       <link rel="stylesheet" type="text/css" href="_static/sg_gallery.css?v=61a4c737" />
@@ -17,7 +17,7 @@
         <script src="_static/jquery.js?v=5d32c60e"></script>
         <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
         <script src="_static/documentation_options.js?v=5929fcd5"></script>
-        <script src="_static/doctools.js?v=888ff710"></script>
+        <script src="_static/doctools.js?v=9a2dae69"></script>
         <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
         <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
     <script src="_static/js/theme.js"></script>
@@ -47,7 +47,7 @@
 </div>
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <ul class="current">
-<li class="toctree-l1 current"><a class="current reference internal" href="#">χLife</a><ul>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">chilife Functions</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#module-chilife.chilife">General Functions</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#chilife.chilife.distance_distribution"><code class="docutils literal notranslate"><span class="pre">distance_distribution()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#chilife.chilife.create_library"><code class="docutils literal notranslate"><span class="pre">create_library()</span></code></a></li>
@@ -91,7 +91,7 @@
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
       <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
-      <li class="breadcrumb-item active">χLife</li>
+      <li class="breadcrumb-item active">chilife Functions</li>
       <li class="wy-breadcrumbs-aside">
             <a href="_sources/chilife.rst.txt" rel="nofollow"> View page source</a>
       </li>
@@ -101,8 +101,8 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="life">
-<h1>χLife<a class="headerlink" href="#life" title="Link to this heading"></a></h1>
+  <section id="chilife-functions">
+<h1>chilife Functions<a class="headerlink" href="#chilife-functions" title="Link to this heading"></a></h1>
 <section id="module-chilife.chilife">
 <span id="general-functions"></span><h2>General Functions<a class="headerlink" href="#module-chilife.chilife" title="Link to this heading"></a></h2>
 <dl class="py function">
@@ -379,7 +379,12 @@ provided.</p></li>
 Can add as many as desired, except for path, for which only one can be given.</p></li>
 <li><p><strong>protein_path</strong> (<em>str</em><em>, </em><em>Path</em>) – The Path to a pdb file to use as the protein object.</p></li>
 <li><p><strong>mode</strong> (<em>str</em>) – Which mode to open the file in. Accepts ‘w’ or ‘a’ to overwrite or append.</p></li>
-<li><p><strong>**kwargs</strong> – Additional arguments to pass to <code class="docutils literal notranslate"><span class="pre">write_labels</span></code></p></li>
+<li><p><strong>**kwargs</strong> – <p>Additional arguments to pass to <code class="docutils literal notranslate"><span class="pre">write_labels</span></code></p>
+<dl class="simple">
+<dt>write_spin_centers<span class="classifier">bool</span></dt><dd><p>Write spin centers (atoms named NEN) as a seperate object with weights mapped to q-factor.</p>
+</dd>
+</dl>
+</p></li>
 </ul>
 </dd>
 </dl>

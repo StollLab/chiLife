@@ -1,22 +1,4 @@
 
-> [!NOTE]
-> # Announcement:
->
-> We are pleased to announce a free online workshop about chiLife.
->
-> This workshop is held online on Wednesday, May 22, 2024 at 6:00am Pacific Time. The workshop will last about 3 hours.
-> 
-> To participate, please register using the online registration form at https://forms.gle/r6VHt1LWKhrsK7Ww7.
->
-> All registered participants will receive an email with information on how to access the online workshop and materials a few days prior to the workshop. There is no need to install chiLife or Python ahead of time.
->
-> Please share this announcement with anyone potentially interested in participating.
-> 
-> We look forward to seeing many of you!
->
-> Best regards,
-> Maxx Tessmer and Stefan Stoll
->  
 
 # chiLife
 chiLife (or χLife) is a python package for modeling non-canonical amino acid side chain ensembles, primarily site 
@@ -226,7 +208,8 @@ arguments. For each set of dihedral angles, chiLife create a rotamer and store t
 name. Alternatively using a multi-state PDB file can add some additional information, such as isomeric heterogeneity of 
 the rotamer library, which will be maintained by chiLife.
 
-For more information on how to use chiLife see [examples](https://stolllab.github.io/chiLife/examples.html)
+For more information on how to use chiLife see [examples](https://stolllab.github.io/chiLife/examples.html) and the 
+[workshop](http://github.com/mtessmer/chilife_workshop) git repo.
 
 ## References
 

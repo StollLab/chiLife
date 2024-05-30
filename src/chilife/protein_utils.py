@@ -721,12 +721,6 @@ def xplor2mda(xplor_sim) -> MDAnalysis.Universe:
     return mda_protein
 
 
-
-
-
-
-
-
 def make_mda_uni(anames: ArrayLike,
                  atypes: ArrayLike,
                  resnames: ArrayLike,

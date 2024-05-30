@@ -48,6 +48,13 @@ nataa_codes = {'ALA': 'A', 'CYS': 'C', 'ASP': 'D', 'GLU': 'E', 'PHE': 'F', 'GLY'
                'LYS': 'K', 'LEU': 'L', 'MET': 'M', 'ASN': 'N', 'PRO': 'P', 'GLN': 'Q', 'ARG': 'R', 'SER': 'S',
                'THR': 'T', 'VAL': 'V', 'TRP': 'W', 'TYR': 'Y'}
 
+natnu_codes = {'A', 'C', 'G', 'I', 'U', 'DA', 'DC', 'DG', 'DI', 'DT', 'DU'}
+
+mm_backbones = {'aa': ['N', 'CA', 'C', 'O'],
+                'nu': ["P",  "C5'", "O5'", "C4'", "O4'", "C3'", "O3'", "C2'", "O2'", "C1'", "N1"],
+                'ACE': ['C', 'O', 'CH3']}
+
+
 inataa = {val: key for key, val in nataa_codes.items()}
 
 nataa_codes.update(inataa)

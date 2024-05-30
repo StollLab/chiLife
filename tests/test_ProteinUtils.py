@@ -59,6 +59,8 @@ def test_sort_pdb2():
 
     U = mda.Universe("test_data/SL_GGAGG_tmp.pdb", in_memory=True)
     os.remove("test_data/SL_GGAGG_tmp.pdb")
+
+    # check if atom order compatible with internal coordinates system.
     ICs = chilife.MolSysIC.from_atoms(U, preferred_dihedrals=[["C", "N", "CA", "C"]])
 
 
@@ -69,6 +71,16 @@ def test_sort_H():
                                       '3HG ', '2HG ', '3HD ', '2HD ',
                                       '2HE ', '3HE ', '3HZ ', '2HZ ',
                                       '1HZ '])
+
+
+def test_sort_residue():
+    lines = chilife.sort_pdb('test_data/TUM.pdb', aln_atoms=['N3', 'C4', 'C5'])
+    with open('test_data/TUM_srtd.pdb', 'r') as f:
+        alines = f.readlines()
+
+    test = hashlib.md5("".join(lines[0]).encode("utf-8")).hexdigest()
+    ans = hashlib.md5("".join(alines).encode("utf-8")).hexdigest()
+    assert test == ans
 
 
 def test_sort_many_models():

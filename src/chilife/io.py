@@ -293,6 +293,8 @@ def read_bbdep(res: str, Phi: int, Psi: int) -> Dict:
     lib["_rdihedrals"] = np.deg2rad(lib["dihedrals"])
     lib["_rsigmas"] = np.deg2rad(lib["sigmas"])
     lib['rotlib'] = res
+    lib['backbone_atoms'] = ["H", "N", "CA", "HA", "C", "O"]
+    lib['aln_atoms'] = ['N', 'CA', 'C']
 
     # hacky solution to experimental backbone dependent rotlibs
     if res == 'R1C':
@@ -756,5 +758,6 @@ rotlib_formats = {1.0: (
 rotlib_formats[1.1] = *rotlib_formats[1.0], 'description', 'comment', 'reference'
 rotlib_formats[1.2] = rotlib_formats[1.0]
 rotlib_formats[1.3] = rotlib_formats[1.2]
+rotlib_formats[1.4] = *rotlib_formats[1.3], 'backbone_atoms', 'aln_atoms'
 
 

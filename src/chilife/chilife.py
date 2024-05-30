@@ -34,7 +34,6 @@ from .SpinLabelTraj import SpinLabelTraj
 logging.captureWarnings(True)
 
 
-
 def distance_distribution(
         *args: SpinLabel,
         r: ArrayLike = None,
@@ -312,6 +311,8 @@ def create_library(
         default: bool = False,
         force: bool = False,
         spin_atoms: List[str] = None,
+        aln_atoms: List[str] = None,
+        backbone_atoms: List[str] = None,
         description: str = None,
         comment: str = None,
         reference: str = None
@@ -358,6 +359,13 @@ def create_library(
         name.
     spin_atoms : list
         A list of atom names on which the spin density is localized.
+    aln_atoms: List[str]
+        The three atoms defining the alignment coordinate frame of the target residue. Usually the N-CA-C atoms of
+        the protein backbone or similar for nucleotide backbones.
+    backbone_atoms: List[str]
+        Names of the atoms that correspond to backbone atoms. This includes aln_atoms and any other atoms that may need
+        to be adjusted to fit the target residue backbone, e.g. the hydrogen atoms of carboxyl oxygen atoms. Any atoms
+        not part of the backbone will be considered side chain atoms and may be subject to sampling.
     description : str
         A short (< 60 characters) description of the side chain library being created
     comment : str
@@ -408,6 +416,7 @@ def create_library(
     save_dict = prep_restype_savedict(libname, resname, internal_coords,
                                       weights, dihedrals, dihedral_atoms,
                                       sigmas=sigmas, spin_atoms=spin_atoms,
+                                      aln_atoms=aln_atoms, backbone_atoms=backbone_atoms,
                                       description=description, comment=comment,
                                       reference=reference)
     backbone = save_dict['coords'][0, :3]
@@ -716,12 +725,20 @@ def prep_restype_savedict(
         sigmas: ArrayLike = None,
         resi: int = 1,
         spin_atoms: List[str] = None,
+        aln_atoms: List[str] = None,
+        backbone_atoms: List[str] = None,
         description: str = None,
         comment: str = None,
         reference: str = None
 ) -> Dict:
     """Helper function to add new residue types to chilife
-
+aln_atoms: List[str]
+        The three atoms defining the alignment coordinate frame of the target residue. Usually the N-CA-C atoms of
+        the protein backbone or similar for nucleotide backbones.
+    backbone_atoms: List[str]
+        Names of the atoms that correspond to backbone atoms. This includes aln_atoms and any other atoms that may need
+        to be adjusted to fit the target residue backbone, e.g. the hydrogen atoms of carboxyl oxygen atoms. Any atoms
+        not part of the backbone will be considered side chain atoms and may be subject to sampling.
     Parameters
     ----------
     libname : str
@@ -743,6 +760,13 @@ def prep_restype_savedict(
         The residue number to be stored.
     spin_atoms: List[str]
         A list of atom names corresponding to the atoms where the spin density resides.
+    aln_atoms: List[str]
+        The three atoms defining the alignment coordinate frame of the target residue. Usually the N-CA-C atoms of
+        the protein backbone or similar for nucleotide backbones.
+    backbone_atoms: List[str]
+        Names of the atoms that correspond to backbone atoms. This includes aln_atoms and any other atoms that may need
+        to be adjusted to fit the target residue backbone, e.g. the hydrogen atoms of carboxyl oxygen atoms. Any atoms
+        not part of the backbone will be considered side chain atoms and may be subject to sampling.
     description : str
         A short (< 60 characters) description of the side chain library being created
     comment : str
@@ -773,8 +797,23 @@ def prep_restype_savedict(
 
         raise ValueError(
             f'Coords of rotamer {" ".join((str(idx) for idx in idxs))} at atoms {" ".join((str(idx) for idx in adxs))} '
-            f'cannot be converted to internal coords because there is a chain break in this roatmer. Either enforce '
+            f'cannot be converted to internal coords because there is a chain break in this rotamer. Either enforce '
             f'bonds explicitly by adding CONECT information to the PDB or fix the structure(s)')
+
+    if aln_atoms is None:
+        # Check for protein backbone atoms
+        if np.all(np.isin(['N', 'CA', 'C'], atom_names)):
+            aln_atoms = ['N', 'CA', 'C']
+            backbone_atoms = ["H", "N", "CA", "HA", "C", "O"]
+
+        else:
+            raise RuntimeError('chiLife was unable to find a suitable set of atoms representing the macromolecular '
+                               'backbone. Please ensure your rotamer ensemble uses standard protein or nucleic acid '
+                               'backbone atom names, or specify the alignment atoms manually using the `aln_atoms`'
+                               'keyword argument.')
+
+    elif backbone_atoms is None:
+        backbone_atoms = aln_atoms
 
     save_dict = {'rotlib': libname,
                  'resname': resname,
@@ -785,6 +824,8 @@ def prep_restype_savedict(
                  'atom_names': atom_names,
                  'dihedrals': dihedrals,
                  'dihedral_atoms': dihedral_atoms,
+                 'aln_atoms': aln_atoms,
+                 'backbone_atoms': backbone_atoms,
                  'description': description,
                  'comment': comment,
                  'reference': reference}

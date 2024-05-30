@@ -102,7 +102,11 @@ def get_data(filename, description = None, comment = None, reference = None):
         if (key not in data) or (val is not None):
             data[key] = val
 
-    data['format_version'] = 1.3
+    if 'backbone_atoms' not in data:
+        data['backbone_atoms'] = ["H", "N", "CA", "HA", "C", "O"]
+        data['aln_atoms'] = ['N', 'CA', 'C']
+
+    data['format_version'] = 1.4
 
     return data
 

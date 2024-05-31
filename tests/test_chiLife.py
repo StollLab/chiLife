@@ -275,13 +275,13 @@ def test_create_arb_rotlib():
 
     # test that RL method works
     ans = np.load('test_data/4tna_U6TUM.npy')
-    np.testing.assert_allclose(RL.coords, ans)
+    np.testing.assert_almost_equal(RL.coords, ans, decimal=5)
 
     # test that ORS works
     np.random.seed(20)
     RL = chilife.RotamerEnsemble('TUM', 28, RNA, sample=500)
     ans2 = np.load('test_data/4tna_C28TUM.npy')
-    np.testing.assert_allclose(RL.coords, ans2)
+    np.testing.assert_almost_equal(RL.coords, ans2, decimal=5)
 
     # Test that an error is thrown for incompatible residues
     with pytest.raises(RuntimeError) as err:

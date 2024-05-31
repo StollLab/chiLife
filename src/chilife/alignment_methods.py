@@ -320,9 +320,7 @@ def global_mx(*p: ArrayLike, method: Union[str, callable] = "bisect") -> Tuple[A
 
     if method.__name__ == 'fit_alignment':
         p = [pi[::-1] for pi in p]
-    try:
-        rotation_matrix, origin = method(*p)
-    except:
-        print('pasue')
-        raise
+
+    rotation_matrix, origin = method(*p)
+
     return rotation_matrix, origin

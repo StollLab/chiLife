@@ -6,9 +6,9 @@ from numpy.typing import ArrayLike
 from scipy.spatial.distance import cdist
 import igraph as ig
 
-
+from .math_utils import simple_cycle_vertices
 from .globals import atom_order, nataa_codes, natnu_codes, mm_backbones
-from .Topology import get_min_topol, guess_bonds, bfs_edges
+from .Topology import get_min_topol, guess_bonds, modified_bfs_edges
 
 
 def sort_pdb(pdbfile: Union[str, List[str], List[List[str]]],
@@ -242,7 +242,8 @@ def sort_residue(coords, atypes, anames, resname, presort_bonds, start, aln_atom
 
         # Use candidates if they are defined
         if bb_candidates:
-            sorted_args = [np.argwhere(anames == name).flat[0] for name in bb_candidates]
+            aname_lst = anames.tolist()
+            sorted_args = [aname_lst.index(name) for name in bb_candidates if name in aname_lst]
 
         # Otherwise, if there are no preceding residues start from the first atom
         elif start == 0:
@@ -262,7 +263,9 @@ def sort_residue(coords, atypes, anames, resname, presort_bonds, start, aln_atom
 
         # If using a defined backbone, use the known root atoms for the BFS search below
         bb_names = anames[sorted_args]
-        for name in ['CA', 'C1', 'C3']:
+
+        # TODO: Need a better way to guess the root atom from the backbone and side chains.
+        for name in ["CA", "C1'"]:
             if name in bb_names:
                 root_idx = np.argwhere(bb_names == name).flat[0]
                 root_idx = sorted_args[root_idx]
@@ -274,8 +277,20 @@ def sort_residue(coords, atypes, anames, resname, presort_bonds, start, aln_atom
     # Skip BFS sorting if heavy atoms are sorted, i.e. the backbone is known and there is no side chain (e.g. GLY)
     if len(sorted_args) != n_heavy:
 
-        # remove pairs from that are already sorted and recreate the graph
-        pairs = [pair for pair in pairs if np.any(~np.isin(pair, sorted_args))]
+        # # Check for cycles including the root_idx (rings off the alpha carbon like proline)
+        # cycles = simple_cycle_vertices(graph)
+        # for cycle in cycles:
+        #     if root_idx in cycle:
+        #         # Find bonds to backbone
+        #         mask1 = np.isin(pairs, sorted_args).sum(axis=1) == 1
+        #
+        #         # That aren't connected  to the root idx
+        #         mask2 = (pairs == root_idx).sum(axis=1) == 0
+        #         mask = mask1 * mask2
+        #
+        #         # And remove them
+        #         pairs = pairs[~mask]
+
         graph = ig.Graph(edges=pairs)
 
         if root_idx not in graph.vs.indices:
@@ -288,7 +303,7 @@ def sort_residue(coords, atypes, anames, resname, presort_bonds, start, aln_atom
         # Use bfs verts for
         # bfsv, si, bfse = graph.bfs(root_idx)
         # [v for v in bfsv if v not in sorted_args]
-        sidechain_nodes = [v[1] for v in bfs_edges(pairs, root_idx) if v[1] not in sorted_args]
+        sidechain_nodes = [v[1] for v in modified_bfs_edges(pairs, root_idx, sorted_args) if v[1] not in sorted_args]
 
         # Check for disconnected parts of residue
         if not graph.is_connected():
@@ -406,8 +421,8 @@ def get_backbone_atoms(graph, root_idx, neighbor_idx, **kwargs):
     for k2 in items:
         bbidx_slices[k1] = bblist_order[k1], bblist_order[k2]
         k1 = k2
-
-    return backbone_vs[slice(*bbidx_slices[0])] + [root_idx] + backbone_vs[slice(*bbidx_slices[1])]
+    a, b = neighbor_idx
+    return backbone_vs[slice(*bbidx_slices[a])] + [root_idx] + backbone_vs[slice(*bbidx_slices[b])]
 
 def atom_sort_key(pdb_line: str) -> Tuple[str, int, int]:
     """Assign a base rank to sort atoms of a pdb.

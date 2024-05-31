@@ -360,7 +360,8 @@ class RotamerEnsemble:
         elif aln_atoms:
             graph = res.topology.graph
             root_idx = np.argwhere(res.names == aln_atoms[1]).flat[0]
-            neighbor_idx = np.argwhere(np.isin(res.names, aln_atoms[::2])).flatten()
+            aname_lst = ICs.atom_names.tolist()
+            neighbor_idx = [aname_lst.index(a) for a in aln_atoms[::2]]
             backbone_atoms = get_backbone_atoms(graph, root_idx, neighbor_idx)
 
         else:
@@ -603,6 +604,11 @@ class RotamerEnsemble:
             bbs = parse_backbone(self, kind="global")
         else:
             bbs = site_pos
+
+        if len(bbs) < 3 :
+            raise RuntimeError(f'The residue/rotlib you have selected {self.res}, does not share a compatible backbone '
+                               f'with the residue you are trying to label. Check the site and rotlib and try again.\n'
+                               f'The label backbone atoms: {self.backbone_atoms}')
 
         mx, ori = global_mx(*bbs, method=self.alignment_method)
 

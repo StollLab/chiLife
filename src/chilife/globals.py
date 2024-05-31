@@ -51,7 +51,7 @@ nataa_codes = {'ALA': 'A', 'CYS': 'C', 'ASP': 'D', 'GLU': 'E', 'PHE': 'F', 'GLY'
 natnu_codes = {'A', 'C', 'G', 'I', 'U', 'DA', 'DC', 'DG', 'DI', 'DT', 'DU'}
 
 mm_backbones = {'aa': ['N', 'CA', 'C', 'O'],
-                'nu': ["P",  "C5'", "O5'", "C4'", "O4'", "C3'", "O3'", "C2'", "O2'", "C1'", "N1"],
+                'nu': ["P",  "O5'", "C5'",  "C4'", "O4'", "C3'",  "C1'", "O3'", "C2'", "O2'", "OP1", "OP2"],
                 'ACE': ['C', 'O', 'CH3']}
 
 

@@ -277,20 +277,6 @@ def sort_residue(coords, atypes, anames, resname, presort_bonds, start, aln_atom
     # Skip BFS sorting if heavy atoms are sorted, i.e. the backbone is known and there is no side chain (e.g. GLY)
     if len(sorted_args) != n_heavy:
 
-        # # Check for cycles including the root_idx (rings off the alpha carbon like proline)
-        # cycles = simple_cycle_vertices(graph)
-        # for cycle in cycles:
-        #     if root_idx in cycle:
-        #         # Find bonds to backbone
-        #         mask1 = np.isin(pairs, sorted_args).sum(axis=1) == 1
-        #
-        #         # That aren't connected  to the root idx
-        #         mask2 = (pairs == root_idx).sum(axis=1) == 0
-        #         mask = mask1 * mask2
-        #
-        #         # And remove them
-        #         pairs = pairs[~mask]
-
         graph = ig.Graph(edges=pairs)
 
         if root_idx not in graph.vs.indices:

@@ -18,7 +18,7 @@ sys.path.insert(0, os.path.abspath('.'))
 
 # -- Project information -----------------------------------------------------
 
-project = 'χLife'
+project = 'chiLife'
 copyright = '2022, Maxx Tessmer'
 author = 'Maxx Tessmer'
 

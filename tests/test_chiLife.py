@@ -298,7 +298,24 @@ def test_create_arb_rotlib():
 
     os.remove('TUM_rotlib.npz')
 
+
 def test_create_nuc_rotlib():
+    np.random.seed(10)
+    DNA = chilife.fetch('1bna')
+    chilife.create_library('C2P', 'test_data/C2P.pdb')
+    RL1 = chilife.RotamerEnsemble('C2P', 9, DNA)
+    ans1 = np.load('test_data/dna_label1.npy')
+    os.remove('C2P_rotlib.npz')
+    np.testing.assert_almost_equal(RL1.coords, ans1, decimal=5)
+
+    chilife.create_library('C1U', 'test_data/C1U.pdb')
+    RL2 = chilife.RotamerEnsemble('C1U', 9, DNA)
+    ans2 = np.load('test_data/dna_label2.npy')
+    os.remove('C1U_rotlib.npz')
+    np.testing.assert_almost_equal(RL2.coords, ans2, decimal=5)
+
+
+def test_create_nuc_rotlib2():
     with pytest.raises(RuntimeError) as err:
         chilife.create_library('U2P', 'test_data/U2P.pdb')
         ans = """There are more than one possible sets of alignment atoms for this residue. These include:

@@ -6,9 +6,9 @@ from numpy.typing import ArrayLike
 from scipy.spatial.distance import cdist
 import igraph as ig
 
-
-from .globals import atom_order
-from .Topology import get_min_topol, guess_bonds, bfs_edges
+from .math_utils import simple_cycle_vertices
+from .globals import atom_order, nataa_codes, natnu_codes, mm_backbones
+from .Topology import get_min_topol, guess_bonds, modified_bfs_edges
 
 
 def sort_pdb(pdbfile: Union[str, List[str], List[List[str]]],
@@ -32,7 +32,12 @@ def sort_pdb(pdbfile: Union[str, List[str], List[List[str]]],
          Return the sorted index rather than the sorted lines.
     bonds: ArrayLike :
          When sorting the PDB, use the provided bond list to as the topology rather than guessing the bonds.
+    kwargs : dict
+        Additional keyword arguments.
 
+        aln_atoms : ArrayLike
+            Only used with create_library. Array of 3 atom names indicating which atoms will be the alignment atoms for
+            the library. These atoms will be used to determine which atoms constitute the backbone and side chain atoms.
     Returns
     -------
     lines : List[str], List[List[str]]
@@ -100,7 +105,9 @@ def _sort_pdb_lines(lines, bonds=None, index=False, **kwargs) -> \
     lines : List[str]
         A list of the PDB ATOM and HETATM lines.
     bonds : Set[Tuple[int]]
-        A Set of tuples of atom indices corresponding to atoms ( `lines` ) that are bound to each other.
+        A Set of tuples of atom indices corresponding to atoms ( `lines` ) that are bound to each other. Passing this
+        keyword argument will prevent chiLife from guessing the bonds. To guess most bonds but strictly enforce a few
+        use he `additional_bonds` keyword argument.
     index : bool
         If True a list of atom indices will be returned
     **kwargs : dict
@@ -108,6 +115,11 @@ def _sort_pdb_lines(lines, bonds=None, index=False, **kwargs) -> \
         return_bonds : bool
             Return bond indices as well, usually only used when letting the function guess the bonds.
         additional_bonds: set(tuple(int))
+            Additional bonds (index pairs) that will be added to the bonds list. Used when letting the function guess
+            the bonds, but
+        aln_atoms : ArrayLike
+            Only used with create_library. Array of 3 atom names indicating which atoms will be the alignment atoms for
+            the library. These atoms will be used to determine which atoms constitute the backbone and side chain atoms.
 
     Returns
     -------
@@ -140,93 +152,24 @@ def _sort_pdb_lines(lines, bonds=None, index=False, **kwargs) -> \
         presort_bonds = set(tuple(sorted((b1, b2))) for b1, b2 in bonds)
         if kwargs.get('additional_bonds', set()) != set():
             presort_bonds.union(kwargs['additional_bonds'])
+
     # get residue groups
-    chain, resi = lines[0][21], int(lines[0][22:26].strip())
+    chain, resi, resn = lines[0][21], int(lines[0][22:26].strip()), lines[0][17:20].strip()
     start = 0
     resdict = {}
     for curr, pdb_line in enumerate(lines):
 
         if chain != pdb_line[21] or resi != int(pdb_line[22:26].strip()):
-            resdict[chain, resi] = start, curr
+            resdict[chain, resi] = start, curr, resn
             start = curr
-            chain, resi = pdb_line[21], int(pdb_line[22:26].strip())
+            chain, resi, resn = pdb_line[21], int(pdb_line[22:26].strip()), pdb_line[17:20].strip()
 
-    resdict[chain, resi] = start, curr + 1
+    resdict[chain, resi] = start, curr + 1, resn
     midsort_key = []
     for key in resdict:
-        start, stop = resdict[key]
-        n_heavy = np.sum(atypes[start:stop] != 'H')
-
-        #  Force N, CA, C,
-        if np.array_equal(anames[start: start + 4], ['N', 'CA', 'C', 'O']):
-            sorted_args = [0, 1, 2, 3]
-        # if not a canonical and the first amino acid use the first heavy atom
-        elif start == 0:
-            sorted_args = [0]
-        else:
-            # If not a connected via peptide backbone
-            for a, b in presort_bonds:
-                # Find the atom bonded to a previous residue
-                if a < start and start <= b < stop and atypes[b] != 'H':
-                    sorted_args = [b - start]
-                    break
-                # Otherwise get the closest to any previous atom
-            else:
-                dist_mat = cdist(coords[:start], coords[start:stop])
-                sorted_args = [np.squeeze(np.argwhere(dist_mat == dist_mat.min()))[1]]
-
-        if len(sorted_args) != n_heavy:
-
-            root_idx = 1 if len(sorted_args) == 4 else sorted_args[0]
-            bonds = np.array([bond for bond in presort_bonds
-                              if (start <= bond[0] < stop) and (start <= bond[1] < stop)])
-            bonds -= start
-            bonds = np.asarray(bonds)
-
-            # Get all nearest neighbors and sort by distance
-            distances = np.linalg.norm(coords[start:stop][bonds[:, 0]] - coords[start:stop][bonds[:, 1]], axis=1)
-            distances = np.around(distances, decimals=3)
-
-            idx_sort = np.lexsort((bonds[:, 0], bonds[:, 1], distances))
-            pairs = bonds[idx_sort]
-            pairs = [pair for pair in pairs if np.any(~np.isin(pair, sorted_args))]
-
-            graph = ig.Graph(edges=pairs)
-
-            if root_idx not in graph.vs.indices:
-                root_idx = min(graph.vs.indices)
-
-            # Start stemming from CA atom
-            CA_edges = [edge[1] for edge in bfs_edges(pairs, root_idx) if edge[1] not in sorted_args]
-
-            # Check for disconnected parts of residue
-            if not graph.is_connected():
-                for g in graph.connected_components():
-                    if np.any([arg in g for arg in sorted_args]):
-                        continue
-                    CA_nodes = [idx for idx in CA_edges if atypes[start + idx] != 'H']
-                    g_nodes = [idx for idx in g if atypes[start + idx] != 'H']
-                    near_root = cdist(coords[start:stop][CA_nodes], coords[start:stop][g_nodes]).argmin()
-
-                    yidx = near_root % len(g_nodes)
-                    subnodes, _, _ = graph.bfs(g_nodes[yidx])
-                    CA_edges += list(subnodes)
-
-        elif stop - start > n_heavy:
-            # Assumes  non-heavy atoms come after the heavy atoms, which should be true because of the pre-sort
-            CA_edges = list(range(n_heavy, n_heavy + (stop - start - len(sorted_args))))
-        else:
-            CA_edges = []
-
-        sorted_args = sorted_args + CA_edges
-
-        # get any leftover atoms (eg HN)
-        if len(sorted_args) != stop - start:
-            for idx in range(stop - start):
-                if idx not in sorted_args:
-                    sorted_args.append(idx)
-
-        midsort_key += [x + start for x in sorted_args]
+        start, stop, resn = resdict[key]
+        midsort_key += sort_residue(coords, atypes[start:stop], anames[start:stop],
+                                    resn, presort_bonds, start, kwargs.get('aln_atoms', None))
 
     lines[:] = [lines[i] for i in midsort_key]
     lines.sort(key=atom_sort_key)
@@ -251,6 +194,221 @@ def _sort_pdb_lines(lines, bonds=None, index=False, **kwargs) -> \
         return lines, bonds
 
     return lines
+
+
+def sort_residue(coords, atypes, anames, resname, presort_bonds, start, aln_atoms=None):
+    stop = start + len(anames)
+    n_heavy = np.sum(atypes != 'H')
+    res_coords = coords[start:stop]
+
+    # Adjust bond atom indices to reference local index
+    bonds = np.array([(a - start, b - start) for a, b in presort_bonds
+                      if (start <= a < stop) and (start <= b < stop)])
+
+    # Get all nearest neighbors and sort by distance for generating graph
+    distances = np.linalg.norm(res_coords[bonds[:, 0]] - res_coords[bonds[:, 1]], axis=1)
+    distances = np.around(distances, decimals=3)
+
+    # Sort bonds by distance
+    idx_sort = np.lexsort((bonds[:, 0], bonds[:, 1], distances))
+    pairs = bonds[idx_sort]
+
+    # Create graph
+    graph = ig.Graph(edges=pairs)
+
+    # Determine if this residue fits aln_atoms criteria. aln_atoms must be defined, present, and adjacent in the graph
+    if aln_atoms is not None:
+        if len(aln_atoms) != 3:
+            raise ValueError('aln_atoms must have length 3')
+
+        aln_cen = np.argwhere(aln_atoms[1] == anames).flat[0]
+        neighbor_idx = np.argwhere(np.isin(anames, aln_atoms[::2])).flatten()
+        aln_present = np.all(np.isin(aln_atoms, anames))
+        aln_adjacent = np.all(np.isin(neighbor_idx, graph.neighbors(aln_cen)))
+        use_aln = aln_adjacent and aln_present
+    else:
+        neighbor_idx = []
+        use_aln = False
+
+    # let downstream functions decided backbone
+    if use_aln:
+        sorted_args = []
+        root_idx = np.argwhere(anames == aln_atoms[1]).flat[0]
+
+    # Otherwise attempt to find canonical backbone definitions
+    else:
+        # guess possible backbone atoms for the residue type with the given atom names
+        bb_candidates = get_bb_candidates(anames, resname)
+
+        # Use candidates if they are defined
+        if bb_candidates:
+            aname_lst = anames.tolist()
+            sorted_args = [aname_lst.index(name) for name in bb_candidates if name in aname_lst]
+
+        # Otherwise, if there are no preceding residues start from the first atom
+        elif start == 0:
+            sorted_args = [0]
+
+        # Otherwise use the atom bound to the nearest residue.
+        else:
+            for a, b in presort_bonds:
+                # Find the atom bonded to a previous residue
+                if a < start and start <= b < stop and atypes[b-start] != 'H':
+                    sorted_args = [b - start]
+                    break
+            # Otherwise get the closest to any previous atom
+            else:
+                dist_mat = cdist(coords[:start], coords[start:stop])
+                sorted_args = [np.squeeze(np.argwhere(dist_mat == dist_mat.min()))[0]]
+
+        # If using a defined backbone, use the known root atoms for the BFS search below
+        bb_names = anames[sorted_args]
+
+        # TODO: Need a better way to guess the root atom from the backbone and side chains.
+        for name in ["CA", "C1'"]:
+            if name in bb_names:
+                root_idx = np.argwhere(bb_names == name).flat[0]
+                root_idx = sorted_args[root_idx]
+                break
+        # Unless there are no known root atoms, then just use the first atom
+        else:
+            root_idx = sorted_args[0]
+
+    # Skip BFS sorting if heavy atoms are sorted, i.e. the backbone is known and there is no side chain (e.g. GLY)
+    if len(sorted_args) != n_heavy:
+
+        graph = ig.Graph(edges=pairs)
+
+        if root_idx not in graph.vs.indices:
+            raise RuntimeError(f'The connectivity of one or more residue is not valid')
+
+        # Use dfs verts for backbone
+        if use_aln:
+            sorted_args += get_backbone_atoms(graph, root_idx, neighbor_idx, sorted_args=sorted_args)
+
+        # Use bfs verts for
+        # bfsv, si, bfse = graph.bfs(root_idx)
+        # [v for v in bfsv if v not in sorted_args]
+        sidechain_nodes = [v[1] for v in modified_bfs_edges(pairs, root_idx, sorted_args) if v[1] not in sorted_args]
+
+        # Check for disconnected parts of residue
+        if not graph.is_connected():
+            for g in graph.connected_components():
+                if np.any([arg in g for arg in sorted_args]):
+                    continue
+                free_nodes = [idx for idx in sidechain_nodes if atypes[start + idx] != 'H']
+                g_nodes = [idx for idx in g if atypes[start + idx] != 'H']
+                near_root = cdist(res_coords[free_nodes], res_coords[g_nodes]).argmin()
+
+                yidx = near_root % len(g_nodes)
+                subnodes, _, _ = graph.bfs(g_nodes[yidx])
+                sidechain_nodes += list(subnodes)
+
+    elif stop - start > n_heavy:
+        # Assumes  non-heavy atoms come after the heavy atoms, which should be true because of the pre-sort
+        sidechain_nodes = list(range(n_heavy, n_heavy + (stop - start - len(sorted_args))))
+    else:
+        sidechain_nodes = []
+
+    sorted_args += sidechain_nodes
+
+    # get any leftover atoms (eg HN)
+    if len(sorted_args) != stop - start:
+        for idx in range(stop - start):
+            if idx not in sorted_args:
+                sorted_args.append(idx)
+
+    return [x + start for x in sorted_args]
+
+
+def get_bb_candidates(anames, resname):
+    """
+    Function to guess the backbone atom names for a set of atom names residue name.
+    Parameters
+    ----------
+    anames : ArrayLike
+        Array of atom names of the residue.
+    resname : str
+        Residue name
+
+    Returns
+    -------
+    bb_candidates : ArrayLike
+        Array of backbone atom names.
+
+    """
+    if resname in natnu_codes:
+        bb_candidates = mm_backbones['nu']
+    elif resname in nataa_codes:
+        bb_candidates = mm_backbones['aa']
+    elif np.isin(mm_backbones['aa'], anames).sum() >= 3:
+        bb_candidates = mm_backbones['aa']
+    elif np.isin(mm_backbones['nu'], anames).sum() >= 3:
+        bb_candidates = mm_backbones['nu']
+    elif resname in mm_backbones:
+        bb_candidates = mm_backbones[resname]
+    else:
+        bb_candidates = []
+
+    return bb_candidates
+
+
+def get_backbone_atoms(graph, root_idx, neighbor_idx, **kwargs):
+    """
+    Function to get backbone atom indices from a graph using a depth first search (dfs), given a root index and a list
+    of neighboring indices that define  the starting branches of the backbone atoms (i.e. not sidechain atoms).
+
+    Parameters
+    ----------
+    graph: igraph.Graph
+        The graph to search for backbone atoms.
+    root_idx: int
+        The root index of the graph that separates the side chain and backbone atoms.
+    neighbor_idx: indices of the neighbors of the `root_idx` that start the dfs of the backbone atoms.
+
+    kwargs: dict
+        Additional keyword arguments to pass to the depth first search.
+
+        sorted_args: List[int]
+            A sorted list of atom indices dictating backbone atoms that have already been defined
+
+    Returns
+    -------
+    backbone_vs: List[int]
+        list of sorted backbone atom indices.
+
+    """
+
+    sorted_args = kwargs.get('sorted_args', [])
+
+    # Start stemming from root atom
+    neighbors = graph.neighbors(root_idx)
+    backbone_vs = []
+    sidechain_vs = []
+    bblist_order = {}
+    dfsv, dfse = graph.dfs(root_idx)
+    for idx in dfsv:
+        if idx == root_idx:
+            continue
+        elif idx in neighbor_idx:
+            bblist_order[idx] = len(backbone_vs)
+            active_list = backbone_vs
+        elif idx in neighbors:
+
+            active_list = sidechain_vs
+
+        if idx not in sorted_args:
+            active_list.append(idx)
+
+    bblist_order['end'] = len(backbone_vs)
+    bbidx_slices = {}
+    items = iter(bblist_order)
+    k1 = next(items)
+    for k2 in items:
+        bbidx_slices[k1] = bblist_order[k1], bblist_order[k2]
+        k1 = k2
+    a, b = neighbor_idx
+    return backbone_vs[slice(*bbidx_slices[a])] + [root_idx] + backbone_vs[slice(*bbidx_slices[b])]
 
 def atom_sort_key(pdb_line: str) -> Tuple[str, int, int]:
     """Assign a base rank to sort atoms of a pdb.

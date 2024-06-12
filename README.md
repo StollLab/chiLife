@@ -7,7 +7,7 @@
 
 |                       :exclamation:   News   :exclamation:                                |                       
 |-------------------------------------------------------------------------------------------|
-| chiLife now supports arbitrary backbone attachments including DNA and RNA labels and more! Check out our new nucleic acid lables at https://github.com/mtessmer/chilife_rotlibs|
+| chiLife now supports arbitrary backbone attachments including DNA and RNA labels and more!| 
 
 
 

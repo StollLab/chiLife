@@ -1,3 +1,16 @@
+<p align="center">
+   <a href="https://stolllab.github.io/chiLife/">
+      <img src="https://img.shields.io/badge/docs-latest-brightgreen.svg" height="60">
+   </a>
+</p>
+
+
+|                       :exclamation:   News   :exclamation:                                |                       
+|-------------------------------------------------------------------------------------------|
+| chiLife now supports arbitrary backbone attachments including DNA and RNA labels and more! Check out our new nucleic acid lables at https://github.com/mtessmer/chilife_rotlibs|
+
+
+
 # chiLife
 chiLife is a Python package for modeling non-canonical amino acid side chain ensembles and using those ensembles to
 predict experimental observables. Currently, it is focused primarily on site-directed spin labels (SDSLs). The goal of

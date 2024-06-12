@@ -9,6 +9,7 @@ from scipy.spatial import cKDTree
 import igraph as ig
 
 from .globals import bond_hmax_dict
+from .math_utils import simple_cycle_vertices
 
 class Topology:
     """
@@ -63,17 +64,7 @@ class Topology:
 
     @property
     def ring_idxs(self):
-        found_cycle_edges = self.graph.fundamental_cycles()
-        found_cycle_nodes = []
-
-        for cycle in found_cycle_edges:
-            cyverts = set()
-            for edge in self.graph.es(cycle):
-                cyverts.update(edge.tuple)
-
-            found_cycle_nodes.append(sorted(cyverts))
-
-        return found_cycle_nodes
+        return simple_cycle_vertices(self.graph)
 
     @property
     def has_rings(self):
@@ -283,7 +274,7 @@ def neighbors(edges, node):
     return nbs
 
 
-def bfs_edges(edges, root):
+def modified_bfs_edges(edges, root, bb_idxs):
     """
     Breadth first search of nodes given a set of edges
     Parameters
@@ -307,18 +298,22 @@ def bfs_edges(edges, root):
 
     n = len(nodes)
     depth = 0
-    next_parents_children = [(root, neighbors(edges, root))]
+    neigh = neighbors(edges, root)
+    # Prioritize side chains
+    neigh1 = [n for n in neigh if n not in bb_idxs]
+    neigh2 = [n for n in neigh if n in bb_idxs]
 
-    while next_parents_children and depth < depth_limit:
-        this_parents_children = next_parents_children
-        next_parents_children = []
-        for parent, children in this_parents_children:
-            for child in children:
-                if child not in seen:
-                    seen.add(child)
-                    next_parents_children.append((child, neighbors(edges, child)))
-                    yield parent, child
-            if len(seen) == n:
-                return
-        depth += 1
-
+    for neigh in neigh1, neigh2:
+        next_parents_children = [(root, neigh)]
+        while next_parents_children and depth < depth_limit:
+            this_parents_children = next_parents_children
+            next_parents_children = []
+            for parent, children in this_parents_children:
+                for child in children:
+                    if child not in seen:
+                        seen.add(child)
+                        next_parents_children.append((child, neighbors(edges, child)))
+                        yield parent, child
+                if len(seen) == n:
+                    return
+            depth += 1

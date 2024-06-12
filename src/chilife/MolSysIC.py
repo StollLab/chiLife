@@ -529,6 +529,7 @@ class MolSysIC:
                                    f'considers dihedrals as directional so you may want to try the reverse dihedral.')
 
             dihedral_idxs.append(list(self.topology.dihedrals_by_resnum[tag]))
+
         dihedral_idxs = np.array(dihedral_idxs).T
         dihedral_values = self.coords[dihedral_idxs]
         dihedrals = get_dihedrals(*dihedral_values)

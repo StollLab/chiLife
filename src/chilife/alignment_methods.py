@@ -230,13 +230,13 @@ def parse_backbone(rotamer_ensemble, kind):
         with the first coordinate as the rotamer ensemble backbone and the second as the protein site backbone.
     """
     method = rotamer_ensemble.alignment_method
-
+    aln_atoms = " ".join(rotamer_ensemble.aln_atoms)
     if method.__name__ == "fit_alignment":
         N1, CA1, C1 = rotamer_ensemble.backbone
         N2, CA2, C2 = rotamer_ensemble.protein.select_atoms(
             f"segid {rotamer_ensemble.chain} and "
             f"resnum {rotamer_ensemble.site} "
-            f"and name N CA C and not altloc B"
+            f"and name {aln_atoms} and not altloc B"
         ).positions
         return np.array([[N1, N2], [CA1, CA2], [C1, C2]])
 
@@ -247,7 +247,7 @@ def parse_backbone(rotamer_ensemble, kind):
         return rotamer_ensemble.protein.select_atoms(
             f"segid {rotamer_ensemble.chain} and "
             f"resnum {rotamer_ensemble.site} "
-            f"and name N CA C and not altloc B"
+            f"and name {aln_atoms} and not altloc B"
         ).positions
 
 
@@ -322,4 +322,5 @@ def global_mx(*p: ArrayLike, method: Union[str, callable] = "bisect") -> Tuple[A
         p = [pi[::-1] for pi in p]
 
     rotation_matrix, origin = method(*p)
+
     return rotation_matrix, origin

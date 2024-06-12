@@ -14,6 +14,7 @@ import MDAnalysis as mda
 from .globals import SUPPORTED_RESIDUES
 from .MolSys import MolecularSystemBase, MolSys
 from .numba_utils import get_sasa
+from .pdb_utils import get_backbone_atoms, get_bb_candidates
 import chilife.scoring as scoring
 import chilife.RotamerEnsemble as re
 import chilife.dRotamerEnsemble as dre
@@ -235,8 +236,24 @@ def set_dihedral(p: ArrayLike, angle: float, mobile: ArrayLike) -> ArrayLike:
 
     return new_mobile
 
-def guess_mobile_dihedrals(ICs):
-    sc_mask = ~np.isin(ICs.atom_names, ['N', 'CA', 'C', 'O', 'CB'])
+def guess_mobile_dihedrals(ICs, aln_atoms=None):
+    if aln_atoms is not None:
+        root_idx = np.argwhere(ICs.atom_names == aln_atoms[1]).flat[0]
+        aname_lst = ICs.atom_names.tolist()
+        neighbor_idx = [aname_lst.index(a) for a in aln_atoms[::2]]
+        bb_atoms = get_backbone_atoms(ICs.topology.graph, root_idx, neighbor_idx)
+        bb_atoms = [ICs.atom_names[i] for i in bb_atoms]
+        bb_atoms += [ICs.atom_names[i] for i in ICs.topology.graph.neighbors(root_idx) if i not in neighbor_idx]
+    else:
+        bb_atoms = get_bb_candidates(ICs.atom_names, ICs.resnames[0])
+        bb_atoms = [atom for atom in bb_atoms if atom in ICs.atom_names]
+        bb_idxs = np.argwhere(np.isin(ICs.atom_names, bb_atoms)).flatten()
+        neighbors = set(sum([ICs.topology.graph.neighbors(i) for i in bb_idxs], start=[]))
+        neighbor_names = [ICs.atom_names[n] for n in neighbors]
+        bb_atoms += [n for n in neighbor_names if n not in bb_atoms]
+
+    sc_mask = ~np.isin(ICs.atom_names, bb_atoms)
+
     ha_mask = ~(ICs.atom_types=='H')
     mask = ha_mask * sc_mask
     idxs = np.argwhere(mask).flatten()
@@ -719,12 +736,6 @@ def xplor2mda(xplor_sim) -> MDAnalysis.Universe:
     mda_protein.atoms.positions = np.array(xplor_sim.atomPosArr())
 
     return mda_protein
-
-
-
-
-
-
 
 
 def make_mda_uni(anames: ArrayLike,

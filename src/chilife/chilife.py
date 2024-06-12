@@ -22,7 +22,7 @@ from .globals import (RL_DIR, USER_RL_DIR, DATA_DIR, SUPPORTED_RESIDUES, USER_LI
                       rotlib_defaults, dihedral_defs)
 from .alignment_methods import local_mx
 from .Topology import get_min_topol, guess_bonds
-from .pdb_utils import sort_pdb
+from .pdb_utils import sort_pdb, get_backbone_atoms, get_bb_candidates
 from .protein_utils import mutate, guess_mobile_dihedrals
 from .MolSysIC import MolSysIC
 from .scoring import get_lj_rep, GAS_CONST, reweight_rotamers
@@ -32,7 +32,6 @@ from .RotamerEnsemble import RotamerEnsemble
 from .SpinLabelTraj import SpinLabelTraj
 
 logging.captureWarnings(True)
-
 
 
 def distance_distribution(
@@ -302,7 +301,7 @@ def confidence_interval(data: ArrayLike, cutoff: float = 0.95, non_negative: boo
 def create_library(
         libname: str,
         pdb: str,
-        dihedral_atoms: List[List[str]] = [],
+        dihedral_atoms: List[List[str]] = None,
         site: int = 1,
         resname: str = None,
         dihedrals: ArrayLike = None,
@@ -312,6 +311,8 @@ def create_library(
         default: bool = False,
         force: bool = False,
         spin_atoms: List[str] = None,
+        aln_atoms: List[str] = None,
+        backbone_atoms: List[str] = None,
         description: str = None,
         comment: str = None,
         reference: str = None
@@ -358,6 +359,13 @@ def create_library(
         name.
     spin_atoms : list
         A list of atom names on which the spin density is localized.
+    aln_atoms: List[str]
+        The three atoms defining the alignment coordinate frame of the target residue. Usually the N-CA-C atoms of
+        the protein backbone or similar for nucleotide backbones.
+    backbone_atoms: List[str]
+        Names of the atoms that correspond to backbone atoms. This includes aln_atoms and any other atoms that may need
+        to be adjusted to fit the target residue backbone, e.g. the hydrogen atoms of carboxyl oxygen atoms. Any atoms
+        not part of the backbone will be considered side chain atoms and may be subject to sampling.
     description : str
         A short (< 60 characters) description of the side chain library being created
     comment : str
@@ -383,8 +391,8 @@ def create_library(
                                                   bonds=bonds,
                                                   use_chain_operators=False)
 
-    if dihedral_atoms is None:
-        dihedral_atoms = guess_mobile_dihedrals(internal_coords)
+    if not dihedral_atoms:
+        dihedral_atoms = guess_mobile_dihedrals(internal_coords, aln_atoms=aln_atoms)
 
     internal_coords.shift_resnum(-(site - 1))
 
@@ -393,6 +401,8 @@ def create_library(
                          'make sure there are no chain breaks in the desired label and that there are no other '
                          'chains in the pdb file. If the error persists, check to be sure all atoms are the correct '
                          'element as chilife uses the elements to determine if atoms are bonded.')
+
+    backbone_atoms, aln_atoms = aln_sanity(internal_coords, resname, backbone_atoms, aln_atoms)
 
     # If multi-state pdb extract dihedrals from pdb
     if dihedrals is None:
@@ -408,8 +418,10 @@ def create_library(
     save_dict = prep_restype_savedict(libname, resname, internal_coords,
                                       weights, dihedrals, dihedral_atoms,
                                       sigmas=sigmas, spin_atoms=spin_atoms,
+                                      aln_atoms=aln_atoms, backbone_atoms=backbone_atoms,
                                       description=description, comment=comment,
                                       reference=reference)
+
     backbone = save_dict['coords'][0, :3]
     ori, mx = local_mx(*backbone)
     save_dict['coords'] = np.einsum('ijk,kl->ijl', save_dict['coords'] - ori, mx)
@@ -428,7 +440,7 @@ def create_dlibrary(
         resname: str = None,
         dihedrals: ArrayLike = None,
         weights: ArrayLike = None,
-        sort_atoms = True,
+        sort_atoms: Union[List[str], Dict, str] = True,
         permanent: bool = False,
         default: bool = False,
         force: bool = False,
@@ -595,6 +607,9 @@ def create_dlibrary(
                          'chains in the pdb file. If the error persists, check to be sure all atoms are the correct '
                          'element as chilife uses the elements to determine if atoms are bonded.')
 
+    backbone1, aln1 = aln_sanity(IC1, resname)
+    backbone2, aln2 = aln_sanity(IC2, resname)
+
     # If multi-state pdb extract rotamers from pdb
     if dihedrals is None:
         dihedrals = []
@@ -606,12 +621,17 @@ def create_dlibrary(
 
     weights /= weights.sum()
     libname = libname + f'ip{increment}'
+
     save_dict_1 = prep_restype_savedict(libname + 'A', resname, IC1,
                                         weights, dihedrals[0], dihedral_atoms[0],
-                                        spin_atoms=spin_atoms, description=description,
+                                        spin_atoms=spin_atoms,
+                                        backbone_atoms=backbone1, aln_atoms=aln1,
+                                        description=description,
                                         comment=comment, reference=reference)
+
     save_dict_2 = prep_restype_savedict(libname + 'B', resname, IC2,
                                         weights, dihedrals[1], dihedral_atoms[1],
+                                        backbone_atoms=backbone2, aln_atoms=aln2,
                                         resi=1 + increment,
                                         spin_atoms=spin_atoms)
 
@@ -706,6 +726,68 @@ def pre_add_library(
     return struct, spin_atoms
 
 
+def aln_sanity(internal_coords, resname, backbone_atoms=None, aln_atoms=None, ):
+    """
+    Sanity check that the alignment coordinates of monofunctional rotamer ensembles and backbone indices are correct.
+
+    Parameters
+    ----------
+    internal_coords : chiLife.MolSysIC
+        Internal coordinates of a rotamer ensemble.
+    backbone_atoms: List[str]
+        Names of the atoms belonging to the backbone rotamer ensemble.
+    aln_atoms: List[str]
+        Names of the atoms to use for alignments.
+    resname : str
+        Name of the residue making up the rotamer ensemble.
+
+    Returns
+    -------
+    backbone_atoms, aln_atoms
+
+    """
+    if backbone_atoms is None and aln_atoms:
+        root_idx = np.argwhere(internal_coords.atom_names == aln_atoms[1]).flat[0]
+        aname_lst = internal_coords.atom_names.tolist()
+        neighbor_idx = [aname_lst.index(a) for a in aln_atoms[::2]]
+        backbone_atoms = get_backbone_atoms(internal_coords.topology.graph, root_idx, neighbor_idx)
+        backbone_atoms = [aname_lst[idx] for idx in backbone_atoms]
+    elif backbone_atoms is None:
+        bb_candidates = get_bb_candidates(internal_coords.atom_names, resname)
+        backbone_atoms = [b for b in bb_candidates if b in internal_coords.atom_names]
+
+        # determine alignment atoms based on where side chain atoms connect to backbone atoms
+        bb_idxs = np.argwhere(np.isin(internal_coords.atom_names, backbone_atoms)).flatten()
+        root_candidates = []
+        aln_candidates = []
+        for bb in bb_idxs:
+            neighbors = [i for i in internal_coords.topology.graph.neighbors(bb) if internal_coords.atom_types[i] !='H']
+            if not all(np.isin(neighbors, bb_idxs)) and len(neighbors) > 1:
+                root_candidates.append(bb)
+                aln_candidates.append([n for n in neighbors if n in bb_idxs] + [bb])
+
+        if len(root_candidates) == 1:
+            aln_atoms = [internal_coords.atom_names[idx] for idx in sorted(aln_candidates[0])]
+        elif len(root_candidates) > 1:
+            raise RuntimeError('There are more than one possible sets of alignment atoms for this residue. These '
+                               'include:\n' +
+                               "\n".join([f'atoms names: {[backbone_atoms[idx] for idx in idxs]}' for idxs in aln_candidates]) +
+                               "\nPlease select one using the `aln_atoms` keyword argument. The alignment atoms should "
+                               "be the backbone atom preceding the first side chain atom and it's two adjacent "
+                               "backbone atoms")
+
+        else:
+            raise RuntimeError('The optimal set of alignment atoms to use for this residue is ambiguous. Please specify'
+                               'explicitly using the `aln_atoms` keyword argument.')
+
+    if backbone_atoms == []:
+        raise RuntimeError('chiLife was unable to find a suitable set of atoms representing the macromolecular '
+                           'backbone. Please ensure your rotamer ensemble uses standard protein or nucleic acid '
+                           'backbone atom names, or specify the alignment atoms manually using the `aln_atoms`'
+                           'keyword argument.')
+
+    return backbone_atoms, aln_atoms
+
 def prep_restype_savedict(
         libname: str,
         resname: str,
@@ -716,12 +798,20 @@ def prep_restype_savedict(
         sigmas: ArrayLike = None,
         resi: int = 1,
         spin_atoms: List[str] = None,
+        aln_atoms: List[str] = None,
+        backbone_atoms: List[str] = None,
         description: str = None,
         comment: str = None,
         reference: str = None
 ) -> Dict:
     """Helper function to add new residue types to chilife
-
+aln_atoms: List[str]
+        The three atoms defining the alignment coordinate frame of the target residue. Usually the N-CA-C atoms of
+        the protein backbone or similar for nucleotide backbones.
+    backbone_atoms: List[str]
+        Names of the atoms that correspond to backbone atoms. This includes aln_atoms and any other atoms that may need
+        to be adjusted to fit the target residue backbone, e.g. the hydrogen atoms of carboxyl oxygen atoms. Any atoms
+        not part of the backbone will be considered side chain atoms and may be subject to sampling.
     Parameters
     ----------
     libname : str
@@ -743,6 +833,13 @@ def prep_restype_savedict(
         The residue number to be stored.
     spin_atoms: List[str]
         A list of atom names corresponding to the atoms where the spin density resides.
+    aln_atoms: List[str]
+        The three atoms defining the alignment coordinate frame of the target residue. Usually the N-CA-C atoms of
+        the protein backbone or similar for nucleotide backbones.
+    backbone_atoms: List[str]
+        Names of the atoms that correspond to backbone atoms. This includes aln_atoms and any other atoms that may need
+        to be adjusted to fit the target residue backbone, e.g. the hydrogen atoms of carboxyl oxygen atoms. Any atoms
+        not part of the backbone will be considered side chain atoms and may be subject to sampling.
     description : str
         A short (< 60 characters) description of the side chain library being created
     comment : str
@@ -773,8 +870,9 @@ def prep_restype_savedict(
 
         raise ValueError(
             f'Coords of rotamer {" ".join((str(idx) for idx in idxs))} at atoms {" ".join((str(idx) for idx in adxs))} '
-            f'cannot be converted to internal coords because there is a chain break in this roatmer. Either enforce '
+            f'cannot be converted to internal coords because there is a chain break in this rotamer. Either enforce '
             f'bonds explicitly by adding CONECT information to the PDB or fix the structure(s)')
+
 
     save_dict = {'rotlib': libname,
                  'resname': resname,
@@ -785,6 +883,8 @@ def prep_restype_savedict(
                  'atom_names': atom_names,
                  'dihedrals': dihedrals,
                  'dihedral_atoms': dihedral_atoms,
+                 'aln_atoms': aln_atoms,
+                 'backbone_atoms': backbone_atoms,
                  'description': description,
                  'comment': comment,
                  'reference': reference}

@@ -22,6 +22,7 @@ from .scoring import get_lj_rep, GAS_CONST
 from .numba_utils import get_sasa as nu_getsasa
 from .alignment_methods import alignment_methods, parse_backbone, local_mx, global_mx
 from .protein_utils import FreeAtom, guess_mobile_dihedrals, get_dihedral, get_angle
+from .pdb_utils import get_bb_candidates, get_backbone_atoms
 from .MolSys import MolSys, MolecularSystemBase
 from .MolSysIC import MolSysIC
 
@@ -103,8 +104,6 @@ class RotamerEnsemble:
        """
 
 
-    backbone_atoms = ["H", "N", "CA", "HA", "C", "O"]
-
     def __init__(self, res, site=None, protein=None, chain=None, rotlib=None, **kwargs):
 
 
@@ -165,9 +164,9 @@ class RotamerEnsemble:
             raise RuntimeError('The kwarg `forcefield` must be a string or ForceField object.')
 
         # Parse important indices
-        self.backbone_idx = np.argwhere(np.isin(self.atom_names, ["N", "CA", "C"]))
+        self.backbone_idx = np.squeeze(np.argwhere(np.isin(self.atom_names, self.aln_atoms)))
         self.side_chain_idx = np.argwhere(
-            np.isin(self.atom_names, RotamerEnsemble.backbone_atoms, invert=True)
+            np.isin(self.atom_names, self.backbone_atoms, invert=True)
         ).flatten()
 
         self._graph = ig.Graph(edges=self.bonds)
@@ -352,6 +351,23 @@ class RotamerEnsemble:
         dihedrals = np.array([ic.get_dihedral(1, ddefs) for ic in ICs])
         sigmas = kwargs.get('sigmas', np.array([]))
 
+        bb_candidates = get_bb_candidates(res.names, resname)
+        aln_atoms = kwargs.get('ln_atoms', [])
+        if not bb_candidates and not aln_atoms:
+            raise RuntimeError('No suitable backbone candidates were found. Please use from_trajectory on residues with'
+                               'standard backbone atom names or specify alignment backbone atoms with the aln_atoms '
+                               'keyword argument.')
+        elif aln_atoms:
+            graph = res.topology.graph
+            root_idx = np.argwhere(res.names == aln_atoms[1]).flat[0]
+            aname_lst = ICs.atom_names.tolist()
+            neighbor_idx = [aname_lst.index(a) for a in aln_atoms[::2]]
+            backbone_atoms = get_backbone_atoms(graph, root_idx, neighbor_idx)
+
+        else:
+            backbone_atoms = [b for b in bb_candidates if b in res.names]
+            aln_atoms = ['N', 'CA', 'C'] if np.all(np.isin(['N', 'CA', 'C'], backbone_atoms)) else ["O4'", "C1'", "C2'"]
+
         lib = {'rotlib': f'{resname}_from_traj',
                'resname': resname,
                'coords': np.atleast_3d(coords),
@@ -361,6 +377,8 @@ class RotamerEnsemble:
                'atom_names': res.names.copy(),
                'dihedral_atoms': ddefs,
                'dihedrals': np.rad2deg(dihedrals),
+               'aln_atoms': aln_atoms,
+               'backbone_atoms': backbone_atoms,
                '_dihedrals': dihedrals.copy(),
                '_rdihedrals': dihedrals,
                'sigmas': sigmas,
@@ -496,12 +514,14 @@ class RotamerEnsemble:
                'atom_names': self.atom_names.copy(),
                'dihedral_atoms': self.dihedral_atoms,
                'dihedrals': self.dihedrals,
+               'aln_atoms': self.aln_atoms,
+               'backbone_atoms': self.backbone_atoms,
                'sigmas': self.sigmas,
                'type': 'chilife rotamer library',
                'description': description,
                'comment': comment,
                'reference': reference,
-               'format_version': 1.3}
+               'format_version': 1.4}
 
         if hasattr(self, 'spin_atoms'):
             lib['spin_atoms'] = self.spin_atoms
@@ -581,15 +601,20 @@ class RotamerEnsemble:
             3x3 array of ordered backbone atom coordinates of new site (N CA C) (Default value = None)
         """
         if site_pos is None:
-            N, CA, C = parse_backbone(self, kind="global")
+            bbs = parse_backbone(self, kind="global")
         else:
-            N, CA, C = site_pos
+            bbs = site_pos
 
-        mx, ori = global_mx(N, CA, C, method=self.alignment_method)
+        if len(bbs) < 3 :
+            raise RuntimeError(f'The residue/rotlib you have selected {self.res}, does not share a compatible backbone '
+                               f'with the residue you are trying to label. Check the site and rotlib and try again.\n'
+                               f'The label backbone atoms: {self.backbone_atoms}')
+
+        mx, ori = global_mx(*bbs, method=self.alignment_method)
 
         # if self.alignment_method not in {'fit', 'rosetta'}:
-        N, CA, C = parse_backbone(self, kind="local")
-        old_ori, ori_mx = local_mx(N, CA, C, method=self.alignment_method)
+        bbs = parse_backbone(self, kind="local")
+        old_ori, ori_mx = local_mx(*bbs, method=self.alignment_method)
         self._coords -= old_ori
         cmx = ori_mx @ mx
 
@@ -659,7 +684,10 @@ class RotamerEnsemble:
     def backbone_to_site(self):
         """Modify backbone atoms to match the site that the RotamerEnsemble is attached to """
         # Keep protein backbone dihedrals for oxygen and hydrogen atoms
-        for atom in ["H", "O"]:
+
+        for atom in self.backbone_atoms:
+
+            if atom in self.aln_atoms: continue  # TODO update test to change this
             mask = self.atom_names == atom
             if any(mask) and self.protein is not None:
 

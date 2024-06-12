@@ -267,6 +267,69 @@ def test_create_library():
 
     os.remove('____rotlib.npz')
 
+def test_create_arb_rotlib():
+    DNA = chilife.fetch('1bna')
+    RNA = chilife.fetch('4tna')
+    chilife.create_library('TUM', 'test_data/TUM.pdb', aln_atoms=['N3', 'C4', 'C5'])
+    RL = chilife.RotamerEnsemble('TUM', 6, RNA)
+
+    # test that RL method works
+    ans = np.load('test_data/4tna_U6TUM.npy')
+    np.testing.assert_almost_equal(RL.coords, ans, decimal=5)
+
+    # test that ORS works
+    np.random.seed(20)
+    RL = chilife.RotamerEnsemble('TUM', 28, RNA, sample=500)
+    ans2 = np.load('test_data/4tna_C28TUM.npy')
+    np.testing.assert_almost_equal(RL.coords, ans2, decimal=5)
+
+    # Test that an error is thrown for incompatible residues
+    with pytest.raises(RuntimeError) as err:
+        chilife.RotamerEnsemble('TUM', 30, protein)
+        errstr = "RuntimeError: The residue/rotlib you have selected TUM, does not share a compatible backbone with the " \
+                 "residue you are trying to label. Check the site and rotlib and try again. \n" \
+                 "The label backbone atoms: ['N3' 'C4' 'C5' 'H3' 'C6' 'H2' 'N1' 'H1' 'C2' 'O2']"
+
+        assert str(err.value) == errstr
+
+    # test that labeling works on DNA.
+    for site in [9, 20]:
+        chilife.RotamerEnsemble('TUM', site, DNA)
+
+    os.remove('TUM_rotlib.npz')
+
+
+def test_create_nuc_rotlib():
+    np.random.seed(10)
+    DNA = chilife.fetch('1bna')
+    chilife.create_library('C2P', 'test_data/C2P.pdb')
+    RL1 = chilife.RotamerEnsemble('C2P', 9, DNA)
+    ans1 = np.load('test_data/dna_label1.npy')
+    os.remove('C2P_rotlib.npz')
+    np.testing.assert_almost_equal(RL1.coords, ans1, decimal=5)
+
+    chilife.create_library('C1U', 'test_data/C1U.pdb')
+    RL2 = chilife.RotamerEnsemble('C1U', 9, DNA)
+    ans2 = np.load('test_data/dna_label2.npy')
+    os.remove('C1U_rotlib.npz')
+    np.testing.assert_almost_equal(RL2.coords, ans2, decimal=5)
+
+
+def test_create_nuc_rotlib2():
+    with pytest.raises(RuntimeError) as err:
+        chilife.create_library('U2P', 'test_data/U2P.pdb')
+        ans = """There are more than one possible sets of alignment atoms for this residue. These include:
+atoms names: ["O4'", "C2'", "C1'"]"""
+        assert str(err.value).startswith(ans)
+
+
+def test_create_no_bb_error():
+    with pytest.raises(RuntimeError):
+        chilife.create_library('TUM', 'test_data/TUM.pdb')
+
+def test_mislabel_macro():
+    pass
+
 
 def test_single_chain_error():
     with pytest.raises(RuntimeError):

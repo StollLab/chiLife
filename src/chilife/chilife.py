@@ -902,7 +902,7 @@ aln_atoms: List[str]
         save_dict.update(spin_atoms)
 
     save_dict['type'] = 'chilife rotamer library'
-    save_dict['format_version'] = 1.2
+    save_dict['format_version'] = 1.4
 
     return save_dict
 

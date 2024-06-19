@@ -241,9 +241,11 @@ def guess_mobile_dihedrals(ICs, aln_atoms=None):
         root_idx = np.argwhere(ICs.atom_names == aln_atoms[1]).flat[0]
         aname_lst = ICs.atom_names.tolist()
         neighbor_idx = [aname_lst.index(a) for a in aln_atoms[::2]]
-        bb_atoms = get_backbone_atoms(ICs.topology.graph, root_idx, neighbor_idx)
+        aln_idx = [neighbor_idx[0], root_idx, neighbor_idx[1]]
+        bb_atoms = aln_idx + get_backbone_atoms(ICs.topology.graph, root_idx, neighbor_idx, sorted_args=aln_idx)
         bb_atoms = [ICs.atom_names[i] for i in bb_atoms]
         bb_atoms += [ICs.atom_names[i] for i in ICs.topology.graph.neighbors(root_idx) if i not in neighbor_idx]
+
     else:
         bb_atoms = get_bb_candidates(ICs.atom_names, ICs.resnames[0])
         bb_atoms = [atom for atom in bb_atoms if atom in ICs.atom_names]
@@ -279,7 +281,6 @@ def guess_mobile_dihedrals(ICs, aln_atoms=None):
 
     idxs = _idxs
     dihedral_defs = [ICs.z_matrix_names[idx][::-1] for idx in idxs]
-
     return dihedral_defs
 
 

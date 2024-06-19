@@ -251,8 +251,6 @@ def parse_backbone(rotamer_ensemble, kind):
         ).positions
 
 
-
-
 def local_mx(*p, method: Union[str, callable] = "bisect") -> Tuple[ArrayLike, ArrayLike]:
     """Calculates a translation vector and rotation matrix to transform a set of coordinates from the global
     coordinate frame to a local coordinate frame defined by ``p`` , using the specified method.

@@ -288,6 +288,13 @@ def test_guess_mobile_dihedrals():
 
     np.testing.assert_equal(mbd, ans)
 
+
+def test_get_site_volume():
+    vols = [chilife.get_site_volume(site, ubq) for site in ubq.residues.resnums]
+    ans = np.load('test_data/test_get_site_volume.npy')
+    np.testing.assert_almost_equal(vols, ans)
+
+
 # def test_preferred_dihedrals():
 #     dih = [['N', 'CA', 'CB', 'CB2'],
 #            ['CA', 'CB', 'CB2', 'CG'],

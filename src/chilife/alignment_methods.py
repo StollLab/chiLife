@@ -232,7 +232,7 @@ def parse_backbone(rotamer_ensemble, kind):
     method = rotamer_ensemble.alignment_method
     aln_atoms = " ".join(rotamer_ensemble.aln_atoms)
     if method.__name__ == "fit_alignment":
-        N1, CA1, C1 = rotamer_ensemble.backbone
+        N1, CA1, C1 = rotamer_ensemble.aln
         N2, CA2, C2 = rotamer_ensemble.protein.select_atoms(
             f"segid {rotamer_ensemble.chain} and "
             f"resnum {rotamer_ensemble.site} "
@@ -241,7 +241,7 @@ def parse_backbone(rotamer_ensemble, kind):
         return np.array([[N1, N2], [CA1, CA2], [C1, C2]])
 
     elif kind == "local":
-        return rotamer_ensemble.backbone
+        return rotamer_ensemble.aln
 
     elif kind == "global":
         return rotamer_ensemble.protein.select_atoms(

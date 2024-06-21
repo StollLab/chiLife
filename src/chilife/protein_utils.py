@@ -888,8 +888,10 @@ def write_grid(grid, name='grid.pdb', atype='Se'):
 
 def get_site_volume(site: int,
                     mol: Union[MDAnalysis.Universe, MDAnalysis.AtomGroup, MolecularSystemBase],
-                    grid_size: Union[float, ArrayLike] = 10.0,
-                    offset: Union[float, ArrayLike] = -2,
+                    grid_size: Union[float, ArrayLike] = 10,
+                    offset: Union[float, ArrayLike] = -0.5,
+                    spacing: float = 1.0,
+                    vdw_r = 2.8,
                     write: str = False,
                     return_grid: bool = False
                     ) -> Union[float, ArrayLike]:
@@ -912,6 +914,10 @@ def get_site_volume(site: int,
         The offset of the initial grid with respect to the superimposition site. If ``offset`` is a float, the grid will
         be offset in the z-dimension (along the CA-CB bond). If ``offset`` is an array, the grid will be offset in
         each x, y, z dimension by the corresponding value of the array. Uses units of Angstroms
+    spacing : float
+        Spacing between grid points. Defaults to 1.0 Angstrom
+    vdw_r : float
+        van der Waals radius for clash detection. Defaults to 2.8 Angstroms.
     write : bool, str, default False
         Switch to make chiLife write the grid to a PDB file. If ``True`` the grid will be written to grid.pdb.
         If given a string chiLife will use the string as the file name.
@@ -927,11 +933,9 @@ def get_site_volume(site: int,
         of the site in cubic angstroms (Å :sup:`3`).
     """
 
-    vdw_r = 2.5
-
     if isinstance(grid_size, (int, float, complex)):
         x = y = z = grid_size
-    elif isinstance(grid_size, ArrayLike):
+    elif hasattr(grid_size, '__len__'):
         x, y, z = grid_size
     else:
         raise RuntimeError("grid_size must be a float or an array like object with 3 elements.")
@@ -942,13 +946,17 @@ def get_site_volume(site: int,
     if isinstance(offset, (int, float, complex)):
         xo, yo = 0, 0
         zo = offset
-    elif isinstance(offset, ArrayLike):
+    elif hasattr(offset, '__len__'):
         xo, yo, zo = offset
     else:
         raise RuntimeError("offset must be a float or an array like object with 3 elements.")
 
+    xp = x / spacing
+    yp = y / spacing
+    zp = z / spacing
+
     # Create grid
-    grid = np.mgrid[-half_x + xo:half_x + xo:x * 1j, -half_y + yo:half_y + yo:y * 1j, zo :z+zo:z * 1j].swapaxes(0, -1)
+    grid = np.mgrid[-half_x + xo:half_x + xo:xp * 1j, -half_y + yo:half_y + yo:yp * 1j, zo :z+zo:zp * 1j].swapaxes(0, -1)
     xl, yl, zl, _ = grid.shape
     grid = grid.reshape(-1, 3)
 
@@ -966,23 +974,24 @@ def get_site_volume(site: int,
     sel = mol.select_atoms(f'protein and not resid {site}')
     d = cdist(grid_tsf, sel.positions)
     mask = d < vdw_r
+    mask2 = ~np.all(d > 5, axis=-1)
 
     # Remove clashing grid points
-    mask = (~mask).prod(axis=-1)
+    mask = (~mask).prod(axis=-1) * mask2
     idxs = np.argwhere(mask).flatten()
     grid_tsf = grid_tsf[idxs]
 
     # check for discontinuities
     tree = cKDTree(grid_tsf)
-    neighbors = tree.query_pairs(1.5)
+    neighbors = tree.query_pairs(np.sqrt(2 * spacing) * 1.2)
     root_idx = np.argmin(np.linalg.norm(grid_tsf - CA, axis=-1))
     graph = ig.Graph(neighbors)
-    for g in graph.connected_components():
-        if root_idx in g:
-            break
 
     # Use only points continuous with root_idx
-    grid_tsf = grid_tsf[g]
+    for g in graph.connected_components():
+        if root_idx in g:
+            grid_tsf = grid_tsf[g]
+            break
 
     # process output
     if write:
@@ -992,4 +1001,4 @@ def get_site_volume(site: int,
     if return_grid:
         return grid_tsf
     else:
-        return len(grid_tsf)
+        return len(grid_tsf) * spacing**3

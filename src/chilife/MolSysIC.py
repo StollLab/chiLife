@@ -144,7 +144,7 @@ class MolSysIC:
         kwargs : dict
             Additional keyword arguments.
 
-            ignore:water : bool
+            ignore_water : bool
                 Ignore atoms that belong to water molecules.
             use_chain_operators : bool
                 Allow for the use of a translation and rotation vectors to orient cains that are not covalently linked.

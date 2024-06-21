@@ -1,0 +1,113 @@
+HETATM    1  C08 NCA     0      93.057 122.266  93.414  0.00  0.00           C  
+HETATM    2  O03 NCA     0      92.115 125.234  90.483  0.00  0.00           O  
+HETATM    3  N01 NCA     0      92.361 120.437  94.954  0.00  0.00           N  
+HETATM    4  H03 NCA     0      92.813 117.965  95.716  0.00  0.00           H  
+HETATM    5  H04 NCA     0      94.367 120.223  94.365  0.00  0.00           H  
+HETATM    6  C01 NCA     0      93.747 118.478  95.484  0.00  0.00           C  
+HETATM    7  H07 NCA     0      89.922 120.999  93.929  0.00  0.00           H  
+HETATM    8  H01 NCA     0      93.212 119.174  93.507  0.00  0.00           H  
+HETATM    9  C02 NCA     0      93.474 119.606  94.472  0.00  0.00           C  
+HETATM   10  H05 NCA     0      91.890 120.324  95.841  0.00  0.00           H  
+HETATM   11  C05 NCA     0      90.404 122.601  92.553  0.00  0.00           C  
+HETATM   12  N04 NCA     0      91.100 124.429  91.013  0.00  0.00           N  
+HETATM   13  N02 NCA     0      94.476 122.162  93.827  0.00  0.00           N  
+HETATM   14  S01 NCA     0      94.929 117.293  94.769  0.00  0.00           S  
+HETATM   15  O02 NCA     0      89.778 124.596  90.585  0.00  0.00           O  
+HETATM   16  C04 NCA     0      91.422 123.408  92.021  0.00  0.00           C  
+HETATM   17  N03 NCA     0      94.219 123.715  92.444  0.00  0.00           N  
+HETATM   18  H08 NCA     0      89.375 122.731  92.219  0.00  0.00           H  
+HETATM   19  C07 NCA     0      92.039 121.458  93.946  0.00  0.00           C  
+HETATM   20  H02 NCA     0      94.164 118.902  96.398  0.00  0.00           H  
+HETATM   21  C03 NCA     0      92.749 123.241  92.451  0.00  0.00           C  
+HETATM   22  O01 NCA     0      95.220 123.231  93.304  0.00  0.00           O  
+HETATM   23  C06 NCA     0      90.712 121.625  93.516  0.00  0.00           C  
+HETATM   24  P   NCA     0      99.900 119.123  95.200  0.00  0.00           P  
+HETATM   25  O1P NCA     0      99.394 119.074  93.810  0.00  0.00           O  
+HETATM   26  O2P NCA     0     101.430 119.623  95.187  0.00  0.00           O  
+HETATM   27  O5' NCA     0      99.013 120.158  96.049  0.00  0.00           O  
+HETATM   28  C5' NCA     0      97.676 119.647  96.140  0.00  0.00           C  
+HETATM   29  C4' NCA     0      97.745 118.289  96.815  0.00  0.00           C  
+HETATM   30  O4' NCA     0      96.492 117.652  97.056  0.00  0.00           O  
+HETATM   31  C3' NCA     0      98.456 117.304  95.852  0.00  0.00           C  
+HETATM   32  O3' NCA     0      99.829 117.642  95.841  0.00  0.00           O  
+HETATM   33  C2' NCA     0      98.112 115.953  96.503  0.00  0.00           C  
+HETATM   34  O2' NCA     0      99.150 115.546  97.397  0.00  0.00           O  
+HETATM   35  C1' NCA     0      96.800 116.254  97.265  0.00  0.00           C  
+HETATM   36  N9  NCA     0      95.716 115.420  96.740  0.00  0.00           N  
+HETATM   37  C8  NCA     0      94.878 115.739  95.715  0.00  0.00           C  
+HETATM   38  N7  NCA     0      94.033 114.769  95.512  0.00  0.00           N  
+HETATM   39  C5  NCA     0      94.281 113.766  96.390  0.00  0.00           C  
+HETATM   40  C6  NCA     0      93.703 112.510  96.642  0.00  0.00           C  
+HETATM   41  N6  NCA     0      92.635 112.057  95.887  0.00  0.00           N  
+HETATM   42  N1  NCA     0      94.211 111.766  97.618  0.00  0.00           N  
+HETATM   43  C2  NCA     0      95.230 112.189  98.341  0.00  0.00           C  
+HETATM   44  N3  NCA     0      95.799 113.360  98.145  0.00  0.00           N  
+HETATM   45  C4  NCA     0      95.358 114.174  97.190  0.00  0.00           C  
+HETATM   46 HOP2 NCA     0     101.434 120.498  94.776  0.00  0.00           H  
+HETATM   47 H5'1 NCA     0      97.252 119.540  95.140  0.00  0.00           H  
+HETATM   48 H5'2 NCA     0      97.061 120.324  96.732  0.00  0.00           H  
+HETATM   49  H4' NCA     0      98.305 118.369  97.746  0.00  0.00           H  
+HETATM   50  H3' NCA     0      98.033 117.381  94.851  0.00  0.00           H  
+HETATM   51  H2' NCA     0      97.943 115.192  95.740  0.00  0.00           H  
+HETATM   52 HO2' NCA     0      98.880 114.698  97.772  0.00  0.00           H  
+HETATM   53  H1' NCA     0      96.936 116.059  98.329  0.00  0.00           H  
+HETATM   54 HN61 NCA     0      92.248 111.187  96.069  0.00  0.00           H  
+HETATM   55 HN62 NCA     0      92.270 112.612  95.180  0.00  0.00           H  
+HETATM   56  H2  NCA     0      95.612 111.552  99.124  0.00  0.00           H  
+CONECT    1   13   21   19
+CONECT    2   12
+CONECT    3   10   19    9
+CONECT    4    6
+CONECT    5    9
+CONECT    6    4    9   20   14
+CONECT    7   23
+CONECT    8    9
+CONECT    9    6    3    5    8
+CONECT   10    3
+CONECT   11   18   23   16
+CONECT   12    2   15   16
+CONECT   13    1   22
+CONECT   14    6   37
+CONECT   15   12
+CONECT   16   11   12   21
+CONECT   17   21   22
+CONECT   18   11
+CONECT   19    3    1   23
+CONECT   20    6
+CONECT   21    1   16   17
+CONECT   22   13   17
+CONECT   23   11   19    7
+CONECT   24   25   26   27   32
+CONECT   25   24
+CONECT   26   24   46
+CONECT   27   24   28
+CONECT   28   27   29   47   48
+CONECT   29   28   30   31   49
+CONECT   30   29   35
+CONECT   31   29   32   33   50
+CONECT   32   24   31
+CONECT   33   31   34   35   51
+CONECT   34   33   52
+CONECT   35   30   33   36   53
+CONECT   36   35   37   45
+CONECT   37   36   14   38
+CONECT   38   37   39
+CONECT   39   38   40   45
+CONECT   40   39   41   42
+CONECT   41   40   54   55
+CONECT   42   40   43
+CONECT   43   42   44   56
+CONECT   44   43   45
+CONECT   45   36   39   44
+CONECT   46   26
+CONECT   47   28
+CONECT   48   28
+CONECT   49   29
+CONECT   50   31
+CONECT   51   33
+CONECT   52   34
+CONECT   53   35
+CONECT   54   41
+CONECT   55   41
+CONECT   56   43
+END

@@ -279,7 +279,7 @@ def test_create_arb_rotlib():
 
     # test that ORS works
     np.random.seed(20)
-    RL = chilife.RotamerEnsemble('TUM', 28, RNA, sample=500)
+    RL = chilife.RotamerEnsemble('TUM', 28, RNA, sample = 500)
     ans2 = np.load('test_data/4tna_C28TUM.npy')
     np.testing.assert_almost_equal(RL.coords, ans2, decimal=5)
 

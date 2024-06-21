@@ -274,7 +274,7 @@ def test_dihedral_setter_no_protein():
     sorted_idxs = np.argsort(R1M.weights)[::-1]
 
     # Assert that the backbone does not move when
-    np.testing.assert_allclose(R1M.backbone, R1M2.backbone)
+    np.testing.assert_allclose(R1M.aln, R1M2.aln)
     ic = R1M.internal_coords
     ic_angles = np.rad2deg([ic.get_dihedral(1, ['N', 'CA', 'CB', 'SG']) for ts in ic.trajectory])
     assert np.max(np.abs((ic_angles - R1M.dihedrals[:, 0])) % 360) < 1e-6
@@ -424,7 +424,7 @@ def test_from_traj_guess_dihedrals():
 def test_from_traj_mobile_bb():
     U = chilife.load_protein('test_data/traj_io.pdb', 'test_data/traj_io.xtc')
     RL1 = chilife.RotamerEnsemble.from_trajectory(U, 2, chain='A')
-    test = np.squeeze(RL1.coords[:, RL1.backbone_idx])
+    test = np.squeeze(RL1.coords[:, RL1.aln_idx])
     ans = np.load('test_data/from_traj_mobile_bb.npy')
     np.testing.assert_almost_equal(test, ans)
 
@@ -433,8 +433,8 @@ def test_intra_fit():
     U = chilife.load_protein('test_data/traj_io.pdb', 'test_data/traj_io.xtc')
     RL1 = chilife.RotamerEnsemble.from_trajectory(U, 2, chain='A')
     RL1.intra_fit()
-    bbs = np.squeeze(RL1.coords[:, RL1.backbone_idx])
-    bbref = RL1.backbone
+    bbs = np.squeeze(RL1.coords[:, RL1.aln_idx])
+    bbref = RL1.aln
 
     assert np.all(np.linalg.norm(bbs - bbref, axis=(1, 2)) < 0.2)
 

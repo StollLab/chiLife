@@ -45,8 +45,8 @@ with open(DATA_DIR / 'BondDefs.pkl', 'rb') as f:
 atom_order = {"N": 0, "CA": 1, "C": 2, "O": 3, 'H': 5}
 
 nataa_codes = {'ALA': 'A', 'CYS': 'C', 'ASP': 'D', 'GLU': 'E', 'PHE': 'F', 'GLY': 'G', 'HIS': 'H', 'ILE': 'I',
-               'LYS': 'K', 'LEU': 'L', 'MET': 'M', 'ASN': 'N', 'PRO': 'P', 'GLN': 'Q', 'ARG': 'R', 'SER': 'S',
-               'THR': 'T', 'VAL': 'V', 'TRP': 'W', 'TYR': 'Y'}
+               'LYS': 'K', 'LEU': 'L', 'MET': 'M', 'MSE': 'M', 'ASN': 'N', 'PRO': 'P', 'GLN': 'Q', 'ARG': 'R',
+               'SER': 'S', 'THR': 'T', 'VAL': 'V', 'TRP': 'W', 'TYR': 'Y', 'CME': 'C'}
 
 natnu_codes = {'A', 'C', 'G', 'I', 'U', 'DA', 'DC', 'DG', 'DI', 'DT', 'DU'}
 
@@ -55,7 +55,7 @@ mm_backbones = {'aa': ['N', 'CA', 'C', 'O'],
                 'ACE': ['C', 'O', 'CH3']}
 
 
-inataa = {val: key for key, val in nataa_codes.items()}
+inataa = {val: key for key, val in nataa_codes.items() if key not in ('CME', 'MSE')}
 
 nataa_codes.update(inataa)
 del inataa

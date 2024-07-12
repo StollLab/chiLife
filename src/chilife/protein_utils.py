@@ -979,6 +979,9 @@ def get_site_volume(site: int,
     # Remove clashing grid points
     mask = (~mask).prod(axis=-1) * mask2
     idxs = np.argwhere(mask).flatten()
+    if len(idxs) == 0:
+        return 0
+
     grid_tsf = grid_tsf[idxs]
 
     # check for discontinuities

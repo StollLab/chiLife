@@ -502,6 +502,7 @@ rmin_charmm = {
     'Ni': 1.2760,
     'Zn': 1.0900,  # ion
     'Gd': 1.5050,  # ion 3+
+    'Au': 0.6510,
     "join_protocol": join_arith,
 }  # Bromobenzene from Gutiérrez et al. 2016
 
@@ -526,6 +527,7 @@ eps_charmm = {
     'Ni': -5.65,
     'Zn': -0.250,
     'Gd': -0.1723,
+    'Au': -0.1330,
     "join_protocol": join_geom,
 }  # Bromobenzene from Gutiérrez et al. 2016
 

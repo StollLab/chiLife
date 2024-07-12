@@ -588,14 +588,20 @@ lj_params = {"uff": [rmin_uff, eps_uff], "charmm": [rmin_charmm, eps_charmm]}
 
 class ForceField:
 
-    def __init__(self, forcefield: str = 'charmm'):
+    def __init__(self, forcefield: Union[str, dict] = 'charmm', extra_params: dict = None):
 
-        if forcefield not in lj_params:
+        if isinstance(forcefield, dict):
+            self._rmin_func, self._eps_func = forcefield['rmin'], forcefield['eps']
+        elif forcefield not in lj_params:
             raise RuntimeError(f'`{forcefield}` is not a recognized forcefield.')
+        else:
+            self.name = forcefield
+            self._rmin_func, self._eps_func = lj_params[forcefield]
 
-        self.name = forcefield
+        if extra_params is not None:
+            self._rmin_func.update(extra_params['rmin'])
+            self._eps_func.update(extra_params['eps'])
 
-        self._rmin_func, self._eps_func = lj_params[forcefield]
         self.get_lj_rmin = np.vectorize(self._rmin_func.__getitem__)
         self.get_lj_eps = np.vectorize(self._eps_func.__getitem__)
 

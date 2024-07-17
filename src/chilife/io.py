@@ -144,6 +144,7 @@ def get_possible_rotlibs(rotlib: str,
 
     # rotlib lists need to be sorted to prevent position mismatches for results with tests.
     if isinstance(rotlib, list):
+        rotlib = list(set(rotlib))
         rotlib = [rot for rot in rotlib if str(rot).endswith(extension)]
         rotlib = sorted(rotlib)
     else:

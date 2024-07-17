@@ -374,7 +374,7 @@ def create_library(
         Any relevant citations associated with the rotamer library.
     """
     resname = libname[:3] if resname is None else resname
-    struct, spin_atoms = pre_add_library(pdb, spin_atoms)
+    struct, spin_atoms = pre_add_library(pdb, spin_atoms, aln_atoms=aln_atoms)
     resi_selection = struct.select_atoms(f"resnum {site}")
     bonds = resi_selection.intra_bonds.indices
 
@@ -659,7 +659,8 @@ def pre_add_library(
         pdb: str,
         spin_atoms: List[str],
         uniform_topology: bool = True,
-        sort_atoms = True,
+        sort_atoms: bool = True,
+        aln_atoms: List[str] = None,
 ) -> Tuple[mda.Universe, Dict]:
     """Helper function to sort PDBs, save spin atoms, update lists, etc. when adding a SpinLabel or dSpinLabel.
 
@@ -672,6 +673,11 @@ def pre_add_library(
     uniform_topology : bool
         Assume all rotamers of the library have the same topology (i.e. no differences in atom bonding). If false
         chilife will attempt to find the minimal topology shared between all rotamers for defining internal coordinates.
+    sort_atoms : bool
+        Switch to turn off atom sorting. Only set to true if you know what you are doing.
+    aln_atoms : List[str]
+        Atoms intended for rotamer ensemble alignment. This will affect sorting if using non-standard alignment atoms.
+        Should only be used internally.
 
     Returns
     -------
@@ -683,7 +689,7 @@ def pre_add_library(
     """
     if sort_atoms:
         # Sort the PDB for optimal dihedral definitions
-        pdb_lines, bonds = sort_pdb(pdb, uniform_topology=uniform_topology, return_bonds=True)
+        pdb_lines, bonds = sort_pdb(pdb, uniform_topology=uniform_topology, return_bonds=True, aln_atoms=aln_atoms)
         bonds = get_min_topol(pdb_lines, forced_bonds=bonds)
 
         # Write a temporary file with the sorted atoms
@@ -765,6 +771,8 @@ def aln_sanity(internal_coords, resname, backbone_atoms=None, aln_atoms=None, ):
             if not all(np.isin(neighbors, bb_idxs)) and len(neighbors) > 1:
                 root_candidates.append(bb)
                 aln_candidates.append([n for n in neighbors if n in bb_idxs] + [bb])
+
+        aln_candidates = [cdt for cdt in aln_candidates if len(cdt) == 3]
 
         if len(root_candidates) == 1:
             aln_atoms = [internal_coords.atom_names[idx] for idx in sorted(aln_candidates[0])]
@@ -902,7 +910,7 @@ aln_atoms: List[str]
         save_dict.update(spin_atoms)
 
     save_dict['type'] = 'chilife rotamer library'
-    save_dict['format_version'] = 1.2
+    save_dict['format_version'] = max(io.rotlib_formats.keys())
 
     return save_dict
 

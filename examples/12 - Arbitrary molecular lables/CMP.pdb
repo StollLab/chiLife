@@ -1,0 +1,69 @@
+HETATM    1  P   CMP     0      99.900 119.123  95.200  0.00  0.00           P  
+HETATM    2  O1P CMP     0      99.394 119.074  93.810  0.00  0.00           O  
+HETATM    3  O2P CMP     0     101.430 119.623  95.187  0.00  0.00           O  
+HETATM    4  O5' CMP     0      99.013 120.158  96.049  0.00  0.00           O  
+HETATM    5  C5' CMP     0      97.676 119.647  96.140  0.00  0.00           C  
+HETATM    6  C4' CMP     0      97.745 118.289  96.815  0.00  0.00           C  
+HETATM    7  O4' CMP     0      96.492 117.652  97.056  0.00  0.00           O  
+HETATM    8  C3' CMP     0      98.456 117.304  95.852  0.00  0.00           C  
+HETATM    9  O3' CMP     0      99.829 117.642  95.841  0.00  0.00           O  
+HETATM   10  C2' CMP     0      98.112 115.953  96.503  0.00  0.00           C  
+HETATM   11  O2' CMP     0      99.150 115.546  97.397  0.00  0.00           O  
+HETATM   12  C1' CMP     0      96.800 116.254  97.265  0.00  0.00           C  
+HETATM   13  N9  CMP     0      95.716 115.420  96.740  0.00  0.00           N  
+HETATM   14  C8  CMP     0      94.878 115.739  95.715  0.00  0.00           C  
+HETATM   15  N7  CMP     0      94.033 114.769  95.512  0.00  0.00           N  
+HETATM   16  C5  CMP     0      94.281 113.766  96.390  0.00  0.00           C  
+HETATM   17  C6  CMP     0      93.703 112.510  96.642  0.00  0.00           C  
+HETATM   18  N6  CMP     0      92.635 112.057  95.887  0.00  0.00           N  
+HETATM   19  N1  CMP     0      94.211 111.766  97.618  0.00  0.00           N  
+HETATM   20  C2  CMP     0      95.230 112.189  98.341  0.00  0.00           C  
+HETATM   21  N3  CMP     0      95.799 113.360  98.145  0.00  0.00           N  
+HETATM   22  C4  CMP     0      95.358 114.174  97.190  0.00  0.00           C  
+HETATM   23 HOP2 CMP     0     101.434 120.498  94.776  0.00  0.00           H  
+HETATM   24 H5'1 CMP     0      97.252 119.540  95.140  0.00  0.00           H  
+HETATM   25 H5'2 CMP     0      97.061 120.324  96.732  0.00  0.00           H  
+HETATM   26  H4' CMP     0      98.305 118.369  97.746  0.00  0.00           H  
+HETATM   27  H3' CMP     0      98.033 117.381  94.851  0.00  0.00           H  
+HETATM   28  H2' CMP     0      97.943 115.192  95.740  0.00  0.00           H  
+HETATM   29 HO2' CMP     0      98.880 114.698  97.772  0.00  0.00           H  
+HETATM   30  H1' CMP     0      96.936 116.059  98.329  0.00  0.00           H  
+HETATM   31  H8  CMP     0      94.908 116.661  95.154  0.00  0.00           H  
+HETATM   32 HN61 CMP     0      92.248 111.187  96.069  0.00  0.00           H  
+HETATM   33 HN62 CMP     0      92.270 112.612  95.180  0.00  0.00           H  
+HETATM   34  H2  CMP     0      95.612 111.552  99.124  0.00  0.00           H  
+CONECT    1    2    3    4    9
+CONECT    2    1
+CONECT    3    1   23
+CONECT    4    1    5
+CONECT    5    4    6   24   25
+CONECT    6    5    7    8   26
+CONECT    7    6   12
+CONECT    8    6    9   10   27
+CONECT    9    1    8
+CONECT   10    8   11   12   28
+CONECT   11   10   29
+CONECT   12    7   10   13   30
+CONECT   13   12   14   22
+CONECT   14   13   15   31
+CONECT   15   14   16
+CONECT   16   15   17   22
+CONECT   17   16   18   19
+CONECT   18   17   32   33
+CONECT   19   17   20
+CONECT   20   19   21   34
+CONECT   21   20   22
+CONECT   22   13   16   21
+CONECT   23    3
+CONECT   24    5
+CONECT   25    5
+CONECT   26    6
+CONECT   27    8
+CONECT   28   10
+CONECT   29   11
+CONECT   30   12
+CONECT   31   14
+CONECT   32   18
+CONECT   33   18
+CONECT   34   20
+END

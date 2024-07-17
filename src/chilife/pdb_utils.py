@@ -232,7 +232,7 @@ def sort_residue(coords, atypes, anames, resname, presort_bonds, start, aln_atom
 
     # let downstream functions decided backbone
     if use_aln:
-        sorted_args = []
+        sorted_args = [np.argwhere(anames == a).flat[0] for a in aln_atoms]
         root_idx = np.argwhere(anames == aln_atoms[1]).flat[0]
 
     # Otherwise attempt to find canonical backbone definitions
@@ -408,7 +408,7 @@ def get_backbone_atoms(graph, root_idx, neighbor_idx, **kwargs):
         bbidx_slices[k1] = bblist_order[k1], bblist_order[k2]
         k1 = k2
     a, b = neighbor_idx
-    return backbone_vs[slice(*bbidx_slices[a])] + [root_idx] + backbone_vs[slice(*bbidx_slices[b])]
+    return backbone_vs[slice(*bbidx_slices[b])] + backbone_vs[slice(*bbidx_slices[a])]
 
 def atom_sort_key(pdb_line: str) -> Tuple[str, int, int]:
     """Assign a base rank to sort atoms of a pdb.

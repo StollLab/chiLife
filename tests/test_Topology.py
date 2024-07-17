@@ -64,19 +64,22 @@ def test_construction():
 
 
 def test_get_z_matrix():
-    mbp_bonds = xl.guess_bonds(mbp.atoms.positions, mbp.atoms.names)
+    mbp_bonds = xl.guess_bonds(mbp.atoms.positions, mbp.atoms.types)
     top = Topology(mbp, mbp_bonds)
 
     test_idxs = top.get_zmatrix_dihedrals()
-    ans_idxs = np.load('test_data/top_idxs.npy', allow_pickle=True)
+
+    with open('test_data/top_idxs.pkl', 'rb') as f:
+        ans_idxs = pickle.load(f)
 
     for a, b in zip(test_idxs, ans_idxs):
         np.testing.assert_equal(a, b)
 
 
 def test_dihedrals_by_atom():
-    mbp_bonds = xl.guess_bonds(mbp.atoms.positions, mbp.atoms.names)
+    mbp_bonds = xl.guess_bonds(mbp.atoms.positions, mbp.atoms.types)
     top = Topology(mbp, mbp_bonds)
+
 
     with open('test_data/mbp_dihedrals.pkl', 'rb') as f:
         ans = pickle.load(f)

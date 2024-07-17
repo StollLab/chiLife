@@ -3,6 +3,8 @@ import pickle, math, rtoml
 from pathlib import Path
 from typing import Set, List, Union, Tuple
 from numpy.typing import ArrayLike
+from scipy.spatial.distance import cdist
+from scipy.spatial import cKDTree
 from dataclasses import dataclass
 
 import MDAnalysis
@@ -16,6 +18,7 @@ from .MolSys import MolecularSystemBase, MolSys
 from .numba_utils import get_sasa
 from .pdb_utils import get_backbone_atoms, get_bb_candidates
 import chilife.scoring as scoring
+import chilife.io as io
 import chilife.RotamerEnsemble as re
 import chilife.dRotamerEnsemble as dre
 
@@ -241,9 +244,11 @@ def guess_mobile_dihedrals(ICs, aln_atoms=None):
         root_idx = np.argwhere(ICs.atom_names == aln_atoms[1]).flat[0]
         aname_lst = ICs.atom_names.tolist()
         neighbor_idx = [aname_lst.index(a) for a in aln_atoms[::2]]
-        bb_atoms = get_backbone_atoms(ICs.topology.graph, root_idx, neighbor_idx)
+        aln_idx = [neighbor_idx[0], root_idx, neighbor_idx[1]]
+        bb_atoms = aln_idx + get_backbone_atoms(ICs.topology.graph, root_idx, neighbor_idx, sorted_args=aln_idx)
         bb_atoms = [ICs.atom_names[i] for i in bb_atoms]
         bb_atoms += [ICs.atom_names[i] for i in ICs.topology.graph.neighbors(root_idx) if i not in neighbor_idx]
+
     else:
         bb_atoms = get_bb_candidates(ICs.atom_names, ICs.resnames[0])
         bb_atoms = [atom for atom in bb_atoms if atom in ICs.atom_names]
@@ -279,7 +284,6 @@ def guess_mobile_dihedrals(ICs, aln_atoms=None):
 
     idxs = _idxs
     dihedral_defs = [ICs.z_matrix_names[idx][::-1] for idx in idxs]
-
     return dihedral_defs
 
 
@@ -815,3 +819,186 @@ def make_mda_uni(anames: ArrayLike,
     return mda_uni
 
 
+def get_grid_mx(N, CA, C):
+    """
+    Get the rotation matrix and translation vector to orient a grid of lennard-jones spheres into a new coordinate
+    frame. It is expected that the grid is defined as it is in :func:`screen_site_volume`, i.e. the xy plane of the grid
+    is centered at the origin and the z-axis is positive.
+
+    Parameters
+    ----------
+    N : np.ndarray
+        First coordinate of the site.
+    CA : np.ndarray
+        Second coordinate of the site (The origin).
+    C : np.ndarray
+        Third coordinate of the site.
+
+    Returns
+    -------
+    rotation matrix: np.ndarray
+        Rotation matrix for the grid. Should be applied before translation.
+    origin : np.ndarray
+        Translation vector for the grid. Should be applied after rotation.
+    """
+
+    CA_N = N - CA
+    CA_N /= np.linalg.norm(CA_N)
+
+    CA_C = C - CA
+    CA_C /= np.linalg.norm(CA_C)
+
+    dummy_axis = CA_N + CA_C
+    dummy_axis = dummy_axis / np.linalg.norm(dummy_axis)
+
+    # Define new y-axis
+    xaxis_plane = N - C
+    dummy_comp = xaxis_plane.dot(dummy_axis)
+    xaxis = xaxis_plane - dummy_comp * dummy_axis
+    xaxis = xaxis / np.linalg.norm(xaxis)
+
+    theta = np.deg2rad(35.25)
+    mx = get_dihedral_rotation_matrix(theta, xaxis)
+    yaxis = mx @ dummy_axis
+
+    zaxis = np.cross(xaxis, yaxis)
+    rotation_matrix = np.array([xaxis, yaxis, zaxis])
+    origin = CA
+    return rotation_matrix, origin
+
+
+def write_grid(grid, name='grid.pdb', atype='Se'):
+    """
+    Given an array of 3-dimensional points (a grid usually), write a PDB so the grid can be visualized.
+
+
+    Parameters
+    ----------
+    grid : ArrayLike
+        The 3D points to write
+
+    name: str
+        The name of the file to write the grid to.
+    """
+
+    with open(name, 'w') as f:
+        for i, p in enumerate(grid):
+            f.write(io.fmt_str.format(i+1, 'SEN', 'GRD', 'A', 1, *p, 1.0, 1.0, atype))
+
+
+def get_site_volume(site: int,
+                    mol: Union[MDAnalysis.Universe, MDAnalysis.AtomGroup, MolecularSystemBase],
+                    grid_size: Union[float, ArrayLike] = 10,
+                    offset: Union[float, ArrayLike] = -0.5,
+                    spacing: float = 1.0,
+                    vdw_r = 2.8,
+                    write: str = False,
+                    return_grid: bool = False
+                    ) -> Union[float, ArrayLike]:
+    """
+    Calculate the (approximate) accessible volume of a single site. The volume is calculated by superimposing
+    a grid of lennard-jones spheres at the site, eliminating those with clashes and calculating the volume from the
+    remaining spheres. Note that this is a different "accessible volume" than the "accessible volume" method made
+    popular by MtsslWizard.
+
+    Parameters
+    ----------
+    site : int
+        Site of the `mol` to calculate the accessible volume of.
+    mol : MDAnalysis.Universe, MDAnalysis.AtomGroup, chilife.MolecularSystemBase
+       The molecule/set of atoms containing the site to calculate the accessible volume of.
+    grid_size: float, ArrayLike
+        Dimensions of grid to use to calculate the accessible volume. Can be a float, specifying a cube with equal
+        dimensions, or an array specifying a unique value for each dimension. Uses units of Angstroms.
+    offset: float, ArrayLike
+        The offset of the initial grid with respect to the superimposition site. If ``offset`` is a float, the grid will
+        be offset in the z-dimension (along the CA-CB bond). If ``offset`` is an array, the grid will be offset in
+        each x, y, z dimension by the corresponding value of the array. Uses units of Angstroms
+    spacing : float
+        Spacing between grid points. Defaults to 1.0 Angstrom
+    vdw_r : float
+        van der Waals radius for clash detection. Defaults to 2.8 Angstroms.
+    write : bool, str, default False
+        Switch to make chiLife write the grid to a PDB file. If ``True`` the grid will be written to grid.pdb.
+        If given a string chiLife will use the string as the file name.
+    return_grid: bool, default False
+        If ``return_grid=True``, the volume will be returned as a numpy array containing the grid points that do not
+        clash with the neighboring atoms.
+
+    Returns
+    -------
+    volume : float, np.ndarray
+        The accessible volume at the given site. If ``return_grid=True`` the volume will be returned as the set of
+        grid points that do not clash with neighboring atoms, otherwise volume will be the estimated accessible volume
+        of the site in cubic angstroms (Å :sup:`3`).
+    """
+
+    if isinstance(grid_size, (int, float, complex)):
+        x = y = z = grid_size
+    elif hasattr(grid_size, '__len__'):
+        x, y, z = grid_size
+    else:
+        raise RuntimeError("grid_size must be a float or an array like object with 3 elements.")
+
+    half_x = x / 2
+    half_y = y / 2
+
+    if isinstance(offset, (int, float, complex)):
+        xo, yo = 0, 0
+        zo = offset
+    elif hasattr(offset, '__len__'):
+        xo, yo, zo = offset
+    else:
+        raise RuntimeError("offset must be a float or an array like object with 3 elements.")
+
+    xp = x / spacing
+    yp = y / spacing
+    zp = z / spacing
+
+    # Create grid
+    grid = np.mgrid[-half_x + xo:half_x + xo:xp * 1j, -half_y + yo:half_y + yo:yp * 1j, zo :z+zo:zp * 1j].swapaxes(0, -1)
+    xl, yl, zl, _ = grid.shape
+    grid = grid.reshape(-1, 3)
+
+    # Superimpose grid on site
+    bb = mol.select_atoms(f"resid {site} and name N CA C")
+    if len(bb.atoms) != 3:
+        raise RuntimeError(f'The provided protein does not have a canonical backbone at residue {site}.')
+
+    N, CA, C = bb.positions
+
+    mx, ori = get_grid_mx(N, CA, C)
+    grid_tsf = grid @ mx + ori
+
+    # Perform clash evaluation
+    sel = mol.select_atoms(f'protein and not resid {site}')
+    d = cdist(grid_tsf, sel.positions)
+    mask = d < vdw_r
+    mask2 = ~np.all(d > 5, axis=-1)
+
+    # Remove clashing grid points
+    mask = (~mask).prod(axis=-1) * mask2
+    idxs = np.argwhere(mask).flatten()
+    grid_tsf = grid_tsf[idxs]
+
+    # check for discontinuities
+    tree = cKDTree(grid_tsf)
+    neighbors = tree.query_pairs(np.sqrt(2 * spacing) * 1.2)
+    root_idx = np.argmin(np.linalg.norm(grid_tsf - CA, axis=-1))
+    graph = ig.Graph(neighbors)
+
+    # Use only points continuous with root_idx
+    for g in graph.connected_components():
+        if root_idx in g:
+            grid_tsf = grid_tsf[g]
+            break
+
+    # process output
+    if write:
+        filename = write if isinstance(write, str) else 'grid.pdb'
+        write_grid(grid_tsf, name=filename)
+
+    if return_grid:
+        return grid_tsf
+    else:
+        return len(grid_tsf) * spacing**3

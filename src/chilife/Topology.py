@@ -89,8 +89,10 @@ class Topology:
             if key not in self.dihedrals_by_atoms:
                 hold.append(key)
                 continue
-
-            if len(hold) > 0:
+            elif 0 < len(hold) < 3:
+                hold.append(key)
+                continue
+            else:
                 for i, elem in enumerate(hold):
                     zmatrix_dihedrals.append(hold[:i + 1])
                 hold = []
@@ -171,7 +173,7 @@ def get_dihedral_defs(graph):
 
             bond_dihedrals = [(aa, a, b, bb) if aa < bb else (bb, b, a, aa)
                                              for aa, bb in product(a_neighbors, b_neighbors)
-                                             if all(idx not in (aa, bb) for idx in (a, b))]
+                                             if all(idx not in (aa, bb) for idx in (a, b)) and aa != bb]
 
             dihedrals += [tuple(a) for a in bond_dihedrals]
 
@@ -243,7 +245,7 @@ def guess_bonds(coords: ArrayLike, atom_types: ArrayLike) -> np.ndarray:
 
     dist = np.linalg.norm(coords[a_atoms] - coords[b_atoms], axis=1)
     bonds = pairs[dist < bond_lengths]
-    sorted_args = np.lexsort((bonds[:, 0], bonds[:,1]))
+    sorted_args = np.lexsort((bonds[:, 0], bonds[:, 1]))
     return bonds[sorted_args]
 
 

@@ -72,6 +72,14 @@ class dSpinLabel(dRotamerEnsemble):
         self.RE1, self.RE2 = self.SL1, self.SL2
 
     def copy(self):
+        """
+        Returns a deep copy of the dSpinLabel object.
+
+        Returns
+        -------
+        new_copy : dSpinLabel
+            A deep copy of the dSpinLabel object.
+        """
         new_copy = chilife.dSpinLabel(self.res, (self.site1, self.site2), chain=self.chain,
                                       protein=self.protein,
                                       rotlib={'csts': self.csts, 'libA': self.libA, 'libB': self.libB},

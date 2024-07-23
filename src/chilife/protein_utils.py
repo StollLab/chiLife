@@ -2,10 +2,19 @@ import pickle, math, rtoml
 
 from pathlib import Path
 from typing import Set, List, Union, Tuple
+
+import chilife
 from numpy.typing import ArrayLike
 from scipy.spatial.distance import cdist
 from scipy.spatial import cKDTree
 from dataclasses import dataclass
+
+try:
+    from rdkit import Chem
+    from rdkit.Chem import AllChem
+    rdkit_found = True
+except:
+    rdkit_found = False
 
 import MDAnalysis
 import numpy as np
@@ -15,10 +24,14 @@ import MDAnalysis as mda
 
 from .globals import SUPPORTED_RESIDUES
 from .MolSys import MolecularSystemBase, MolSys
-from .numba_utils import get_sasa
+from .Topology import get_angle_defs, get_dihedral_defs
+from .numba_utils import get_sasa, _ic_to_cart
 from .pdb_utils import get_backbone_atoms, get_bb_candidates
+import chilife as xl
+
 import chilife.scoring as scoring
 import chilife.io as io
+
 import chilife.RotamerEnsemble as re
 import chilife.dRotamerEnsemble as dre
 
@@ -818,6 +831,276 @@ def make_mda_uni(anames: ArrayLike,
 
     return mda_uni
 
+def make_peptide(sequence: str) -> MolSys:
+    """
+    Create a peptide from a string of amino acids. NCAA and smiles can be inserted by using a square brackets, e.g.
+    ``[ACE]AA[C1=CC2=C(C(=C1)F)C(=CN2)CC(C(=O)O)N]AA[NHH]`` where ACE and NHH are NCAA caps and
+    [C1=CC2=C(C(=C1)F)C(=CN2)CC(C(=O)O)N] is a smiles for a NCAA
+
+    Parameters
+    ----------
+    sequence : str
+        The Amino acid sequence.
+
+
+    Returns
+    -------
+    mol : MolSys
+        A chiLife MolSys object
+    """
+    C_N_LENGTH = 1.34
+    N_CA_LENGTH = 1.46
+    CA_C_LENGTH = 1.54
+
+    CA_C_N_ANGLE = 1.9897
+    C_N_CA_ANGLE = 2.1468
+    N_CA_C_ANGLE = 1.9199
+    C_N_H_ANGLE  = 2.1031
+    base_IC = {}
+
+    # Strip whitespace from multiline strings
+    sequence = sequence.strip()
+
+    # Parse sequences
+    sequence = parse_sequence(sequence)
+    zmat = []
+    zmat_idxs = []
+    anames = []
+    atypes = []
+    resnames = []
+    resindices = []
+    resnums = []
+
+    seqiter = iter(sequence)
+    atom_idx = 0
+    residue_idx = 0
+    prev_N = 0
+    for res in seqiter:
+        if res in base_IC:
+            msysIC = base_IC[res]
+        elif res in xl.nataa_codes or res in xl.SUPPORTED_BB_LABELS:
+            with open(chilife.RL_DIR / f"residue_internal_coords/{res.lower()}_ic.pkl", 'rb') as f:
+                msysIC = pickle.load(f)
+            base_IC[res] = msysIC
+        elif res in xl.SUPPORTED_RESIDUES:
+            RL = xl.RotamerEnsemble(res, use_H=True)
+            idxmax = np.argmax(RL.weights)
+            msysIC = RL.internal_coords
+            msysIC.trajectory[idxmax]
+            base_IC[res] = msysIC
+        else:
+            raise NotImplementedError("Smiles is not yet implemented")
+
+        anames.append(msysIC.atom_names)
+        atypes.append(msysIC.atom_types)
+        resnames.append(msysIC.atom_resnames)
+        resnums.append(msysIC.atom_resnums + residue_idx)
+        resindices.append(msysIC.atom_resnums + residue_idx-1)
+        msysIC.set_dihedral(2.32129, 1, ['N', 'CA', 'C', 'O'])
+        if 'H' in msysIC.atom_names:
+            msysIC.set_dihedral(2.14675, 1, ['C', 'CA', 'N', 'H'])
+
+        tzmat = msysIC.z_matrix.copy()
+        tzmat_idxs = msysIC.z_matrix_idxs.copy()
+
+        if atom_idx != 0:
+            tzmat_idxs += atom_idx
+            tzmat_idxs[0] = [atom_idx, prev_N + 2, prev_N + 1, prev_N]
+            tzmat_idxs[1] = [atom_idx + 1, atom_idx, prev_N + 2, prev_N + 1]
+            tzmat_idxs[2] = [atom_idx + 2, atom_idx + 1, atom_idx, prev_N + 2]
+
+            tzmat[0] = [C_N_LENGTH, CA_C_N_ANGLE, -0.99484]
+            tzmat[1] = [N_CA_LENGTH, C_N_CA_ANGLE, -np.pi]
+            tzmat[2] = [CA_C_LENGTH, N_CA_C_ANGLE, -0.82030]
+
+
+            # revarg = np.argwhere((tzmat_idxs[:, -1] - tzmat_idxs[:, -2]) > 0)
+            # rotated = {}
+            # # TODO: Keep track of rotated bonds so those that share rotations all get rotated
+            # # TODO: Place 2HD and 3HD of prolines correctly
+            # # TODO: Place HA correctly
+            # # TODO: Can probably just achieve by only placing HN.
+            # #
+            # for arg in revarg.flat:
+            #     nb0 = tzmat_idxs[arg, 1]
+            #     nb1 = tzmat_idxs[tnb0 := nb0-atom_idx, 1]
+            #     nb2 = tzmat_idxs[tnb0, 2]
+            #
+            #     tzmat_idxs[arg] = [atom_idx + arg, nb0, nb1, nb2]
+            #
+            #     bl = tzmat[arg, 0]
+            #
+            #     tnb1 = nb1 - atom_idx
+            #     tnb2 = nb2 - atom_idx
+            #     if tnb1 < 0:
+            #         ag = C_N_H_ANGLE
+            #         dh = 0.0
+            #     elif tnb2 < 0:
+            #         ag = xl.get_angle(msysIC.coords[[arg, tnb0, tnb1]])
+            #         dh = -3.001966313430247
+            #     else:
+            #         ag = xl.get_angle(msysIC.coords[[arg, tnb0, tnb1]])
+            #         dh = xl.get_dihedral(msysIC.coords[[arg, tnb0, tnb1, tnb2]])
+            #
+            #     tzmat[arg] = [bl, ag, dh]
+
+            prev_N = atom_idx
+
+        zmat.append(tzmat)
+        zmat_idxs.append(tzmat_idxs)
+
+        atom_idx = atom_idx + len(tzmat)
+        residue_idx += 1
+
+    anames = np.concatenate(anames)
+    atypes = np.concatenate(atypes)
+    resnames = np.concatenate(resnames)
+    resnums = np.concatenate(resnums)
+    resindices = np.concatenate(resindices)
+    zmat = np.concatenate(zmat)
+    zmat_idxs = np.concatenate(zmat_idxs)
+    trajectory = _ic_to_cart(zmat_idxs[:,1:], zmat)
+    segindices = np.array([0] * len(anames))
+    segids = np.array(['A'] * len(anames))
+
+    mol = MolSys.from_arrays(anames, atypes, resnames, resindices, resnums, segindices, segids, trajectory)
+    return mol
+
+
+def parse_sequence(sequence: str) -> List[str]:
+    """
+    Input a string of amino acids with mized 1-letter codes, square brackted ``[]`` 3 letter codes or angle ``<>``
+    bracketed smiles and return a list of 3 letter codes and smiles.
+
+    Parameters
+    ----------
+    sequence : str
+    The Amino acid sequence.
+
+    Returns
+    -------
+    parsed_sequence : List[str]
+    A list of the amino acid sequences.
+
+    """
+    parsed_sequence = []
+    seqiter = iter(sequence)
+    for aa in seqiter:
+        if aa.upper() in chilife.nataa_codes:
+            parsed_sequence.append(chilife.nataa_codes[aa])
+
+        # Parse chiLife compatible NCAAs
+        elif aa == '[':
+            code = ""
+            aa = next(seqiter)
+            while aa != ']':
+                code += aa
+                try:
+                    aa = next(seqiter)
+                except StopIteration:
+                    raise RuntimeError("Cannot parse sequence because there is an unbalaced square bracket ``[]``.")
+            parsed_sequence.append(code)
+
+        elif aa == "<":
+            smiles = ""
+            aa = next(seqiter)
+            while aa != '>':
+                smiles += aa
+                try:
+                    aa = next(seqiter)
+                except:
+                    raise RuntimeError("Cannot parse sequence because there is an unbalnced angle bracket ``<>``.")
+
+            parsed_sequence.append(smiles)
+
+        elif aa in ('>', ']'):
+            raise RuntimeError(f"A terminating ``{aa}`` bracket has been detected, but no opening bracket was placed "
+                               f"ahead of it")
+
+        else:
+            raise RuntimeError(f'``{aa}`` is not a known amino acid')
+
+    return parsed_sequence
+
+
+def smiles2residue(smiles):
+    res = None
+    if not rdkit_found:
+        raise RuntimeError("Using smiles2residue or make_peptide with a smile string requires rdkit to be installed.")
+
+    mol = Chem.MolFromSmiles(smiles)
+    mol = Chem.AddHs(mol)
+
+    AllChem.EmbedMolecule(mol)
+    AllChem.MMFFOptimizeMolecule(mol, maxIters=200)
+
+    res = mda.Universe(mol)
+    graph = ig.Graph(edges=res.bonds.indices)
+    res.add_angles(get_angle_defs(graph))
+    res.add_dihedrals(get_dihedral_defs(graph))
+
+    atoms = res.atoms
+    res.filename = 'UNK.pdb'
+    Natoms = atoms.select_atoms('type N')
+    NCCOs = []
+    for atom in Natoms:
+        for dih in atom.dihedrals:
+            if np.all(dih.atoms.types == ['N', 'C', 'C', 'O']):
+                NCCOs.append(dih.atoms)
+            elif np.all(dih.atoms.types == ['O', 'C', 'C', 'N']):
+                NCCOs.append(dih.atoms[::-1])
+
+    bb_candidates = []
+    for dih in NCCOs:
+        assert dih[-1].type == 'O'
+
+        if len(dih[-1].bonds) == 1:
+            bb_candidates.append(dih)
+
+    if len(bb_candidates) == 1:
+        bb = bb_candidates[0]
+
+    bb.names = ['N', 'CA', 'C', 'O']
+    count_dict = {}
+    res.add_TopologyAttr('segid', ['A'])
+    res.add_TopologyAttr('chainID', ['A'] * len(atoms))
+    res.add_TopologyAttr('resnames', ["UNK"])
+    for atom in atoms:
+
+        if atom in bb:
+            pass
+
+        elif 'N' in atom.bonded_atoms.names:
+            if atom.type == 'H':
+                atom.name = count_dict.get('X', 'H')
+                count_dict['X'] = 'X'
+            else:
+                atom.name = 'X'
+
+        elif 'CA' in atom.bonded_atoms.names and atom.type == 'H':
+            atom.name = 'HA'
+
+        elif 'O' in atom.bonded_atoms.names and atom.type == 'H':
+            atom.name = 'X'
+
+        elif 'C' in atom.bonded_atoms.names:
+            atom.name = 'X'
+
+        else:
+            n = count_dict.setdefault(atom.type, 1)
+            atom.name = f'{atom.type}{n}'
+            count_dict[atom.type] += 1
+
+    for atom in atoms:
+        if atom in bb:
+            continue
+        elif 'X' in atom.bonded_atoms.names:
+            atom.name = 'X'
+
+    save_atoms = atoms.select_atoms('not name X')
+
+
+    return res
 
 def get_grid_mx(N, CA, C):
     """

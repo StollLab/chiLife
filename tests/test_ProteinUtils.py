@@ -295,9 +295,33 @@ def test_get_site_volume():
     np.testing.assert_almost_equal(vols, ans)
 
 
+
+def test_make_peptide():
+    pep = chilife.make_peptide("ACDEF[R1M]GHIKLMNPQR[R1C]STVWY")
+    chilife.save('test.pdb', pep)
+
+def test_parsed_sequence():
+    pseq = chilife.parse_sequence("[ACE]AaNIE<cccn>[NHH]")
+    for a, b in zip(pseq, ['ACE', 'ALA', 'ALA', 'ASN', 'ILE', 'GLU', 'cccn', 'NHH']):
+        assert a == b
+
+
+def test_smiles2residue():
+
+    chilife.smiles2residue('COC1=CC=C(C=C1)CC(C(=O)O)N')
+
+def test_ic_thing():
+    mol = chilife.MolSys.from_pdb('../src/chilife/data/rotamer_libraries/residue_pdbs/pro.pdb')
+    molic = chilife.MolSysIC.from_atoms(mol)
+    c1 = mol.positions.copy()
+    chilife.save('initial.pdb', molic)
+    molic.set_dihedral(2.14675, 1, ['C', 'CA', 'N', 'H'])
+    # molic.set_dihedral(2.32129, 1, ['N', 'CA', 'C', 'O'])
+    chilife.save('final.pdb', molic)
+
 # def test_preferred_dihedrals():
 #     dih = [['N', 'CA', 'CB', 'CB2'],
-#            ['CA', 'CB', 'CB2', 'CG'],
+#            ['CA', 'CB', 'CB2', 'CG'],d
 #            ['ND', 'CE3', 'CZ3', 'C31'],
 #            ['CZ1', 'C11', 'C12', 'N12'],
 #            ['C11', 'C12', 'N12', 'C13'],

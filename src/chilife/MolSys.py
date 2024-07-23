@@ -471,6 +471,8 @@ class MolSys(MolecularSystemBase):
 
         if trajectory is None:
             trajectory = np.empty((1, n_atoms, 3))
+        elif len(trajectory.shape) == 2:
+            trajectory = trajectory[None, ...]
 
         occupancies = np.ones(n_atoms)
         bs = np.ones(n_atoms)

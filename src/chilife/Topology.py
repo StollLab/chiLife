@@ -106,7 +106,8 @@ class Topology:
                     runner_ups.append(dihe)
             else:
                 if len(runner_ups) > 0:
-                    zmatrix_dihedrals.append(list(runner_ups[0]))
+                    minrup = np.argmin(np.sum(np.abs(np.diff(runner_ups, axis=1)), axis=1))
+                    zmatrix_dihedrals.append(list(runner_ups[minrup]))
 
         return zmatrix_dihedrals
 

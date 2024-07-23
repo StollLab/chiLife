@@ -1298,6 +1298,7 @@ class RotamerEnsemble:
 
     def intra_fit(self):
         """Align all rotamers of the ensemble to the ensemble backbone"""
+
         target = self.aln
 
         tmx, tori = self.alignment_method(*target)
@@ -1311,6 +1312,7 @@ class RotamerEnsemble:
 
     def get_sasa(self):
         """Calculate the solvent accessible surface area (SASA) of each rotamer in the protein environment."""
+
         atom_radii = self.forcefield.get_lj_rmin(self.atom_types)
         if self.protein is not None:
             environment_coords = self.protein.atoms[self.protein_clash_idx].positions

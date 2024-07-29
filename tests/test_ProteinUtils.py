@@ -295,10 +295,21 @@ def test_get_site_volume():
     np.testing.assert_almost_equal(vols, ans)
 
 
-
 def test_make_peptide():
-    pep = chilife.make_peptide("ACDEF[R1M]GHIKLMNPQR[R1C]STVWY")
+    pep = chilife.make_peptide("ACDEF[R1M]GHIKL<COC1=CC=C(C=C1)CC(C(=O)O)N>MNPQR[R1C]STVWY")
     chilife.save('test.pdb', pep)
+
+    with open('test.pdb', 'r') as f:
+        lines = f.readlines()
+        thash = hashlib.md5("".join(lines).encode("utf-8")).hexdigest()
+
+    with open('test_data/test_make_peptide.pdb', 'r') as f:
+        lines = f.readlines()
+        ahash = hashlib.md5("".join(lines).encode("utf-8")).hexdigest()
+
+    assert thash == ahash
+    os.remove('test.pdb')
+
 
 def test_parsed_sequence():
     pseq = chilife.parse_sequence("[ACE]AaNIE<cccn>[NHH]")
@@ -306,32 +317,29 @@ def test_parsed_sequence():
         assert a == b
 
 
-def test_smiles2residue():
 
-    chilife.smiles2residue('COC1=CC=C(C=C1)CC(C(=O)O)N')
+s2rkeys = ["COC1=CC=C(C=C1)CC(C(=O)O)N",
+           "CC1CC=NC1C(=O)NCCCCC(C(=O)O)N",
+           "CC(C)(C)OC(=O)N[C@@H](CCCCN)C(O)=O",
+           "C(CC1=CC=C(C=C1)OCCCCC#C)(C(=O)O)N"]
 
-def test_ic_thing():
-    mol = chilife.MolSys.from_pdb('../src/chilife/data/rotamer_libraries/residue_pdbs/pro.pdb')
-    molic = chilife.MolSysIC.from_atoms(mol)
-    c1 = mol.positions.copy()
-    chilife.save('initial.pdb', molic)
-    molic.set_dihedral(2.14675, 1, ['C', 'CA', 'N', 'H'])
-    # molic.set_dihedral(2.32129, 1, ['N', 'CA', 'C', 'O'])
-    chilife.save('final.pdb', molic)
+s2rans = [f"test_data/s2rm{i+1}.pdb" for i in range(len(s2rkeys))]
 
-# def test_preferred_dihedrals():
-#     dih = [['N', 'CA', 'CB', 'CB2'],
-#            ['CA', 'CB', 'CB2', 'CG'],d
-#            ['ND', 'CE3', 'CZ3', 'C31'],
-#            ['CZ1', 'C11', 'C12', 'N12'],
-#            ['C11', 'C12', 'N12', 'C13'],
-#            ['C12', 'N12', 'C13', 'C14'],
-#            ['N12', 'C13', 'C14', 'C15']]
-#
-#     TEP = mda.Universe('test_data/TEP.pdb')
-#     IC = chiLife.get_internal_coords(TEP, resname='TEP', preferred_dihedrals=dih)
-#     IC2 = chiLife.get_internal_coords(TEP, resname='TEP')
-#
-#     IC.get_dihedral(1, dih)
-#     with pytest.raises(ValueError):
-#         IC2.get_dihedral(1, dih)
+@pytest.mark.parametrize('key, ans', zip(s2rkeys, s2rans))
+def test_smiles2residue(key, ans):
+    m1 = chilife.smiles2residue(key)
+
+    chilife.save(ans[-9:], m1)
+
+    with open(ans[-9:], 'r') as f:
+        lines = "".join(f.readlines()).encode('utf8')
+        thash = hashlib.md5(lines).hexdigest()
+
+    with open(ans, 'r') as f:
+        lines = "".join(f.readlines()).encode('utf8')
+        ahash = hashlib.md5(lines).hexdigest()
+
+    # os.remove(ans[-9:])
+
+    assert ahash == thash
+

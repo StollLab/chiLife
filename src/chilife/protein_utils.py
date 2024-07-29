@@ -1,3 +1,4 @@
+import os
 import pickle, math, rtoml
 
 from pathlib import Path
@@ -889,7 +890,8 @@ def make_peptide(sequence: str) -> MolSys:
             msysIC.trajectory[idxmax]
             base_IC[res] = msysIC
         else:
-            raise NotImplementedError("Smiles is not yet implemented")
+            mol = smiles2residue(res)
+            msysIC = xl.MolSysIC.from_atoms(mol)
 
         anames.append(msysIC.atom_names)
         atypes.append(msysIC.atom_types)
@@ -912,37 +914,6 @@ def make_peptide(sequence: str) -> MolSys:
             tzmat[0] = [C_N_LENGTH, CA_C_N_ANGLE, -0.99484]
             tzmat[1] = [N_CA_LENGTH, C_N_CA_ANGLE, -np.pi]
             tzmat[2] = [CA_C_LENGTH, N_CA_C_ANGLE, -0.82030]
-
-
-            # revarg = np.argwhere((tzmat_idxs[:, -1] - tzmat_idxs[:, -2]) > 0)
-            # rotated = {}
-            # # TODO: Keep track of rotated bonds so those that share rotations all get rotated
-            # # TODO: Place 2HD and 3HD of prolines correctly
-            # # TODO: Place HA correctly
-            # # TODO: Can probably just achieve by only placing HN.
-            # #
-            # for arg in revarg.flat:
-            #     nb0 = tzmat_idxs[arg, 1]
-            #     nb1 = tzmat_idxs[tnb0 := nb0-atom_idx, 1]
-            #     nb2 = tzmat_idxs[tnb0, 2]
-            #
-            #     tzmat_idxs[arg] = [atom_idx + arg, nb0, nb1, nb2]
-            #
-            #     bl = tzmat[arg, 0]
-            #
-            #     tnb1 = nb1 - atom_idx
-            #     tnb2 = nb2 - atom_idx
-            #     if tnb1 < 0:
-            #         ag = C_N_H_ANGLE
-            #         dh = 0.0
-            #     elif tnb2 < 0:
-            #         ag = xl.get_angle(msysIC.coords[[arg, tnb0, tnb1]])
-            #         dh = -3.001966313430247
-            #     else:
-            #         ag = xl.get_angle(msysIC.coords[[arg, tnb0, tnb1]])
-            #         dh = xl.get_dihedral(msysIC.coords[[arg, tnb0, tnb1, tnb2]])
-            #
-            #     tzmat[arg] = [bl, ag, dh]
 
             prev_N = atom_idx
 
@@ -987,7 +958,7 @@ def parse_sequence(sequence: str) -> List[str]:
     seqiter = iter(sequence)
     for aa in seqiter:
         if aa.upper() in chilife.nataa_codes:
-            parsed_sequence.append(chilife.nataa_codes[aa])
+            parsed_sequence.append(chilife.nataa_codes[aa.upper()])
 
         # Parse chiLife compatible NCAAs
         elif aa == '[':
@@ -1024,7 +995,7 @@ def parse_sequence(sequence: str) -> List[str]:
 
 
 def smiles2residue(smiles):
-    res = None
+
     if not rdkit_found:
         raise RuntimeError("Using smiles2residue or make_peptide with a smile string requires rdkit to be installed.")
 
@@ -1033,11 +1004,7 @@ def smiles2residue(smiles):
 
     AllChem.EmbedMolecule(mol)
     AllChem.MMFFOptimizeMolecule(mol, maxIters=200)
-
-    res = mda.Universe(mol)
-    graph = ig.Graph(edges=res.bonds.indices)
-    res.add_angles(get_angle_defs(graph))
-    res.add_dihedrals(get_dihedral_defs(graph))
+    res = MolSys.from_rdkit(mol)
 
     atoms = res.atoms
     res.filename = 'UNK.pdb'
@@ -1060,11 +1027,18 @@ def smiles2residue(smiles):
     if len(bb_candidates) == 1:
         bb = bb_candidates[0]
 
+    else:
+        bb = None
+        for can in bb_candidates:
+            cooh = "".join(sorted(can[2].bonded_atoms.types))
+            if cooh != 'COO':
+                continue
+            else:
+                bb = can
+                break
+
     bb.names = ['N', 'CA', 'C', 'O']
     count_dict = {}
-    res.add_TopologyAttr('segid', ['A'])
-    res.add_TopologyAttr('chainID', ['A'] * len(atoms))
-    res.add_TopologyAttr('resnames', ["UNK"])
     for atom in atoms:
 
         if atom in bb:
@@ -1074,8 +1048,6 @@ def smiles2residue(smiles):
             if atom.type == 'H':
                 atom.name = count_dict.get('X', 'H')
                 count_dict['X'] = 'X'
-            else:
-                atom.name = 'X'
 
         elif 'CA' in atom.bonded_atoms.names and atom.type == 'H':
             atom.name = 'HA'
@@ -1083,24 +1055,25 @@ def smiles2residue(smiles):
         elif 'O' in atom.bonded_atoms.names and atom.type == 'H':
             atom.name = 'X'
 
-        elif 'C' in atom.bonded_atoms.names:
+        elif 'C' in atom.bonded_atoms.names and atom.type == 'O':
             atom.name = 'X'
+            for oatom in atom.bonded_atoms:
+                if oatom.type == 'H':
+                    oatom.name ='X'
+        elif atom.name == 'X':
+            pass
 
         else:
             n = count_dict.setdefault(atom.type, 1)
             atom.name = f'{atom.type}{n}'
             count_dict[atom.type] += 1
 
-    for atom in atoms:
-        if atom in bb:
-            continue
-        elif 'X' in atom.bonded_atoms.names:
-            atom.name = 'X'
-
     save_atoms = atoms.select_atoms('not name X')
+    xl.save('UNK.pdb', save_atoms)
+    Msys = MolSys.from_pdb('UNK.pdb', sort_atoms=True)
+    os.remove('UNK.pdb')
 
-
-    return res
+    return Msys
 
 def get_grid_mx(N, CA, C):
     """

@@ -19,21 +19,25 @@ import chilife
 #   Performance enhancement: Find a faster way to retrieve coordinate data from trajectory @property seems to have
 #   Feature: Add from_mda class method.
 masked_properties = ('atomids', 'names', 'altlocs', 'resnames', 'resnums', 'chains', 'occupancies',
-                     'bs', 'segs', 'segids', 'atypes', 'charges', 'ix', 'resixs', 'segixs', '_Atoms', 'atoms')
+                     'bs', 'segs', 'segids', 'atypes', 'types', 'charges', 'ix', 'resixs', 'segixs', '_Atoms', 'atoms')
 
+singles = ('name', 'altloc', 'altLoc', 'atype', 'type', 'resn', 'resname', 'resnum', 'resid' 'resi', 'chain',
+           'segid', 'charge')
 class MolecularSystemBase:
     """Base class for molecular systems containing attributes universal to """
 
     def __getattr__(self, key):
         if 'molsys' not in self.__dict__:
             self.__getattribute__(key)
+        elif key in singles:
+            return np.squeeze(self.molsys.__getattribute__(key + 's')[self.mask]).flat[0]
         elif key not in self.__dict__['molsys'].__dict__:
             self.molsys.__getattribute__(key)
         elif key == 'trajectory':
             return self.molsys.trajectory
         elif key == 'atoms':
             return self.molsys.__getattribute__(key)[self.mask]
-        elif key in masked_properties:
+        elif key in masked_properties or key in singles:
             return np.squeeze(self.molsys.__getattribute__(key)[self.mask])
         else:
             return self.molsys.__getattribute__(key)
@@ -41,11 +45,13 @@ class MolecularSystemBase:
     def __setattr__(self, key, value):
         if key in ('molsys', 'mask'):
             super(MolecularSystemBase, self).__setattr__(key, value)
+        elif key in singles:
+            self.molsys.__getattribute__(key + 's')[self.mask] = value
         elif key not in self.__dict__['molsys'].__dict__:
             super(MolecularSystemBase, self).__setattr__(key, value)
         elif key == 'trajectory':
             self.molsys.__dict__['trajectory'] = value
-        elif key in masked_properties:
+        elif key in masked_properties or key in singles:
             self.molsys.__getattribute__(key)[self.mask] = value
         else:
             super(MolecularSystemBase, self).__setattr__(key, value)
@@ -129,16 +135,6 @@ class MolecularSystemBase:
         self.trajectory.coords[self.trajectory.frame, self.mask] = np.asarray(val)
 
     @property
-    def resindices(self):
-        """Residue indices for all atoms in the molecular system"""
-        return np.unique(self.molsys.resixs[self.mask])
-
-    @property
-    def segindices(self):
-        """Segment (chain) indices for all atoms in the molecular system"""
-        return np.unique(self.molsys.segixs[self.mask])
-
-    @property
     def n_atoms(self):
         """"Number of atoms in the molecular system"""
         return len(self.mask)
@@ -175,14 +171,6 @@ class MolecularSystemBase:
         mapped to the associated molecular system attributes"""
         return self.molsys._molsys_keywords
 
-    @property
-    def types(self):
-        """Atom types for all atoms of the molecular system"""
-        return self.molsys.atypes[self.mask]
-
-    @types.setter
-    def types(self, value):
-        self.molsys.atypes[self.mask] = value
 
     @property
     def universe(self):
@@ -198,6 +186,9 @@ class MolecularSystemBase:
     def __iter__(self):
         for idx in self.mask:
             yield self.molsys.atoms[idx]
+
+    def __eq__(self, value):
+        return self.molsys is value.molsys and self.mask == value.mask
 
 
 
@@ -266,7 +257,6 @@ class MolSys(MolecularSystemBase):
         self.occupancies = occupancies.copy()
         self.bs = bs.copy()
         self.segs = segs.copy()
-        self.segids = self.chains
         self.atypes = atypes.copy()
         self.charges = charges.copy()
         self._fname = name
@@ -282,10 +272,12 @@ class MolSys(MolecularSystemBase):
             resixs.append(np.ones(dif, dtype=int) * i)
 
         self.resixs = np.concatenate(resixs)
+        self.resindices = self.resixs
         if np.all(self.chains == '') or np.all(self.chains == 'SYSTEM'):
             self.segixs = np.array([ord('A') - 65 for x in self.chains])
         else:
             self.segixs = np.array([ord(x) - 65 for x in self.chains])
+        self.segindices = self.segixs
 
         uidx, uidxidx, nuidxs = np.unique(self.resixs, return_index=True, return_inverse=True)
         resnames = self.resnames[uidx]
@@ -334,8 +326,19 @@ class MolSys(MolecularSystemBase):
                                 'within': update_wrapper(partial(within, molsys=self.molsys), within),
                                 'around': update_wrapper(partial(within, molsys=self.molsys), within)}
 
+
+        # Aliases
+        self.resns = self.resnames
+        self.resis = self.resnums
+        self.altLocs = self.altlocs
+        self.resids = self.resnums
+        self.segids = self.chains
+        self.types = self.atypes
+
+        # Atoms creation is required to be last
         self.atoms = AtomSelection(self, self.mask)
         self.topology = Topology(self, bonds) if bonds is not None else None
+
 
     @classmethod
     def from_pdb(cls, file_name, sort_atoms=False):
@@ -528,6 +531,20 @@ class MolSys(MolecularSystemBase):
             trajectory = np.array(trajectory)
 
         return cls.from_arrays(anames, atypes, resnames, resindices, resnums, segindices, segids, trajectory)
+
+
+    @classmethod
+    def from_rdkit(cls, mol):
+        atypes = np.array([a.GetSymbol() for a in mol.GetAtoms()])
+        anames = np.array([a + str(i) for i, a in enumerate(atypes)])
+        resnames = np.array(["UNK" for _ in anames])
+        resindices = np.array([0] * len(anames))
+        resnums = np.array([1] * len(anames))
+        segindices = np.array([0] * len(anames))
+        segids = np.array(["A"] * len(anames))
+        trajectory = mol.GetConformer().GetPositions()
+        bonds = np.array([[b.GetBeginAtomIdx(), b.GetEndAtomIdx()] for b in mol.GetBonds()])
+        return cls.from_arrays(anames, atypes, resnames, resindices, resnums, segindices, segids, trajectory, bonds=bonds)
 
     def copy(self):
         """
@@ -1019,8 +1036,8 @@ class SegmentSelection(MolecularSystemBase):
     """
 
     def __init__(self, molsys, mask):
-        seg_ixs = np.unique(molsys.segixs[mask])
-        self.mask = np.argwhere(np.isin(molsys.segixs, seg_ixs)).flatten()
+        self.seg_ixs = np.unique(molsys.segixs[mask])
+        self.mask = np.argwhere(np.isin(molsys.segixs, self.seg_ixs)).flatten()
         self.molsys = molsys
 
         _, self.first_ix = np.unique(molsys.segixs[self.mask], return_index=True)
@@ -1049,6 +1066,12 @@ class SegmentSelection(MolecularSystemBase):
     def __len__(self):
         return len(self.first_ix)
 
+    def __iter__(self):
+        for new_segix in self.seg_ixs:
+            new_mask = np.argwhere(np.isin(self.molsys.segixs, new_segix))
+            yield Segment(self.molsys, new_mask)
+
+
 
 class Atom(MolecularSystemBase):
     """
@@ -1066,24 +1089,46 @@ class Atom(MolecularSystemBase):
         self.index = mask
         self.mask = mask
 
-
         self.name = molsys.names[self.index]
-        self.altLoc = molsys.altlocs[self.index]
+        self.altloc = molsys.altlocs[self.index]
         self.atype = molsys.types[self.index]
-        self.type = self.atype
-
-        self.resn = molsys.resnames[self.index]
-        self.resname = self.resn
-        self.resi = molsys.resnums[self.index]
-        self.resid = self.resi
-        self.resnum = self.resi
+        self.resname = molsys.resnames[self.index]
+        self.resnum = molsys.resnums[self.index]
         self.chain = molsys.segids[self.index]
         self.segid = molsys.chains[self.index]
         self.charge = molsys.charges[self.index]
 
+        self.resn = self.resname
+        self.resi = self.resnum
+        self.altLoc = self.altloc
+        self.type = self.atype
+        self.resid = self.resnum
+
+
     @property
     def position(self):
         return self.molsys.coords[self.index]
+
+    @property
+    def bonds(self):
+        idxs = self.topology.bonds_any_atom[self.mask]
+        return [AtomSelection(self.molsys, idx) for idx in idxs]
+
+    @property
+    def angles(self):
+        idxs = self.topology.angles_any_atom[self.mask]
+        return [AtomSelection(self.molsys, idx) for idx in idxs]
+
+    @property
+    def dihedrals(self):
+        idxs = self.topology.dihedrals_any_atom[self.mask]
+        return [AtomSelection(self.molsys, idx) for idx in idxs]
+
+    @property
+    def bonded_atoms(self):
+        all_idxs = np.unique(np.concatenate(self.topology.bonds_any_atom[self.mask]))
+        all_idxs  = np.array([idx for idx in all_idxs if idx != self.mask])
+        return AtomSelection(self.molsys, all_idxs)
 
 
 class Residue(MolecularSystemBase):
@@ -1113,6 +1158,8 @@ class Residue(MolecularSystemBase):
 
     def __len__(self):
         return len(self.mask)
+
+
 
     def phi_selection(self):
         """

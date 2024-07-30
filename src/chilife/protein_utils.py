@@ -994,7 +994,24 @@ def parse_sequence(sequence: str) -> List[str]:
     return parsed_sequence
 
 
-def smiles2residue(smiles):
+def smiles2residue(smiles, **kwargs):
+    """
+    Create a protein residue from a smiles string. Smiles string must contain an N-C-C-O dihedral to identify the
+    protein backbone. If no dihedral is found or there are too many N-C-C-O dihedrals that are indistinguishable
+    this function will fail.
+
+
+    Parameters
+    ----------
+    smiles : str
+        SMILES string to convert to 3d and a residue
+    kwargs : dict
+        Keyword arguments to pass to rdkit.AllChem.EmbedMolecule (usually randomSeed)
+
+    Returns
+    -------
+
+    """
 
     if not rdkit_found:
         raise RuntimeError("Using smiles2residue or make_peptide with a smile string requires rdkit to be installed.")
@@ -1002,8 +1019,10 @@ def smiles2residue(smiles):
     mol = Chem.MolFromSmiles(smiles)
     mol = Chem.AddHs(mol)
 
-    AllChem.EmbedMolecule(mol)
+    AllChem.EmbedMolecule(mol, **kwargs)
+    print(mol.GetConformer().GetPositions())
     AllChem.MMFFOptimizeMolecule(mol, maxIters=200)
+
     res = MolSys.from_rdkit(mol)
 
     atoms = res.atoms

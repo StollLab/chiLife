@@ -327,7 +327,7 @@ s2rans = [f"test_data/s2rm{i+1}.pdb" for i in range(len(s2rkeys))]
 
 @pytest.mark.parametrize('key, ans', zip(s2rkeys, s2rans))
 def test_smiles2residue(key, ans):
-    m1 = chilife.smiles2residue(key)
+    m1 = chilife.smiles2residue(key, randomSeed=0)
 
     chilife.save(ans[-9:], m1)
 

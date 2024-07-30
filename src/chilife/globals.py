@@ -56,7 +56,16 @@ mm_backbones = {'aa': ['N', 'CA', 'C', 'O'],
 
 
 inataa = {val: key for key, val in nataa_codes.items() if key not in ('CME', 'MSE')}
-
 nataa_codes.update(inataa)
 del inataa
+
+
+# Define rotamer dihedral angle atoms
+with open(RL_DIR / "ncaps.txt", "r") as f:
+     ncaps = tuple(f.readline().split())
+
+with open(RL_DIR / "ccaps.txt", "r") as f:
+    ccaps = tuple(f.readline().split())
+
+
 

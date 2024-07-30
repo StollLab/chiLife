@@ -1,5 +1,6 @@
 import os, hashlib
 import pickle
+import random
 from functools import partial
 import numpy as np
 import pytest
@@ -311,6 +312,12 @@ def test_make_peptide():
     os.remove('test.pdb')
 
 
+def test_make_pep_w_cap():
+    pep = chilife.make_peptide("[ACE]A[R1M]A[NME]")
+    ans = np.load('test_data/ACE_AR1A_NME.npy')
+
+    np.testing.assert_almost_equal(pep.positions, ans)
+
 def test_parsed_sequence():
     pseq = chilife.parse_sequence("[ACE]AaNIE<cccn>[NHH]")
     for a, b in zip(pseq, ['ACE', 'ALA', 'ALA', 'ASN', 'ILE', 'GLU', 'cccn', 'NHH']):
@@ -339,7 +346,43 @@ def test_smiles2residue(key, ans):
         lines = "".join(f.readlines()).encode('utf8')
         ahash = hashlib.md5(lines).hexdigest()
 
-    # os.remove(ans[-9:])
-
     assert ahash == thash
+    os.remove(ans[-9:])
+
+
+def test_append_cap():
+    pep = chilife.MolSys.from_pdb('test_data/test_make_peptide.pdb')
+    new_pep = chilife.append_cap(pep, 'ace')
+    new_pep = chilife.append_cap(new_pep, 'nme')
+
+    ace_coords = np.array([[-0.71151672,  0.70074469,  1.079],
+                           [-0.20855331,  0.31361576,  2.143],
+                           [-2.19042394,  0.52337943,  0.807],
+                           [-2.76912818,  1.04532425,  1.555],
+                           [-2.43670102,  0.92200281, -0.166],
+                           [-2.44840932, -0.52553265,  0.832]])
+
+    assert new_pep.residues[0].resname == 'ACE'
+    assert new_pep.residues[0].resnum == 0
+    np.testing.assert_allclose(new_pep.residues[0].positions, ace_coords)
+
+    nhh_coords = np.array([[21.63728595, 20.70101107, 18.63843541],
+                           [21.81199224, 22.11387508, 18.92988522],
+                           [20.84481362, 20.39311986, 18.09318996],
+                           [21.42355845, 22.33956019, 19.91116725],
+                           [22.86200865, 22.37037609, 18.90219429],
+                           [21.28635322, 22.70933948, 18.19786284]])
+
+
+    assert new_pep.residues[-1].resname == 'NME'
+    assert new_pep.residues[-1].resnum == 24
+    np.testing.assert_allclose(new_pep.residues[-1].positions, nhh_coords)
+
+
+
+def test__add_cap():
+    chilife.store_cap('ACE', 'test_data/ACE_A_NME.pdb', 'N')
+    chilife.store_cap('NME', 'test_data/ACE_A_NME.pdb', 'C')
+
+
 

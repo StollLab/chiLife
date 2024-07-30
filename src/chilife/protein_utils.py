@@ -4,6 +4,8 @@ import pickle, math, rtoml
 from pathlib import Path
 from typing import Set, List, Union, Tuple
 
+from setuptools._distutils import text_file
+
 import chilife
 from numpy.typing import ArrayLike
 from scipy.spatial.distance import cdist
@@ -24,8 +26,7 @@ from MDAnalysis.core.topologyattrs import Atomindices, Resindices, Segindices, S
 import MDAnalysis as mda
 
 from .globals import SUPPORTED_RESIDUES
-from .MolSys import MolecularSystemBase, MolSys
-from .Topology import get_angle_defs, get_dihedral_defs
+from .MolSys import MolecularSystemBase, MolSys, concat_molsys
 from .numba_utils import get_sasa, _ic_to_cart
 from .pdb_utils import get_backbone_atoms, get_bb_candidates
 import chilife as xl
@@ -876,6 +877,9 @@ def make_peptide(sequence: str) -> MolSys:
     atom_idx = 0
     residue_idx = 0
     prev_N = 0
+
+    ncap = None
+    ccap = None
     for res in seqiter:
         if res in base_IC:
             msysIC = base_IC[res]
@@ -889,6 +893,12 @@ def make_peptide(sequence: str) -> MolSys:
             msysIC = RL.internal_coords
             msysIC.trajectory[idxmax]
             base_IC[res] = msysIC
+        elif res in xl.ncaps:
+            ncap = res
+            continue
+        elif res in xl.ccaps:
+            ccap = res
+            continue
         else:
             mol = smiles2residue(res)
             msysIC = xl.MolSysIC.from_atoms(mol)
@@ -898,6 +908,8 @@ def make_peptide(sequence: str) -> MolSys:
         resnames.append(msysIC.atom_resnames)
         resnums.append(msysIC.atom_resnums + residue_idx)
         resindices.append(msysIC.atom_resnums + residue_idx-1)
+
+        # Set backbone dihedrals
         msysIC.set_dihedral(2.32129, 1, ['N', 'CA', 'C', 'O'])
         if 'H' in msysIC.atom_names:
             msysIC.set_dihedral(2.14675, 1, ['C', 'CA', 'N', 'H'])
@@ -935,6 +947,12 @@ def make_peptide(sequence: str) -> MolSys:
     segids = np.array(['A'] * len(anames))
 
     mol = MolSys.from_arrays(anames, atypes, resnames, resindices, resnums, segindices, segids, trajectory)
+
+    if ncap is not None:
+        mol = append_cap(mol, ncap)
+    if ccap is not None:
+        mol = append_cap(mol, ccap)
+
     return mol
 
 
@@ -1093,6 +1111,67 @@ def smiles2residue(smiles, **kwargs):
     os.remove('UNK.pdb')
 
     return Msys
+
+def append_cap(mol, cap):
+
+    cap_name = cap.upper()
+    term = "N" if cap_name in xl.ncaps else "C" if cap_name in xl.ccaps else None
+    caps = xl.ncaps if cap_name in xl.ncaps else xl.ccaps if cap_name in xl.ccaps else None
+
+    if term == "N":
+        neighbor = mol.residues[0]
+    elif term == "C":
+        neighbor = mol.residues[-1]
+    else:
+        raise RuntimeError('`term` not found in neighboring residue. Note that `term` must be an `N` or a `C`.')
+
+    nmx, nori = xl.global_mx(*neighbor.select_atoms('name N CA C').positions)
+    cap_struct = xl.MolSys.from_pdb(xl.RL_DIR / f'cap_pdbs/{cap_name}.pdb')
+
+    cap_struct.positions = cap_struct.positions @ nmx + nori
+    systems = [cap_struct, mol] if term == "N" else [mol, cap_struct]
+
+    mol = concat_molsys(systems)
+
+    return mol
+
+
+def store_cap(name, mol, term):
+    name = name.upper()
+    term = term.upper()
+    if isinstance(mol, (str, Path)):
+        mol = xl.MolSys.from_pdb(mol)
+    elif isinstance(mol, (mda.Universe, mda.AtomGroup)):
+        mol = xl.MolSys.from_atomsel(mol)
+
+    bonds = chilife.guess_bonds(mol.positions, mol.types)
+    top = chilife.Topology(mol, bonds)
+    mol.topology = top
+
+    if term == "N":
+        cap = mol.residues[0]
+        neighbor = mol.residues[1]
+        txt_file = xl.RL_DIR / f'ncaps.txt'
+        resnum=0
+
+    elif term == "C":
+        cap = mol.residues[-1]
+        neighbor = mol.residues[-2]
+        txt_file = xl.RL_DIR / f'ccaps.txt'
+        resnum = 1
+    else:
+        raise RuntimeError('`term` not found in neighboring residue. Note that `term` must be an `N` or a `C`.')
+
+    ori, mx = xl.local_mx(*neighbor.select_atoms("name N CA C").positions)
+    cap.positions = (cap.positions - ori) @ mx
+    with open(txt_file, 'r+') as f:
+        line = f.readline()
+        keys = line.split()
+        if name not in keys:
+            f.write(f" {name}")
+    cap.resnum = resnum
+    xl.save(xl.RL_DIR / f'cap_pdbs/{name}.pdb', cap)
+
 
 def get_grid_mx(N, CA, C):
     """

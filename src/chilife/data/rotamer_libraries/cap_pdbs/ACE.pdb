@@ -1,0 +1,10 @@
+HEADER test_data/ACE_A_NME
+MODEL 0
+ATOM      0  C   ACE     0      -1.079   1.392   1.808  1.00  1.00           C  
+ATOM      1  O   ACE     0      -2.143   1.197   1.204  1.00  1.00           O  
+ATOM      2 CH3  ACE     0      -0.807   2.711   2.500  1.00  1.00           C  
+ATOM      3 1HH3 ACE     0      -1.555   2.892   3.258  1.00  1.00           H  
+ATOM      4 2HH3 ACE     0       0.166   2.688   2.968  1.00  1.00           H  
+ATOM      5 3HH3 ACE     0      -0.832   3.518   1.782  1.00  1.00           H  
+TER
+ENDMDL

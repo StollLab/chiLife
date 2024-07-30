@@ -1269,3 +1269,49 @@ def within(distance, mask, molsys):
 
 
 within.nargs = 1
+
+
+def concat_molsys(systems):
+    anames = []
+    atypes = []
+    resnames = []
+    resnums = []
+    resindices = []
+    trajectory = []
+    segindices = []
+    segids = []
+
+    last_res = 0
+    last_segid = None
+    for sys in systems:
+
+        if last_segid is not None and last_segid != sys.segid:
+            # Reset resnum count
+            last_res = 0
+
+        resnum = sys.resnums + last_res
+        last_res = resnum.max()
+
+        resind = sys.resindices + resindices[-1][-1] if len(resindices) > 0 else sys.resindices
+
+        anames.append(sys.names)
+        atypes.append(sys.atypes)
+        resnames.append(sys.resnames)
+        resnums.append(resnum)
+        resindices.append(resind)
+        trajectory.append(sys.positions)
+        segindices.append(sys.segindices)
+        segids.append([segid if len(segid) == 1 else 'A' for segid in sys.segids])
+
+    anames = np.concatenate(anames)
+    atypes = np.concatenate(atypes)
+    resnames = np.concatenate(resnames)
+    resnums = np.concatenate(resnums)
+    resindices = np.concatenate(resindices)
+    segindices = np.concatenate(segindices)
+    segids = np.concatenate(segids)
+    trajectory = np.concatenate(trajectory)
+
+    mol = MolSys.from_arrays(anames, atypes, resnames, resindices, resnums, segindices, segids, trajectory)
+
+    return mol

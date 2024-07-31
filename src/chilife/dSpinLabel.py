@@ -55,6 +55,9 @@ class dSpinLabel(dRotamerEnsemble):
 
 
     def create_ensembles(self):
+        """Overrides parent ``create_ensemble`` method to create monofunctional components of the bifunctional rotamer
+        ensemble. Major difference is that it creates self.SL1/2 properties in addition to self.RE1/2"""
+
         self.SL1 = chilife.SpinLabel(self.res,
                                      self.site1,
                                      self.protein,

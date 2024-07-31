@@ -14,15 +14,15 @@ import chilife
 
 
 # TODO:
-#   Performance enhancement: Preconstruct Atom objects
 #   Behavior: AtomSelections should have orders to be enforced when indexing.
-#   Performance enhancement: Find a faster way to retrieve coordinate data from trajectory @property seems to have
-#   Feature: Add from_mda class method.
+
 masked_properties = ('atomids', 'names', 'altlocs', 'resnames', 'resnums', 'chains', 'occupancies',
                      'bs', 'segs', 'segids', 'atypes', 'types', 'charges', 'ix', 'resixs', 'segixs', '_Atoms', 'atoms')
 
 singles = ('name', 'altloc', 'altLoc', 'atype', 'type', 'resn', 'resname', 'resnum', 'resid' 'resi', 'chain',
            'segid', 'charge')
+
+
 class MolecularSystemBase:
     """Base class for molecular systems containing attributes universal to """
 
@@ -184,10 +184,13 @@ class MolecularSystemBase:
         return AtomSelection(p2, self.mask.copy())
 
     def __iter__(self):
+        """Iterate over all atoms of the MolSys"""
         for idx in self.mask:
             yield self.molsys.atoms[idx]
 
     def __eq__(self, value):
+        """Checks if two molecular systems are equal by making sure they have the same ``self.molsys`` and the same
+        mask"""
         return self.molsys is value.molsys and self.mask == value.mask
 
 
@@ -535,6 +538,17 @@ class MolSys(MolecularSystemBase):
 
     @classmethod
     def from_rdkit(cls, mol):
+        """
+        Create a MolSys from an rdkit Mol object with embedded conformers.
+
+        Parameters
+        ----------
+        mol
+
+        Returns
+        -------
+
+        """
         atypes = np.array([a.GetSymbol() for a in mol.GetAtoms()])
         anames = np.array([a + str(i) for i, a in enumerate(atypes)])
         resnames = np.array(["UNK" for _ in anames])
@@ -542,14 +556,13 @@ class MolSys(MolecularSystemBase):
         resnums = np.array([1] * len(anames))
         segindices = np.array([0] * len(anames))
         segids = np.array(["A"] * len(anames))
-        trajectory = mol.GetConformer().GetPositions()
+        trajectory = np.array([conf.GetPositions() for conf in mol.GetConformers()])
         bonds = np.array([[b.GetBeginAtomIdx(), b.GetEndAtomIdx()] for b in mol.GetBonds()])
         return cls.from_arrays(anames, atypes, resnames, resindices, resnums, segindices, segids, trajectory, bonds=bonds)
 
     def copy(self):
-        """
-        Create a deep copy of the MolSys.
-        """
+        """Create a deep copy of the MolSys."""
+
         return MolSys(
             atomids=self.atomids,
             names=self.names,
@@ -567,7 +580,7 @@ class MolSys(MolecularSystemBase):
 
     def load_new(self, coordinates):
         """
-        Load a new set (trajectory or ensemble) of 3-dimensional coordinates into the MolSys.
+        Load a new set of 3-dimensional coordinates into the MolSys.
 
         Parameters
         ----------
@@ -777,6 +790,7 @@ def parse_paren(string):
         raise RuntimeError('The provided statement is missing a parenthesis or has an '
                            'extra one.')
     return results
+
 
 def check_operation(operation, stat_split, logickws):
     """
@@ -1159,8 +1173,6 @@ class Residue(MolecularSystemBase):
     def __len__(self):
         return len(self.mask)
 
-
-
     def phi_selection(self):
         """
         Get an :class:`~AtomSelection` of the atoms defining the Phi backbone dihedral angle of the residue.
@@ -1272,6 +1284,21 @@ within.nargs = 1
 
 
 def concat_molsys(systems):
+    """
+    Function to concatenate two or more :class:`~MolSys` objects into a single :class:`~MolSys` object. Atoms will be
+    concatenated in the order they are placed in the list.
+
+    Parameters
+    ----------
+    systems : List[MolSys]
+        List of :class:`~MolSys` objects to concatenate.
+
+    Returns
+    -------
+    mol : MolSys
+        The concatenated `~MolSys` object.
+    """
+
     anames = []
     atypes = []
     resnames = []

@@ -1,10 +1,8 @@
 import os
-import pickle, math, rtoml
+import pickle, math
 
 from pathlib import Path
 from typing import Set, List, Union, Tuple
-
-from setuptools._distutils import text_file
 
 import chilife
 from numpy.typing import ArrayLike
@@ -255,6 +253,23 @@ def set_dihedral(p: ArrayLike, angle: float, mobile: ArrayLike) -> ArrayLike:
     return new_mobile
 
 def guess_mobile_dihedrals(ICs, aln_atoms=None):
+    """
+    Guess the flexible, uniqe, side chain dihedrals of a MolSysIC object.
+
+    Parameters
+    ----------
+    ICs : MolSysIC
+        Internal coordinates object you wish to guess dihedrals for.
+
+    aln_atoms : List[str]
+        List of atom names corresponding to the "alignment atoms" of the molecule. These are usually the core backbone
+        atoms, e.g. N CA C for a protein.
+
+    Returns
+    -------
+    dihedral_defs : List[List[str]]
+        List of unique mobile dihedral definitions
+    """
     if aln_atoms is not None:
         root_idx = np.argwhere(ICs.atom_names == aln_atoms[1]).flat[0]
         aname_lst = ICs.atom_names.tolist()
@@ -305,7 +320,7 @@ def guess_mobile_dihedrals(ICs, aln_atoms=None):
 
 @dataclass
 class FreeAtom:
-    """Atom class for atoms in cartesian space.
+    """Atom class for atoms in cartesian space that do not belong to a MolSys.
 
     Attributes
     ----------
@@ -634,7 +649,8 @@ def randomize_rotamers(
 
 
 def get_sas_res(
-        protein: Union[mda.Universe, mda.AtomGroup], cutoff: float = 30,
+        protein: Union[mda.Universe, mda.AtomGroup],
+        cutoff: float = 30,
         forcefield = 'charmm',
 ) -> Set[Tuple[int, str]]:
     """Run FreeSASA to get solvent accessible surface residues in the provided protein
@@ -645,6 +661,8 @@ def get_sas_res(
         MolSys object to measure Solvent Accessible Surfaces (SAS) area of and report the SAS residues.
     cutoff : float
         Exclude residues from list with SASA below cutoff in angstroms squared.
+    forcefield : Union[str, chilife.ForceField]
+        Forcefiled to use defining atom radii for calculating solvent accessibility.
 
     Returns
     -------
@@ -833,11 +851,12 @@ def make_mda_uni(anames: ArrayLike,
 
     return mda_uni
 
+
 def make_peptide(sequence: str) -> MolSys:
     """
-    Create a peptide from a string of amino acids. NCAA and smiles can be inserted by using a square brackets, e.g.
-    ``[ACE]AA[C1=CC2=C(C(=C1)F)C(=CN2)CC(C(=O)O)N]AA[NHH]`` where ACE and NHH are NCAA caps and
-    [C1=CC2=C(C(=C1)F)C(=CN2)CC(C(=O)O)N] is a smiles for a NCAA
+    Create a peptide from a string of amino acids. chilife NCAA rotamer libraries and smiles can be inserted by using
+    square brackets and angle brackets respectively , e.g. ``[ACE]AA<C1=CC2=C(C(=C1)F)C(=CN2)CC(C(=O)O)N>AA[NME]``
+    where ACE and NME are peptide caps and <C1=CC2=C(C(=C1)F)C(=CN2)CC(C(=O)O)N> is a smiles for a NCAA
 
     Parameters
     ----------
@@ -958,8 +977,8 @@ def make_peptide(sequence: str) -> MolSys:
 
 def parse_sequence(sequence: str) -> List[str]:
     """
-    Input a string of amino acids with mized 1-letter codes, square brackted ``[]`` 3 letter codes or angle ``<>``
-    bracketed smiles and return a list of 3 letter codes and smiles.
+    Input a string of amino acids with mized 1-letter codes, square brackted ``[]`` 3-letter codes or angle ``<>``
+    bracketed smiles and return a list of 3-letter codes and smiles.
 
     Parameters
     ----------
@@ -1012,7 +1031,7 @@ def parse_sequence(sequence: str) -> List[str]:
     return parsed_sequence
 
 
-def smiles2residue(smiles, **kwargs):
+def smiles2residue(smiles : str, **kwargs) -> MolSys:
     """
     Create a protein residue from a smiles string. Smiles string must contain an N-C-C-O dihedral to identify the
     protein backbone. If no dihedral is found or there are too many N-C-C-O dihedrals that are indistinguishable
@@ -1028,7 +1047,8 @@ def smiles2residue(smiles, **kwargs):
 
     Returns
     -------
-
+    msys : MolSys
+        chiLife molecular system object containing the smiles string as a 3D molecule and single residue.
     """
 
     if not rdkit_found:
@@ -1111,11 +1131,26 @@ def smiles2residue(smiles, **kwargs):
 
     return Msys
 
-def append_cap(mol, cap):
+
+def append_cap(mol : MolSys, cap : str) -> MolSys:
+    """
+    Append a peptide cap to a molecular system.
+
+    Parameters
+    ----------
+    mol : MolSys
+        The molecular system to be capped.
+    cap : str
+        The name (3-letter identifier) of the cap to be attached.
+
+    Returns
+    -------
+    mol : MolSys
+        The molecular system with the cap.
+    """
 
     cap_name = cap.upper()
     term = "N" if cap_name in xl.ncaps else "C" if cap_name in xl.ccaps else None
-    caps = xl.ncaps if cap_name in xl.ncaps else xl.ccaps if cap_name in xl.ccaps else None
 
     if term == "N":
         neighbor = mol.residues[0]
@@ -1136,6 +1171,22 @@ def append_cap(mol, cap):
 
 
 def store_cap(name, mol, term):
+    """
+    Save the cap attached to a molecule. A pdb file will be saved in the chilife/data/rotamer_libraries/cap_pdbs folder
+    with the provided name and the cap will be registered in either the ncaps.txt or ccaps.txt file in the
+    chilife/data/rotamer_libraries directory.
+
+    Parameters
+    ----------
+    name : str
+        Name (3-letter identifier) of the cap to be attached.
+    mol : str, Path, Universe, AtomGroup, MolSys
+        Path, MDA.AtomGroup or MolSys object containing the cap. The cap must be its own residue number, i.e. not merged
+        with the reside before or after it.
+    term: str
+        The terminus the cap is attached to. Only two values are accepted ``N`` and ``C``
+    """
+
     name = name.upper()
     term = term.upper()
     if isinstance(mol, (str, Path)):
@@ -1224,14 +1275,14 @@ def write_grid(grid, name='grid.pdb', atype='Se'):
     """
     Given an array of 3-dimensional points (a grid usually), write a PDB so the grid can be visualized.
 
-
     Parameters
     ----------
     grid : ArrayLike
         The 3D points to write
-
     name: str
         The name of the file to write the grid to.
+    atype : str
+        Atom type to use for the grid.
     """
 
     with open(name, 'w') as f:

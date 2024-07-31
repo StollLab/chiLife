@@ -386,6 +386,14 @@ class dRotamerEnsemble:
             self.evaluate()
 
     def guess_chain(self):
+        """
+        Function to guess the chain based off of the attached protein and residue number.
+
+        Returns
+        -------
+        chain : str
+            The chain name
+        """
         if self.protein is None:
             chain = "A"
         elif len(set(self.protein.segments.segids)) == 1:
@@ -403,6 +411,17 @@ class dRotamerEnsemble:
         return chain
 
     def get_lib(self, rotlib):
+        """
+        Specil function to get a rotamer library for a dRotamerEnsemble and apply all attributes to the object
+        instance. ``rotlib`` can be a residue name, a file name, or a dictionary containing all  the standard entries
+        of a rotamer library.
+
+        Parameters
+        ----------
+        rotlib : Union[Path, str, dict]
+            The name of the residue, the Path to the rotamer library file or a dictionary containing all entries of a
+            rotamer library
+        """
 
         # If given a dictionary use that as the rotlib
         if isinstance(rotlib, dict):
@@ -493,6 +512,7 @@ class dRotamerEnsemble:
         self.kwargs["eval_clash"] = False
 
     def create_ensembles(self):
+        """Creates monofunctional components of the bifunctional rotamer ensemble."""
 
         self.RE1 = re.RotamerEnsemble(self.res,
                                    self.site1,

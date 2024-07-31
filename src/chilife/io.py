@@ -50,7 +50,9 @@ def read_distance_distribution(file_name: str) -> Tuple[np.ndarray, np.ndarray]:
     data = np.loadtxt(file_name)
 
     # Convert nm to angstroms
-    r = data[:, 0] * 10
+    r = data[:, 0]
+    if max(r) < 15:
+        r *= 10
 
     # Extract distance domain coordinates
     p = data[:, 1]
@@ -370,7 +372,7 @@ def save(
         Additional arguments to pass to ``write_labels``
 
         write_spin_centers : bool
-            Write spin centers (atoms named NEN) as a seperate object with weights mapped to q-factor.
+            Write spin centers (atoms named NEN) as a separate object with weights mapped to q-factor.
 
     """
 
@@ -526,7 +528,6 @@ def load_protein(struct_file: Union[str, Path],
             protein = mda.Universe(struct_file, in_memory=True)
 
     return protein
-
 
 
 def write_protein(pdb_file: TextIO, protein: Union[mda.Universe, mda.AtomGroup, MolecularSystemBase], name: str = None) -> None:

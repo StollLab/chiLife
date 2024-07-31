@@ -78,6 +78,7 @@ class Topology:
 
     @property
     def ring_idxs(self):
+        """Indices of atoms that are a part of one or more rings."""
         return simple_cycle_vertices(self.graph)
 
     @property

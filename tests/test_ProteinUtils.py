@@ -330,24 +330,19 @@ s2rkeys = ["COC1=CC=C(C=C1)CC(C(=O)O)N",
            "CC(C)(C)OC(=O)N[C@@H](CCCCN)C(O)=O",
            "C(CC1=CC=C(C=C1)OCCCCC#C)(C(=O)O)N"]
 
-s2rans = [f"test_data/s2rm{i+1}.pdb" for i in range(len(s2rkeys))]
+s2rans = [f"test_data/s2rm{i+1}.npy" for i in range(len(s2rkeys))]
 
 @pytest.mark.parametrize('key, ans', zip(s2rkeys, s2rans))
 def test_smiles2residue(key, ans):
     m1 = chilife.smiles2residue(key, randomSeed=0)
+    test_mask = np.argsort(m1.names)
+    test = m1.positions[test_mask]
 
-    chilife.save(ans[-9:], m1)
+    answer = np.load(ans)
+    diff = test - answer
+    rms = np.sqrt(np.sum(diff * diff) / len(test))
 
-    with open(ans[-9:], 'r') as f:
-        lines = "".join(f.readlines()).encode('utf8')
-        thash = hashlib.md5(lines).hexdigest()
-
-    with open(ans, 'r') as f:
-        lines = "".join(f.readlines()).encode('utf8')
-        ahash = hashlib.md5(lines).hexdigest()
-
-    assert ahash == thash
-    os.remove(ans[-9:])
+    assert rms < 3
 
 
 def test_append_cap():

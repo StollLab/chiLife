@@ -1038,7 +1038,6 @@ def smiles2residue(smiles, **kwargs):
     mol = Chem.AddHs(mol)
 
     AllChem.EmbedMolecule(mol, **kwargs)
-    print(mol.GetConformer().GetPositions())
     AllChem.MMFFOptimizeMolecule(mol, maxIters=200)
 
     res = MolSys.from_rdkit(mol)

@@ -299,10 +299,18 @@ def test_get_site_volume():
 def test_make_peptide():
     pep = chilife.make_peptide("ACDEF[R1M]GHIKL<COC1=CC=C(C=C1)CC(C(=O)O)N>MNPQR[R1C]STVWY")
 
-    np.save('test_data/test_mk_pep.npy', pep.positions)
+    test = pep.positions.copy()
     ans = np.load('test_data/test_mk_pep.npy')
 
-    np.testing.assert_almost_equal(pep.positions, ans)
+    ans -= np.mean(ans, axis=0)
+
+    test -= np.mean(test, axis=0)
+    mx = np.linalg.inv(test.T @ test) @ test.T @ ans
+    test = test @ mx
+    diff = test - ans
+    rms = np.sqrt(np.sum(diff * diff) / len(test))
+
+    assert  rms < 3
 
 
 def test_make_pep_w_cap():

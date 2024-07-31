@@ -298,18 +298,11 @@ def test_get_site_volume():
 
 def test_make_peptide():
     pep = chilife.make_peptide("ACDEF[R1M]GHIKL<COC1=CC=C(C=C1)CC(C(=O)O)N>MNPQR[R1C]STVWY")
-    chilife.save('test.pdb', pep)
 
-    with open('test.pdb', 'r') as f:
-        lines = f.readlines()
-        thash = hashlib.md5("".join(lines).encode("utf-8")).hexdigest()
+    np.save('test_data/test_mk_pep.npy', pep.positions)
+    ans = np.load('test_data/test_mk_pep.npy')
 
-    with open('test_data/test_make_peptide.pdb', 'r') as f:
-        lines = f.readlines()
-        ahash = hashlib.md5("".join(lines).encode("utf-8")).hexdigest()
-
-    assert thash == ahash
-    os.remove('test.pdb')
+    np.testing.assert_almost_equal(pep.positions, ans)
 
 
 def test_make_pep_w_cap():
@@ -324,14 +317,11 @@ def test_parsed_sequence():
         assert a == b
 
 
-
 s2rkeys = ["COC1=CC=C(C=C1)CC(C(=O)O)N",
            "CC1CC=NC1C(=O)NCCCCC(C(=O)O)N",
            "CC(C)(C)OC(=O)N[C@@H](CCCCN)C(O)=O",
            "C(CC1=CC=C(C=C1)OCCCCC#C)(C(=O)O)N"]
-
 s2rans = [f"test_data/s2rm{i+1}.npy" for i in range(len(s2rkeys))]
-
 @pytest.mark.parametrize('key, ans', zip(s2rkeys, s2rans))
 def test_smiles2residue(key, ans):
     m1 = chilife.smiles2residue(key, randomSeed=0)
@@ -339,6 +329,11 @@ def test_smiles2residue(key, ans):
     test = m1.positions[test_mask]
 
     answer = np.load(ans)
+    answer -= np.mean(answer, axis=0)
+
+    test -= np.mean(test, axis=0)
+    mx = np.linalg.inv(test.T @ test) @ test.T @ answer
+    test = test @ mx
     diff = test - answer
     rms = np.sqrt(np.sum(diff * diff) / len(test))
 

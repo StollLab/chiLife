@@ -41,13 +41,23 @@ class Topology:
         self.atom_names = self.atoms.names
         self.atom_idxs = np.arange(len(mol))
         self.bonds = bonds
+        self.bonds_any_atom = {}
+        for b in self.bonds:
+            for at in b:
+                self.bonds_any_atom.setdefault(at, []).append(b)
 
         self.graph = kwargs.get('graph', self._make_graph())
         self.angles = kwargs.get('angles', get_angle_defs(self.graph))
+        self.angles_any_atom = {}
+        for a in self.angles:
+            for at in a:
+                self.angles_any_atom.setdefault(at, []).append(a)
+
         self.dihedrals = kwargs.get('dihedrals', get_dihedral_defs(self.graph))
         self.degree = []
         self.dihedrals_by_bonds = {}
         self.dihedrals_by_atoms = {}
+        self.dihedrals_any_atom = {}
         self.dihedrals_by_resnum = {}
 
         for dihe in self.dihedrals:
@@ -57,6 +67,10 @@ class Topology:
 
             e_list = self.dihedrals_by_atoms.setdefault(e, [])
             e_list.append(dihe)
+
+            for at in dihe:
+                self.dihedrals_any_atom.setdefault(at, []).append(dihe)
+
             n1, n2, n3, n4 = self.atom_names[list(dihe)]
             r1 = self.atoms[c].resnum
             c1 = self.atoms[c].segid
@@ -64,6 +78,7 @@ class Topology:
 
     @property
     def ring_idxs(self):
+        """Indices of atoms that are a part of one or more rings."""
         return simple_cycle_vertices(self.graph)
 
     @property
@@ -72,7 +87,6 @@ class Topology:
             return False
         else:
             return True
-
 
     def get_zmatrix_dihedrals(self):
         """
@@ -106,7 +120,8 @@ class Topology:
                     runner_ups.append(dihe)
             else:
                 if len(runner_ups) > 0:
-                    zmatrix_dihedrals.append(list(runner_ups[0]))
+                    minrup = np.argmin(np.sum(np.abs(np.diff(runner_ups, axis=1)), axis=1))
+                    zmatrix_dihedrals.append(list(runner_ups[minrup]))
 
         return zmatrix_dihedrals
 

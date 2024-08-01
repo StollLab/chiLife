@@ -123,7 +123,6 @@ class dRotamerEnsemble:
     backbone_atoms = ["H", "N", "CA", "HA", "C", "O"]
 
     def __init__(self, res, sites, protein=None, chain=None, rotlib=None, **kwargs):
-        """ """
         self.res = res
         self.site1, self.site2 = sorted(sites)
         self.site = self.site1
@@ -329,6 +328,7 @@ class dRotamerEnsemble:
     def non_bonded(self):
         """ Array of indices of intra-label non-bonded atom pairs. Primarily used for internal clash evaluation when
         sampling the dihedral space"""
+
         if not hasattr(self, "_non_bonded"):
             pairs = {v.index: [path for path in self._graph.get_all_shortest_paths(v) if
                            len(path) <= (self._exclude_nb_interactions)] for v in self._graph.vs}
@@ -347,6 +347,7 @@ class dRotamerEnsemble:
         inp : ArrayLike
             List of atom ID pairs that are not bonded
         """
+
         self._non_bonded = set(tuple(i) for i in inp)
         idxs = np.arange(len(self.atom_names))
         all_pairs = set(combinations(idxs, 2))
@@ -385,6 +386,14 @@ class dRotamerEnsemble:
             self.evaluate()
 
     def guess_chain(self):
+        """
+        Function to guess the chain based off of the attached protein and residue number.
+
+        Returns
+        -------
+        chain : str
+            The chain name
+        """
         if self.protein is None:
             chain = "A"
         elif len(set(self.protein.segments.segids)) == 1:
@@ -402,6 +411,17 @@ class dRotamerEnsemble:
         return chain
 
     def get_lib(self, rotlib):
+        """
+        Specil function to get a rotamer library for a dRotamerEnsemble and apply all attributes to the object
+        instance. ``rotlib`` can be a residue name, a file name, or a dictionary containing all  the standard entries
+        of a rotamer library.
+
+        Parameters
+        ----------
+        rotlib : Union[Path, str, dict]
+            The name of the residue, the Path to the rotamer library file or a dictionary containing all entries of a
+            rotamer library
+        """
 
         # If given a dictionary use that as the rotlib
         if isinstance(rotlib, dict):
@@ -492,6 +512,7 @@ class dRotamerEnsemble:
         self.kwargs["eval_clash"] = False
 
     def create_ensembles(self):
+        """Creates monofunctional components of the bifunctional rotamer ensemble."""
 
         self.RE1 = re.RotamerEnsemble(self.res,
                                    self.site1,

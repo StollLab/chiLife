@@ -87,22 +87,6 @@ xl.save('MBP_L20R1_S238R1.pdb', SL1, SL2, MBP)
 
 ![MBP L20R1 S238R1 Structure](https://github.com/StollLab/chiLife/raw/main/img/L20R1_S238R1_Structure.png)
 
-
-### Mimicking MMM and mtsslWizard
-In addition to its own features, chiLife offers spin label modeling methods that mimic the popular MMM and mtsslWizard 
-modeling applications.
-
-```python
-import chilife as xl
-
-MBP = xl.fetch('1omp')
-SLmmm = xl.SpinLabel.from_mmm('R1M', site=238, protein=MBP)
-SLWiz = xl.SpinLabel.from_wizard('R1M', site=238, protein=MBP,
-                                 to_find=50, to_try=1000,  # Equivalent to 'quick' search, default is 'thorough'   
-                                 vdw=3.4, clashes=0,  # MTSSLWizard 'tight' setting, default is 'loose' 
-                                 )
-```
-
 ### Off-rotamer sampling and local repacking 
 One of the benefits of chiLife is the variety and customizable nature of spin label modeling methods. This includes 
 methods to sample side chain conformations that deviate from canonical dihedral angles and fixed rotamer libraries 

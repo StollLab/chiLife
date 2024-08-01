@@ -1,5 +1,6 @@
 import os, hashlib
 import pickle
+import random
 from functools import partial
 import numpy as np
 import pytest
@@ -295,19 +296,91 @@ def test_get_site_volume():
     np.testing.assert_almost_equal(vols, ans)
 
 
-# def test_preferred_dihedrals():
-#     dih = [['N', 'CA', 'CB', 'CB2'],
-#            ['CA', 'CB', 'CB2', 'CG'],
-#            ['ND', 'CE3', 'CZ3', 'C31'],
-#            ['CZ1', 'C11', 'C12', 'N12'],
-#            ['C11', 'C12', 'N12', 'C13'],
-#            ['C12', 'N12', 'C13', 'C14'],
-#            ['N12', 'C13', 'C14', 'C15']]
-#
-#     TEP = mda.Universe('test_data/TEP.pdb')
-#     IC = chiLife.get_internal_coords(TEP, resname='TEP', preferred_dihedrals=dih)
-#     IC2 = chiLife.get_internal_coords(TEP, resname='TEP')
-#
-#     IC.get_dihedral(1, dih)
-#     with pytest.raises(ValueError):
-#         IC2.get_dihedral(1, dih)
+def test_make_peptide():
+    pep = chilife.make_peptide("ACDEF[R1M]GHIKL<COC1=CC=C(C=C1)CC(C(=O)O)N>MNPQR[R1C]STVWY")
+
+    test = pep.positions.copy()
+    ans = np.load('test_data/test_mk_pep.npy')
+
+    ans -= np.mean(ans, axis=0)
+
+    test -= np.mean(test, axis=0)
+    mx = np.linalg.inv(test.T @ test) @ test.T @ ans
+    test = test @ mx
+    diff = test - ans
+    rms = np.sqrt(np.sum(diff * diff) / len(test))
+
+    assert  rms < 3
+
+
+def test_make_pep_w_cap():
+    pep = chilife.make_peptide("[ACE]A[R1M]A[NME]")
+    ans = np.load('test_data/ACE_AR1A_NME.npy')
+
+    np.testing.assert_almost_equal(pep.positions, ans)
+
+def test_parsed_sequence():
+    pseq = chilife.parse_sequence("[ACE]AaNIE<cccn>[NHH]")
+    for a, b in zip(pseq, ['ACE', 'ALA', 'ALA', 'ASN', 'ILE', 'GLU', 'cccn', 'NHH']):
+        assert a == b
+
+
+s2rkeys = ["COC1=CC=C(C=C1)CC(C(=O)O)N",
+           "CC1CC=NC1C(=O)NCCCCC(C(=O)O)N",
+           "CC(C)(C)OC(=O)N[C@@H](CCCCN)C(O)=O",
+           "C(CC1=CC=C(C=C1)OCCCCC#C)(C(=O)O)N"]
+s2rans = [f"test_data/s2rm{i+1}.npy" for i in range(len(s2rkeys))]
+@pytest.mark.parametrize('key, ans', zip(s2rkeys, s2rans))
+def test_smiles2residue(key, ans):
+    m1 = chilife.smiles2residue(key, randomSeed=0)
+    test_mask = np.argsort(m1.names)
+    test = m1.positions[test_mask]
+
+    answer = np.load(ans)
+    answer -= np.mean(answer, axis=0)
+
+    test -= np.mean(test, axis=0)
+    mx = np.linalg.inv(test.T @ test) @ test.T @ answer
+    test = test @ mx
+    diff = test - answer
+    rms = np.sqrt(np.sum(diff * diff) / len(test))
+
+    assert rms < 3
+
+
+def test_append_cap():
+    pep = chilife.MolSys.from_pdb('test_data/test_make_peptide.pdb')
+    new_pep = chilife.append_cap(pep, 'ace')
+    new_pep = chilife.append_cap(new_pep, 'nme')
+
+    ace_coords = np.array([[-0.71151672,  0.70074469,  1.079],
+                           [-0.20855331,  0.31361576,  2.143],
+                           [-2.19042394,  0.52337943,  0.807],
+                           [-2.76912818,  1.04532425,  1.555],
+                           [-2.43670102,  0.92200281, -0.166],
+                           [-2.44840932, -0.52553265,  0.832]])
+
+    assert new_pep.residues[0].resname == 'ACE'
+    assert new_pep.residues[0].resnum == 0
+    np.testing.assert_allclose(new_pep.residues[0].positions, ace_coords)
+
+    nhh_coords = np.array([[21.63728595, 20.70101107, 18.63843541],
+                           [21.81199224, 22.11387508, 18.92988522],
+                           [20.84481362, 20.39311986, 18.09318996],
+                           [21.42355845, 22.33956019, 19.91116725],
+                           [22.86200865, 22.37037609, 18.90219429],
+                           [21.28635322, 22.70933948, 18.19786284]])
+
+
+    assert new_pep.residues[-1].resname == 'NME'
+    assert new_pep.residues[-1].resnum == 24
+    np.testing.assert_allclose(new_pep.residues[-1].positions, nhh_coords)
+
+
+
+def test__add_cap():
+    chilife.store_cap('ACE', 'test_data/ACE_A_NME.pdb', 'N')
+    chilife.store_cap('NME', 'test_data/ACE_A_NME.pdb', 'C')
+
+
+

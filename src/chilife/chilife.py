@@ -732,20 +732,20 @@ def pre_add_library(
     return struct, spin_atoms
 
 
-def aln_sanity(internal_coords, resname, backbone_atoms=None, aln_atoms=None, ):
+def aln_sanity(internal_coords, resname, backbone_atoms=None, aln_atoms=None):
     """
-    Sanity check that the alignment coordinates of monofunctional rotamer ensembles and backbone indices are correct.
+    Sanity check that the alignment coordinates of mono-functional rotamer ensembles and backbone indices are correct.
 
     Parameters
     ----------
     internal_coords : chiLife.MolSysIC
         Internal coordinates of a rotamer ensemble.
+    resname : str
+        Name of the residue making up the rotamer ensemble.
     backbone_atoms: List[str]
         Names of the atoms belonging to the backbone rotamer ensemble.
     aln_atoms: List[str]
         Names of the atoms to use for alignments.
-    resname : str
-        Name of the residue making up the rotamer ensemble.
 
     Returns
     -------
@@ -796,6 +796,7 @@ def aln_sanity(internal_coords, resname, backbone_atoms=None, aln_atoms=None, ):
 
     return backbone_atoms, aln_atoms
 
+
 def prep_restype_savedict(
         libname: str,
         resname: str,
@@ -812,14 +813,9 @@ def prep_restype_savedict(
         comment: str = None,
         reference: str = None
 ) -> Dict:
-    """Helper function to add new residue types to chilife
-aln_atoms: List[str]
-        The three atoms defining the alignment coordinate frame of the target residue. Usually the N-CA-C atoms of
-        the protein backbone or similar for nucleotide backbones.
-    backbone_atoms: List[str]
-        Names of the atoms that correspond to backbone atoms. This includes aln_atoms and any other atoms that may need
-        to be adjusted to fit the target residue backbone, e.g. the hydrogen atoms of carboxyl oxygen atoms. Any atoms
-        not part of the backbone will be considered side chain atoms and may be subject to sampling.
+    """
+    Helper function to add new residue types to chilife.
+
     Parameters
     ----------
     libname : str
@@ -965,9 +961,9 @@ def add_library(filename: Union[str, Path], libname: str = None, default: bool =
     in the working directory when utilizing.
 
     .. note:: It is generally preferred to keep a custom directory of rotlibs and use
-        :func:`~chilife.chilife.add_rotlib_dir` to force chiLife to search that directory for rotlibs since this function
-        adds rotlibs to the chilife install directory that can be overwritten with updates and is not preserved when
-        updating python.
+        :func:`~chilife.chilife.add_rotlib_dir` to force chiLife to search that directory for rotlibs since this
+        function adds rotlibs to the chilife install directory that can be overwritten with updates and is not
+        preserved when updating python.
 
     Parameters
     ----------
@@ -1112,6 +1108,7 @@ def add_to_toml(file: Union[str, Path], key: str, value: Union[str, List, dict],
 def remove_from_toml(file: Union[str, Path], entry: str):
     """
     Remove an entry for a chilife toml file
+
     Parameters
     ----------
     file : str, Path
@@ -1169,6 +1166,7 @@ def add_to_defaults(resname: str, rotlib_name: str, default: bool = False):
 def remove_from_defaults(rotlib_name: str):
     """
     Helper function to remove a rotamer library from the defaults stack.
+
     Parameters
     ----------
     rotlib_name : str
@@ -1212,7 +1210,15 @@ def safe_save(file: Union[str, Path], data: dict, backup: dict):
         raise
 
 
-def _print_monofunc(files):
+def _print_monofunc(files: List[Path]):
+    """
+    Print information of a list of mono-functional rotamer libraries.
+
+    Parameters
+    ----------
+    files : List[Path]
+        List of Path objects corresponding to the rotamer library files.
+    """
     maxw = max([len(file.stem) for file in files]) - 6
     wrapper = textwrap.TextWrapper(width=80, subsequent_indent=" "*(maxw + 3),
                                    replace_whitespace=False, drop_whitespace=False)
@@ -1236,6 +1242,14 @@ def _print_monofunc(files):
 
 
 def _print_bifunc(files):
+    """
+    Print information of a list of bifunctional rotamer libraries.
+
+    Parameters
+    ----------
+    files : List[Path]
+        List of Path objects corresponding to the rotamer library files.
+    """
 
     maxw = max([len(file.stem) for file in files]) - 7
     wrapper = textwrap.TextWrapper(width=80, subsequent_indent=" "*(maxw + 3),
@@ -1298,9 +1312,6 @@ def list_available_rotlibs():
     print("*" * 80)
 
 
-
-
-
 def rotlib_info(rotlib: Union[str, Path]):
     """
     Display detailed information about the rotamer library.
@@ -1330,7 +1341,15 @@ def rotlib_info(rotlib: Union[str, Path]):
             _print_drotlib_info(lib_file)
 
 
-def _print_rotlib_info(lib_file):
+def _print_rotlib_info(lib_file: Union[str, Path]):
+    """
+    Print information about a single rotamer library file.
+
+    Parameters
+    ----------
+    lib_file : Union[str, Path]
+        string designating the path or a Path object to the rotamer library .npz file.
+    """
     lib = io.read_rotlib(lib_file)
     wrapper = textwrap.TextWrapper(width=80, subsequent_indent="    ", replace_whitespace=False, drop_whitespace=False)
 
@@ -1356,7 +1375,15 @@ def _print_rotlib_info(lib_file):
 
     print("\n".join(list(chain.from_iterable(myl))))
 
-def _print_drotlib_info(lib_file):
+def _print_drotlib_info(lib_file : Union[str, Path]):
+    """
+    Print information about a single bifunctional rotamer library file.
+
+    Parameters
+    ----------
+    lib_file : Union[str, Path]
+        String designating the path or a Path object to the bifunctional  rotamer library .zip file.
+    """
     lib = io.read_drotlib(lib_file)
     wrapper = textwrap.TextWrapper(width=80, subsequent_indent="    ", replace_whitespace=False, drop_whitespace=False)
 

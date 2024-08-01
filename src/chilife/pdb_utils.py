@@ -6,7 +6,6 @@ from numpy.typing import ArrayLike
 from scipy.spatial.distance import cdist
 import igraph as ig
 
-from .math_utils import simple_cycle_vertices
 from .globals import atom_order, nataa_codes, natnu_codes, mm_backbones
 from .Topology import get_min_topol, guess_bonds, modified_bfs_edges
 
@@ -197,6 +196,33 @@ def _sort_pdb_lines(lines, bonds=None, index=False, **kwargs) -> \
 
 
 def sort_residue(coords, atypes, anames, resname, presort_bonds, start, aln_atoms=None):
+    """
+    Sort atoms of a residue.
+
+    Parameters
+    ----------
+    coords : ArrayLike
+        cartesian coordinates of each atom.
+    atypes : ArrayLike
+        Element symbols of each atom.
+    anames : ArrayLike
+        names of each atom
+    resname : str
+        Name of the residue
+    presort_bonds : ArrayLike
+        Array of index pairs corresponding to bonded atom pairs. Index is based on the indices of atoms before sorting.
+    start : int
+        The index of the first atom of the residue in the greater protein environment.
+    aln_atoms : List
+        List of atom indices defining the "origin" of the residue. These will be used to define backbone and side chain
+        atoms.
+
+    Returns
+    -------
+    sorted_args : List[int]
+        Indices of the residue atoms based on the topology and the backbone/aln atoms.
+    """
+
     stop = start + len(anames)
     n_heavy = np.sum(atypes != 'H')
     res_coords = coords[start:stop]
@@ -409,6 +435,7 @@ def get_backbone_atoms(graph, root_idx, neighbor_idx, **kwargs):
         k1 = k2
     a, b = neighbor_idx
     return backbone_vs[slice(*bbidx_slices[b])] + backbone_vs[slice(*bbidx_slices[a])]
+
 
 def atom_sort_key(pdb_line: str) -> Tuple[str, int, int]:
     """Assign a base rank to sort atoms of a pdb.

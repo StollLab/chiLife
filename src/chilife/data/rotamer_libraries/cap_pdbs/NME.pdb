@@ -1,0 +1,10 @@
+HEADER test_data/ACE_A_NME
+MODEL 0
+ATOM     16  N   NME     1       0.825  -1.323   1.844  1.00  1.00           N  
+ATOM     17 CH3  NME     1       0.825  -2.498   2.699  1.00  1.00           C  
+ATOM     18  H   NME     1       1.471  -0.568   2.025  1.00  1.00           H  
+ATOM     19 1HH3 NME     1       0.053  -2.410   3.448  1.00  1.00           H  
+ATOM     20 2HH3 NME     1       0.640  -3.385   2.109  1.00  1.00           H  
+ATOM     21 3HH3 NME     1       1.782  -2.597   3.190  1.00  1.00           H  
+TER
+ENDMDL

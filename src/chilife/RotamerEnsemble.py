@@ -164,10 +164,9 @@ class RotamerEnsemble:
             raise RuntimeError('The kwarg `forcefield` must be a string or ForceField object.')
 
         # Parse important indices
-        self.backbone_idx = np.squeeze(np.argwhere(np.isin(self.atom_names, self.aln_atoms)))
-        self.side_chain_idx = np.argwhere(
-            np.isin(self.atom_names, self.backbone_atoms, invert=True)
-        ).flatten()
+        self.aln_idx = np.squeeze(np.argwhere(np.isin(self.atom_names, self.aln_atoms)))
+        self.backbone_idx = np.squeeze(np.argwhere(np.isin(self.atom_names, self.backbone_atoms)))
+        self.side_chain_idx = np.argwhere(np.isin(self.atom_names, self.backbone_atoms, invert=True)).flatten()
 
         self._graph = ig.Graph(edges=self.bonds)
 
@@ -750,9 +749,9 @@ class RotamerEnsemble:
             if not np.allclose(np.squeeze(self._lib_coords[0, self.backbone_idx]), self.backbone):
 
                 #####Should not be computing this every time
-                N, CA, C = self.backbone
+                N, CA, C = self.aln
                 mx, ori = global_mx(N, CA, C, method=self.alignment_method)
-                N, CA, C = np.squeeze(self._lib_coords[0, self.backbone_idx])
+                N, CA, C = np.squeeze(self._lib_coords[0, self.aln_idx])
                 old_ori, ori_mx = local_mx(N, CA, C, method=self.alignment_method)
                 ######
 
@@ -1019,6 +1018,15 @@ class RotamerEnsemble:
         """Backbone coordinates of the spin label"""
         return np.squeeze(self._coords[0][self.backbone_idx])
 
+    @property
+    def aln(self):
+        return np.squeeze(self._coords[0][self.aln_idx])
+
+
+    @property
+    def side_chain(self):
+        return np.squeeze(self._coords[0][self.side_chain_idx])
+
 
     def get_lib(self, rotlib):
         """Parse backbone information from protein and fetch the appropriate rotamer library.
@@ -1259,7 +1267,7 @@ class RotamerEnsemble:
     @property
     def origin(self):
         """Origin of the local coordinate frame"""
-        return np.squeeze(self.backbone[1])
+        return np.squeeze(self.aln[1])
 
     @property
     def CB(self):
@@ -1289,10 +1297,12 @@ class RotamerEnsemble:
                              "chilife.MolSys")
 
     def intra_fit(self):
-        target = self.backbone
+        """Align all rotamers of the ensemble to the ensemble backbone"""
+
+        target = self.aln
 
         tmx, tori = self.alignment_method(*target)
-        bbs = np.squeeze(self.coords[:,self.backbone_idx])
+        bbs = np.squeeze(self.coords[:,self.aln_idx])
         mxs, oris = [np.array(x) for x in zip(*[self.alignment_method(*bb) for bb in bbs])]
         mxs = mxs.transpose(0, 2, 1) @ tmx
 
@@ -1302,6 +1312,7 @@ class RotamerEnsemble:
 
     def get_sasa(self):
         """Calculate the solvent accessible surface area (SASA) of each rotamer in the protein environment."""
+
         atom_radii = self.forcefield.get_lj_rmin(self.atom_types)
         if self.protein is not None:
             environment_coords = self.protein.atoms[self.protein_clash_idx].positions

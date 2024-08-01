@@ -1,11 +1,21 @@
-import pickle, math, rtoml
+import os
+import pickle, math
 
 from pathlib import Path
 from typing import Set, List, Union, Tuple
+
+import chilife
 from numpy.typing import ArrayLike
 from scipy.spatial.distance import cdist
 from scipy.spatial import cKDTree
 from dataclasses import dataclass
+
+try:
+    from rdkit import Chem
+    from rdkit.Chem import AllChem
+    rdkit_found = True
+except:
+    rdkit_found = False
 
 import MDAnalysis
 import numpy as np
@@ -14,11 +24,14 @@ from MDAnalysis.core.topologyattrs import Atomindices, Resindices, Segindices, S
 import MDAnalysis as mda
 
 from .globals import SUPPORTED_RESIDUES
-from .MolSys import MolecularSystemBase, MolSys
-from .numba_utils import get_sasa
+from .MolSys import MolecularSystemBase, MolSys, concat_molsys
+from .numba_utils import get_sasa, _ic_to_cart
 from .pdb_utils import get_backbone_atoms, get_bb_candidates
+import chilife as xl
+
 import chilife.scoring as scoring
 import chilife.io as io
+
 import chilife.RotamerEnsemble as re
 import chilife.dRotamerEnsemble as dre
 
@@ -240,6 +253,23 @@ def set_dihedral(p: ArrayLike, angle: float, mobile: ArrayLike) -> ArrayLike:
     return new_mobile
 
 def guess_mobile_dihedrals(ICs, aln_atoms=None):
+    """
+    Guess the flexible, uniqe, side chain dihedrals of a MolSysIC object.
+
+    Parameters
+    ----------
+    ICs : MolSysIC
+        Internal coordinates object you wish to guess dihedrals for.
+
+    aln_atoms : List[str]
+        List of atom names corresponding to the "alignment atoms" of the molecule. These are usually the core backbone
+        atoms, e.g. N CA C for a protein.
+
+    Returns
+    -------
+    dihedral_defs : List[List[str]]
+        List of unique mobile dihedral definitions
+    """
     if aln_atoms is not None:
         root_idx = np.argwhere(ICs.atom_names == aln_atoms[1]).flat[0]
         aname_lst = ICs.atom_names.tolist()
@@ -290,7 +320,7 @@ def guess_mobile_dihedrals(ICs, aln_atoms=None):
 
 @dataclass
 class FreeAtom:
-    """Atom class for atoms in cartesian space.
+    """Atom class for atoms in cartesian space that do not belong to a MolSys.
 
     Attributes
     ----------
@@ -619,7 +649,8 @@ def randomize_rotamers(
 
 
 def get_sas_res(
-        protein: Union[mda.Universe, mda.AtomGroup], cutoff: float = 30,
+        protein: Union[mda.Universe, mda.AtomGroup],
+        cutoff: float = 30,
         forcefield = 'charmm',
 ) -> Set[Tuple[int, str]]:
     """Run FreeSASA to get solvent accessible surface residues in the provided protein
@@ -630,6 +661,8 @@ def get_sas_res(
         MolSys object to measure Solvent Accessible Surfaces (SAS) area of and report the SAS residues.
     cutoff : float
         Exclude residues from list with SASA below cutoff in angstroms squared.
+    forcefield : Union[str, chilife.ForceField]
+        Forcefiled to use defining atom radii for calculating solvent accessibility.
 
     Returns
     -------
@@ -819,6 +852,377 @@ def make_mda_uni(anames: ArrayLike,
     return mda_uni
 
 
+def make_peptide(sequence: str) -> MolSys:
+    """
+    Create a peptide from a string of amino acids. chilife NCAA rotamer libraries and smiles can be inserted by using
+    square brackets and angle brackets respectively , e.g. ``[ACE]AA<C1=CC2=C(C(=C1)F)C(=CN2)CC(C(=O)O)N>AA[NME]``
+    where ACE and NME are peptide caps and <C1=CC2=C(C(=C1)F)C(=CN2)CC(C(=O)O)N> is a smiles for a NCAA
+
+    Parameters
+    ----------
+    sequence : str
+        The Amino acid sequence.
+
+
+    Returns
+    -------
+    mol : MolSys
+        A chiLife MolSys object
+    """
+    C_N_LENGTH = 1.34
+    N_CA_LENGTH = 1.46
+    CA_C_LENGTH = 1.54
+
+    CA_C_N_ANGLE = 1.9897
+    C_N_CA_ANGLE = 2.1468
+    N_CA_C_ANGLE = 1.9199
+    C_N_H_ANGLE  = 2.1031
+    base_IC = {}
+
+    # Strip whitespace from multiline strings
+    sequence = sequence.strip()
+
+    # Parse sequences
+    sequence = parse_sequence(sequence)
+    zmat = []
+    zmat_idxs = []
+    anames = []
+    atypes = []
+    resnames = []
+    resindices = []
+    resnums = []
+
+    seqiter = iter(sequence)
+    atom_idx = 0
+    residue_idx = 0
+    prev_N = 0
+
+    ncap = None
+    ccap = None
+    for res in seqiter:
+        if res in base_IC:
+            msysIC = base_IC[res]
+        elif res in xl.nataa_codes or res in xl.SUPPORTED_BB_LABELS:
+            with open(chilife.RL_DIR / f"residue_internal_coords/{res.lower()}_ic.pkl", 'rb') as f:
+                msysIC = pickle.load(f)
+            base_IC[res] = msysIC
+        elif res in xl.SUPPORTED_RESIDUES:
+            RL = xl.RotamerEnsemble(res, use_H=True)
+            idxmax = np.argmax(RL.weights)
+            msysIC = RL.internal_coords
+            msysIC.trajectory[idxmax]
+            base_IC[res] = msysIC
+        elif res in xl.ncaps:
+            ncap = res
+            continue
+        elif res in xl.ccaps:
+            ccap = res
+            continue
+        else:
+            mol = smiles2residue(res)
+            msysIC = xl.MolSysIC.from_atoms(mol)
+
+        anames.append(msysIC.atom_names)
+        atypes.append(msysIC.atom_types)
+        resnames.append(msysIC.atom_resnames)
+        resnums.append(msysIC.atom_resnums + residue_idx)
+        resindices.append(msysIC.atom_resnums + residue_idx-1)
+
+        # Set backbone dihedrals
+        msysIC.set_dihedral(2.32129, 1, ['N', 'CA', 'C', 'O'])
+        if 'H' in msysIC.atom_names:
+            msysIC.set_dihedral(2.14675, 1, ['C', 'CA', 'N', 'H'])
+
+        tzmat = msysIC.z_matrix.copy()
+        tzmat_idxs = msysIC.z_matrix_idxs.copy()
+
+        if atom_idx != 0:
+            tzmat_idxs += atom_idx
+            tzmat_idxs[0] = [atom_idx, prev_N + 2, prev_N + 1, prev_N]
+            tzmat_idxs[1] = [atom_idx + 1, atom_idx, prev_N + 2, prev_N + 1]
+            tzmat_idxs[2] = [atom_idx + 2, atom_idx + 1, atom_idx, prev_N + 2]
+
+            tzmat[0] = [C_N_LENGTH, CA_C_N_ANGLE, -0.99484]
+            tzmat[1] = [N_CA_LENGTH, C_N_CA_ANGLE, -np.pi]
+            tzmat[2] = [CA_C_LENGTH, N_CA_C_ANGLE, -0.82030]
+
+            prev_N = atom_idx
+
+        zmat.append(tzmat)
+        zmat_idxs.append(tzmat_idxs)
+
+        atom_idx = atom_idx + len(tzmat)
+        residue_idx += 1
+
+    anames = np.concatenate(anames)
+    atypes = np.concatenate(atypes)
+    resnames = np.concatenate(resnames)
+    resnums = np.concatenate(resnums)
+    resindices = np.concatenate(resindices)
+    zmat = np.concatenate(zmat)
+    zmat_idxs = np.concatenate(zmat_idxs)
+    trajectory = _ic_to_cart(zmat_idxs[:,1:], zmat)
+    segindices = np.array([0] * len(anames))
+    segids = np.array(['A'] * len(anames))
+
+    mol = MolSys.from_arrays(anames, atypes, resnames, resindices, resnums, segindices, segids, trajectory)
+
+    if ncap is not None:
+        mol = append_cap(mol, ncap)
+    if ccap is not None:
+        mol = append_cap(mol, ccap)
+
+    return mol
+
+
+def parse_sequence(sequence: str) -> List[str]:
+    """
+    Input a string of amino acids with mized 1-letter codes, square brackted ``[]`` 3-letter codes or angle ``<>``
+    bracketed smiles and return a list of 3-letter codes and smiles.
+
+    Parameters
+    ----------
+    sequence : str
+    The Amino acid sequence.
+
+    Returns
+    -------
+    parsed_sequence : List[str]
+    A list of the amino acid sequences.
+
+    """
+    parsed_sequence = []
+    seqiter = iter(sequence)
+    for aa in seqiter:
+        if aa.upper() in chilife.nataa_codes:
+            parsed_sequence.append(chilife.nataa_codes[aa.upper()])
+
+        # Parse chiLife compatible NCAAs
+        elif aa == '[':
+            code = ""
+            aa = next(seqiter)
+            while aa != ']':
+                code += aa
+                try:
+                    aa = next(seqiter)
+                except StopIteration:
+                    raise RuntimeError("Cannot parse sequence because there is an unbalaced square bracket ``[]``.")
+            parsed_sequence.append(code)
+
+        elif aa == "<":
+            smiles = ""
+            aa = next(seqiter)
+            while aa != '>':
+                smiles += aa
+                try:
+                    aa = next(seqiter)
+                except:
+                    raise RuntimeError("Cannot parse sequence because there is an unbalnced angle bracket ``<>``.")
+
+            parsed_sequence.append(smiles)
+
+        elif aa in ('>', ']'):
+            raise RuntimeError(f"A terminating ``{aa}`` bracket has been detected, but no opening bracket was placed "
+                               f"ahead of it")
+
+        else:
+            raise RuntimeError(f'``{aa}`` is not a known amino acid')
+
+    return parsed_sequence
+
+
+def smiles2residue(smiles : str, **kwargs) -> MolSys:
+    """
+    Create a protein residue from a smiles string. Smiles string must contain an N-C-C-O dihedral to identify the
+    protein backbone. If no dihedral is found or there are too many N-C-C-O dihedrals that are indistinguishable
+    this function will fail.
+
+
+    Parameters
+    ----------
+    smiles : str
+        SMILES string to convert to 3d and a residue
+    kwargs : dict
+        Keyword arguments to pass to rdkit.AllChem.EmbedMolecule (usually randomSeed)
+
+    Returns
+    -------
+    msys : MolSys
+        chiLife molecular system object containing the smiles string as a 3D molecule and single residue.
+    """
+
+    if not rdkit_found:
+        raise RuntimeError("Using smiles2residue or make_peptide with a smile string requires rdkit to be installed.")
+
+    mol = Chem.MolFromSmiles(smiles)
+    mol = Chem.AddHs(mol)
+
+    AllChem.EmbedMolecule(mol, **kwargs)
+    AllChem.MMFFOptimizeMolecule(mol, maxIters=200)
+
+    res = MolSys.from_rdkit(mol)
+
+    atoms = res.atoms
+    res.filename = 'UNK.pdb'
+    Natoms = atoms.select_atoms('type N')
+    NCCOs = []
+    for atom in Natoms:
+        for dih in atom.dihedrals:
+            if np.all(dih.atoms.types == ['N', 'C', 'C', 'O']):
+                NCCOs.append(dih.atoms)
+            elif np.all(dih.atoms.types == ['O', 'C', 'C', 'N']):
+                NCCOs.append(dih.atoms[::-1])
+
+    bb_candidates = []
+    for dih in NCCOs:
+        assert dih[-1].type == 'O'
+
+        if len(dih[-1].bonds) == 1:
+            bb_candidates.append(dih)
+
+    if len(bb_candidates) == 1:
+        bb = bb_candidates[0]
+
+    else:
+        bb = None
+        for can in bb_candidates:
+            cooh = "".join(sorted(can[2].bonded_atoms.types))
+            if cooh != 'COO':
+                continue
+            else:
+                bb = can
+                break
+
+    bb.names = ['N', 'CA', 'C', 'O']
+    count_dict = {}
+    for atom in atoms:
+
+        if atom in bb:
+            pass
+
+        elif 'N' in atom.bonded_atoms.names:
+            if atom.type == 'H':
+                atom.name = count_dict.get('X', 'H')
+                count_dict['X'] = 'X'
+
+        elif 'CA' in atom.bonded_atoms.names and atom.type == 'H':
+            atom.name = 'HA'
+
+        elif 'O' in atom.bonded_atoms.names and atom.type == 'H':
+            atom.name = 'X'
+
+        elif 'C' in atom.bonded_atoms.names and atom.type == 'O':
+            atom.name = 'X'
+            for oatom in atom.bonded_atoms:
+                if oatom.type == 'H':
+                    oatom.name ='X'
+        elif atom.name == 'X':
+            pass
+
+        else:
+            n = count_dict.setdefault(atom.type, 1)
+            atom.name = f'{atom.type}{n}'
+            count_dict[atom.type] += 1
+
+    save_atoms = atoms.select_atoms('not name X')
+    xl.save('UNK.pdb', save_atoms)
+    Msys = MolSys.from_pdb('UNK.pdb', sort_atoms=True)
+    os.remove('UNK.pdb')
+
+    return Msys
+
+
+def append_cap(mol : MolSys, cap : str) -> MolSys:
+    """
+    Append a peptide cap to a molecular system.
+
+    Parameters
+    ----------
+    mol : MolSys
+        The molecular system to be capped.
+    cap : str
+        The name (3-letter identifier) of the cap to be attached.
+
+    Returns
+    -------
+    mol : MolSys
+        The molecular system with the cap.
+    """
+
+    cap_name = cap.upper()
+    term = "N" if cap_name in xl.ncaps else "C" if cap_name in xl.ccaps else None
+
+    if term == "N":
+        neighbor = mol.residues[0]
+    elif term == "C":
+        neighbor = mol.residues[-1]
+    else:
+        raise RuntimeError('`term` not found in neighboring residue. Note that `term` must be an `N` or a `C`.')
+
+    nmx, nori = xl.global_mx(*neighbor.select_atoms('name N CA C').positions)
+    cap_struct = xl.MolSys.from_pdb(xl.RL_DIR / f'cap_pdbs/{cap_name}.pdb')
+
+    cap_struct.positions = cap_struct.positions @ nmx + nori
+    systems = [cap_struct, mol] if term == "N" else [mol, cap_struct]
+
+    mol = concat_molsys(systems)
+
+    return mol
+
+
+def store_cap(name, mol, term):
+    """
+    Save the cap attached to a molecule. A pdb file will be saved in the chilife/data/rotamer_libraries/cap_pdbs folder
+    with the provided name and the cap will be registered in either the ncaps.txt or ccaps.txt file in the
+    chilife/data/rotamer_libraries directory.
+
+    Parameters
+    ----------
+    name : str
+        Name (3-letter identifier) of the cap to be attached.
+    mol : str, Path, Universe, AtomGroup, MolSys
+        Path, MDA.AtomGroup or MolSys object containing the cap. The cap must be its own residue number, i.e. not merged
+        with the reside before or after it.
+    term: str
+        The terminus the cap is attached to. Only two values are accepted ``N`` and ``C``
+    """
+
+    name = name.upper()
+    term = term.upper()
+    if isinstance(mol, (str, Path)):
+        mol = xl.MolSys.from_pdb(mol)
+    elif isinstance(mol, (mda.Universe, mda.AtomGroup)):
+        mol = xl.MolSys.from_atomsel(mol)
+
+    bonds = chilife.guess_bonds(mol.positions, mol.types)
+    top = chilife.Topology(mol, bonds)
+    mol.topology = top
+
+    if term == "N":
+        cap = mol.residues[0]
+        neighbor = mol.residues[1]
+        txt_file = xl.RL_DIR / f'ncaps.txt'
+        resnum=0
+
+    elif term == "C":
+        cap = mol.residues[-1]
+        neighbor = mol.residues[-2]
+        txt_file = xl.RL_DIR / f'ccaps.txt'
+        resnum = 1
+    else:
+        raise RuntimeError('`term` not found in neighboring residue. Note that `term` must be an `N` or a `C`.')
+
+    ori, mx = xl.local_mx(*neighbor.select_atoms("name N CA C").positions)
+    cap.positions = (cap.positions - ori) @ mx
+    with open(txt_file, 'r+') as f:
+        line = f.readline()
+        keys = line.split()
+        if name not in keys:
+            f.write(f" {name}")
+    cap.resnum = resnum
+    xl.save(xl.RL_DIR / f'cap_pdbs/{name}.pdb', cap)
+
+
 def get_grid_mx(N, CA, C):
     """
     Get the rotation matrix and translation vector to orient a grid of lennard-jones spheres into a new coordinate
@@ -871,14 +1275,14 @@ def write_grid(grid, name='grid.pdb', atype='Se'):
     """
     Given an array of 3-dimensional points (a grid usually), write a PDB so the grid can be visualized.
 
-
     Parameters
     ----------
     grid : ArrayLike
         The 3D points to write
-
     name: str
         The name of the file to write the grid to.
+    atype : str
+        Atom type to use for the grid.
     """
 
     with open(name, 'w') as f:
@@ -979,6 +1383,9 @@ def get_site_volume(site: int,
     # Remove clashing grid points
     mask = (~mask).prod(axis=-1) * mask2
     idxs = np.argwhere(mask).flatten()
+    if len(idxs) == 0:
+        return 0
+
     grid_tsf = grid_tsf[idxs]
 
     # check for discontinuities

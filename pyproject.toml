@@ -30,6 +30,9 @@ classifiers=['License :: OSI Approved :: GNU General Public License v3 (GPLv3)',
 homepage = 'https://github.com/StollLab/chiLife'
 documentation = "https://stolllab.github.io/chiLife/"
 
+[project.optional-dependencies]
+smiles2residue = ["rdkit>=2023.9.6"]
+
 [tool.setuptools]
 script-files = ['scripts/update_rotlib.py', 'scripts/oldProteinIC.py']
 

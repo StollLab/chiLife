@@ -297,6 +297,16 @@ def test_get_site_volume():
 
 
 def test_make_peptide():
+    phi = np.ones(22) * -140
+    psi = np.ones(22) * 130
+    omega = np.ones(22) * -178
+
+    pep = chilife.make_peptide("ACDEF[R1M]GHIKL<COC1=CC=C(C=C1)CC(C(=O)O)N>MNPQR[R1C]STVWY", phi, psi, omega)
+
+    assert False
+
+
+def test_make_strand():
     pep = chilife.make_peptide("ACDEF[R1M]GHIKL<COC1=CC=C(C=C1)CC(C(=O)O)N>MNPQR[R1C]STVWY")
 
     test = pep.positions.copy()
@@ -377,10 +387,6 @@ def test_append_cap():
     np.testing.assert_allclose(new_pep.residues[-1].positions, nhh_coords)
 
 
-
 def test__add_cap():
     chilife.store_cap('ACE', 'test_data/ACE_A_NME.pdb', 'N')
     chilife.store_cap('NME', 'test_data/ACE_A_NME.pdb', 'C')
-
-
-

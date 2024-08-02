@@ -852,16 +852,33 @@ def make_mda_uni(anames: ArrayLike,
     return mda_uni
 
 
-def make_peptide(sequence: str) -> MolSys:
+def make_peptide(sequence: str, phi=None, psi=None, omega=None, bond_angles=None) -> MolSys:
     """
     Create a peptide from a string of amino acids. chilife NCAA rotamer libraries and smiles can be inserted by using
     square brackets and angle brackets respectively , e.g. ``[ACE]AA<C1=CC2=C(C(=C1)F)C(=CN2)CC(C(=O)O)N>AA[NME]``
-    where ACE and NME are peptide caps and <C1=CC2=C(C(=C1)F)C(=CN2)CC(C(=O)O)N> is a smiles for a NCAA
+    where ACE and NME are peptide caps and <C1=CC2=C(C(=C1)F)C(=CN2)CC(C(=O)O)N> is a smiles for a NCAA. Backbone
+    torsion and bond angles can be set using the phi, psi, omega, and bond_angel keyword argument. All angles should
+    be passed in degrees.
 
     Parameters
     ----------
     sequence : str
         The Amino acid sequence.
+
+    phi : ArrayLike
+        N-1 length array specifying the peptide backbone phi angles (degrees).
+    psi : ArrayLike
+        N-1 length array specifying the peptide backbone psi angles (degrees).
+    omega : ArrayLike
+        N-1 length array specifying the peptide backbone omega angles (degrees).
+    bond_angles : ArrayLike
+        Nx4 shaped array specifying the 4 peptide backbone bond angles  (degrees). Note that, for the first residue any
+        value for the first and second bond angles will be ignored because they are undefined.
+
+        1 - CA(i-1)-C(i-1)-N
+        2 - C(i-1)_N_CA
+        3 - N-CA-C
+        4 - CA-C-O
 
 
     Returns
@@ -971,6 +988,30 @@ def make_peptide(sequence: str) -> MolSys:
         mol = append_cap(mol, ncap)
     if ccap is not None:
         mol = append_cap(mol, ccap)
+
+    if any(x is not None for x in (phi, psi, omega, bond_angles)):
+        mol_IC = xl.MolSysIC.from_atoms(mol)
+
+    if phi is not None:
+        assert len(phi) == mol.n_residues-1
+        for i, res in enumerate(range(2, mol.n_residues + 1)):
+            mol_IC.set_dihedral(phi[i], res, ['C', 'N', 'CA', 'C'])
+    if psi is not None:
+        assert len(psi) == mol.n_residues-1
+        for i, res in enumerate(range(1, mol.n_residues)):
+            mol_IC.set_dihedral(psi[i], res, ['N', 'CA', 'C', 'N'])
+    if omega is not None:
+        assert len(omega) == mol.n_residues -1
+        for i, res in enumerate(range(2, mol.n_residues+1)):
+            mol_IC.set_dihedral(omega[i], res, ['CA', 'C', 'N', 'CA'])
+    if bond_angles is not None:
+        assert len(bond_angles) == mol.n_residues
+        for i, atom_name in enumerate(('C', 'O', 'N', 'CA')):
+            offset = 1 if atom_name in ('N', 'CA') else 0
+            idxs = np.argwhere(mol_IC.atom_names == atom_name).flat[offset:]
+            mol_IC.z_matrix[idxs, 1] = np.deg2rad(bond_angles[i, offset:])
+
+    mol.coords = mol_IC.to_cartesian()
 
     return mol
 

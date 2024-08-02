@@ -1011,7 +1011,9 @@ def make_peptide(sequence: str, phi=None, psi=None, omega=None, bond_angles=None
             idxs = np.argwhere(mol_IC.atom_names == atom_name).flat[offset:]
             mol_IC.z_matrix[idxs, 1] = np.deg2rad(bond_angles[i, offset:])
 
-    mol.coords = mol_IC.to_cartesian()
+    if any(x is not None for x in (phi, psi, omega, bond_angles)):
+        mol_IC = xl.MolSysIC.from_atoms(mol)
+        mol.coords = mol_IC.to_cartesian()
 
     return mol
 

@@ -334,11 +334,11 @@ def test_make_pep_w_cap3():
     omega = np.array([-175, 180, 175])
 
     pep = chilife.make_peptide("[ACE]A[R1M]A[NME]", phi=phi, psi=psi, omega=omega)
-    chilife.save('tripep.pdb', pep)
+
     assert False
 
 
-def test_make_pep_w_cap():
+def test_make_pep_w_cap2():
     pep = chilife.make_peptide("[ACE]A[R1M]A[NME]")
     ans = np.load('test_data/ACE_AR1A_NME.npy')
 

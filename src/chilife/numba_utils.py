@@ -5,9 +5,6 @@ from memoization import cached
 from numba import njit, prange
 
 
-# TODO:
-#  performance enhancement: Write a paralellization wrapper for _ic_to_cart
-
 @njit(cache=True)
 def compute_bin(x: float, bin_edges: np.ndarray) -> int:
     """Compute determine bin for a given observation, x

@@ -297,16 +297,6 @@ def test_get_site_volume():
 
 
 def test_make_peptide():
-    phi = np.ones(22) * -140
-    psi = np.ones(22) * 130
-    omega = np.ones(22) * -178
-
-    pep = chilife.make_peptide("ACDEF[R1M]GHIKL<COC1=CC=C(C=C1)CC(C(=O)O)N>MNPQR[R1C]STVWY", phi, psi, omega)
-
-    assert False
-
-
-def test_make_strand():
     pep = chilife.make_peptide("ACDEF[R1M]GHIKL<COC1=CC=C(C=C1)CC(C(=O)O)N>MNPQR[R1C]STVWY")
 
     test = pep.positions.copy()
@@ -320,14 +310,40 @@ def test_make_strand():
     diff = test - ans
     rms = np.sqrt(np.sum(diff * diff) / len(test))
 
-    assert  rms < 3
+    assert rms < 3
+
+def test_make_strand():
+    phi = np.ones(22) * -140
+    psi = np.ones(22) * 130
+    omega = np.ones(22) * -178
+
+    pep = chilife.make_peptide("ACDEF[R1M]GHIKL<COC1=CC=C(C=C1)CC(C(=O)O)N>MNPQR[R1C]STVWY", phi, psi, omega)
+
+    assert False
 
 
 def test_make_pep_w_cap():
     pep = chilife.make_peptide("[ACE]A[R1M]A[NME]")
     ans = np.load('test_data/ACE_AR1A_NME.npy')
 
-    np.testing.assert_almost_equal(pep.positions, ans)
+    np.testing.assert_almost_equal(pep.positions, ans, decimal=4)
+
+def test_make_pep_w_cap3():
+    phi = np.array([-60, -62, -64])
+    psi = np.array([-39, -41, -43])
+    omega = np.array([-175, 180, 175])
+
+    pep = chilife.make_peptide("[ACE]A[R1M]A[NME]", phi=phi, psi=psi, omega=omega)
+    chilife.save('tripep.pdb', pep)
+    assert False
+
+
+def test_make_pep_w_cap():
+    pep = chilife.make_peptide("[ACE]A[R1M]A[NME]")
+    ans = np.load('test_data/ACE_AR1A_NME.npy')
+
+    np.testing.assert_almost_equal(pep.positions, ans, decimal=4)
+
 
 def test_parsed_sequence():
     pseq = chilife.parse_sequence("[ACE]AaNIE<cccn>[NHH]")

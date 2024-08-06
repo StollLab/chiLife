@@ -325,7 +325,6 @@ def test_make_strand():
 def test_make_pep_w_cap():
     pep = chilife.make_peptide("[ACE]A[R1M]A[NME]")
     ans = np.load('test_data/ACE_AR1A_NME.npy')
-
     np.testing.assert_almost_equal(pep.positions, ans, decimal=4)
 
 def test_make_pep_w_cap3():
@@ -334,16 +333,25 @@ def test_make_pep_w_cap3():
     omega = np.array([-175, 180, 175])
 
     pep = chilife.make_peptide("[ACE]A[R1M]A[NME]", phi=phi, psi=psi, omega=omega)
-
-    assert False
+    ans = np.load('test_data/test_mkpep3.npy')
+    np.testing.assert_almost_equal(pep.positions, ans, decimal=4)
 
 
 def test_make_pep_w_cap2():
-    pep = chilife.make_peptide("[ACE]A[R1M]A[NME]")
-    ans = np.load('test_data/ACE_AR1A_NME.npy')
-
+    phi = np.array([-61, -63])
+    psi = np.array([-40, -42])
+    omega = np.array([-176, 176])
+    pep = chilife.make_peptide("A[R1M]A", phi=phi, psi=psi, omega=omega)
+    ans = np.load('test_data/mkpep2.npy')
     np.testing.assert_almost_equal(pep.positions, ans, decimal=4)
 
+
+def test_mkpep_template():
+    ATII = chilife.fetch('6JOD').select_atoms('segid B')
+
+    pep = chilife.make_peptide("DRV[TOC]IHPF", template=ATII)
+
+    assert False
 
 def test_parsed_sequence():
     pseq = chilife.parse_sequence("[ACE]AaNIE<cccn>[NHH]")
@@ -379,12 +387,12 @@ def test_append_cap():
     new_pep = chilife.append_cap(pep, 'ace')
     new_pep = chilife.append_cap(new_pep, 'nme')
 
-    ace_coords = np.array([[-0.71151672,  0.70074469,  1.079],
-                           [-0.20855331,  0.31361576,  2.143],
-                           [-2.19042394,  0.52337943,  0.807],
-                           [-2.76912818,  1.04532425,  1.555],
-                           [-2.43670102,  0.92200281, -0.166],
-                           [-2.44840932, -0.52553265,  0.832]])
+    ace_coords = np.array([[-0.62455994,  0.61491044,  0.946],
+                           [ 0.02253714,  1.18988467,  1.832],
+                           [-2.13832676,  0.62232832,  0.958],
+                           [-2.5042362 ,  1.63777023,  0.907],
+                           [-2.51699797,  0.07177849,  0.109],
+                           [-2.50306232,  0.16268392,  1.864]])
 
     assert new_pep.residues[0].resname == 'ACE'
     assert new_pep.residues[0].resnum == 0
@@ -404,5 +412,7 @@ def test_append_cap():
 
 
 def test__add_cap():
-    chilife.store_cap('ACE', 'test_data/ACE_A_NME.pdb', 'N')
-    chilife.store_cap('NME', 'test_data/ACE_A_NME.pdb', 'C')
+    chilife.store_cap('ZZZ', 'test_data/ACE_A_NME.pdb', 'N')
+    chilife.store_cap('XXX', 'test_data/ACE_A_NME.pdb', 'C')
+    os.remove("../src/chilife/data/rotamer_libraries/cap_pdbs/XXX.pdb")
+    os.remove("../src/chilife/data/rotamer_libraries/cap_pdbs/ZZZ.pdb")

@@ -658,6 +658,33 @@ class MolSysIC:
 
         return idxs
 
+    def omega_idxs(self, resnums: ArrayLike = None, chain: Union[int, str] = None):
+        """
+        Method to return the Z-matrix indices of Psi backbone dihedrals
+
+        Parameters
+        ----------
+        resnums: int, ArrayLike[int]
+            Residues for which to return the Psi value index of the z-matrix
+        chain: int, str
+            Chain corresponding to the resnums of interest
+
+        Returns
+        -------
+        idxs: ndarray[int]
+            Array of indices corresponding to the Psi dihedral angles of the selected residues on the chain
+        """
+
+        chain = self._check_chain(chain)
+        mask = (self.atom_names == 'CA') * (self.atom_chains == chain)
+        if resnums is not None:
+            resnums = np.atleast_1d(resnums) + 1
+            mask *= np.isin(self.atom_resnums, resnums)
+
+        idxs = np.argwhere(mask).flatten()
+
+        return idxs
+
     def chi_idxs(self, resnums: ArrayLike = None, chain: Union[int, str] = None):
         """
          Create a list of index arrays corresponding the Z-matrix indices of flexible side chain (chi) dihedrals. Note

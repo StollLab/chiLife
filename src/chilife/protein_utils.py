@@ -851,14 +851,60 @@ def make_mda_uni(anames: ArrayLike,
 
     return mda_uni
 
+def template_ICs(template):
+    """
+    Get the internal coordinate parameters (bond angle and dihedral angle) of the protein backbone atoms of the
+    template.
 
-def make_peptide(sequence: str, phi=None, psi=None, omega=None, bond_angles=None) -> MolSys:
+
+    Parameters
+    ----------
+    template : Union[str, Path, MolSys]
+        The PDB file or MolSys object to serve as the template.
+
+    Returns
+    -------
+    phi, psi, omega, bond_angles : ArrayLike
+        Arrays containing backbone dihedral and bond angles as calculated from the template structure.
+    """
+
+    if isinstance(template, (str, Path)):
+        template = chilife.MolSys.from_pdb(template)
+    elif isinstance(template, (mda.Universe, mda.AtomGroup)):
+        template = chilife.MolSys.from_atomsel(template)
+    elif not isinstance(template, MolecularSystemBase):
+        raise RuntimeError('Template must be a PDB file or a MDA.Universe, AtomGroup or chiLife.MolSys object.')
+
+
+    Ns  = template.select_atoms('name N')
+    CAs = template.select_atoms('name CA')
+    Cs = template.select_atoms('name C')
+    Os = template.select_atoms('name O')
+
+    phis = get_dihedrals(Cs.positions[:-1], Ns.positions[1:], CAs.positions[1:], Cs.positions[1:])
+    psis = get_dihedrals(Ns.positions[:-1], CAs.positions[:-1], Cs.positions[:-1], Ns.positions[1:])
+    omegas = get_dihedrals(CAs.positions[:-1], Cs.positions[:-1], Ns.positions[1:], CAs.positions[1:])
+
+    # Add to phis and psis for N_CA_C_O and H_N_CA_C
+
+    BA1 = np.concatenate([[0.], get_angles(CAs.positions[:-1], Cs.positions[:-1], Ns.positions[1:])])
+    BA2 = np.concatenate([[0.], get_angles(Cs.positions[:-1], Ns.positions[1:], CAs.positions[1:])])
+    BA3 = get_angles(Ns.positions, CAs.positions, Cs.positions)
+    BA4 = get_angles(CAs.positions, Cs.positions, Os.positions)
+    bond_angles = np.array([BA1, BA2, BA3, BA4]).T
+
+    return tuple(np.rad2deg(x) for x in (phis, psis, omegas, bond_angles))
+
+
+def make_peptide(sequence: str, phi=None, psi=None, omega=None, bond_angles=None, template=None) -> MolSys:
     """
     Create a peptide from a string of amino acids. chilife NCAA rotamer libraries and smiles can be inserted by using
     square brackets and angle brackets respectively , e.g. ``[ACE]AA<C1=CC2=C(C(=C1)F)C(=CN2)CC(C(=O)O)N>AA[NME]``
     where ACE and NME are peptide caps and <C1=CC2=C(C(=C1)F)C(=CN2)CC(C(=O)O)N> is a smiles for a NCAA. Backbone
     torsion and bond angles can be set using the phi, psi, omega, and bond_angel keyword argument. All angles should
-    be passed in degrees.
+    be passed in degrees. Alternativly backbone angles can be set with a protein template that can either be a MolSys
+    object, or a sting/Path object pointing to a PDB file.
+
 
     Parameters
     ----------
@@ -880,6 +926,8 @@ def make_peptide(sequence: str, phi=None, psi=None, omega=None, bond_angles=None
         3 - N-CA-C
         4 - CA-C-O
 
+    template : str, Path, MolSys
+
 
     Returns
     -------
@@ -893,7 +941,6 @@ def make_peptide(sequence: str, phi=None, psi=None, omega=None, bond_angles=None
     CA_C_N_ANGLE = 1.9897
     C_N_CA_ANGLE = 2.1468
     N_CA_C_ANGLE = 1.9199
-    C_N_H_ANGLE  = 2.1031
     base_IC = {}
 
     # Strip whitespace from multiline strings
@@ -917,6 +964,13 @@ def make_peptide(sequence: str, phi=None, psi=None, omega=None, bond_angles=None
     ncap = None
     ccap = None
 
+    if template is None:
+        pass
+    elif all(x is None for x in (phi, psi, omega, bond_angles)):
+        phi, psi, omega, bond_angles = template_ICs(template)
+    else:
+        raise RuntimeError('You can not pass both a template and explicit bond_angle or backbone dihedral values')
+
     # Alter definitions to be based off of other atoms, e.g. N-CA-C-O instead of N-CA-C-N
     phi = np.deg2rad(phi) if phi is not None else np.ones(len(sequence)) * -0.82030
     psi = np.deg2rad(psi) if psi is not None else np.ones(len(sequence)) * -0.99484
@@ -934,7 +988,7 @@ def make_peptide(sequence: str, phi=None, psi=None, omega=None, bond_angles=None
         diff = len(sequence) - len(psi)
         if diff > 3:
             raise RuntimeError('The number of psi backbone dihedrals does not match the number of residues')
-        psi = (np.concatenate((psi, [-0.99484])) if diff == 1 else
+        psi = (np.concatenate(([-0.99484], psi)) if diff == 1 else
                np.concatenate(([-0.99484, -0.99484], psi)) if diff == 2 else
                np.concatenate(([-0.99484], psi, [-0.99484, -0.99484])))
 
@@ -976,9 +1030,10 @@ def make_peptide(sequence: str, phi=None, psi=None, omega=None, bond_angles=None
         resindices.append(msysIC.atom_resnums + residue_idx-1)
 
         # Set backbone dihedrals
-        msysIC.set_dihedral(phi[i] + np.pi, 1, ['N', 'CA', 'C', 'O'])
+        if i < len(sequence)-1:
+            msysIC.set_dihedral(psi[i+1] + np.pi, 1, ['N', 'CA', 'C', 'O'])
         if 'H' in msysIC.atom_names:
-            msysIC.set_dihedral(psi[i] + np.pi, 1, ['C', 'CA', 'N', 'H'])
+            msysIC.set_dihedral(phi[i] + np.pi, 1, ['C', 'CA', 'N', 'H'])
 
         tzmat = msysIC.z_matrix.copy()
         tzmat_idxs = msysIC.z_matrix_idxs.copy()
@@ -1013,10 +1068,10 @@ def make_peptide(sequence: str, phi=None, psi=None, omega=None, bond_angles=None
 
     if bond_angles is not None:
         assert len(bond_angles) == len(np.unique(resindices))
-        for i, atom_name in enumerate(('C', 'O', 'N', 'CA')):
+        for i, atom_name in enumerate(('N', 'CA', 'C', 'O')):
             offset = 1 if atom_name in ('N', 'CA') else 0
             idxs = np.argwhere(anames == atom_name).flat[offset:]
-            zmat[idxs, 1] = np.deg2rad(bond_angles[i, offset:])
+            zmat[idxs, 1] = np.deg2rad(bond_angles[offset:, i])
 
     trajectory = _ic_to_cart(zmat_idxs[:, 1:], zmat)
 

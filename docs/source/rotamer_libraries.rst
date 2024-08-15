@@ -2,7 +2,17 @@
 Rotamer Libraries
 =================
 
+.. note::
+    As of version 0.4.0 chiLife supports custom rotamer libraries with arbitrary backbones. This allows for the
+    creation of rotamer libraries for nucleic acids, as well as libraries that can be used to modify ligands or
+    glycans.
+
+    We have added an example of how to create a nucleic acid label and a ligand label in the :ref:`Examples`
+    section.
+
+
 .. _custom-rotamer-libraries:
+
 
 ---------------------------------
 Creating Custom Rotamer Libraries

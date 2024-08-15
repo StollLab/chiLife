@@ -1,14 +1,15 @@
 <p align="center">
    <a href="https://stolllab.github.io/chiLife/">
-      <img src="https://github.com/StollLab/chiLife/raw/main/img/chiLife_logo.png" height="60">
+      <img src="https://github.com/StollLab/chiLife/raw/main/img/chiLife_logo.png" width="60">
    </a>
 </p>
 
 <p align="center">
    <a href="https://stolllab.github.io/chiLife/">
-      <img src="https://img.shields.io/badge/docs-latest-brightgreen.svg" height="60">
+      <img src="https://img.shields.io/badge/docs-latest-brightgreen.svg" width="60">
    </a>
 </p>
+
 
 
 | :exclamation:   News   :exclamation:                                                                                               |

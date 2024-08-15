@@ -11,14 +11,12 @@
 </p>
 
 
-
-
-| :exclamation:   News   :exclamation:                                                                                                |
-|-------------------------------------------------------------------------------------------------------------------------------------|
-| 2024.8.15 : chiLife 1.0 released!                                                                                                   |
-| 2024.8.15 : chiLife can now be used to create arbitrary peptides with natural and NCAAs. <br> Checkout the `make_peptide` function. |
-| 2024.8.15 : chiLife can make NCAA structures from smiles. Checkout `smiles2residue`. Note: Requires RDKit to be installed.          | 
-| chiLife now supports arbitrary backbone attachments including DNA and RNA labels and more!                                          | 
+| **UPDATES**                                                                                                                   |
+|-------------------------------------------------------------------------------------------------------------------------------|
+| 2024.8.15 : chiLife 1.0 released!                                                                                             |
+| 2024.8.15 : chiLife can now be used to create arbitrary peptides with natural and NCAAs. Checkout the `make_peptide` function. |
+| 2024.8.15 : chiLife can make NCAA structures from smiles. Checkout `smiles2residue`. Note: Requires RDKit to be installed.    | 
+| chiLife now supports arbitrary backbone attachments including DNA and RNA labels and more!                                    | 
 
 
 

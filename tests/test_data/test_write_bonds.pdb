@@ -1,0 +1,4 @@
+CONECT    0    1    2    3
+CONECT    1    2    3    4    5
+CONECT    1    6
+CONECT    2    3    4    5    6

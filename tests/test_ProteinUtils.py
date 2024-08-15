@@ -5,6 +5,7 @@ from functools import partial
 import numpy as np
 import pytest
 import MDAnalysis as mda
+
 import chilife
 
 pdbids = ["1ubq", "1a2w", '1az5']
@@ -310,14 +311,66 @@ def test_make_peptide():
     diff = test - ans
     rms = np.sqrt(np.sum(diff * diff) / len(test))
 
-    assert  rms < 3
+    assert rms < 3
+
+def test_make_strand():
+    phi = np.ones(22) * -140
+    psi = np.ones(22) * 130
+    omega = np.ones(22) * -178
+
+    pep = chilife.make_peptide("ACDEF[R1M]GHIKL<COC1=CC=C(C=C1)CC(C(=O)O)N>MNPQR[R1C]STVWY", phi, psi, omega)
+    pepIC = chilife.MolSysIC.from_atoms(pep)
+    phi_idx = pepIC.phi_idxs(np.arange(2, 23))
+    psi_idx = pepIC.psi_idxs(np.arange(1, 22))
+    tphi = np.rad2deg(pepIC.z_matrix[phi_idx, 2])
+    tpsi  = np.rad2deg(pepIC.z_matrix[psi_idx, 2])
+    np.testing.assert_allclose(phi[1:], tphi)
+    np.testing.assert_allclose(psi[:-1], tpsi)
 
 
 def test_make_pep_w_cap():
     pep = chilife.make_peptide("[ACE]A[R1M]A[NME]")
     ans = np.load('test_data/ACE_AR1A_NME.npy')
+    np.testing.assert_almost_equal(pep.positions, ans, decimal=4)
 
-    np.testing.assert_almost_equal(pep.positions, ans)
+def test_make_pep_w_cap3():
+    phi = np.array([-60, -62, -64])
+    psi = np.array([-39, -41, -43])
+    omega = np.array([-175, 180, 175])
+
+    pep = chilife.make_peptide("[ACE]A[R1M]A[NME]", phi=phi, psi=psi, omega=omega)
+    ans = np.load('test_data/test_mkpep3.npy')
+    np.testing.assert_almost_equal(pep.positions, ans, decimal=4)
+
+
+def test_make_pep_w_cap2():
+    phi = np.array([-61, -63])
+    psi = np.array([-40, -42])
+    omega = np.array([-176, 176])
+    pep = chilife.make_peptide("A[R1M]A", phi=phi, psi=psi, omega=omega)
+    ans = np.load('test_data/mkpep2.npy')
+    np.testing.assert_almost_equal(pep.positions, ans, decimal=4)
+
+
+def test_mkpep_template():
+    ATII = chilife.fetch('6JOD').select_atoms('segid B')
+    pep = chilife.make_peptide("DRV[TOC]IHPF", template=ATII)
+
+    ATII_IC = chilife.MolSysIC.from_atoms(ATII)
+    phi_idx = ATII_IC.phi_idxs(np.arange(2, 23))
+    psi_idx = ATII_IC.psi_idxs(np.arange(1, 22))
+    phi = np.rad2deg(ATII_IC.z_matrix[phi_idx, 2])
+    psi  = np.rad2deg(ATII_IC.z_matrix[psi_idx, 2])
+
+    pep_IC = chilife.MolSysIC.from_atoms(pep)
+    phi_idx = pep_IC.phi_idxs(np.arange(2, 23))
+    psi_idx = pep_IC.psi_idxs(np.arange(1, 22))
+    tphi = np.rad2deg(pep_IC.z_matrix[phi_idx, 2])
+    tpsi  = np.rad2deg(pep_IC.z_matrix[psi_idx, 2])
+
+    np.testing.assert_allclose(phi, tphi)
+    np.testing.assert_allclose(psi, tpsi)
+
 
 def test_parsed_sequence():
     pseq = chilife.parse_sequence("[ACE]AaNIE<cccn>[NHH]")
@@ -348,17 +401,38 @@ def test_smiles2residue(key, ans):
     assert rms < 3
 
 
+def test_smiles2residue2():
+    m1 = chilife.smiles2residue("C1C[C@H]2[C@@H]([C@@H]2C1)C(=O)C[C@H]([NH3+])C(=O)[O-]", randomSeed=0)
+    test_mask = np.argsort(m1.names)
+    test = m1.positions[test_mask]
+
+    answer = np.load('test_data/s2rm5.npy')
+    answer -= np.mean(answer, axis=0)
+
+    test -= np.mean(test, axis=0)
+    mx = np.linalg.inv(test.T @ test) @ test.T @ answer
+    test = test @ mx
+    diff = test - answer
+    rms = np.sqrt(np.sum(diff * diff) / len(test))
+
+    assert rms < 3
+
+def test_smiles2residue3():
+    m1 = chilife.smiles2residue("CCc1c([nH+]c(nc1NC[C@@H](C(=O)[O-])[NH3+])C)C")
+    assert True
+
+
 def test_append_cap():
     pep = chilife.MolSys.from_pdb('test_data/test_make_peptide.pdb')
     new_pep = chilife.append_cap(pep, 'ace')
     new_pep = chilife.append_cap(new_pep, 'nme')
 
-    ace_coords = np.array([[-0.71151672,  0.70074469,  1.079],
-                           [-0.20855331,  0.31361576,  2.143],
-                           [-2.19042394,  0.52337943,  0.807],
-                           [-2.76912818,  1.04532425,  1.555],
-                           [-2.43670102,  0.92200281, -0.166],
-                           [-2.44840932, -0.52553265,  0.832]])
+    ace_coords = np.array([[-0.62455994,  0.61491044,  0.946],
+                           [ 0.02253714,  1.18988467,  1.832],
+                           [-2.13832676,  0.62232832,  0.958],
+                           [-2.5042362 ,  1.63777023,  0.907],
+                           [-2.51699797,  0.07177849,  0.109],
+                           [-2.50306232,  0.16268392,  1.864]])
 
     assert new_pep.residues[0].resname == 'ACE'
     assert new_pep.residues[0].resnum == 0
@@ -377,10 +451,12 @@ def test_append_cap():
     np.testing.assert_allclose(new_pep.residues[-1].positions, nhh_coords)
 
 
+def test_add_cap():
+    chilife.store_cap('ZZZ', 'test_data/ACE_A_NME.pdb', 'N')
+    chilife.store_cap('XXX', 'test_data/ACE_A_NME.pdb', 'C')
 
-def test__add_cap():
-    chilife.store_cap('ACE', 'test_data/ACE_A_NME.pdb', 'N')
-    chilife.store_cap('NME', 'test_data/ACE_A_NME.pdb', 'C')
+    assert (chilife.RL_DIR / f'cap_pdbs/XXX.pdb').exists()
+    assert (chilife.RL_DIR / f'cap_pdbs/ZZZ.pdb').exists()
 
-
-
+    os.remove(chilife.RL_DIR / f'cap_pdbs/XXX.pdb')
+    os.remove(chilife.RL_DIR / f'cap_pdbs/ZZZ.pdb')

@@ -351,6 +351,7 @@ def save(
         *molecules: Union[re.RotamerEnsemble, MolecularSystemBase, mda.Universe, mda.AtomGroup, str],
         protein_path: Union[str, Path] = None,
         mode: str = 'w',
+        conect = False,
         **kwargs,
 ) -> None:
     """Save a pdb file of the provided labels and proteins
@@ -453,13 +454,13 @@ def save(
 
         used_names[name] = used_names.setdefault(name, 0) + 1
 
-        write_protein(pdb_file, protein, name_)
+        write_protein(pdb_file, protein, name_, conect=conect)
 
     for ic in molecules['molic']:
-        write_ic(pdb_file, ic)
+        write_ic(pdb_file, ic, conect=conect)
 
     if len(molecules['rotens']) > 0:
-        write_labels(pdb_file, *molecules['rotens'], **kwargs)
+        write_labels(pdb_file, *molecules['rotens'], conect=conect, **kwargs)
 
 
 def fetch(accession_number: str, save: bool = False) -> MDAnalysis.Universe:
@@ -530,7 +531,10 @@ def load_protein(struct_file: Union[str, Path],
     return protein
 
 
-def write_protein(pdb_file: TextIO, protein: Union[mda.Universe, mda.AtomGroup, MolecularSystemBase], name: str = None) -> None:
+def write_protein(pdb_file: TextIO,
+                  protein: Union[mda.Universe, mda.AtomGroup, MolecularSystemBase],
+                  name: str = None,
+                  conect: bool = False) -> None:
     """
     Helper function to write protein PDBs from MDAnalysis and MolSys objects.
 
@@ -574,8 +578,16 @@ def write_protein(pdb_file: TextIO, protein: Union[mda.Universe, mda.AtomGroup, 
         pdb_file.write("TER\n")
         pdb_file.write("ENDMDL\n")
 
+    if conect:
+        bonds = (protein.bonds.indices if hasattr(protein, 'bonds') else
+                protein.topology.bonds if hasattr(protein.topology, 'bonds') else
+                None)
 
-def write_ic(pdb_file: TextIO, ic: MolSysIC) -> None:
+        if bonds is not None:
+            write_bonds(pdb_file, bonds)
+
+
+def write_ic(pdb_file: TextIO, ic: MolSysIC, conect: bool = None)-> None:
     """
     Write a :class:`~MolSysIC` internal coordinates object to a pdb file.
 
@@ -594,11 +606,16 @@ def write_ic(pdb_file: TextIO, ic: MolSysIC) -> None:
                                      1.0, 1.0, atom.type))
     pdb_file.write('ENDMDL\n')
 
+    if conect:
+        bonds = ic.topology.bonds
+        write_bonds(pdb_file, bonds)
+
 
 def write_labels(pdb_file: TextIO, *args: sl.SpinLabel,
                  KDE: bool = True,
                  sorted: bool = True,
-                 write_spin_centers: bool = True) -> None:
+                 write_spin_centers: bool = True,
+                 conect: bool = False) -> None:
     """Lower level helper function for saving SpinLabels and RotamerEnsembles. Loops over SpinLabel objects and appends
     atoms and electron coordinates to the provided file.
 
@@ -657,6 +674,8 @@ def write_labels(pdb_file: TextIO, *args: sl.SpinLabel,
             ]
             pdb_file.write("TER\n")
             pdb_file.write("ENDMDL\n")
+        if conect:
+            write_bonds(pdb_file, label.bonds)
 
     # Write electron density at electron coordinates
     for k, label in enumerate(args):
@@ -732,6 +751,22 @@ def write_atoms(file: TextIO,
             f"ATOM  {atom.index + 1:5d} {atom.name:^4s} {atom.resname:3s} {'A':1s}{atom.resnum:4d}    "
             f"{coord[0]:8.3f}{coord[1]:8.3f}{coord[2]:8.3f}{1.0:6.2f}{1.0:6.2f}          {atom.type:>2s}  \n"
         )
+
+
+def write_bonds(pdb_file, bonds):
+    active_atom = bonds[0][0]
+    line = "CONECT" + f"{active_atom:>5d}"
+
+    lines = []
+    for b in bonds:
+        if b[0] != active_atom or len(line) > 30:
+            lines.append(line + '\n')
+            active_atom = b[0]
+            line = "CONECT" + f"{active_atom:>5d}"
+
+        line += f"{b[1]:>5d}"
+    lines.append(line + '\n')
+    pdb_file.writelines(lines)
 
 
 molecule_class = {re.RotamerEnsemble: 'rotens',

@@ -1,5 +1,6 @@
 import os
 import pickle, math
+import warnings
 
 from pathlib import Path
 from typing import Set, List, Union, Tuple
@@ -851,17 +852,82 @@ def make_mda_uni(anames: ArrayLike,
 
     return mda_uni
 
+def template_ICs(template):
+    """
+    Get the internal coordinate parameters (bond angle and dihedral angle) of the protein backbone atoms of the
+    template.
 
-def make_peptide(sequence: str) -> MolSys:
+
+    Parameters
+    ----------
+    template : Union[str, Path, MolSys]
+        The PDB file or MolSys object to serve as the template.
+
+    Returns
+    -------
+    phi, psi, omega, bond_angles : ArrayLike
+        Arrays containing backbone dihedral and bond angles as calculated from the template structure.
+    """
+
+    if isinstance(template, (str, Path)):
+        template = chilife.MolSys.from_pdb(template)
+    elif isinstance(template, (mda.Universe, mda.AtomGroup)):
+        template = chilife.MolSys.from_atomsel(template)
+    elif not isinstance(template, MolecularSystemBase):
+        raise RuntimeError('Template must be a PDB file or a MDA.Universe, AtomGroup or chiLife.MolSys object.')
+
+
+    Ns  = template.select_atoms('name N')
+    CAs = template.select_atoms('name CA')
+    Cs = template.select_atoms('name C')
+    Os = template.select_atoms('name O')
+
+    phis = get_dihedrals(Cs.positions[:-1], Ns.positions[1:], CAs.positions[1:], Cs.positions[1:])
+    psis = get_dihedrals(Ns.positions[:-1], CAs.positions[:-1], Cs.positions[:-1], Ns.positions[1:])
+    omegas = get_dihedrals(CAs.positions[:-1], Cs.positions[:-1], Ns.positions[1:], CAs.positions[1:])
+
+    # Add to phis and psis for N_CA_C_O and H_N_CA_C
+
+    BA1 = np.concatenate([[0.], get_angles(CAs.positions[:-1], Cs.positions[:-1], Ns.positions[1:])])
+    BA2 = np.concatenate([[0.], get_angles(Cs.positions[:-1], Ns.positions[1:], CAs.positions[1:])])
+    BA3 = get_angles(Ns.positions, CAs.positions, Cs.positions)
+    BA4 = get_angles(CAs.positions, Cs.positions, Os.positions)
+    bond_angles = np.array([BA1, BA2, BA3, BA4]).T
+
+    return tuple(np.rad2deg(x) for x in (phis, psis, omegas, bond_angles))
+
+
+def make_peptide(sequence: str, phi=None, psi=None, omega=None, bond_angles=None, template=None) -> MolSys:
     """
     Create a peptide from a string of amino acids. chilife NCAA rotamer libraries and smiles can be inserted by using
     square brackets and angle brackets respectively , e.g. ``[ACE]AA<C1=CC2=C(C(=C1)F)C(=CN2)CC(C(=O)O)N>AA[NME]``
-    where ACE and NME are peptide caps and <C1=CC2=C(C(=C1)F)C(=CN2)CC(C(=O)O)N> is a smiles for a NCAA
+    where ACE and NME are peptide caps and <C1=CC2=C(C(=C1)F)C(=CN2)CC(C(=O)O)N> is a smiles for a NCAA. Backbone
+    torsion and bond angles can be set using the phi, psi, omega, and bond_angel keyword argument. All angles should
+    be passed in degrees. Alternativly backbone angles can be set with a protein template that can either be a MolSys
+    object, or a sting/Path object pointing to a PDB file.
+
 
     Parameters
     ----------
     sequence : str
         The Amino acid sequence.
+
+    phi : ArrayLike
+        N-1 length array specifying the peptide backbone phi angles (degrees).
+    psi : ArrayLike
+        N-1 length array specifying the peptide backbone psi angles (degrees).
+    omega : ArrayLike
+        N-1 length array specifying the peptide backbone omega angles (degrees).
+    bond_angles : ArrayLike
+        Nx4 shaped array specifying the 4 peptide backbone bond angles  (degrees). Note that, for the first residue any
+        value for the first and second bond angles will be ignored because they are undefined.
+
+        1 - CA(i-1)-C(i-1)-N
+        2 - C(i-1)_N_CA
+        3 - N-CA-C
+        4 - CA-C-O
+
+    template : str, Path, MolSys
 
 
     Returns
@@ -876,7 +942,6 @@ def make_peptide(sequence: str) -> MolSys:
     CA_C_N_ANGLE = 1.9897
     C_N_CA_ANGLE = 2.1468
     N_CA_C_ANGLE = 1.9199
-    C_N_H_ANGLE  = 2.1031
     base_IC = {}
 
     # Strip whitespace from multiline strings
@@ -899,7 +964,44 @@ def make_peptide(sequence: str) -> MolSys:
 
     ncap = None
     ccap = None
-    for res in seqiter:
+
+    if template is None:
+        pass
+    elif all(x is None for x in (phi, psi, omega, bond_angles)):
+        phi, psi, omega, bond_angles = template_ICs(template)
+    else:
+        raise RuntimeError('You can not pass both a template and explicit bond_angle or backbone dihedral values')
+
+    # Alter definitions to be based off of other atoms, e.g. N-CA-C-O instead of N-CA-C-N
+    phi = np.deg2rad(phi) if phi is not None else np.ones(len(sequence)) * -0.82030
+    psi = np.deg2rad(psi) if psi is not None else np.ones(len(sequence)) * -0.99484
+    omega = np.deg2rad(omega) if omega is not None else np.ones(len(sequence)) * -np.pi
+
+    if len(phi) < len(sequence):
+        diff = len(sequence) - len(phi)
+        if diff > 3:
+            raise RuntimeError('The number of phi backbone dihedrals does not match the number of residues')
+        phi = (np.concatenate(([-0.82030], phi)) if diff == 1 else
+               np.concatenate(([-0.82030], phi, [-0.82030])) if diff == 2 else
+               np.concatenate(([-0.82030, -0.82030], phi, [-0.82030])))
+
+    if len(psi) < len(sequence):
+        diff = len(sequence) - len(psi)
+        if diff > 3:
+            raise RuntimeError('The number of psi backbone dihedrals does not match the number of residues')
+        psi = (np.concatenate(([-0.99484], psi)) if diff == 1 else
+               np.concatenate(([-0.99484, -0.99484], psi)) if diff == 2 else
+               np.concatenate(([-0.99484], psi, [-0.99484, -0.99484])))
+
+    if len(omega) < len(sequence):
+        diff = len(sequence) - len(omega)
+        if diff > 3:
+            raise RuntimeError('The number of omega backbone dihedrals does not match the number of residues')
+        omega = (np.concatenate(([-np.pi], omega)) if diff == 1 else
+                 np.concatenate(([-np.pi, -np.pi], omega, [])) if diff == 2 else
+                 np.concatenate(([-np.pi], omega, [-np.pi, -np.pi])))
+
+    for i, res in enumerate(seqiter):
         if res in base_IC:
             msysIC = base_IC[res]
         elif res in xl.nataa_codes or res in xl.SUPPORTED_BB_LABELS:
@@ -929,9 +1031,10 @@ def make_peptide(sequence: str) -> MolSys:
         resindices.append(msysIC.atom_resnums + residue_idx-1)
 
         # Set backbone dihedrals
-        msysIC.set_dihedral(2.32129, 1, ['N', 'CA', 'C', 'O'])
+        if i < len(sequence)-1:
+            msysIC.set_dihedral(psi[i+1] + np.pi, 1, ['N', 'CA', 'C', 'O'])
         if 'H' in msysIC.atom_names:
-            msysIC.set_dihedral(2.14675, 1, ['C', 'CA', 'N', 'H'])
+            msysIC.set_dihedral(phi[i] + np.pi, 1, ['C', 'CA', 'N', 'H'])
 
         tzmat = msysIC.z_matrix.copy()
         tzmat_idxs = msysIC.z_matrix_idxs.copy()
@@ -942,9 +1045,9 @@ def make_peptide(sequence: str) -> MolSys:
             tzmat_idxs[1] = [atom_idx + 1, atom_idx, prev_N + 2, prev_N + 1]
             tzmat_idxs[2] = [atom_idx + 2, atom_idx + 1, atom_idx, prev_N + 2]
 
-            tzmat[0] = [C_N_LENGTH, CA_C_N_ANGLE, -0.99484]
-            tzmat[1] = [N_CA_LENGTH, C_N_CA_ANGLE, -np.pi]
-            tzmat[2] = [CA_C_LENGTH, N_CA_C_ANGLE, -0.82030]
+            tzmat[0] = [C_N_LENGTH, CA_C_N_ANGLE, psi[i]]
+            tzmat[1] = [N_CA_LENGTH, C_N_CA_ANGLE, omega[i]]
+            tzmat[2] = [CA_C_LENGTH, N_CA_C_ANGLE, phi[i]]
 
             prev_N = atom_idx
 
@@ -961,16 +1064,26 @@ def make_peptide(sequence: str) -> MolSys:
     resindices = np.concatenate(resindices)
     zmat = np.concatenate(zmat)
     zmat_idxs = np.concatenate(zmat_idxs)
-    trajectory = _ic_to_cart(zmat_idxs[:,1:], zmat)
     segindices = np.array([0] * len(anames))
     segids = np.array(['A'] * len(anames))
+
+    if bond_angles is not None:
+        assert len(bond_angles) == len(np.unique(resindices))
+        for i, atom_name in enumerate(('N', 'CA', 'C', 'O')):
+            offset = 1 if atom_name in ('N', 'CA') else 0
+            idxs = np.argwhere(anames == atom_name).flat[offset:]
+            zmat[idxs, 1] = np.deg2rad(bond_angles[offset:, i])
+
+    trajectory = _ic_to_cart(zmat_idxs[:, 1:], zmat)
 
     mol = MolSys.from_arrays(anames, atypes, resnames, resindices, resnums, segindices, segids, trajectory)
 
     if ncap is not None:
-        mol = append_cap(mol, ncap)
+        d = phi[1] if phi[1] != -0.82030 else None
+        mol = append_cap(mol, ncap, dihedral=d)
     if ccap is not None:
-        mol = append_cap(mol, ccap)
+        d = psi[-1] if psi[-1] != -0.99484 else None
+        mol = append_cap(mol, ccap, dihedral=d)
 
     return mol
 
@@ -1057,7 +1170,10 @@ def smiles2residue(smiles : str, **kwargs) -> MolSys:
     mol = Chem.MolFromSmiles(smiles)
     mol = Chem.AddHs(mol)
 
-    AllChem.EmbedMolecule(mol, **kwargs)
+    success = AllChem.EmbedMolecule(mol, **kwargs)
+    if success != 0:
+        AllChem.EmbedMolecule(mol, enforceChirality=False, **kwargs)
+
     AllChem.MMFFOptimizeMolecule(mol, maxIters=200)
 
     res = MolSys.from_rdkit(mol)
@@ -1132,7 +1248,7 @@ def smiles2residue(smiles : str, **kwargs) -> MolSys:
     return Msys
 
 
-def append_cap(mol : MolSys, cap : str) -> MolSys:
+def append_cap(mol : MolSys, cap : str, dihedral: float = None) -> MolSys:
     """
     Append a peptide cap to a molecular system.
 
@@ -1161,8 +1277,28 @@ def append_cap(mol : MolSys, cap : str) -> MolSys:
 
     nmx, nori = xl.global_mx(*neighbor.select_atoms('name N CA C').positions)
     cap_struct = xl.MolSys.from_pdb(xl.RL_DIR / f'cap_pdbs/{cap_name}.pdb')
-
     cap_struct.positions = cap_struct.positions @ nmx + nori
+
+    if dihedral is not None:
+        # Identify nearst atom of cap as bonded atom
+        neighbor_atom = neighbor.atoms[neighbor.names == term].position[0]
+        bonded_atom = np.linalg.norm(cap_struct.positions - neighbor_atom, axis=1).argmin()
+        bonded_atom = cap_struct.atoms[bonded_atom]
+        
+        # Set up dih
+        if term == 'N':
+            dihedral_points = bonded_atom.positions, *neighbor.select_atoms('name N CA C').positions
+        else:
+            dihedral_points = *neighbor.select_atoms('name N CA C').positions, bonded_atom.positions
+            dihedral_points = dihedral_points[::-1]
+
+        start_angle = get_dihedral(dihedral_points)
+        theta = start_angle - dihedral
+        v = dihedral_points[2] - dihedral_points[1]
+        v /= np.linalg.norm(v)
+        mx = get_dihedral_rotation_matrix(theta, v)
+        cap_struct.positions = (cap_struct.positions - dihedral_points[2]) @ mx.T + dihedral_points[2]
+
     systems = [cap_struct, mol] if term == "N" else [mol, cap_struct]
 
     mol = concat_molsys(systems)

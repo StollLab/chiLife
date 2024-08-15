@@ -1,5 +1,5 @@
-χLife
-======
+chiLife (χLife)
+===============
 
 .. mdinclude:: ../../README.md
 

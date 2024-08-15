@@ -1,13 +1,22 @@
 <p align="center">
    <a href="https://stolllab.github.io/chiLife/">
-      <img src="https://img.shields.io/badge/docs-latest-brightgreen.svg" height="60">
+      <img src="https://github.com/StollLab/chiLife/raw/main/img/chiLife_logo.png" width="300">
+   </a>
+</p>
+
+<p align="center">
+   <a href="https://stolllab.github.io/chiLife/">
+      <img src="https://img.shields.io/badge/docs-latest-brightgreen.svg" width="300">
    </a>
 </p>
 
 
-|                       :exclamation:   News   :exclamation:                                |                       
-|-------------------------------------------------------------------------------------------|
-| chiLife now supports arbitrary backbone attachments including DNA and RNA labels and more!| 
+| **UPDATES**                                                                                                                   |
+|-------------------------------------------------------------------------------------------------------------------------------|
+| 2024.8.15 : chiLife 1.0 released!                                                                                             |
+| 2024.8.15 : chiLife can now be used to create arbitrary peptides with natural and NCAAs. Checkout the `make_peptide` function. |
+| 2024.8.15 : chiLife can make NCAA structures from smiles. Checkout `smiles2residue`. Note: Requires RDKit to be installed.    | 
+| chiLife now supports arbitrary backbone attachments including DNA and RNA labels and more!                                    | 
 
 
 

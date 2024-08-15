@@ -1,6 +1,6 @@
 .. _rotamer_ensemble:
 
-Side chain ensembles
+Side Chain Ensembles
 =====================
 
 

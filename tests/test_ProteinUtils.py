@@ -5,7 +5,6 @@ from functools import partial
 import numpy as np
 import pytest
 import MDAnalysis as mda
-from sympy.polys.benchmarks.bench_galoispolys import timeit_gathen_poly_f10_zassenhaus
 
 import chilife
 

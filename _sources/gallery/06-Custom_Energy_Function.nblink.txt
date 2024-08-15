@@ -1,3 +1,0 @@
-{   
-"path": "../../../examples/06 - Custom energy functions/06 - Custom energy functions.ipynb"
-}

@@ -1,3 +1,0 @@
-{   
-"path": "../../../examples/04 - Repacking with MCMC sampling/03-Repacking with MCMC sampling.ipynb"
-}

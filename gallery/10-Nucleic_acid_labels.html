@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Nucleic acid labels &mdash; chiLife  documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=19f00094" />
+      <link rel="stylesheet" type="text/css" href="../_static/sg_gallery.css?v=d2d258e8" />
+      <link rel="stylesheet" type="text/css" href="../_static/nbsphinx-code-cells.css?v=2aa19091" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../_static/documentation_options.js?v=5929fcd5"></script>
+        <script src="../_static/doctools.js?v=9a2dae69"></script>
+        <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+        <script>window.MathJax = {"tex": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true}, "options": {"ignoreHtmlClass": "tex2jax_ignore|mathjax_ignore|document", "processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+        <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Arbitrary molecular labels" href="11-Arbitrary_molecular_labels.html" />
+    <link rel="prev" title="Bifunctional Labeling" href="09-Bifunctional_Labels.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            chiLife
+              <img src="../_static/chiLife_logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../chilife.html">chilife Functions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../rotamer_ensemble.html">Side chain ensembles</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../rotamer_libraries.html">Rotamer Libraries</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../molsys.html">Molecular Systems</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../utils.html">Utils</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../examples.html">Examples</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="01-Basic_Spin_Labeling.html">Basic Spin Labeling</a></li>
+<li class="toctree-l2"><a class="reference internal" href="02-Simple_SDSL_site_pair_screen.html">Simple SDSL site pair screen</a></li>
+<li class="toctree-l2"><a class="reference internal" href="03-SDSL_Site_Screen.html">SDSL Site Screen</a></li>
+<li class="toctree-l2"><a class="reference internal" href="04-Adding_custom_spin_labels.html">Adding Custom Spin Labels</a></li>
+<li class="toctree-l2"><a class="reference internal" href="05-Repacking_with_MCMC_Sampling.html">Repacking with MCMC Sampling</a></li>
+<li class="toctree-l2"><a class="reference internal" href="06-Membrane_Docking.html">Membrane Docking</a></li>
+<li class="toctree-l2"><a class="reference internal" href="07-Custom_Energy_Function.html">Custom Energy Function</a></li>
+<li class="toctree-l2"><a class="reference internal" href="09-Bifunctional_Labels.html">Bifunctional Labeling</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Nucleic acid labels</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#Automated-label-backbone-detection">Automated label backbone detection</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#Manual-label-backbone-definition">Manual label backbone definition</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="11-Arbitrary_molecular_labels.html">Arbitrary molecular labels</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../faqs.html">Frequently Asked Questions</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">chiLife</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../examples.html">Examples</a></li>
+      <li class="breadcrumb-item active">Nucleic acid labels</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/gallery/10-Nucleic_acid_labels.nblink.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="Nucleic-acid-labels">
+<h1>Nucleic acid labels<a class="headerlink" href="#Nucleic-acid-labels" title="Link to this heading"></a></h1>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[1]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+<span class="kn">import</span> <span class="nn">chilife</span> <span class="k">as</span> <span class="nn">xl</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">style</span><span class="o">.</span><span class="n">use</span><span class="p">(</span><span class="s1">&#39;chiLife&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<p>In this tutorial we will create two new nucleic acid spin labels and use them on a variety of nucleic acids. Unlike most protein labels, nucleic acid labels are often attached at a variety of different locations on a single residue including different backbone positions and sometimes on the side chain as illustrated below.</p>
+<p><img alt="Alternate alignment positions" src="../_images/alt_aln_pos.png" /></p>
+<section id="Automated-label-backbone-detection">
+<h2>Automated label backbone detection<a class="headerlink" href="#Automated-label-backbone-detection" title="Link to this heading"></a></h2>
+<p>For some labels, primarily those that protrude from the sugar-phosphate backbone, chiLife will be able to detect which part of the label is backbone and which is side chain, automatically detecting the alignment atoms and mobile side chain dihedrals.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">xl</span><span class="o">.</span><span class="n">create_library</span><span class="p">(</span><span class="s1">&#39;C2P&#39;</span><span class="p">,</span> <span class="s1">&#39;C2P.pdb&#39;</span><span class="p">,</span> <span class="n">spin_atoms</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;N35&quot;</span><span class="p">,</span> <span class="s2">&quot;O36&quot;</span><span class="p">])</span>
+<span class="n">xl</span><span class="o">.</span><span class="n">rotlib_info</span><span class="p">(</span><span class="s1">&#39;C2P&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+
+********************************************************************************
+*  Rotamer Library Name:                                                  C2P  *
+********************************************************************************
+Rotamer Library Name: C2P
+File: E:\07)Programming\Python\chiLife\examples\10 - Nucleic acid
+    labels\C2P_rotlib.npz
+Description: None
+Comment: None
+
+Length of library: 1
+Dihedral definitions:
+    [&#34;C3&#39;&#34; &#34;C2&#39;&#34; &#39;N05&#39; &#39;C02&#39;]
+    [&#34;C2&#39;&#34; &#39;N05&#39; &#39;C02&#39; &#39;O07&#39;]
+    [&#39;N05&#39; &#39;C02&#39; &#39;C03&#39; &#39;C04&#39;]
+Spin atoms: [&#39;N35&#39; &#39;O36&#39;]
+Number of atoms: P: 1, O: 7, C: 14, N: 2, H: 21
+Number of heavy atoms: 24
+Reference: None
+chiLife rotlib format: 1.4
+********************************************************************************
+</pre></div></div>
+</div>
+<p>Labels that are created like this can be used on all types of nucleic acid residues.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">DNA_RNA_Hybrid</span> <span class="o">=</span> <span class="n">xl</span><span class="o">.</span><span class="n">fetch</span><span class="p">(</span><span class="s1">&#39;1fix&#39;</span><span class="p">)</span>
+
+<span class="c1"># Label an RNA cytosine</span>
+<span class="n">SL1</span> <span class="o">=</span> <span class="n">xl</span><span class="o">.</span><span class="n">SpinLabel</span><span class="p">(</span><span class="s1">&#39;C2P&#39;</span><span class="p">,</span> <span class="mi">7</span><span class="p">,</span> <span class="n">DNA_RNA_Hybrid</span><span class="p">,</span> <span class="n">chain</span><span class="o">=</span><span class="s1">&#39;A&#39;</span><span class="p">,</span> <span class="n">sample</span><span class="o">=</span><span class="mi">5000</span><span class="p">)</span>
+
+<span class="c1"># Label a DNA guanine</span>
+<span class="n">SL2</span> <span class="o">=</span> <span class="n">xl</span><span class="o">.</span><span class="n">SpinLabel</span><span class="p">(</span><span class="s1">&#39;C2P&#39;</span><span class="p">,</span> <span class="mi">12</span><span class="p">,</span> <span class="n">DNA_RNA_Hybrid</span><span class="p">,</span> <span class="n">chain</span><span class="o">=</span><span class="s1">&#39;B&#39;</span><span class="p">,</span> <span class="n">sample</span><span class="o">=</span><span class="mi">5000</span><span class="p">)</span>
+
+<span class="n">r</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">15</span><span class="p">,</span> <span class="mi">80</span><span class="p">,</span> <span class="mi">256</span><span class="p">)</span>
+<span class="n">P</span> <span class="o">=</span> <span class="n">xl</span><span class="o">.</span><span class="n">distance_distribution</span><span class="p">(</span><span class="n">SL1</span><span class="p">,</span> <span class="n">SL2</span><span class="p">,</span> <span class="n">r</span><span class="p">)</span>
+
+<span class="n">fig</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">()</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">r</span><span class="p">,</span> <span class="n">P</span><span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;distance ($\rm\AA$)&#39;</span><span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">set_yticks</span><span class="p">([])</span>
+<span class="k">for</span> <span class="n">spine</span> <span class="ow">in</span> <span class="n">ax</span><span class="o">.</span><span class="n">spines</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">spine</span><span class="o">==</span><span class="s1">&#39;bottom&#39;</span><span class="p">:</span>
+        <span class="k">continue</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">spines</span><span class="p">[</span><span class="n">spine</span><span class="p">]</span><span class="o">.</span><span class="n">set_visible</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../_images/gallery_10-Nucleic_acid_labels_5_0.png" src="../_images/gallery_10-Nucleic_acid_labels_5_0.png" />
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">xl</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">SL1</span><span class="p">,</span> <span class="n">SL2</span><span class="p">,</span> <span class="n">DNA_RNA_Hybrid</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</section>
+<section id="Manual-label-backbone-definition">
+<h2>Manual label backbone definition<a class="headerlink" href="#Manual-label-backbone-definition" title="Link to this heading"></a></h2>
+<p>When creating labels that attach to a side chain, or a label that has multiple branches off the backbone, you must specify which atoms to use for the alignment of the label to the site. For example the TUM label attaches to the side chain if uracil residues.</p>
+<p><img alt="TUM" src="../_images/tum.png" /></p>
+<p>This can be done by passing the <code class="docutils literal notranslate"><span class="pre">aln_atoms</span></code> keyword argument. For TUM we will use the three atoms of the uracil ring that preceding the spin label side chain. In the picture above, these atoms are highlighted as spheres. Note that this means the atoms preceding the side chain effectively become backbone atoms.</p>
+<blockquote>
+<div><p>NOTE: The atom naming of the label must exactly match that of the PDB you wish to label. For this reason you should always use standard PDB naming conventions for bath backbone and side chain atoms for nucleic acids (and amino acids for that matter.)</p>
+</div></blockquote>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">xl</span><span class="o">.</span><span class="n">create_library</span><span class="p">(</span><span class="s1">&#39;TUM&#39;</span><span class="p">,</span> <span class="s1">&#39;TUM.pdb&#39;</span><span class="p">,</span> <span class="n">aln_atoms</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;N3&#39;</span><span class="p">,</span> <span class="s1">&#39;C4&#39;</span><span class="p">,</span> <span class="s1">&#39;C5&#39;</span><span class="p">],</span> <span class="n">spin_atoms</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;N04&quot;</span><span class="p">,</span> <span class="s2">&quot;O02&quot;</span><span class="p">])</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area stderr docutils container">
+<div class="highlight"><pre>
+WARNING:py.warnings:C:\Program Files\Python312\Lib\site-packages\MDAnalysis\core\universe.py:658: UserWarning: Reader has no dt information, set to 1.0 ps
+  dt=self.trajectory.ts.dt * step,
+
+</pre></div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">xl</span><span class="o">.</span><span class="n">rotlib_info</span><span class="p">(</span><span class="s1">&#39;TUM&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+
+********************************************************************************
+*  Rotamer Library Name:                                                  TUM  *
+********************************************************************************
+Rotamer Library Name: TUM
+File: E:\07)Programming\Python\chiLife\examples\10 - Nucleic acid
+    labels\TUM_rotlib.npz
+Description: None
+Comment: None
+
+Length of library: 192
+Dihedral definitions:
+    [&#39;N3&#39; &#39;C4&#39; &#39;S01&#39; &#39;S03&#39;]
+    [&#39;C4&#39; &#39;S01&#39; &#39;S03&#39; &#39;C05&#39;]
+    [&#39;S01&#39; &#39;S03&#39; &#39;C05&#39; &#39;C06&#39;]
+    [&#39;S03&#39; &#39;C05&#39; &#39;C06&#39; &#39;C07&#39;]
+Spin atoms: [&#39;N04&#39; &#39;O02&#39;]
+Number of atoms: N: 3, C: 13, S: 2, O: 2, H: 18
+Number of heavy atoms: 20
+Reference: None
+chiLife rotlib format: 1.4
+********************************************************************************
+</pre></div></div>
+</div>
+<blockquote>
+<div><p>NOTE: Because we used standard atom naming conventions, and all pyrimidine use similar atom names, we can actually use this uricil label to label any pyrimidine</p>
+</div></blockquote>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Label an RNA uracil</span>
+<span class="n">SL1</span> <span class="o">=</span> <span class="n">xl</span><span class="o">.</span><span class="n">SpinLabel</span><span class="p">(</span><span class="s1">&#39;TUM&#39;</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="n">DNA_RNA_Hybrid</span><span class="p">,</span> <span class="n">chain</span><span class="o">=</span><span class="s1">&#39;A&#39;</span><span class="p">)</span>
+
+<span class="c1"># Label a RNA cytosine</span>
+<span class="n">SL2</span> <span class="o">=</span> <span class="n">xl</span><span class="o">.</span><span class="n">SpinLabel</span><span class="p">(</span><span class="s1">&#39;TUM&#39;</span><span class="p">,</span> <span class="mi">9</span><span class="p">,</span> <span class="n">DNA_RNA_Hybrid</span><span class="p">,</span> <span class="n">chain</span><span class="o">=</span><span class="s1">&#39;A&#39;</span><span class="p">)</span>
+<br/></pre></div>
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">P</span> <span class="o">=</span> <span class="n">xl</span><span class="o">.</span><span class="n">distance_distribution</span><span class="p">(</span><span class="n">SL1</span><span class="p">,</span> <span class="n">SL2</span><span class="p">,</span> <span class="n">r</span><span class="p">)</span>
+
+<span class="n">fig</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">()</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">r</span><span class="p">,</span> <span class="n">P</span><span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;distance ($\rm\AA$)&#39;</span><span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">set_yticks</span><span class="p">([])</span>
+<span class="k">for</span> <span class="n">spine</span> <span class="ow">in</span> <span class="n">ax</span><span class="o">.</span><span class="n">spines</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">spine</span><span class="o">==</span><span class="s1">&#39;bottom&#39;</span><span class="p">:</span>
+        <span class="k">continue</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">spines</span><span class="p">[</span><span class="n">spine</span><span class="p">]</span><span class="o">.</span><span class="n">set_visible</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../_images/gallery_10-Nucleic_acid_labels_12_0.png" src="../_images/gallery_10-Nucleic_acid_labels_12_0.png" />
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">xl</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">SL1</span><span class="p">,</span> <span class="n">SL2</span><span class="p">,</span> <span class="n">DNA_RNA_Hybrid</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<p><img alt="TUML" src="../_images/TUMLabeled.png" /></p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="09-Bifunctional_Labels.html" class="btn btn-neutral float-left" title="Bifunctional Labeling" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="11-Arbitrary_molecular_labels.html" class="btn btn-neutral float-right" title="Arbitrary molecular labels" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022, Maxx Tessmer.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

@@ -1,0 +1,3 @@
+{   
+"path": "../../../examples/03 - SDSL Site Screen for conformational change/03-SDSL Site Screen.ipynb"
+}

@@ -1,0 +1,3 @@
+{   
+"path": "../../../examples/09 - Bifunctional labels/09 - Bifunctional Labels.ipynb"
+}

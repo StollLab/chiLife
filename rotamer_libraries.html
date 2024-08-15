@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Rotamer Libraries &mdash; chiLife  documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=19f00094" />
+      <link rel="stylesheet" type="text/css" href="_static/sg_gallery.css?v=d2d258e8" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="_static/jquery.js?v=5d32c60e"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="_static/documentation_options.js?v=5929fcd5"></script>
+        <script src="_static/doctools.js?v=9a2dae69"></script>
+        <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Molecular Systems" href="molsys.html" />
+    <link rel="prev" title="Side chain ensembles" href="rotamer_ensemble.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            chiLife
+              <img src="_static/chiLife_logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="chilife.html">chilife Functions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="rotamer_ensemble.html">Side chain ensembles</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Rotamer Libraries</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#creating-custom-rotamer-libraries">Creating Custom Rotamer Libraries</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#defining-mobile-dihedrals">Defining Mobile Dihedrals</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#defining-spin-atoms-and-their-weights">Defining Spin-atoms and Their Weights</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#using-a-predefined-rotamer-libraries">Using a predefined rotamer libraries</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#setting-rotamer-weights">Setting Rotamer Weights</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="molsys.html">Molecular Systems</a></li>
+<li class="toctree-l1"><a class="reference internal" href="utils.html">Utils</a></li>
+<li class="toctree-l1"><a class="reference internal" href="examples.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="faqs.html">Frequently Asked Questions</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">chiLife</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Rotamer Libraries</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/rotamer_libraries.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="rotamer-libraries">
+<h1>Rotamer Libraries<a class="headerlink" href="#rotamer-libraries" title="Link to this heading"></a></h1>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>As of version 0.4.0 chiLife supports custom rotamer libraries with arbitrary backbones. This allows for the
+creation of rotamer libraries for nucleic acids, as well as libraries that can be used to modify ligands or
+glycans.</p>
+<p>We have added an example of how to create a nucleic acid label and a ligand label in the <a class="reference internal" href="examples.html#examples"><span class="std std-ref">Examples</span></a>
+section.</p>
+</div>
+<section id="creating-custom-rotamer-libraries">
+<span id="custom-rotamer-libraries"></span><h2>Creating Custom Rotamer Libraries<a class="headerlink" href="#creating-custom-rotamer-libraries" title="Link to this heading"></a></h2>
+<p>A major component of chilife is the creation and sharing of custom rotamer libraries. This is to facilitate rapid
+distribution of libraries for novel spin labels and encourage rapid rotamer library testing and development. Rotamer
+libraries are added through the <a class="reference internal" href="chilife.html#chilife.chilife.create_library" title="chilife.chilife.create_library"><code class="xref py py-func docutils literal notranslate"><span class="pre">create_library()</span></code></a> and  <a class="reference internal" href="chilife.html#chilife.chilife.create_dlibrary" title="chilife.chilife.create_dlibrary"><code class="xref py py-func docutils literal notranslate"><span class="pre">create_dlibrary()</span></code></a>
+functions:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">xl</span><span class="o">.</span><span class="n">create_library</span><span class="p">(</span><span class="s1">&#39;XYZ&#39;</span><span class="p">,</span> <span class="s1">&#39;XYZ.pdb&#39;</span><span class="p">,</span> <span class="o">...</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>or by saving an existing <a class="reference internal" href="rotamer_ensemble.html#chilife.RotamerEnsemble" title="chilife.RotamerEnsemble"><code class="xref py py-class docutils literal notranslate"><span class="pre">RotamerEnsemble</span></code></a> or <a class="reference internal" href="rotamer_ensemble.html#chilife.SpinLabel" title="chilife.SpinLabel"><code class="xref py py-class docutils literal notranslate"><span class="pre">SpinLabel</span></code></a> object as a rotamer library:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">mySL</span> <span class="o">=</span> <span class="n">xl</span><span class="o">.</span><span class="n">SpinLabel</span><span class="p">(</span><span class="s1">&#39;R1M&#39;</span><span class="p">)</span>
+<span class="c1"># Some wizardry to optimize structures, weights, etc.</span>
+<span class="o">...</span>
+<span class="n">mySL</span><span class="o">.</span><span class="n">to_rotlib</span><span class="p">(</span><span class="s1">&#39;myR1&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>chiLife <code class="xref py py-class docutils literal notranslate"><span class="pre">dRotamerEnsembles</span></code> and <code class="xref py py-class docutils literal notranslate"><span class="pre">dSpinLabels</span></code> do not yet have a <code class="docutils literal notranslate"><span class="pre">to_rotlib</span></code>
+method.</p>
+</div>
+<p>chiLife rotamer library creation is very flexible and offers users many ways to modify their rotamer libraries.
+Below we discuss several intricacies of making rotamer libraries with chiLife and general considerations that should be
+taken into account when making custom rotamer libraries.</p>
+<p>All rotamer libraries in chiLife must start with some sort of structural ensemble that approximates the side chain’s
+conformational landscape. This can be a very crude approximation, contain only a single or a very detailed
+approximation containing several rotamers with different weights and statistical parameters describing dihedral motion
+near every rotamer. As a result, there are many different ways in which a rotamer library can be developed.</p>
+<p>The fastest and simplest way to develop a rotamer “library” is to create a PDB file of a single conformation of your
+rotamer attached to a protein backbone. This can be done with several molecular modeling applications like PyMol,
+Avogadro, OpenBabel, etc. Ideally the rotamer’s geometry is optimized before passing it to chiLife, either with a
+molecular mechanics forcefield like MMFF94, or better yet by DFT with an application like ORCA or Gaussian. For example,
+we could create a “library” of the bio-orthogonal nitroxide label Tetv4.0Ph-sTCO-tE5 (TSP) developed by Jana et al.:</p>
+<img alt="_images/mono_TSP.png" src="_images/mono_TSP.png" />
+<p>Once a PDB structure is generated it can be added by passing the rotlib name and pdb file to the
+<a class="reference internal" href="chilife.html#chilife.chilife.create_library" title="chilife.chilife.create_library"><code class="xref py py-func docutils literal notranslate"><span class="pre">create_library()</span></code></a> function:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">xl</span><span class="o">.</span><span class="n">create_library</span><span class="p">(</span><span class="s1">&#39;TSP&#39;</span><span class="p">,</span> <span class="s1">&#39;TSP.pdb&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>All labels in a pdb file passed to <code class="xref py py-func docutils literal notranslate"><span class="pre">create_rotlib()</span></code> must have the backbone atoms named using
+standard PDB conventions and all other atoms must have unique names. Additionally all atoms must have the same
+residue number and be on the same chain.</p>
+</div>
+<p>This is the bare minimum required to generate a chilife rotlib and any <a class="reference internal" href="rotamer_ensemble.html#chilife.RotamerEnsemble" title="chilife.RotamerEnsemble"><code class="xref py py-class docutils literal notranslate"><span class="pre">RotamerEnsemble</span></code></a> generated with
+it will only have 1 rotamer that always models in the exact same conformation, regardless of how unfavorable that
+conformation is in a given protein environment.</p>
+<p>To allow our side chain a little flexibility we can tell chiLife what the mobile dihedrals are.</p>
+<section id="defining-mobile-dihedrals">
+<span id="mobile-dihedrals"></span><h3>Defining Mobile Dihedrals<a class="headerlink" href="#defining-mobile-dihedrals" title="Link to this heading"></a></h3>
+<p>Most labels will have several side chain dihedral angles, some of which will be relatively fixed due to strong
+constraints (e.g. rings) and others that will be free to rotate (e.g. χ4 and χ5 of R1) allowing for alternate
+conformational states (rotamers).</p>
+<img alt="_images/fixed_and_flex_dihedrals.png" src="_images/fixed_and_flex_dihedrals.png" />
+<p>Because the potential energy differences between rotameric states are generally far lower than bond stretching or angle
+distortions, rotations about dihedral angles generally account for the majority of label conformational diversity.
+chiLife models this conformational diversity by fixing bond lengths and bond angles while allowing rotations about a
+user defined subset of dihedrals. Using our chemical knowledge we can make a few guesses about which dihedrals are most
+flexible.</p>
+<img alt="_images/define_dihedrals.png" src="_images/define_dihedrals.png" />
+<p>And tell chiLife about them</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Atom names as defined in the PDB file.</span>
+<span class="n">dihedral_defs</span> <span class="o">=</span> <span class="p">[[</span><span class="s1">&#39;N&#39;</span><span class="p">,</span> <span class="s1">&#39;CA&#39;</span><span class="p">,</span> <span class="s1">&#39;CB&#39;</span><span class="p">,</span> <span class="s1">&#39;CG&#39;</span><span class="p">],</span>
+                 <span class="p">[</span><span class="s1">&#39;CA&#39;</span><span class="p">,</span> <span class="s1">&#39;CB&#39;</span><span class="p">,</span> <span class="s1">&#39;CB2&#39;</span><span class="p">,</span> <span class="s1">&#39;CG&#39;</span><span class="p">],</span>
+                 <span class="p">[</span><span class="s1">&#39;ND&#39;</span><span class="p">,</span> <span class="s1">&#39;CE3&#39;</span><span class="p">,</span> <span class="s1">&#39;CZ3&#39;</span><span class="p">,</span> <span class="s1">&#39;C31&#39;</span><span class="p">],</span>
+                 <span class="p">[</span><span class="s1">&#39;C01&#39;</span><span class="p">,</span> <span class="s1">&#39;C11&#39;</span><span class="p">,</span> <span class="s1">&#39;C12&#39;</span><span class="p">,</span> <span class="s1">&#39;N12&#39;</span><span class="p">],</span>
+                 <span class="p">[</span><span class="s1">&#39;C12&#39;</span><span class="p">,</span> <span class="s1">&#39;N12&#39;</span><span class="p">,</span> <span class="s1">&#39;C13&#39;</span><span class="p">,</span> <span class="s1">&#39;C14&#39;</span><span class="p">],</span>
+                 <span class="p">[</span><span class="s1">&#39;N12&#39;</span><span class="p">,</span> <span class="s1">&#39;C13&#39;</span><span class="p">,</span> <span class="s1">&#39;C14&#39;</span><span class="p">,</span> <span class="s1">&#39;C15&#39;</span><span class="p">]]</span>
+<span class="n">xl</span><span class="o">.</span><span class="n">create_library</span><span class="p">(</span><span class="s1">&#39;TSP&#39;</span><span class="p">,</span> <span class="s1">&#39;TSP.pdb&#39;</span><span class="p">,</span> <span class="n">dihedral_atoms</span><span class="o">=</span><span class="n">dihedral_defs</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Now our library can be used to perform accessible volume sampling!</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">MBP</span> <span class="o">=</span> <span class="n">xl</span><span class="o">.</span><span class="n">fetch</span><span class="p">(</span><span class="s1">&#39;1anf&#39;</span><span class="p">)</span>
+<span class="n">SL1</span> <span class="o">=</span> <span class="n">xl</span><span class="o">.</span><span class="n">RotamerEnsemble</span><span class="p">(</span><span class="s1">&#39;TSP&#39;</span><span class="p">,</span> <span class="mi">278</span><span class="p">,</span> <span class="n">MBP</span><span class="p">,</span> <span class="n">sample</span><span class="o">=</span><span class="mi">10000</span><span class="p">,</span> <span class="n">eval_clash</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span> <span class="c1"># eval_clash=False by default for RotamerEnsembles</span>
+<span class="n">SL2</span> <span class="o">=</span> <span class="n">xl</span><span class="o">.</span><span class="n">RotamerEnsemble</span><span class="p">(</span><span class="s1">&#39;TSP&#39;</span><span class="p">,</span> <span class="mi">322</span><span class="p">,</span> <span class="n">MBP</span><span class="p">,</span> <span class="n">sample</span><span class="o">=</span><span class="mi">10000</span><span class="p">,</span> <span class="n">eval_clash</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</pre></div>
+</div>
+<img alt="_images/MBP_E278TSP_E322TSP.png" src="_images/MBP_E278TSP_E322TSP.png" />
+</section>
+<section id="defining-spin-atoms-and-their-weights">
+<span id="spin-atoms"></span><h3>Defining Spin-atoms and Their Weights<a class="headerlink" href="#defining-spin-atoms-and-their-weights" title="Link to this heading"></a></h3>
+<p>Note that we created <a class="reference internal" href="rotamer_ensemble.html#chilife.RotamerEnsemble" title="chilife.RotamerEnsemble"><code class="xref py py-class docutils literal notranslate"><span class="pre">RotamerEnsemble</span></code></a> objects and not <a class="reference internal" href="rotamer_ensemble.html#chilife.SpinLabel" title="chilife.SpinLabel"><code class="xref py py-class docutils literal notranslate"><span class="pre">SpinLabel</span></code></a> objects. This is
+because we have not told chiLife which atom(s) hold the unpaired electron density. We can tell chiLife approximately
+where this unpaired electron density lives in several ways using the <cite>spin_atoms</cite> keyword argument of the
+<code class="xref py py-func docutils literal notranslate"><span class="pre">create_rotlib()</span></code> function. We could approximate all the spin density to be on the Nitrogen or
+oxygen of the nitroxide ring</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">xl</span><span class="o">.</span><span class="n">create_library</span><span class="p">(</span><span class="s1">&#39;TSP&#39;</span><span class="p">,</span> <span class="s1">&#39;TSP.pdb&#39;</span><span class="p">,</span> <span class="n">dihedral_atoms</span><span class="o">=</span><span class="n">dihedral_defs</span><span class="p">,</span> <span class="n">spin_atoms</span><span class="o">=</span><span class="s1">&#39;N1&#39;</span><span class="p">)</span>
+<span class="n">xl</span><span class="o">.</span><span class="n">create_library</span><span class="p">(</span><span class="s1">&#39;TSP&#39;</span><span class="p">,</span> <span class="s1">&#39;TSP.pdb&#39;</span><span class="p">,</span> <span class="n">dihedral_atoms</span><span class="o">=</span><span class="n">dihedral_defs</span><span class="p">,</span> <span class="n">spin_atoms</span><span class="o">=</span><span class="s1">&#39;O1&#39;</span><span class="p">)</span>
+<span class="c1"># Atom names as defined in the PDB file</span>
+</pre></div>
+</div>
+<p>or equally distributed between ‘N1’ and ‘O1’ by passing a list:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">xl</span><span class="o">.</span><span class="n">create_library</span><span class="p">(</span><span class="s1">&#39;TSP&#39;</span><span class="p">,</span> <span class="s1">&#39;TSP.pdb&#39;</span><span class="p">,</span> <span class="n">dihedral_atoms</span><span class="o">=</span><span class="n">dihedral_defs</span><span class="p">,</span> <span class="n">spin_atoms</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;N1&#39;</span><span class="p">,</span> <span class="s1">&#39;O1&#39;</span><span class="p">])</span>
+</pre></div>
+</div>
+<p>or with user defined proportions by using a dict:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">xl</span><span class="o">.</span><span class="n">create_library</span><span class="p">(</span><span class="s1">&#39;TSP&#39;</span><span class="p">,</span> <span class="s1">&#39;TSP.pdb&#39;</span><span class="p">,</span> <span class="n">dihedral_atoms</span><span class="o">=</span><span class="n">dihedral_defs</span><span class="p">,</span> <span class="n">spin_atoms</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;N1&#39;</span><span class="p">:</span> <span class="mf">0.4</span><span class="p">,</span> <span class="s1">&#39;O1&#39;</span><span class="p">:</span> <span class="mf">0.6</span><span class="p">})</span>
+</pre></div>
+</div>
+<p>Which would apply 40% of the unpaired electron density on the nitrogen and 60% on the oxygen. When calculating distance
+distributions chiLife will use the weighted centroid of the spin spin centers to calculate distances, however in
+circumstances of highly delocalized spin the <code class="docutils literal notranslate"><span class="pre">use_spin_centers=True</span></code> keyword arguments can be passed to
+<a class="reference internal" href="chilife.html#chilife.chilife.distance_distribution" title="chilife.chilife.distance_distribution"><code class="xref py py-func docutils literal notranslate"><span class="pre">distance_distribution()</span></code></a> and individual spin atom distances will be will be used for distance
+measurements.</p>
+</section>
+<section id="using-a-predefined-rotamer-libraries">
+<h3>Using a predefined rotamer libraries<a class="headerlink" href="#using-a-predefined-rotamer-libraries" title="Link to this heading"></a></h3>
+<p>While the accessible volume method has been shown to be a powerful modeling method for predicting spin-spin distance
+distributions it is relatively slow compared to the rotamer library method and does not take into account the energetic
+preference of different conformations.</p>
+<p>There are two major ways you can create a rotamer library in chiLife. First, chiLife can make rotamer libraries from a
+single structure with an array of dihedral angle values. As an example we can create a library with a bunch of random
+dihedral angles:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">dihedrals</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="mi">150</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">dihedral_defs</span><span class="p">)))</span>
+<span class="n">xl</span><span class="o">.</span><span class="n">create_library</span><span class="p">(</span><span class="s1">&#39;TSP&#39;</span><span class="p">,</span> <span class="s1">&#39;TSP.pdb&#39;</span><span class="p">,</span> <span class="n">dihedral_atoms</span><span class="o">=</span><span class="n">dihedral_defs</span><span class="p">,</span> <span class="n">spin_atoms</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;N1&#39;</span><span class="p">,</span> <span class="s1">&#39;O1&#39;</span><span class="p">],</span> <span class="n">dihedrals</span><span class="o">=</span><span class="n">dihedrals</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>But dihedral angles are not random, and different conformations may have slight differences in bond angles and lengths
+especially bonds coordinating metals. Thus. you can also create a library using a multi state pdb file. Multi-state
+files can be generated using methods like MD simulations, meta-dynamics, MCMC sampling or using tools like CREST, FROG2,
+Rosetta, or BCL. Whine using multi-state PDB files, chiLife can utilize structures with more conformational diversity. As
+long as two structures have a shared sub-topology chiLife will accept them as two possible rotamers of the same
+structure. This includes stereo isomers, topologically diverse metal coordination geometries and labels with multiple
+ring conformations.</p>
+</section>
+<section id="setting-rotamer-weights">
+<h3>Setting Rotamer Weights<a class="headerlink" href="#setting-rotamer-weights" title="Link to this heading"></a></h3>
+<p>Of course, different conformations also have different energetic values and therefore different frequencies of
+observance. While chiLife accounts for energetic penalties of clashes when attaching a RotamerEnsemble to a proteins
+site, each individual rotamer in the library can be given a weight approximating the observance frequency based off of
+the internal energy of the rotamer or by the frequency observed in some kind of sampling method. Assuming you have
+the relative energy of your rotamers in an array called <cite>energy</cite> in unist of kcal/mol and <cite>TSP.pdb</cite> is a multistate
+PDB with each state corresponding to the respective energy in <cite>energy</cite> :</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">weights</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">energy</span> <span class="o">/</span> <span class="p">(</span><span class="n">xl</span><span class="o">.</span><span class="n">GAS_CONST</span> <span class="o">*</span> <span class="mi">293</span><span class="p">)</span> <span class="p">)</span>
+<span class="n">xl</span><span class="o">.</span><span class="n">create_library</span><span class="p">(</span><span class="s1">&#39;TSP&#39;</span><span class="p">,</span> <span class="s1">&#39;TSP.pdb&#39;</span><span class="p">,</span> <span class="n">dihedral_atoms</span><span class="o">=</span><span class="n">dihedral_defs</span><span class="p">,</span> <span class="n">spin_atoms</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;N1&#39;</span><span class="p">,</span> <span class="s1">&#39;O1&#39;</span><span class="p">],</span> <span class="n">weights</span><span class="o">=</span><span class="n">weights</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="rotamer_ensemble.html" class="btn btn-neutral float-left" title="Side chain ensembles" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="molsys.html" class="btn btn-neutral float-right" title="Molecular Systems" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022, Maxx Tessmer.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

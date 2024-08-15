@@ -451,8 +451,12 @@ def test_append_cap():
     np.testing.assert_allclose(new_pep.residues[-1].positions, nhh_coords)
 
 
-def test__add_cap():
+def test_add_cap():
     chilife.store_cap('ZZZ', 'test_data/ACE_A_NME.pdb', 'N')
     chilife.store_cap('XXX', 'test_data/ACE_A_NME.pdb', 'C')
-    os.remove("../src/chilife/data/rotamer_libraries/cap_pdbs/XXX.pdb")
-    os.remove("../src/chilife/data/rotamer_libraries/cap_pdbs/ZZZ.pdb")
+
+    assert (chilife.RL_DIR / f'cap_pdbs/XXX.pdb').exists()
+    assert (chilife.RL_DIR / f'cap_pdbs/ZZZ.pdb').exists()
+
+    os.remove(chilife.RL_DIR / f'cap_pdbs/XXX.pdb')
+    os.remove(chilife.RL_DIR / f'cap_pdbs/ZZZ.pdb')

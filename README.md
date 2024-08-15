@@ -1,13 +1,21 @@
 <p align="center">
    <a href="https://stolllab.github.io/chiLife/">
+      <img src="https://github.com/StollLab/chiLife/raw/main/img/chiLife_logo.png" height="60">
+   </a>
+</p>
+
+<p align="center">
+   <a href="https://stolllab.github.io/chiLife/">
       <img src="https://img.shields.io/badge/docs-latest-brightgreen.svg" height="60">
    </a>
 </p>
 
 
-|                       :exclamation:   News   :exclamation:                                |                       
-|-------------------------------------------------------------------------------------------|
-| chiLife now supports arbitrary backbone attachments including DNA and RNA labels and more!| 
+| :exclamation:   News   :exclamation:                                                                                               |
+|------------------------------------------------------------------------------------------------------------------------------------|
+| 2024.8.15 : chiLife 1.0 released!                                                                                                  |
+| 2024.8.15 : chiLife can now be used to create arbitrary peptides with natural and NCAAs.<br/>Checkout the `make_peptide` function. |
+| chiLife now supports arbitrary backbone attachments including DNA and RNA labels and more!                                         | 
 
 
 

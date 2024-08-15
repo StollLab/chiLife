@@ -100,4 +100,15 @@ def test_write_protein_with_bonds():
 
     xl.save(R1M, conect=True)
 
-    assert False
+
+    with open('1R1M.pdb', 'r') as f:
+        lines = "".join(f.readlines())
+        thash = hashlib.md5(lines.encode("utf-8")).hexdigest()
+
+    with open('test_data/cnct.pdb', 'r') as f:
+        lines = "".join(f.readlines())
+        ahash = hashlib.md5(lines.encode("utf-8")).hexdigest()
+
+    assert thash == ahash
+
+    os.remove('1R1M.pdb')

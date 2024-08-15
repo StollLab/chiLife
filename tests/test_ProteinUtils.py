@@ -5,6 +5,8 @@ from functools import partial
 import numpy as np
 import pytest
 import MDAnalysis as mda
+from sympy.polys.benchmarks.bench_galoispolys import timeit_gathen_poly_f10_zassenhaus
+
 import chilife
 
 pdbids = ["1ubq", "1a2w", '1az5']
@@ -318,8 +320,13 @@ def test_make_strand():
     omega = np.ones(22) * -178
 
     pep = chilife.make_peptide("ACDEF[R1M]GHIKL<COC1=CC=C(C=C1)CC(C(=O)O)N>MNPQR[R1C]STVWY", phi, psi, omega)
-
-    assert False
+    pepIC = chilife.MolSysIC.from_atoms(pep)
+    phi_idx = pepIC.phi_idxs(np.arange(2, 23))
+    psi_idx = pepIC.psi_idxs(np.arange(1, 22))
+    tphi = np.rad2deg(pepIC.z_matrix[phi_idx, 2])
+    tpsi  = np.rad2deg(pepIC.z_matrix[psi_idx, 2])
+    np.testing.assert_allclose(phi[1:], tphi)
+    np.testing.assert_allclose(psi[:-1], tpsi)
 
 
 def test_make_pep_w_cap():
@@ -348,10 +355,23 @@ def test_make_pep_w_cap2():
 
 def test_mkpep_template():
     ATII = chilife.fetch('6JOD').select_atoms('segid B')
-
     pep = chilife.make_peptide("DRV[TOC]IHPF", template=ATII)
 
-    assert False
+    ATII_IC = chilife.MolSysIC.from_atoms(ATII)
+    phi_idx = ATII_IC.phi_idxs(np.arange(2, 23))
+    psi_idx = ATII_IC.psi_idxs(np.arange(1, 22))
+    phi = np.rad2deg(ATII_IC.z_matrix[phi_idx, 2])
+    psi  = np.rad2deg(ATII_IC.z_matrix[psi_idx, 2])
+
+    pep_IC = chilife.MolSysIC.from_atoms(pep)
+    phi_idx = pep_IC.phi_idxs(np.arange(2, 23))
+    psi_idx = pep_IC.psi_idxs(np.arange(1, 22))
+    tphi = np.rad2deg(pep_IC.z_matrix[phi_idx, 2])
+    tpsi  = np.rad2deg(pep_IC.z_matrix[psi_idx, 2])
+
+    np.testing.assert_allclose(phi, tphi)
+    np.testing.assert_allclose(psi, tpsi)
+
 
 def test_parsed_sequence():
     pseq = chilife.parse_sequence("[ACE]AaNIE<cccn>[NHH]")

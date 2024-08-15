@@ -1,5 +1,6 @@
 import os
 import pickle, math
+import warnings
 
 from pathlib import Path
 from typing import Set, List, Union, Tuple
@@ -1169,7 +1170,10 @@ def smiles2residue(smiles : str, **kwargs) -> MolSys:
     mol = Chem.MolFromSmiles(smiles)
     mol = Chem.AddHs(mol)
 
-    AllChem.EmbedMolecule(mol, **kwargs)
+    success = AllChem.EmbedMolecule(mol, **kwargs)
+    if success != 0:
+        AllChem.EmbedMolecule(mol, enforceChirality=False, **kwargs)
+
     AllChem.MMFFOptimizeMolecule(mol, maxIters=200)
 
     res = MolSys.from_rdkit(mol)

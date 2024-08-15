@@ -382,6 +382,27 @@ def test_smiles2residue(key, ans):
     assert rms < 3
 
 
+def test_smiles2residue2():
+    m1 = chilife.smiles2residue("C1C[C@H]2[C@@H]([C@@H]2C1)C(=O)C[C@H]([NH3+])C(=O)[O-]", randomSeed=0)
+    test_mask = np.argsort(m1.names)
+    test = m1.positions[test_mask]
+
+    answer = np.load('test_data/s2rm5.npy')
+    answer -= np.mean(answer, axis=0)
+
+    test -= np.mean(test, axis=0)
+    mx = np.linalg.inv(test.T @ test) @ test.T @ answer
+    test = test @ mx
+    diff = test - answer
+    rms = np.sqrt(np.sum(diff * diff) / len(test))
+
+    assert rms < 3
+
+def test_smiles2residue3():
+    m1 = chilife.smiles2residue("CCc1c([nH+]c(nc1NC[C@@H](C(=O)[O-])[NH3+])C)C")
+    assert True
+
+
 def test_append_cap():
     pep = chilife.MolSys.from_pdb('test_data/test_make_peptide.pdb')
     new_pep = chilife.append_cap(pep, 'ace')

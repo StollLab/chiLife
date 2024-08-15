@@ -73,3 +73,31 @@ def test_save_multiple_groups():
     assert len(names) == 0
 
     os.remove('No_Name_Protein.pdb')
+
+
+def test_write_bonds():
+
+    bonds = [[0, 1], [0, 2], [0, 3], [1, 2], [1, 3], [1, 4], [1, 5], [1, 6], [2, 3], [2, 4], [2, 5], [2, 6]]
+    with open('test_write_bonds.pdb', 'w') as f:
+        xl.write_bonds(f, bonds)
+
+    with open('test_write_bonds.pdb', 'r') as f:
+        lines = "".join(f.readlines())
+        thash = hashlib.md5(lines.encode("utf-8")).hexdigest()
+
+    with open('test_data/test_write_bonds.pdb', 'r') as f:
+        lines = "".join(f.readlines())
+        ahash = hashlib.md5(lines.encode("utf-8")).hexdigest()
+
+    os.remove('test_write_bonds.pdb')
+    assert ahash == thash
+
+
+def test_write_protein_with_bonds():
+    prot1 = xl.load_protein('test_data/alphabetical_peptide.pdb')
+    R1M = xl.SpinLabel('R1M')
+    prot1.add_bonds(xl.guess_bonds(prot1.atoms.positions, prot1.atoms.types))
+
+    xl.save(R1M, conect=True)
+
+    assert False

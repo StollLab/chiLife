@@ -1,4 +1,4 @@
-chilife Functions
+chiLife Functions
 =================
 
 General Functions

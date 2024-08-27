@@ -35,4 +35,8 @@ def test_save():
     assert test == ans
 
 
-
+def test_single_atom():
+    azurin = xl.fetch('1e67')
+    Zn = azurin.select_atoms('segid D and resnum 129')
+    ISL = xl.IntrinsicLabel("ZCU", Zn, spin_atoms="ZN")
+    np.testing.assert_allclose(ISL.spin_centers, [[ 5.59399986, 31.97200012, 39.02500153]])

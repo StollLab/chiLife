@@ -35,7 +35,6 @@ def test_save():
     assert test == ans
 
 
-
 def test_single_atom():
     azurin = xl.fetch('1e67')
     Zn = azurin.select_atoms('segid D and resnum 129')

@@ -66,7 +66,7 @@ class IntrinsicLabel:
     @property
     def spin_centers(self):
         """get the spin center of the rotamers in the ensemble"""
-        if np.any(self.spin_idx):
+        if len(self.spin_idx) > 0:
             spin_centers = np.average(self._coords[:, self.spin_idx, :], weights=self.spin_weights, axis=1)
         else:
             spin_centers = np.array([])

@@ -422,9 +422,18 @@ def create_library(
                                       description=description, comment=comment,
                                       reference=reference)
 
-    backbone = save_dict['coords'][0, :3]
-    ori, mx = local_mx(*backbone)
-    save_dict['coords'] = np.einsum('ijk,kl->ijl', save_dict['coords'] - ori, mx)
+    # Check that all rotamer backbones are aligned
+    if np.sum(np.abs(np.diff(save_dict['coords'][:,0]))) / len(save_dict['coords']) > 1e-3:
+        aln_idxs = [np.argwhere(save_dict['atom_names'] == a).flat[0] for a in save_dict['aln_atoms']]
+        backbone = np.squeeze(save_dict['coords'][:, aln_idxs])
+        oris, mxs = [np.array(x) for x in zip(*[local_mx(*bb) for bb in backbone])]
+        save_dict['coords'] = ( save_dict['coords'] - oris[:, None, :]) @ mxs
+    else:
+        backbone = save_dict['coords'][0, :3]
+        ori, mx = local_mx(*backbone)
+        save_dict['coords'] = np.einsum('ijk,kl->ijl', save_dict['coords'] - ori, mx)
+
+
     # Save rotamer library
     np.savez(Path().cwd() / f'{libname}_rotlib.npz', **save_dict, allow_pickle=True)
 

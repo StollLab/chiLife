@@ -4,6 +4,7 @@ import operator
 from functools import partial, update_wrapper
 
 import MDAnalysis
+from MDAnalysis.core.selection import AtomSelection
 
 from .pdb_utils import sort_pdb
 from .Topology import Topology
@@ -559,6 +560,40 @@ class MolSys(MolecularSystemBase):
         trajectory = np.array([conf.GetPositions() for conf in mol.GetConformers()])
         bonds = np.array([[b.GetBeginAtomIdx(), b.GetEndAtomIdx()] for b in mol.GetBonds()])
         return cls.from_arrays(anames, atypes, resnames, resindices, resnums, segindices, segids, trajectory, bonds=bonds)
+
+    @classmethod
+    def from_openMM(cls, simulation):
+        """
+        Create a MolSys from an openMM Simulation object.
+
+        Parameters
+        ----------
+        simulation : openmm.simulation.Simulation
+            The simulation object to create the MolSys object from.
+
+        Returns
+        -------
+        sys : chilife.MolSys
+            chiLife molecular system as a clone from
+        """
+        try:
+            from openmm.unit import angstrom
+        except:
+            raise RuntimeError("You must have the optional openMM dependency installed to use from_openMM")
+
+        top = simulation.topology
+        atypes = np.array([a.element.symbol for a in top.atoms()])
+        anames = np.array([a.name for a in top.atoms()])
+        resnames = np.array([a.residue.name for a in top.atoms()])
+        resindices = np.array([a.residue.index for a in top.atoms()])
+        resnums = np.array([int(a.residue.id) for a in top.atoms()])
+        segindices = np.array([a.residue.chain.index for a in top.atoms()])
+        segids = np.array([a.residue.chain.id for a in top.atoms()])
+        trajectory = simulation.context.getState(getPositions=True).getPositions(asNumpy=True).value_in_unit(angstrom)
+        bonds = np.array([[bond.atom1.index, bond.atom2.index] for bond in top.bonds()])
+        sys = cls.from_arrays(anames, atypes, resnames, resindices, resnums,
+                              segindices, segids, trajectory, bonds=bonds)
+        return sys
 
     def copy(self):
         """Create a deep copy of the MolSys."""

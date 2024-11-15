@@ -1121,7 +1121,7 @@ class RotamerEnsemble:
         if self.ignore_waters:
             self._protein = self.protein.select_atoms("not (byres name OH2 or resname HOH)")
         else:
-            self._protein = self.protein
+            self._protein = self.protein.atoms
 
         self.protein_tree = cKDTree(self._protein.atoms.positions)
 

@@ -537,3 +537,14 @@ def test_name():
     ubqs = ubq.select_atoms('resnum 8-70')
     SL1 = chilife.SpinLabel('R1M', 28, ubqs)
     assert SL1.name == 'A28R1M'
+
+
+def test_ignore_waters():
+    ub = chilife.fetch('1ubq')
+    RL1 = chilife.RotamerEnsemble('ARG', 28, ub)
+    RL2 = chilife.RotamerEnsemble('ARG', 28, ub, ignore_waters=False)
+
+    assert len(RL1) != len(RL2)
+
+    ans = np.load('test_data/ignore_waters.npy')
+    np.testing.assert_almost_equal(RL2.coords, ans, decimal=5)

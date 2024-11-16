@@ -357,8 +357,11 @@ class dRotamerEnsemble:
         if isinstance(self.protein, (mda.AtomGroup, mda.Universe)):
             if not hasattr(self.protein.universe._topology, "altLocs"):
                 self.protein.universe.add_TopologyAttr('altLocs', np.full(len(self.protein.universe.atoms), ""))
+        if self.ignore_waters:
+            self.protein = self.protein.select_atoms("not (byres name OH2 or resname HOH)")
+        else:
+            self.protein = self.protein.atoms
 
-        self.protein = self.protein.select_atoms("not (byres name OH2 or resname HOH)")
         clash_ignore_idx = self.protein.select_atoms(f"resid {self.site1} {self.site2} and segid {self.chain}").ix
         self.clash_ignore_idx = np.argwhere(np.isin(self.protein.ix, clash_ignore_idx)).flatten()
         self.resindex = self.protein.select_atoms(self.selstr).residues[0].resindex
@@ -771,6 +774,8 @@ def dassign_defaults(kwargs):
 
         "restraint_weight": kwargs.pop('restraint_weight', 222),
         "torsion_weight": 5,
+
+        "ignore_waters": True,
     }
 
     # Overwrite defaults

@@ -206,6 +206,14 @@ def test_dmin_callback():
     assert len(ivals) > 0
 
 
+def test_ig_waters():
+    ub = xl.fetch('1ubq')
+    SL1 = xl.dRotamerEnsemble('DHC', (28, 32), ub, ignore_waters=False, rotlib='test_data/DHC')
+    ans = np.load('test_data/dignore_waters.npy')
+    np.testing.assert_almost_equal(SL1.coords, ans, decimal=3)
+
+
+
 def test_dihedral_atoms():
     ans = [['N', 'CA', 'CB', 'CG'],
            ['CA', 'CB', 'CG', 'ND1'],

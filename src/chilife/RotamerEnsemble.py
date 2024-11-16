@@ -77,6 +77,9 @@ class RotamerEnsemble:
         clash_ori : str
            Atom selection to use as the origin when finding atoms within the ``clash_radius``. Defaults to 'cen',
            the centroid of the rotamer ensemble heavy atoms.
+        ignore_wateres : bool
+            Determines whether water molecules (resnames HOH and OH2) are ignored during clash evaluation.
+            Defaults to True.
         protein_tree : Scipy.spatial.cKDTree
            KDTree of atom positions for fast distance calculations and neighbor detection. Defaults to None
         trim: bool
@@ -1115,7 +1118,11 @@ class RotamerEnsemble:
         # Position library at selected residue
         self.resindex = self.protein.select_atoms(self.selstr).resindices[0]
         self.segindex = self.protein.select_atoms(self.selstr).segindices[0]
-        self._protein = self.protein.select_atoms("not (byres name OH2 or resname HOH)")
+        if self.ignore_waters:
+            self._protein = self.protein.select_atoms("not (byres name OH2 or resname HOH)")
+        else:
+            self._protein = self.protein.atoms
+
         self.protein_tree = cKDTree(self._protein.atoms.positions)
 
         # Delete cached lennard jones parameters if they exist.
@@ -1391,6 +1398,7 @@ def assign_defaults(kwargs):
         "min_method": 'L-BFGS-B',
         "_do_trim": kwargs.pop('trim', True),
         "trim_tol": 0.005,
+        "ignore_waters": True
     }
 
     # Overwrite defaults

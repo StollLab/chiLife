@@ -504,10 +504,10 @@ class ljEnergyFunc(EnergyFunc):
         return r, rmin, eps, shape
 
     def __call__(self, system, internal = False, **kwargs):
-        tkwargs = {k:v for k, v in self.kwargs.items()}
+        tkwargs = {k: v for k, v in self.kwargs.items()}
         tkwargs.update(kwargs)
         r, rmin, eps, shape = self._get_functional_input(system, internal)
-        E = self.functional(r, rmin, eps, **self.kwargs)
+        E = self.functional(r, rmin, eps, **tkwargs)
 
         E = E.reshape(*shape, -1)
         if isinstance(system, (re.RotamerEnsemble, dre.dRotamerEnsemble)):

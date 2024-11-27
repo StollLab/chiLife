@@ -25,7 +25,7 @@ from .Topology import get_min_topol, guess_bonds
 from .pdb_utils import sort_pdb, get_backbone_atoms, get_bb_candidates
 from .protein_utils import mutate, guess_mobile_dihedrals
 from .MolSysIC import MolSysIC
-from .scoring import get_lj_rep, GAS_CONST, reweight_rotamers
+from .scoring import GAS_CONST, reweight_rotamers, ljEnergyFunc
 from .numba_utils import get_delta_r, normdist
 from .SpinLabel import SpinLabel
 from .RotamerEnsemble import RotamerEnsemble
@@ -165,14 +165,22 @@ def pair_dd(*args, r: ArrayLike, sigma: float = 1.0, use_spin_centers: bool = Tr
         weights.append(np.outer(weights1, weights2).flatten())
 
         if dependent:
-            if SL1.forcefield != SL2.forcefield:
-                raise RuntimeError('At least two labels passed use different forcefield parameters. Make sure all '
-                                   'labels use the same forcefields when setting `dependent=True`')
+            if not isinstance(SL1.energy_func, ljEnergyFunc):
+                raise RuntimeError('Currently only ljEnergyFunc objects are supported when using dependent=True')
+
+            if SL1.energy_func.join_rmin is not SL2.energy_func.join_rmin or \
+               SL1.energy_func.join_eps is not SL2.energy_func.join_eps:
+                raise RuntimeError('At least two labels passed use different energy functions. Make sure all '
+                                   'labels use the same energy functions when setting `dependent=True`. This does not'
+                                   'mean that the energy functions use the same parameters. They have to be the SAME '
+                                   'object and satisfy `SL1.energy_func is SL2.energy_func`. This can be achieved be '
+                                   'creating an energy function object')
+
 
             nrot1, nrot2 = len(SL1), len(SL2)
             nat1, nat2 = len(SL1.side_chain_idx), len(SL2.side_chain_idx)
-            join_rmin = SL1.forcefield.get_lj_rmin("join_protocol")[()]
-            join_eps = SL1.forcefield.get_lj_eps("join_protocol")[()]
+            join_rmin = SL1.energy_func.join_rmin
+            join_eps = SL1.energy_func.join_eps
 
             rmin_ij = join_rmin(SL1.rmin2, SL2.rmin2)
             eps_ij = join_eps(SL1.eps, SL2.eps)
@@ -1431,7 +1439,7 @@ def repack(
         *spin_labels: RotamerEnsemble,
         repetitions: int = 200,
         temp: float = 1,
-        energy_func: Callable = get_lj_rep,
+        energy_func: Callable = None,
         off_rotamer=False,
         **kwargs,
 ) -> Tuple[mda.Universe, ArrayLike]:
@@ -1466,6 +1474,9 @@ def repack(
     """
     temp = np.atleast_1d(temp)
     KT = {t: GAS_CONST * t for t in temp}
+
+    energy_func = ljEnergyFunc() if energy_func is None else energy_func
+
 
     repack_radius = kwargs.pop("repack_radius") if "repack_radius" in kwargs else None  # Angstroms
     if repack_radius is None:

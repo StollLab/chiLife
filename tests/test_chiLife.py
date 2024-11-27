@@ -18,7 +18,7 @@ U = mda.Universe("test_data/m1omp.pdb")
 protein = U.select_atoms("protein")
 r = np.linspace(0, 100, 2 ** 8)
 old_ef = lambda protein, ensemble: chilife.get_lj_rep(protein, ensemble, forgive=0.8)
-ff = chilife.ForceField('charmm')
+ff = chilife.ljEnergyFunc(chilife.get_lj_rep, 'charmm')
 
 with open('test_data/test_from_MMM.pkl', 'rb') as f:
     from_mmm_Ps, from_mmm_rotlibs = pickle.load(f)
@@ -344,10 +344,10 @@ def test_single_chain_error():
 
 
 def test_ff():
-    ff = chilife.ForceField("uff")
+    ff = chilife.ljEnergyFunc(params="uff")
     assert 3.851 == ff.get_lj_rmin("C")
     assert -0.105 == ff.get_lj_eps("C")
-    assert ff.get_lj_rmin("join_protocol")[()] == chilife.join_geom
+    assert ff.join_rmin == chilife.join_geom
 
 
 

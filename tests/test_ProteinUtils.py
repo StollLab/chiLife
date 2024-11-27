@@ -110,12 +110,7 @@ def test_sort_many_models():
 
 def test_mutate():
     protein = mda.Universe("test_data/1ubq.pdb", in_memory=True).select_atoms("protein")
-    SL = chilife.SpinLabel(
-        "R1C",
-        site=28,
-        protein=protein,
-        energy_func=partial(chilife.get_lj_rep, forgive=0.8),
-    )
+    SL = chilife.SpinLabel("R1C", site=28, protein=protein)
 
     labeled_protein = chilife.mutate(protein, SL)
     ub1_A28R1 = mda.Universe("test_data/1ubq_A28R1.pdb", in_memory=True)
@@ -125,18 +120,8 @@ def test_mutate():
 
 def test_mutate2():
     protein = mda.Universe('test_data/1ubq.pdb', in_memory=True).select_atoms("protein")
-    SL1 = chilife.SpinLabel(
-        "R1C",
-        site=28,
-        protein=protein,
-        energy_func=partial(chilife.get_lj_rep, forgive=0.8),
-    )
-    SL2 = chilife.SpinLabel(
-        "R1C",
-        site=48,
-        protein=protein,
-        energy_func=partial(chilife.get_lj_rep, forgive=0.8),
-    )
+    SL1 = chilife.SpinLabel("R1C", site=28, protein=protein)
+    SL2 = chilife.SpinLabel("R1C", site=48, protein=protein,)
 
     labeled_protein = chilife.mutate(protein, SL1, SL2)
     ub1_A28R1_K48R1 = mda.Universe("test_data/ub1_A28R1_K48R1.pdb")

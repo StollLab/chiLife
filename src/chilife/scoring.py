@@ -382,7 +382,7 @@ lj_params = {"uff": [rmin_uff, eps_uff], "charmm": [rmin_charmm, eps_charmm]}
 class EnergyFunc:
 
     @abstractmethod
-    def energy(self, system):
+    def __call__(self, system):
         pass
 
     @abstractmethod
@@ -394,10 +394,13 @@ class EnergyFunc:
         pass
 
 class ljEnergyFunc(EnergyFunc):
-    def __init__(self, functional, params, extra_params=None, **kwargs):
+    def __init__(self, functional=None, params=None, extra_params=None, **kwargs):
+        functional = get_lj_rep if functional is None else functional
+        params = 'charmm' if params is None else params
+
         self.functional = functional
         self.rmax = kwargs.get("rmax", 10)
-        self.forgive = kwargs.get("forgive", 1)
+        self.forgive = kwargs.pop("forgive", 1)
         self.kwargs = kwargs
 
 
@@ -413,27 +416,31 @@ class ljEnergyFunc(EnergyFunc):
             self._rmin_func.update(extra_params['rmin'])
             self._eps_func.update(extra_params['eps'])
 
-        self.get_lj_rmin = np.vectorize(self._rmin_func.__getitem__)
-        self.get_lj_eps = np.vectorize(self._eps_func.__getitem__)
-        self.join_rmin = self.get_lj_rmin("join_protocol")[()]
-        self.join_eps = self.get_lj_eps("join_protocol")[()]
+
+        self.join_rmin = self._rmin_func["join_protocol"]
+        self.join_eps = self._eps_func["join_protocol"]
 
         self._system_hash = {}
+
+    def get_lj_rmin(self, atypes):
+        return np.array([self._rmin_func[a] for a in atypes])
+
+    def get_lj_eps(self, atypes):
+        return np.array([self._eps_func[a] for a in atypes])
 
     def prepare_system(self, system):
 
         if isinstance(system, (re.RotamerEnsemble, dre.dRotamerEnsemble)):
             # Prepare internal
-            a, b = [list(x) for x in zip(*system.non_bonded)]
+            a, b = system.aidx, system.bidx
             a_eps = self.get_lj_eps(system.atom_types[a])
             a_radii = self.get_lj_rmin(system.atom_types[a])
             b_eps = self.get_lj_eps(system.atom_types[b])
             b_radii = self.get_lj_rmin(system.atom_types[b])
 
-            system.irmin_ij = self.join_rmin(a_radii, b_radii, flat=True)
+            system.irmin_ij = self.join_rmin(a_radii * self.forgive, b_radii * self.forgive, flat=True)
             system.ieps_ij = self.join_eps(a_eps, b_eps, flat=True)
-            system.aidx = a
-            system.bidx = b
+
 
             # Prepare external
             if system.protein is not None:
@@ -445,7 +452,7 @@ class ljEnergyFunc(EnergyFunc):
                 protein_lj_radii = self.get_lj_rmin(environment_atypes)
                 protein_lj_eps = self.get_lj_eps(environment_atypes)
 
-                system.ermin_ij = self.join_rmin(system.rmin2, protein_lj_radii).reshape(-1)
+                system.ermin_ij = self.join_rmin(system.rmin2 * self.forgive, protein_lj_radii * self.forgive).reshape(-1)
                 system.eeps_ij = self.join_eps(system.eps, protein_lj_eps).reshape((-1))
 
         elif isinstance(system, (mda.Universe, mda.AtomGroup, MolSys)):
@@ -462,7 +469,7 @@ class ljEnergyFunc(EnergyFunc):
             lj_eps_1 = self.get_lj_eps(system.atoms.types[pairs[:, 0]])
             lj_eps_2 = self.get_lj_eps(system.atoms.types[pairs[:, 1]])
 
-            rmin_ij = self.join_rmin(lj_radii_1, lj_radii_2, flat=True)
+            rmin_ij = self.join_rmin(lj_radii_1 * self.forgive, lj_radii_2*self.forgive, flat=True)
             eps_ij = self.join_eps(lj_eps_1, lj_eps_2, flat=True)
 
             if isinstance(system, MolSys):
@@ -496,10 +503,12 @@ class ljEnergyFunc(EnergyFunc):
 
         return r, rmin, eps, shape
 
-    def energy(self, system, internal=False):
-
+    def __call__(self, system, internal = False, **kwargs):
+        tkwargs = {k:v for k, v in self.kwargs.items()}
+        tkwargs.update(kwargs)
         r, rmin, eps, shape = self._get_functional_input(system, internal)
         E = self.functional(r, rmin, eps, **self.kwargs)
+
         E = E.reshape(*shape, -1)
         if isinstance(system, (re.RotamerEnsemble, dre.dRotamerEnsemble)):
             system.atom_energies = E.sum(axis=2)

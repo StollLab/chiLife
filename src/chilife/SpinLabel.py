@@ -77,7 +77,7 @@ class SpinLabel(RotamerEnsemble):
         clash_radius = kwargs.pop("clash_radius", MMM_maxdist.get(label, None))
         alignment_method = kwargs.pop("alignment_method", "mmm")
         clash_ori = kwargs.pop("clash_ori", "CA")
-        energy_func = ljEnergyFunc(get_lj_energy, 'uff', forgive=0.5, cap=np.inf)
+        energy_func = kwargs.pop('energy_func', ljEnergyFunc(get_lj_energy, 'uff', forgive=0.5, cap=np.inf))
         use_H = kwargs.pop("use_H", True)
 
         # Calculate the SpinLabel

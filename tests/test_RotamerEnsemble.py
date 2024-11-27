@@ -144,37 +144,32 @@ def test_lib_distribution_persists(res):
     np.testing.assert_almost_equal(L1._weights, L2._weights)
 
 
-methods = ["rosetta", "bisect", "mmm", "fit"]
+methods = {"rosetta": np.array([[37.48119755, 25.73845177, 14.58725025],
+                                [38.79399872, 25.76099968, 13.88000011],
+                                [38.72872968, 26.58183116, 12.62501783],
+                                [39.70399857, 27.34600067, 12.27700043]]),
+           "bisect": np.array([[37.47976073, 25.7405822 , 14.58464153],
+                               [38.79399872, 25.76099968, 13.88000011],
+                               [38.73227959, 26.58109478, 12.62435692],
+                               [39.70399857, 27.34600067, 12.27700043]]),
+           "mmm": np.array([[37.47833189, 25.74271275, 14.5820287 ],
+                            [38.79399872, 25.76099968, 13.88000011],
+                            [38.73583004, 26.5803534 , 12.62370364],
+                            [39.70399857, 27.34600067, 12.27700043]]),
+           "fit": None}
 
 
 @pytest.mark.parametrize(("method"), methods)
 def test_alignment_method(method):
     if method == "fit":
         with pytest.raises(NotImplementedError) as e_info:
-            SL = chilife.SpinLabel(
-                "R1C", site=28, protein=ubq, alignment_method=method, eval_clash=False
-            )
-            chilife.save(SL, ubq)
+            SL = chilife.SpinLabel("R1C", site=28, protein=ubq, alignment_method=method, eval_clash=False)
+
     else:
-        SL = chilife.SpinLabel(
-            "R1C",
-            site=28,
-            protein=ubq,
-            alignment_method=method,
-            energy_func=partial(chilife.get_lj_rep, forgive=0.8),
-        )
-        chilife.save(
-            f"A28R1_{method}_aln_method.pdb", SL, KDE=False
-        )
+        SL = chilife.SpinLabel("R1C", site=28, protein=ubq, alignment_method=method)
+        np.testing.assert_allclose(SL.backbone, methods[method])
 
-        with open(f"A28R1_{method}_aln_method.pdb", "r") as f:
-            test = hashlib.md5(f.read().encode('utf-8')).hexdigest()
 
-        with open(f"test_data/A28R1_{method}_aln_method.pdb", "r") as f:
-            ans = hashlib.md5(f.read().encode('utf-8')).hexdigest()
-
-        os.remove(f"A28R1_{method}_aln_method.pdb")
-        assert ans == test
 
 
 def test_catch_unused_kwargs():
@@ -187,7 +182,7 @@ def test_catch_unused_kwargs():
 
 def test_guess_chain():
     anf = mda.Universe("test_data/1anf.pdb", in_memory=True)
-    SL = chilife.SpinLabel.from_mmm("R1M", 20, forgive=0.9)
+    SL = chilife.SpinLabel.from_mmm("R1M", 20, energy_func=chilife.ljEnergyFunc(forgive=0.9))
 
 
 @pytest.mark.parametrize(("resi", "ans"), ((20, "A"), (206, "B")))

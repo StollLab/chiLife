@@ -672,7 +672,7 @@ def get_sas_res(
 
     """
     if isinstance(forcefield, str):
-        forcefield = scoring.ljParams(forcefield)
+        forcefield = scoring.ljEnergyFunc(forcefield)
 
     environment_coords = protein.atoms.positions
     environment_radii = forcefield.get_lj_rmin(protein.atoms.types)

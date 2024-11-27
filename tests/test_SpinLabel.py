@@ -34,13 +34,9 @@ kwinput = (
 
 
 def test_bbdep_construction1():
-    efunc = partial(chilife.get_lj_energy, cap=np.inf)
-    SL1 = chilife.SpinLabel(
-        "R1C", site=211, chain="A", protein=U, energy_func=efunc, forgive=0.5
-    )
-    SL2 = chilife.SpinLabel(
-        "R1C", site=295, chain="A", protein=U, energy_func=efunc, forgive=0.5
-    )
+    efunc = chilife.ljEnergyFunc(chilife.get_lj_energy, forgive=0.5, cap=np.inf)
+    SL1 = chilife.SpinLabel("R1C", site=211, chain="A", protein=U, energy_func=efunc)
+    SL2 = chilife.SpinLabel("R1C", site=295, chain="A", protein=U, energy_func=efunc)
 
     chilife.save("bbdep.pdb", SL1, SL2, protein_path="test_data/1omp.pdb")
 

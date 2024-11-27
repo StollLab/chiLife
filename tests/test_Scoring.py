@@ -20,14 +20,16 @@ lj_ans = [np.array([-1.29407456, -1.34917747, -0.92307553,  0.09701479, -0.81320
 
 @pytest.mark.parametrize(('func', 'ans'), zip(lj_funcs, lj_ans))
 def test_lj(func, ans):
-    RL = chilife.RotamerEnsemble('TRP', 28, protein, energy_func=func, eval_clash=True)
+    f = chilife.ljEnergyFunc(func)
+    RL = chilife.RotamerEnsemble('TRP', 28, protein, energy_func=f, eval_clash=True)
     np.testing.assert_almost_equal(RL.atom_energies[5], ans, decimal=6)
 
 
 @pytest.mark.parametrize('func',  lj_funcs)
 def test_efunc(func):
     RL = chilife.RotamerEnsemble('TRP', 28, protein, eval_clash=False)
-    test = func(RL)
+    f = chilife.ljEnergyFunc(func)
+    test = f(RL)
     ans = np.load(f'test_data/{func.__name__}.npy')
     np.testing.assert_almost_equal(test, ans, decimal=5)
 
@@ -35,21 +37,10 @@ def test_efunc(func):
 @pytest.mark.parametrize('func',  lj_funcs)
 def test_efunc_dlabel(func):
     dSL = chilife.dSpinLabel('DHC', (28, 32), protein, eval_clash=False, rotlib='test_data/DHC')
-    test = func(dSL)
+    f = chilife.ljEnergyFunc(func)
+    test = f(dSL)
     ans = np.load(f'test_data/d{func.__name__}.npy')
     np.testing.assert_almost_equal(test, ans, decimal=4)
-
-
-def test_prep_internal_clash():
-    SL = chilife.RotamerEnsemble('TRP', 28, protein, eval_clash=False)
-    r, rmin, eps, shape = chilife.scoring.prep_internal_clash(SL)
-    with np.load('test_data/internal_clash_prep.npz') as f:
-        r_ans, rmin_ans, eps_ans = f['r'], f['rmin'], f['eps']
-
-    assert shape == (36, 56)
-    np.testing.assert_almost_equal(r, r_ans, decimal=6)
-    np.testing.assert_almost_equal(rmin, rmin_ans)
-    np.testing.assert_almost_equal(eps, eps_ans)
 
 
 def test_molar_gas_constant():
@@ -57,6 +48,6 @@ def test_molar_gas_constant():
 
 
 def test_get_lj_case_sensitivity():
-    ff = chilife.ForceField('charmm')
+    ff = chilife.ljEnergyFunc()
     x = ff.get_lj_rmin(['CA', 'Ca', 'ca'])
     assert np.all(x == 1.367)

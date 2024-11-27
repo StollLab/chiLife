@@ -371,8 +371,9 @@ class dRotamerEnsemble:
             idx for idx in protein_clash_idx if idx not in self.clash_ignore_idx
         ]
 
-        self.energy_func.prepare_system(self)
         self.aidx, self.bidx = [list(x) for x in zip(*self.non_bonded)]
+        if hasattr(self.energy_func, 'prepare_system'):
+            self.energy_func.prepare_system(self)
 
         if self._minimize:
             self.minimize()
@@ -682,7 +683,7 @@ class dRotamerEnsemble:
     def evaluate(self):
         """Place rotamer ensemble on protein site and recalculate rotamer weights."""
         # Calculate external energies
-        energies = self.energy_func.energy(self)
+        energies = self.energy_func(self)
         self.rot_clash_energy = energies
         # Calculate total weights (combining internal and external)
         self.weights, self.partition = scoring.reweight_rotamers(energies, self.temp, self.weights)

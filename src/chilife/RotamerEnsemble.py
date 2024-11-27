@@ -26,7 +26,7 @@ from .pdb_utils import get_bb_candidates, get_backbone_atoms
 from .MolSys import MolSys, MolecularSystemBase
 from .MolSysIC import MolSysIC
 
-default_energy_func = scoring.ljEnergyFunc(get_lj_rep, 'charmm')
+default_energy_func = scoring.ljEnergyFunc()
 
 class RotamerEnsemble:
     """Create new RotamerEnsemble object.
@@ -438,7 +438,8 @@ class RotamerEnsemble:
         protein_clash_idx = self.protein_tree.query_ball_point(self.clash_ori, self.clash_radius)
         self.protein_clash_idx = [idx for idx in protein_clash_idx if idx not in self.clash_ignore_idx]
 
-        self.energy_func.prepare_system(self)
+        if hasattr(self.energy_func, 'prepare_system'):
+            self.energy_func.prepare_system(self)
 
         if self._coords.shape[1] == len(self.clash_ignore_idx):
             RMSDs = np.linalg.norm(
@@ -900,7 +901,7 @@ class RotamerEnsemble:
 
         # attractive forces are needed, otherwise this term will perpetually push atoms apart
         internal_energy = self.ieps_ij * (lj * lj - 2 * lj)
-        external_energy = self.energy_func.energy(dummy)
+        external_energy = self.energy_func(dummy)
         energy = external_energy.sum() + internal_energy.sum()
         return energy
 
@@ -985,7 +986,7 @@ class RotamerEnsemble:
         """Place rotamer ensemble on protein site and recalculate rotamer weights."""
 
         # Calculate external energies
-        energies = self.energy_func.energy(self)
+        energies = self.energy_func(self)
 
         # Calculate total weights (combining internal and external)
         self.weights, self.partition = scoring.reweight_rotamers(energies, self.temp, self.weights)

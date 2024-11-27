@@ -1,8 +1,5 @@
-import warnings
-from functools import wraps
 from typing import Union
-
-import MDAnalysis
+from abc import ABC, abstractmethod
 import numpy as np
 from scipy.spatial import cKDTree
 from scipy.spatial.distance import cdist
@@ -14,114 +11,6 @@ import chilife.dRotamerEnsemble as dre
 from .MolSys import MolSys
 
 
-def clash_only(func):
-    """Decorator to convert a Lennard-Jones style clash evaluation function into a chiLife compatible energy func.
-
-    Parameters
-    ----------
-    func : callable
-        Python function object that computes the (modified) Lennard-Jones potential given arrays of atom pair
-        distances, `r`, rmin values `rmin`, energies, `eps`, and additional keyword arguments.
-
-    Returns
-    -------
-    energy_func : callable
-        The original input function now wrapped to accept a protein object and, optionally, a RotamerEnsemble/SpinLabel
-        object.
-    """
-
-    @wraps(func)
-    def energy_func(system, **kwargs):
-        """
-        Parameters
-        ----------
-        system : MDAnalysis.Universe, MDAnalysis.AtomGroup, RotamerEnsemble, MolSys
-            Molecular system for which you wish to calculate the energy of
-
-        **kwargs : dict
-            Additional arguments to pass to the wrapped function
-
-        Returns
-        -------
-        E : numpy.ndarray
-            Array of energy values (kcal/mol) for each rotamer in an ensemble or for the whole system.
-        """
-
-        #TODO: Needs serious refactoring to deal with default forcefield issues.
-
-        internal = kwargs.pop("internal", False)
-        rmax = kwargs.get("rmax", 10)
-        forgive = kwargs.get("forgive", 1)
-        _protein = kwargs.pop('protein', None)
-        forcefield = kwargs.pop('forcefield', None)
-
-        if not isinstance(forcefield, (str, ForceField, type(None))):
-            raise RuntimeError('forcefield kwarg value must be a string or ForceField object')
-        elif isinstance(forcefield, str):
-            forcefield = ForceField(forcefield)
-
-        if isinstance(system, (re.RotamerEnsemble, dre.dRotamerEnsemble)):
-
-            if system.protein is None and _protein is not None:
-                system.protein = _protein
-
-            if forcefield is not None and system.forcefield != forcefield:
-                warnings.warn(f'The user provided forcefield and {type(system)} forcefield are not the same. chiLife'
-                              'will use the user provided forcefield.')
-            else:
-                forcefield = None
-
-            r, rmin, eps = prep_external_clash(system, forcefield=forcefield)
-            E = func(r, rmin, eps, **kwargs)
-
-            if internal:
-                r, rmin, eps, shape = prep_internal_clash(system)
-                Einternal = func(r, rmin, eps, **kwargs)
-                E = np.concatenate((E, Einternal), axis=1)
-
-            system.atom_energies = E.reshape(len(E), len(system.side_chain_idx), -1).sum(axis=2)
-            E = E.sum(axis=1)
-
-        elif isinstance(system, (mda.Universe, mda.AtomGroup, MolSys)):
-            bonds = {(a, b) for a, b in system.atoms.bonds.indices}
-            tree = cKDTree(system.atoms.positions)
-            pairs = tree.query_pairs(rmax)
-            pairs = pairs - bonds
-            pairs = np.array(list(pairs))
-
-            r = np.linalg.norm(
-                system.atoms.positions[pairs[:, 0]]
-                - system.atoms.positions[pairs[:, 1]],
-                axis=1,
-                )
-
-            if forcefield is None:
-                forcefield = ForceField('charmm')
-
-            lj_radii_1 = forcefield.get_lj_rmin(system.atoms.types[pairs[:, 0]])
-            lj_radii_2 = forcefield.get_lj_rmin(system.atoms.types[pairs[:, 1]])
-
-            lj_eps_1 = forcefield.get_lj_eps(system.atoms.types[pairs[:, 0]])
-            lj_eps_2 = forcefield.get_lj_eps(system.atoms.types[pairs[:, 1]])
-
-            join_rmin = forcefield.get_lj_rmin("join_protocol")[()]
-            join_eps = forcefield.get_lj_eps("join_protocol")[()]
-
-            rmin_ij = join_rmin(lj_radii_1 * forgive, lj_radii_2 * forgive, flat=True)
-            eps_ij = join_eps(lj_eps_1, lj_eps_2, flat=True)
-            E = func(r, rmin_ij, eps_ij, **kwargs)
-            E = E.sum()
-
-        else:
-            raise TypeError(f'Energy evaluations of a {type(system)} object are not supported at this time. Please '
-                            f'pass an chilife.RotamerEnsemble, mda.Universe, mda.AtomGroup or chilife.MolSys')
-
-        return E
-
-    return energy_func
-
-
-@clash_only
 @njit(cache=True)
 def get_lj_energy(r, rmin, eps, forgive=1, cap=10, rmax=10):
     """Return a vector with the energy values for the flat bottom lenard-jones potential from a set of atom pairs with
@@ -177,7 +66,6 @@ def get_lj_energy(r, rmin, eps, forgive=1, cap=10, rmax=10):
     return lj_energy
 
 
-@clash_only
 @njit(cache=True)
 def get_lj_scwrl(r, rmin, eps, forgive=1):
     """Calculate a scwrl-like lenard-jones potential from a set of atom pairs with distance `r`, rmin values of `rmin`
@@ -223,7 +111,6 @@ def get_lj_scwrl(r, rmin, eps, forgive=1):
     return lj_energy
 
 
-@clash_only
 @njit(cache=True)
 def get_lj_rep(r, rmin, eps, forgive=0.9, cap=10):
     """Calculate only the repulsive terms of the lenard-jones potential from a set of atom pairs with distance `r`,
@@ -266,7 +153,6 @@ def get_lj_rep(r, rmin, eps, forgive=0.9, cap=10):
 
     return lj_energy
 
-@clash_only
 @njit(cache=True)
 def get_lj_attr(r, rmin, eps, forgive=0.9, floor=-2):
     """Calculate only the attractive terms of the lenard-jones potential from a set of atom pairs with distance `r`,
@@ -307,97 +193,6 @@ def get_lj_attr(r, rmin, eps, forgive=0.9, floor=-2):
             lj_energy[j, i] = np.maximum(-2 * eps[i] * lj, eps[i] * floor)
 
     return lj_energy
-
-
-def prep_external_clash(ensemble, forcefield=None):
-    """ Helper function to prepare the lj parameters of a rotamer ensemble, presumably with an associated protein.
-
-    Parameters
-    ----------
-    ensemble : RotamerEnsemble
-        The RotamerEnsemble to prepare the clash parameters for. The RotamerEnsemble should have an associated protein.
-
-    Returns
-    -------
-        dist : numpy.ndarray
-            Array of pairwise distances between atoms in the RotamerEnsemble and atoms in the associated protein.
-        rmin_ij :  numpy.ndarray
-            ``rmin`` parameters of the lj potential associated with the atom ``i`` and atom ``j`` pair.
-        eps_ij : numpy.ndarray
-            ``eps`` parameters of the lj potential associated with the atom ``i`` and atom ``j`` pair.
-        shape : Tuple[int]
-            Shape the array should be so that the energy is evaluated for each rotamer of the ensemble separately.
-    """
-
-    # Calculate rmin and epsilon for all atoms in protein that may clash
-    if forcefield is None:
-        forcefield = ensemble.forcefield
-
-    if hasattr(ensemble, 'ermin_ij') and forcefield == ensemble.forcefield:
-        rmin_ij = ensemble.ermin_ij
-        eps_ij = ensemble.eeps_ij
-    else:
-        rmin_ij, eps_ij = forcefield.get_lj_params(ensemble)
-        ensemble.ermin_ij = rmin_ij
-        ensemble.eeps_ij = eps_ij
-
-    if len(ensemble) == 1:
-        ec = ensemble.coords[0, ensemble.side_chain_idx]
-    else:
-        ec = ensemble.coords[:, ensemble.side_chain_idx].reshape(-1, 3)
-
-    pc = ensemble.protein_tree.data[ensemble.protein_clash_idx]
-
-    # Calculate distances
-    dist = cdist(ec, pc).reshape(len(ensemble), -1)
-
-    return dist, rmin_ij, eps_ij
-
-
-def prep_internal_clash(ensemble):
-    """ Helper function to prepare the lj parameters of a rotamer ensemble to evaluate internal clashes.
-
-        Parameters
-        ----------
-        ensemble : RotamerEnsemble
-            The RotamerEnsemble to prepare the clash parameters for.
-
-        Returns
-        -------
-            dist : numpy.ndarray
-                Array of pairwise distances between atoms in the RotamerEnsemble and atoms in the associated protein.
-            rmin_ij :  numpy.ndarray
-                ``rmin`` parameters of the lj potential associated with the atom ``i`` and atom ``j`` pair.
-            eps_ij : numpy.ndarray
-                ``eps`` parameters of the lj potential associated with the atom ``i`` and atom ``j`` pair.
-            shape : Tuple[int]
-                Shape the array should be so that the energy is evaluated for each rotamer of the ensemble separately.
-        """
-
-    if hasattr(ensemble, 'ermin_ij'):
-        rmin_ij, eps_ij = ensemble.ermin_ij, ensemble.eeps_ij
-    else:
-        a, b = [list(x) for x in zip(*ensemble.non_bonded)]
-        a_eps = ensemble.forcefield.get_lj_eps(ensemble.atom_types[a])
-        a_radii = ensemble.forcefield.get_lj_rmin(ensemble.atom_types[a])
-        b_eps = ensemble.forcefield.get_lj_eps(ensemble.atom_types[b])
-        b_radii = ensemble.forcefield.get_lj_rmin(ensemble.atom_types[b])
-
-        join_rmin = ensemble.forcefield.get_lj_rmin("join_protocol")[()]
-        join_eps = ensemble.forcefield.get_lj_eps("join_protocol")[()]
-
-        rmin_ij = join_rmin(a_radii * ensemble.forgive, b_radii * ensemble.forgive, flat=True)
-        eps_ij = join_eps(a_eps, b_eps, flat=True)
-
-        ensemble.irmin_ij = rmin_ij
-        ensemble.ieps_ij = eps_ij
-        ensemble.aidx = a
-        ensemble.bidx = b
-
-    dist = np.linalg.norm(ensemble.coords[:, ensemble.aidx] - ensemble.coords[:, ensemble.bidx], axis=2)
-    shape = (len(ensemble.coords), len(a_radii))
-
-    return dist, rmin_ij, eps_ij, shape
 
 
 def reweight_rotamers(energies, temp, weights):
@@ -584,19 +379,35 @@ for dictionary in rmin_charmm, eps_charmm, rmin_uff, eps_uff:
 
 lj_params = {"uff": [rmin_uff, eps_uff], "charmm": [rmin_charmm, eps_charmm]}
 
+class EnergyFunc:
+
+    @abstractmethod
+    def energy(self, system):
+        pass
+
+    @abstractmethod
+    def forces(self, system):
+        pass
+
+    @abstractmethod
+    def prepare_system(self, system):
+        pass
+
+class ljEnergyFunc(EnergyFunc):
+    def __init__(self, functional, params, extra_params=None, **kwargs):
+        self.functional = functional
+        self.rmax = kwargs.get("rmax", 10)
+        self.forgive = kwargs.get("forgive", 1)
+        self.kwargs = kwargs
 
 
-class ForceField:
-
-    def __init__(self, forcefield: Union[str, dict] = 'charmm', extra_params: dict = None):
-
-        if isinstance(forcefield, dict):
-            self._rmin_func, self._eps_func = forcefield['rmin'], forcefield['eps']
-        elif forcefield not in lj_params:
-            raise RuntimeError(f'`{forcefield}` is not a recognized forcefield.')
+        if isinstance(params, dict):
+            self._rmin_func, self._eps_func = params['rmin'], params['eps']
+        elif params not in lj_params:
+            raise RuntimeError(f'`{params}` is not a recognized forcefield.')
         else:
-            self.name = forcefield
-            self._rmin_func, self._eps_func = lj_params[forcefield]
+            self.name = params
+            self._rmin_func, self._eps_func = lj_params[params]
 
         if extra_params is not None:
             self._rmin_func.update(extra_params['rmin'])
@@ -604,39 +415,96 @@ class ForceField:
 
         self.get_lj_rmin = np.vectorize(self._rmin_func.__getitem__)
         self.get_lj_eps = np.vectorize(self._eps_func.__getitem__)
+        self.join_rmin = self.get_lj_rmin("join_protocol")[()]
+        self.join_eps = self.get_lj_eps("join_protocol")[()]
 
-    def get_lj_params(self, ensemble: Union['RotamerEnsemble', 'MolSys', MDAnalysis.Universe, MDAnalysis.AtomGroup]):
-        """ calculate the lennard jones parameters between atoms of a rotamer ensemble and associated protein.
+        self._system_hash = {}
 
-        Parameters
-        ----------
-        ensemble : RotamerEnsemble
-            The RotamerEnsemble to get the lj params for. Should have an associated protein object.
+    def prepare_system(self, system):
 
-        Returns
-        -------
-        rmin_ij : nummpy.ndarray
-            Vector of ``rmin`` lennard-jones parameters corresponding to atoms i and j of the RotamerEnsemble and the
-            associated protein respectively.
-        eps_ij : numpy.ndarray
-            Vector of ``eps`` lennard-jones parameters corresponding to atoms i and j of the RotamerEnsemble and the
-            associated protein respectively.
-        """
+        if isinstance(system, (re.RotamerEnsemble, dre.dRotamerEnsemble)):
+            # Prepare internal
+            a, b = [list(x) for x in zip(*system.non_bonded)]
+            a_eps = self.get_lj_eps(system.atom_types[a])
+            a_radii = self.get_lj_rmin(system.atom_types[a])
+            b_eps = self.get_lj_eps(system.atom_types[b])
+            b_radii = self.get_lj_rmin(system.atom_types[b])
 
-        environment_atypes = ensemble.protein.atoms.types[ensemble.protein_clash_idx]
-        protein_lj_radii = self.get_lj_rmin(environment_atypes)
-        protein_lj_eps = self.get_lj_eps(environment_atypes)
-        join_rmin = self.get_lj_rmin("join_protocol")[()]
-        join_eps = self.get_lj_eps("join_protocol")[()]
+            system.irmin_ij = self.join_rmin(a_radii, b_radii, flat=True)
+            system.ieps_ij = self.join_eps(a_eps, b_eps, flat=True)
+            system.aidx = a
+            system.bidx = b
 
-        rmin_ij = join_rmin(ensemble.rmin2 * ensemble.forgive, protein_lj_radii * ensemble.forgive).reshape(-1)
-        eps_ij = join_eps(ensemble.eps, protein_lj_eps).reshape((-1))
+            # Prepare external
+            if system.protein is not None:
+                environment_atypes = system.protein.atoms.types[system.protein_clash_idx]
 
-        return rmin_ij, eps_ij
+                system.rmin2 = self.get_lj_rmin(system.atom_types[system.side_chain_idx])
+                system.eps = self.get_lj_eps(system.atom_types[system.side_chain_idx])
 
-    def __eq__(self, other):
-        return self.name == other.name
+                protein_lj_radii = self.get_lj_rmin(environment_atypes)
+                protein_lj_eps = self.get_lj_eps(environment_atypes)
 
+                system.ermin_ij = self.join_rmin(system.rmin2, protein_lj_radii).reshape(-1)
+                system.eeps_ij = self.join_eps(system.eps, protein_lj_eps).reshape((-1))
+
+        elif isinstance(system, (mda.Universe, mda.AtomGroup, MolSys)):
+
+            bonds = {(a, b) for a, b in system.atoms.bonds.indices}
+            tree = cKDTree(system.atoms.positions)
+            pairs = tree.query_pairs(self.rmax)
+            pairs = pairs - bonds
+            pairs = np.array(list(pairs))
+
+            lj_radii_1 = self.get_lj_rmin(system.atoms.types[pairs[:, 0]])
+            lj_radii_2 = self.get_lj_rmin(system.atoms.types[pairs[:, 1]])
+
+            lj_eps_1 = self.get_lj_eps(system.atoms.types[pairs[:, 0]])
+            lj_eps_2 = self.get_lj_eps(system.atoms.types[pairs[:, 1]])
+
+            rmin_ij = self.join_rmin(lj_radii_1, lj_radii_2, flat=True)
+            eps_ij = self.join_eps(lj_eps_1, lj_eps_2, flat=True)
+
+            if isinstance(system, MolSys):
+                system.rmin_ij = rmin_ij
+                system.eps_ij = eps_ij
+                system.pairs = pairs
+            else:
+                self._system_hash[system] = rmin_ij, eps_ij, pairs
+
+    def _get_functional_input(self, system, internal):
+        if isinstance(system, (re.RotamerEnsemble, dre.dRotamerEnsemble)):
+            if internal:
+                rmin, eps = system.irmin_ij, system.ieps_ij
+                r = np.linalg.norm(system.coords[:, system.aidx] - system.coords[:, system.bidx], axis=-1)
+                shape = len(system), len(system.aidx)
+            else:
+                rmin, eps = system.ermin_ij, system.eeps_ij
+                c1 = system.coords[:, system.side_chain_idx].reshape(-1, 3)
+                c2 = system.protein_tree.data[system.protein_clash_idx]
+                r = cdist(c1, c2).reshape(len(system), -1)
+                shape = len(system), len(system.side_chain_idx)
+
+        else:
+            if isinstance(system, (mda.Universe, mda.AtomGroup)):
+                rmin, eps, pairs = self._system_hash[system]
+            else:
+                rmin, eps, pairs = system.rmin_ij, system.eps_ij, system.pairs
+
+            r = np.linalg.norm(system.positions[pairs[:,0]] - system.positions[pairs[:,1]], axis=-1)
+            shape = len(system), len(pairs)
+
+        return r, rmin, eps, shape
+
+    def energy(self, system, internal=False):
+
+        r, rmin, eps, shape = self._get_functional_input(system, internal)
+        E = self.functional(r, rmin, eps, **self.kwargs)
+        E = E.reshape(*shape, -1)
+        if isinstance(system, (re.RotamerEnsemble, dre.dRotamerEnsemble)):
+            system.atom_energies = E.sum(axis=2)
+
+        return E.sum(axis=(1, 2))
 
 KCAL2J = 4.184e3  # conversion factor form kcal to J (exact)
 BOLTZ_CONST = 1.380649e-23  # Boltzmann constant, J K^-1 (exact)

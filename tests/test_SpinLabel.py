@@ -95,12 +95,14 @@ def test_from_wizard():
     for ic, dihedral in zip(SL.internal_coords, SL.dihedrals):
         np.testing.assert_allclose(np.rad2deg(ic.get_dihedral(1, SL.dihedral_atoms)), dihedral)
 
-    with open("test_data/from_wiz.pkl", "rb") as f:
-        SLans = pickle.load(f)
 
-    np.testing.assert_almost_equal(SL.coords, SLans.coords, decimal=5)
-    np.testing.assert_almost_equal(SL.weights, SLans.weights)
-    np.testing.assert_almost_equal(np.cos(np.deg2rad(SL.dihedrals)), np.cos(np.deg2rad(SLans.dihedrals)), decimal=5)
+    with np.load("test_data/from_wiz.npz") as f:
+        SLans = dict(f)
+
+    np.testing.assert_almost_equal(SL.coords, SLans['coords'], decimal=5)
+    np.testing.assert_almost_equal(SL.weights, SLans['weights'])
+    np.testing.assert_almost_equal(np.cos(np.deg2rad(SL.dihedrals)), np.cos(np.deg2rad(SLans["dihedrals"])), decimal=5)
+    assert len(SL) == len(SL.dihedrals) == len(SL.weights) == len(SL.coords)
     assert len(SL) == len(SL.dihedrals) == len(SL.weights) == len(SL.coords)
 
 

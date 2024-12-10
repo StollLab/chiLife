@@ -17,8 +17,9 @@ import chilife
 # TODO:
 #   Behavior: AtomSelections should have orders to be enforced when indexing.
 
-masked_properties = ('atomids', 'names', 'altlocs', 'resnames', 'resnums', 'chains', 'occupancies',
-                     'bs', 'segs', 'segids', 'atypes', 'types', 'charges', 'ix', 'resixs', 'segixs', '_Atoms', 'atoms')
+masked_properties = ('atomids', 'names', 'altlocs', 'altLocs', 'resnames', 'resnums', 'resids', 'resis', 'chains',
+                     'occupancies', 'bs', 'segs', 'segids', 'atypes', 'types', 'charges', 'ix', 'resixs', 'segixs',
+                     '_Atoms', 'atoms')
 
 singles = ('name', 'altloc', 'altLoc', 'atype', 'type', 'resn', 'resname', 'resnum', 'resid' 'resi', 'chain',
            'segid', 'charge')

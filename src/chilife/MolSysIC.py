@@ -13,6 +13,7 @@ from .MolSys import MolecularSystemBase, Trajectory, MolSys
 from .Topology import Topology, guess_bonds
 from .protein_utils import get_angles, get_dihedrals
 from .numba_utils import _ic_to_cart, batch_ic2cart
+from .globals import dihedral_defs
 
 
 class MolSysIC:
@@ -718,16 +719,22 @@ class MolSysIC:
 
         chi_idxs = []
         for resnum in resnums:
-            res_chi_idxs = []
-            taken = []
-            tmask = (self.atom_resnums == resnum) * mask
-            for idx in np.argwhere(tmask).flat:
-                ddef_names = self.z_matrix_names[idx]
-                ddef_idxs = self.z_matrix_idxs[idx]
-                not_cycle = len(self.topology.graph.get_all_simple_paths(ddef_idxs[1], ddef_idxs[2], 8)) < 2
-                if (ddef_names[1] != 'CA') and (ddef_idxs[1] not in taken) and not_cycle:
-                    res_chi_idxs.append(idx)
-                    taken.append(ddef_idxs[1])
+            tmask = (self.atom_resnums == resnum)
+            resname = self.atom_names[tmask][0]
+            if resname in dihedral_defs:
+                atom_names = [x[-1] for x in dihedral_defs[resname]]
+                res_chi_idxs = np.argwhere(tmask * np.isin(self.atom_names, atom_names)).flatten()
+            else:
+                tmask *= mask
+                res_chi_idxs = []
+                taken = []
+                for idx in np.argwhere(tmask).flat:
+                    ddef_names = self.z_matrix_names[idx]
+                    ddef_idxs = self.z_matrix_idxs[idx]
+                    not_cycle = len(self.topology.graph.get_all_simple_paths(ddef_idxs[1], ddef_idxs[2], 8)) < 2
+                    if (ddef_names[1] != 'CA') and (ddef_idxs[1] not in taken) and not_cycle:
+                        res_chi_idxs.append(idx)
+                        taken.append(ddef_idxs[1])
 
             chi_idxs.append(res_chi_idxs)
 

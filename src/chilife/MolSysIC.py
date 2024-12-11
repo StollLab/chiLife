@@ -110,6 +110,8 @@ class MolSysIC:
         if self.non_nan_idxs is None:
             self.non_nan_idxs = np.argwhere(~np.any(self.z_matrix_idxs < 0, axis=1)).flatten()
 
+        self.nan_idxs = np.argwhere(np.any(self.z_matrix_idxs < 0, axis=1)).flatten()
+
         self.chain_res_name_map = kwargs.get('chain_res_name_map', defaultdict(list))
         if self.chain_res_name_map == {}:
             idxs, b2s, b1s,  _ = self.z_matrix_idxs[self.non_nan_idxs].T
@@ -630,7 +632,7 @@ class MolSysIC:
             mask *= np.isin(self.atom_resnums, resnums)
 
         idxs = np.argwhere(mask).flatten()
-        idxs = np.array([idx for idx in idxs if idx in self.non_nan_idxs])
+        idxs = np.array([idx for idx in idxs if idx not in self.nan_idxs])
         return idxs
 
     def psi_idxs(self, resnums: ArrayLike = None, chain: Union[int, str] = None):
@@ -656,6 +658,7 @@ class MolSysIC:
             mask *= np.isin(self.atom_resnums, resnums)
 
         idxs = np.argwhere(mask).flatten()
+        idxs = np.array([idx for idx in idxs if idx not in self.nan_idxs])
 
         return idxs
 
@@ -683,6 +686,7 @@ class MolSysIC:
             mask *= np.isin(self.atom_resnums, resnums)
 
         idxs = np.argwhere(mask).flatten()
+        idxs = np.array([idx for idx in idxs if idx not in self.nan_idxs])
 
         return idxs
 

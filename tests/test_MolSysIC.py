@@ -191,6 +191,11 @@ def test_psi_idxs():
     idx = ubqIC.psi_idxs(76)
     assert len(idx) == 0
 
+    idxs = ubqIC.psi_idxs()
+    assert 0 not in idxs
+
+
+
 
 def test_phi_psi_idxs_multichain():
     prot = xl.fetch('1a2w').select_atoms('protein')

@@ -828,6 +828,7 @@ def make_mda_uni(anames: ArrayLike,
     )
 
     mda_uni.add_TopologyAttr("type", atypes)
+    mda_uni.add_TopologyAttr("elements", atypes)
     mda_uni.add_TopologyAttr("resnum", resnums)
     mda_uni.add_TopologyAttr("resids", resnums)
     mda_uni.add_TopologyAttr("resname", resnames)

@@ -33,7 +33,7 @@ with open(RL_DIR / "RotlibIndexes.pkl", "rb") as f:
     rotlib_indexes = pickle.load(f)
 
 with open(DATA_DIR / 'BondDefs.pkl', 'rb') as f:
-    bond_hmax_dict = {key: (val + 0.4 if 'H' in key else val + 0.35) for key, val in pickle.load(f).items()}
+    bond_hmax_dict = {key: (val + 0.4 if 'H' in key else val + 0.37) for key, val in pickle.load(f).items()}
     bond_hmax_dict = defaultdict(lambda: 0, bond_hmax_dict)
 
 

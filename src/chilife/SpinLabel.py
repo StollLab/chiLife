@@ -2,7 +2,7 @@ from functools import partial
 import numpy as np
 from scipy.spatial.distance import cdist
 
-from .scoring import ForceField, get_lj_energy
+from .scoring import ljEnergyFunc, get_lj_energy
 from .RotamerEnsemble import RotamerEnsemble
 
 
@@ -73,19 +73,12 @@ class SpinLabel(RotamerEnsemble):
             "I1M": 12.952083029729994 + 4,
         }
 
-        # Set forcefield
-        ff = kwargs.pop('forcefield', 'uff')
-        if isinstance(ff, str):
-            ff = ForceField(ff)
 
         clash_radius = kwargs.pop("clash_radius", MMM_maxdist.get(label, None))
         alignment_method = kwargs.pop("alignment_method", "mmm")
         clash_ori = kwargs.pop("clash_ori", "CA")
-        energy_func = kwargs.pop(
-            "energy_func", partial(get_lj_energy, cap=np.inf)
-        )
+        energy_func = kwargs.pop('energy_func', ljEnergyFunc(get_lj_energy, 'uff', forgive=0.5, cap=np.inf))
         use_H = kwargs.pop("use_H", True)
-        forgive = kwargs.pop("forgive", 0.5)
 
         # Calculate the SpinLabel
         SL = SpinLabel(
@@ -98,8 +91,6 @@ class SpinLabel(RotamerEnsemble):
             clash_ori=clash_ori,
             energy_func=energy_func,
             use_H=use_H,
-            forgive=forgive,
-            forcefield = ff,
             **kwargs,
         )
 

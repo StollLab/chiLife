@@ -662,7 +662,7 @@ def get_sas_res(
         MolSys object to measure Solvent Accessible Surfaces (SAS) area of and report the SAS residues.
     cutoff : float
         Exclude residues from list with SASA below cutoff in angstroms squared.
-    forcefield : Union[str, chilife.ForceField]
+    forcefield : Union[str, chilife.ljParams]
         Forcefiled to use defining atom radii for calculating solvent accessibility.
 
     Returns
@@ -672,7 +672,7 @@ def get_sas_res(
 
     """
     if isinstance(forcefield, str):
-        forcefield = scoring.ForceField(forcefield)
+        forcefield = scoring.ljEnergyFunc(forcefield)
 
     environment_coords = protein.atoms.positions
     environment_radii = forcefield.get_lj_rmin(protein.atoms.types)

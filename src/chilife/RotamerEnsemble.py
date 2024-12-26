@@ -62,12 +62,9 @@ class RotamerEnsemble:
             Name of the forcefield you wish to use to parameterize atoms for the energy function. Currently, supports
             `charmm` and `uff`
         energy_func : callable
-            Python function or callable object that takes a protein and a RotamerEnsemble object as input and
+            Python function or callable object that takes a protein or a RotamerEnsemble object as input and
             returns an energy value (kcal/mol) for each atom of each rotamer in the ensemble. See also
-            :mod:`Scoring <chiLife.scoring>` . Defaults to :mod:`chiLife.get_lj_rep <chiLife.get_lj_rep>` .
-        forgive : float
-           Softening factor to be passed to ``energy_func``. Only used if ``energy_func`` uses a softening factor.
-           Defaults to 1.0. See :mod:`Scoring <chiLife.scoring>` .
+            :mod:`Scoring <chiLife.scoring>` . Defaults to a capped lennard-jones repulsive energy function.
         temp : float
            Temperature to use when running ``energy_func``. Only used if ``energy_func`` accepts a temperature
            argument  Defaults to 298 K.

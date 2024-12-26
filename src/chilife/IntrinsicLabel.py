@@ -1,5 +1,7 @@
 import numpy as np
 from .protein_utils import FreeAtom
+import MDAnalysis as mda
+from .MolSys import MolecularSystemBase
 
 
 class IntrinsicLabel:
@@ -11,10 +13,10 @@ class IntrinsicLabel:
     ----------
     res : str
         3-character identifier of desired residue, e.g. NC2 (Native Cu(II)).
-    atom_selection : MDAnalysis.AtomGroup, chiLife.System
+    atom_selection : MDAnalysis.AtomGroup, chiLife.MolecularSystemBase
         Group of atoms constituting the intrinsic label. These selections can consist of multiple residues, which
         can be useful in the case of ions with multiple coordinating residues
-    spin_atoms : str, list, tuple, array, dict, MDAnalysis.AtomGroup
+    spin_atoms : str, list, tuple, array, dict, MDAnalysis.AtomGroup, chiLife MolecularSystemBase
         Atoms of the intrinsic label that host the unpaired electron density. Can be a single atom name, a
         list/tuple/array of atom names or a dictionary mapping atom names to their relative populations.
         ``spin_atoms `` can also be an ``MDAnalysis.AtomGroup`` object derived from the same MDAnalysis.Universe
@@ -46,6 +48,9 @@ class IntrinsicLabel:
         elif isinstance(spin_atoms, str):
             self.spin_atoms = np.asarray([spin_atoms])
             self.spin_weights = np.asarray([1])
+        elif isinstance(spin_atoms, (mda.AtomGroup, MolecularSystemBase)):
+            self.spin_atoms = spin_atoms.names.copy()
+            self.spin_weights = np.ones(len(spin_atoms)) / len(spin_atoms)
         else:
             raise RuntimeError("spin_atoms must contain a string, a list/tuple/array of strings, a dict")
 

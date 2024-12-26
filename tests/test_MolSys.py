@@ -288,15 +288,15 @@ def test_xl_protein_mutate():
     SL = chilife.SpinLabel('R1M', 238, p)
     pSL = chilife.mutate(p, SL)
     pSL._fname = 'test_mutate'
-    chilife.save('test_mutate.pdb', pSL)
+    chilife.save('mutate_xlprotein.pdb', pSL)
 
     with open('test_data/mutate_xlprotein.pdb', 'r') as f:
         ans = hashlib.md5(f.read().encode("utf-8")).hexdigest()
 
-    with open("test_mutate.pdb", "r") as f:
+    with open("mutate_xlprotein.pdb", "r") as f:
         test = hashlib.md5(f.read().encode("utf-8")).hexdigest()
 
-    os.remove('test_mutate.pdb')
+    os.remove('mutate_xlprotein.pdb')
     assert ans == test
 
 

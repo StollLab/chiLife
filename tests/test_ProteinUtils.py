@@ -155,6 +155,41 @@ def test_mutate5():
     PPIIm = chilife.mutate(PPII, TOC)
     assert PPIIm.residues[-1].resname == 'NHH'
 
+def test_mutate6():
+    SL = chilife.SpinLabel("R1C", site=28, protein=ubq)
+    labeled_protein = chilife.mutate(ubq, SL, rotamer_index=10)
+
+    # Make sure the newly mutated protein has the coordinates of the rotamer selected
+    np.testing.assert_allclose(labeled_protein.select_atoms(SL.selstr).positions, SL.coords[10])
+
+    # Make sure that is not the same as the first rotamer.
+    assert np.max(labeled_protein.select_atoms(SL.selstr).positions - SL.coords[0]) > 1
+
+def test_mutate7():
+    SL = chilife.SpinLabel("R1C", site=28, protein=ubq)
+    labeled_protein = chilife.mutate(ubq, SL, rotamer_index='all')
+
+    assert len(labeled_protein.trajectory) == len(SL)
+
+    label_atoms =labeled_protein.select_atoms(SL.selstr)
+    for i, ts in enumerate(labeled_protein.trajectory):
+        np.testing.assert_allclose(label_atoms.positions, SL.coords[i])
+
+def test_mutate8():
+    SL1 =  chilife.SpinLabel("R1C", site=28, protein=ubq)
+    SL2 = chilife.RotamerEnsemble("LYS", site=48, protein=ubq)
+    labeled_protein = chilife.mutate(ubq, SL1, SL2, rotamer_index='all')
+
+    assert len(labeled_protein.trajectory) == max(len(SL1), len(SL2))
+
+    for i, ts in enumerate(labeled_protein.trajectory):
+        for SL in  (SL1, SL2):
+            label_atoms = labeled_protein.select_atoms(SL.selstr)
+            if len(SL) <= i:
+                np.testing.assert_allclose(label_atoms.positions, SL.coords[-1])
+            else:
+                np.testing.assert_allclose(label_atoms.positions, SL.coords[i])
+
 
 def test_add_missing_atoms():
     protein = mda.Universe("test_data/1omp.pdb", in_memory=True).select_atoms("protein")

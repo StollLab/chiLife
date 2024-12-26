@@ -76,15 +76,15 @@ def test_save_pdb():
     protein = mda.Universe("test_data/alphabetical_peptide.pdb").select_atoms("protein")
 
     uni_ics = xl.MolSysIC.from_atoms(protein)
-    xl.save("test_data/postwrite_alphabet_peptide.pdb", uni_ics)
+    xl.save("alphabetical_peptide.pdb", uni_ics)
 
-    with open("test_data/postwrite_alphabet_peptide.pdb", "r") as f:
+    with open("alphabetical_peptide.pdb", "r") as f:
         test = hashlib.md5(f.read().encode("utf-8")).hexdigest()
 
     with open("test_data/alphabetical_peptide.pdb", "r") as f:
         truth = hashlib.md5(f.read().encode("utf-8")).hexdigest()
 
-    os.remove("test_data/postwrite_alphabet_peptide.pdb")
+    os.remove("alphabetical_peptide.pdb")
     assert test == truth
 
 

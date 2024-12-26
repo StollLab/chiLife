@@ -2,7 +2,7 @@ import os
 import hashlib
 from pathlib import Path
 
-import MDAnalysis
+import MDAnalysis as mda
 import numpy as np
 import pytest
 
@@ -20,7 +20,7 @@ load_protein_args = [('test_data/1ubq.pdb',),
 def test_load_protein(args):
 
     struct = xl.load_protein(*args)
-    assert isinstance(struct, MDAnalysis.Universe)
+    assert isinstance(struct, mda.Universe)
 
     
     if len(args) == 2:
@@ -43,6 +43,36 @@ def test_save():
 
     os.remove("No_Name_Protein_many_labels.pdb")
 
+    assert ans == test
+
+
+def test_save_frame():
+    U = mda.Universe('test_data/traj_io.pdb', 'test_data/traj_io.xtc')
+    xl.save('tmp.pdb', U, frames=5)
+
+    with open(f"test_data/save_frame.pdb", "r") as f:
+        ans = hashlib.md5(f.read().encode("utf-8")).hexdigest()
+
+    with open("tmp.pdb", "r") as f:
+        test = hashlib.md5(f.read().encode("utf-8")).hexdigest()
+
+    os.remove('tmp.pdb')
+
+    assert ans == test
+
+
+def test_save_ic_frame():
+    U = mda.Universe('test_data/xlsavetraj.pdb')
+    sele_IC = xl.MolSysIC.from_atoms(U.atoms)
+    xl.save('tmp.pdb', sele_IC)
+
+    with open(f"test_data/ic_frames.pdb", "r") as f:
+        ans = hashlib.md5(f.read().encode("utf-8")).hexdigest()
+
+    with open("tmp.pdb", "r") as f:
+        test = hashlib.md5(f.read().encode("utf-8")).hexdigest()
+
+    os.remove('tmp.pdb')
     assert ans == test
 
 

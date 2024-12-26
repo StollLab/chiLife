@@ -1,4 +1,4 @@
-MODEL
+HEADER Noname_MolSys
 ATOM      1  N   ALA A   1      -0.677  -1.230  -0.491  1.00  1.00           N  
 ATOM      2  CA  ALA A   1      -0.001   0.064  -0.491  1.00  1.00           C  
 ATOM      3  C   ALA A   1       1.499  -0.110  -0.491  1.00  1.00           C  
@@ -32,4 +32,4 @@ ATOM     30  H   ASP A   3       6.223   1.286  -0.470  1.00  1.00           H
 ATOM     31  HA  ASP A   3       6.097   3.978  -1.375  1.00  1.00           H  
 ATOM     32 2HB  ASP A   3       6.152   3.755   1.713  1.00  1.00           H  
 ATOM     33 3HB  ASP A   3       4.806   4.395   0.777  1.00  1.00           H  
-ENDMDL
+TER

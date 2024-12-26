@@ -351,7 +351,8 @@ def save(
         *molecules: Union[re.RotamerEnsemble, MolecularSystemBase, mda.Universe, mda.AtomGroup, str],
         protein_path: Union[str, Path] = None,
         mode: str = 'w',
-        conect = False,
+        conect: bool = False,
+        frames: Union[int, str, ArrayLike, None] = 'all',
         **kwargs,
 ) -> None:
     """Save a pdb file of the provided labels and proteins
@@ -368,7 +369,12 @@ def save(
         The Path to a pdb file to use as the protein object.
     mode : str
         Which mode to open the file in. Accepts 'w' or 'a' to overwrite or append.
-
+    conect : bool
+        Whether to save  PDB CONECT records. Defaults to False.
+    frames : int, str, ArrayLike[int], None
+        Exclusively used for ``MolSys`` and ``AtomGroup`` objects. ``frames`` are the indices of the frames to save.
+        Can be a single index, array of indices, 'all', or ``None``. If ``None`` is passed only the
+        activate frame will be saved. If 'all' is passed, all frames are saved. Default is 'all'
     **kwargs :
         Additional arguments to pass to ``write_labels``
 
@@ -454,13 +460,27 @@ def save(
 
         used_names[name] = used_names.setdefault(name, 0) + 1
 
-        write_protein(pdb_file, protein, name_, conect=conect)
+        write_protein(pdb_file, protein, name_, conect=conect, frames=frames)
 
     for ic in molecules['molic']:
-        write_ic(pdb_file, ic, conect=conect)
+        if isinstance(ic.protein, (mda.AtomGroup, mda.Universe)):
+            name = Path(ic.protein.universe.filename) if ic.protein.universe.filename is not None else Path(pdb_file.name)
+            name = name.name
+        else:
+            name = ic.protein.fname if hasattr(ic.protein, 'fname') else None
+
+        if name is None:
+            name = Path(pdb_file.name).name
+
+        name = name[:-4] if name.endswith(".pdb") else name
+        name_ = name + str(used_names[name]) if name in used_names else name
+
+        write_ic(pdb_file, ic, name=name_, conect=conect, frames=frames)
 
     if len(molecules['rotens']) > 0:
         write_labels(pdb_file, *molecules['rotens'], conect=conect, **kwargs)
+
+    pdb_file.close()
 
 
 def fetch(accession_number: str, save: bool = False) -> MDAnalysis.Universe:
@@ -534,7 +554,8 @@ def load_protein(struct_file: Union[str, Path],
 def write_protein(pdb_file: TextIO,
                   protein: Union[mda.Universe, mda.AtomGroup, MolecularSystemBase],
                   name: str = None,
-                  conect: bool = False) -> None:
+                  conect: bool = False,
+                  frames: Union[int, str, ArrayLike, None] = 'all') -> None:
     """
     Helper function to write protein PDBs from MDAnalysis and MolSys objects.
 
@@ -546,6 +567,8 @@ def write_protein(pdb_file: TextIO,
         MDAnalysis or MolSys object to save
     name : str
         Name of the protein to put in the header
+    frames : int, str, ArrayLike or None
+        Frames of the trajectory/ensemble to save to file
     """
 
     # Change chain identifier if longer than 1
@@ -555,28 +578,21 @@ def write_protein(pdb_file: TextIO,
             seg.segid = next(available_segids)
 
     traj = protein.universe.trajectory
-
     pdb_file.write(f'HEADER {name}\n')
-    for mdl, ts in enumerate(traj):
-        pdb_file.write(f"MODEL {mdl}\n")
-        [
-            pdb_file.write(
-                fmt_str.format(
-                    atom.index,
-                    atom.name,
-                    atom.resname[:3],
-                    atom.segid,
-                    atom.resnum,
-                    *atom.position,
-                    1.00,
-                    1.0,
-                    atom.type,
-                )
-            )
-            for atom in protein.atoms
-        ]
-        pdb_file.write("TER\n")
-        pdb_file.write("ENDMDL\n")
+    frames = None if frames == 'all' and len(traj) == 1 else frames
+
+    if frames == 'all':
+        for mdl, ts in enumerate(traj):
+           write_frame(pdb_file, protein.atoms, mdl)
+    elif hasattr(frames, '__len__'):
+        for mdl, frame in enumerate(frames):
+            traj[frame]
+            write_frame(pdb_file, protein.atoms, mdl)
+    elif frames is not None:
+        traj[frames]
+        write_frame(pdb_file, protein.atoms)
+    else:
+        write_frame(pdb_file, protein.atoms)
 
     if conect:
         bonds = (protein.bonds.indices if hasattr(protein, 'bonds') else
@@ -587,7 +603,39 @@ def write_protein(pdb_file: TextIO,
             write_bonds(pdb_file, bonds)
 
 
-def write_ic(pdb_file: TextIO, ic: MolSysIC, conect: bool = None)-> None:
+def write_frame(pdb_file: TextIO, atoms, frame=None, coords=None):
+
+    if frame is not None:
+        pdb_file.write(f"MODEL {frame + 1}\n")
+
+    if coords is None:
+        coords = atoms.positions
+
+    [pdb_file.write(
+        fmt_str.format(
+            i + 1,
+            atom.name,
+            atom.resname[:3],
+            atom.segid,
+            atom.resnum,
+            *coord,
+            1.00,
+            1.0,
+            atom.type,
+        )
+    ) for i, (atom, coord) in enumerate(zip(atoms, coords))]
+
+    pdb_file.write("TER\n")
+
+    if frame is not None:
+        pdb_file.write(f"ENDMDL\n")
+
+
+def write_ic(pdb_file: TextIO,
+             ic: MolSysIC,
+             name: str = None,
+             conect: bool = None,
+             frames: Union[int, str, ArrayLike, None] = 'all')-> None:
     """
     Write a :class:`~MolSysIC` internal coordinates object to a pdb file.
 
@@ -597,14 +645,28 @@ def write_ic(pdb_file: TextIO, ic: MolSysIC, conect: bool = None)-> None:
         open file or io object.
     ic: MolSysIC
         chiLife internal coordinates object.
+    name : str
+        Name of the molecule to be used for the HEADER.
+    conect : bool, optional
+        Write PDB CONECT information to file.
+    frames : int, str, ArrayLike or None
+        Frames of the trajectory/ensemble to save to file
     """
-
-    pdb_file.write('MODEL\n')
-    for i, (atom, coord) in enumerate(zip(ic.atoms, ic.coords)):
-        pdb_file.write(fmt_str.format(i + 1, atom.name, atom.resname, atom.segid, atom.resnum,
-                                     coord[0], coord[1], coord[2],
-                                     1.0, 1.0, atom.type))
-    pdb_file.write('ENDMDL\n')
+    frames = None if frames == 'all' and len(ic.trajectory) == 1 else frames
+    pdb_file.write(f'HEADER {name}\n')
+    traj = ic.trajectory
+    if frames == 'all':
+        for mdl, ts in enumerate(traj):
+            write_frame(pdb_file, ic.atoms, mdl, ic.coords)
+    elif hasattr(frames, '__len__'):
+        for mdl, frame in enumerate(frames):
+            traj[frame]
+            write_frame(pdb_file, ic.atoms, mdl, ic.coords)
+    elif frames is not None:
+        traj[frames]
+        write_frame(pdb_file, ic.atoms, coords=ic.coords)
+    else:
+        write_frame(pdb_file, ic.atoms, coords=ic.coords)
 
     if conect:
         bonds = ic.topology.bonds

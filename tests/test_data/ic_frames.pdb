@@ -1,4 +1,4 @@
-HEADER xlsavetraj
+HEADER Noname_MolSys
 MODEL 1
 ATOM      1  N   LYS A   1      -4.568 -25.985 -23.894  1.00  1.00           N  
 ATOM      2  CA  LYS A   1      -4.685 -24.684 -23.241  1.00  1.00           C  

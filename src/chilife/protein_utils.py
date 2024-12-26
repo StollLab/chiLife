@@ -476,7 +476,7 @@ def mutate(
         protein: MDAnalysis.Universe,
         *ensembles: 'RotamerEnsemble',
         add_missing_atoms: bool = True,
-        random_rotamers: bool = False,
+        rotamer_index: Union[int, str, None] = None,
 ) -> MDAnalysis.Universe:
     """Create a new Universe where the native residue is replaced with the highest probability rotamer from a
     RotamerEnsemble or SpinLabel object.
@@ -487,8 +487,10 @@ def mutate(
         An MDA Universe object containing protein to be spin labeled
     ensembles : RotamerEnsemble, SpinLabel
         Precomputed RotamerEnsemble or SpinLabel object to use for selecting and replacing the spin native amino acid
-    random_rotamers :bool
-        Randomize rotamer conformations
+    rotamer_index : int, str, None
+        Index of the rotamer to be used for the mutation. If None, the most probable rotamer will be used. If 'all',
+        mutate will return an ensemble with each rotamer, if random, mutate will return an ensemble with a random
+        rotamer.
     add_missing_atoms : bool
         Model side chains missing atoms if they are not present in the provided structure.
 
@@ -614,15 +616,29 @@ def mutate(
     new_other_atoms = U.select_atoms(f"not ({label_selstr})")
     new_other_atoms.atoms.positions = other_atoms.atoms.positions
 
-    # Apply most probable spin label coordinates to spin label atoms
-    for spin_label in label_sites.values():
-        sl_atoms = U.select_atoms(spin_label.selstr)
-        if random_rotamers:
-            sl_atoms.atoms.positions = spin_label.coords[
-                np.random.choice(len(spin_label.coords), p=spin_label.weights)
-            ]
-        else:
-            sl_atoms.atoms.positions = spin_label.coords[np.argmax(spin_label.weights)]
+    if rotamer_index == 'all':
+        max_label_len = max([len(label) for label in label_sites.values()])
+        coordinates = np.array([U.atoms.positions.copy() for _ in range(max_label_len)])
+        U.load_new(coordinates)
+
+        for i, ts in enumerate(U.trajectory):
+            for spin_label in label_sites.values():
+                sl_atoms = U.select_atoms(spin_label.selstr)
+                if len(spin_label) <= i:
+                    sl_atoms.positions = spin_label.coords[-1]
+                else:
+                    sl_atoms.positions = spin_label.coords[i]
+
+    else:
+        for spin_label in label_sites.values():
+            sl_atoms = U.select_atoms(spin_label.selstr)
+            if rotamer_index == 'random':
+                rand_idx = np.random.choice(len(spin_label.coords), p=spin_label.weights)
+                sl_atoms.atoms.positions = spin_label.coords[rand_idx]
+            elif isinstance(rotamer_index, int):
+                sl_atoms.atoms.positions = spin_label.coords[rotamer_index]
+            else:
+                sl_atoms.atoms.positions = spin_label.coords[np.argmax(spin_label.weights)]
 
     return U
 

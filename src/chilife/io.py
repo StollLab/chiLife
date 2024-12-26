@@ -463,10 +463,24 @@ def save(
         write_protein(pdb_file, protein, name_, conect=conect, frames=frames)
 
     for ic in molecules['molic']:
-        write_ic(pdb_file, ic, conect=conect, frames=frames)
+        if isinstance(ic.protein, (mda.AtomGroup, mda.Universe)):
+            name = Path(ic.protein.universe.filename) if ic.protein.universe.filename is not None else Path(pdb_file.name)
+            name = name.name
+        else:
+            name = ic.protein.fname if hasattr(ic.protein, 'fname') else None
+
+        if name is None:
+            name = Path(pdb_file.name).name
+
+        name = name[:-4] if name.endswith(".pdb") else name
+        name_ = name + str(used_names[name]) if name in used_names else name
+
+        write_ic(pdb_file, ic, name=name_, conect=conect, frames=frames)
 
     if len(molecules['rotens']) > 0:
         write_labels(pdb_file, *molecules['rotens'], conect=conect, **kwargs)
+
+    pdb_file.close()
 
 
 def fetch(accession_number: str, save: bool = False) -> MDAnalysis.Universe:
@@ -592,7 +606,7 @@ def write_protein(pdb_file: TextIO,
 def write_frame(pdb_file: TextIO, atoms, frame=None, coords=None):
 
     if frame is not None:
-        pdb_file.write(f"MODEL {frame}\n")
+        pdb_file.write(f"MODEL {frame + 1}\n")
 
     if coords is None:
         coords = atoms.positions
@@ -638,7 +652,7 @@ def write_ic(pdb_file: TextIO,
     frames : int, str, ArrayLike or None
         Frames of the trajectory/ensemble to save to file
     """
-
+    frames = None if frames == 'all' and len(ic.trajectory) == 1 else frames
     pdb_file.write(f'HEADER {name}\n')
     traj = ic.trajectory
     if frames == 'all':

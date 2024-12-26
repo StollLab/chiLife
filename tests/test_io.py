@@ -64,15 +64,15 @@ def test_save_frame():
 def test_save_ic_frame():
     U = mda.Universe('test_data/xlsavetraj.pdb')
     sele_IC = xl.MolSysIC.from_atoms(U.atoms)
-    xl.save('tmp.pdb', sele_IC)
+    xl.save('ic_frames.pdb', sele_IC)
 
     with open(f"test_data/ic_frames.pdb", "r") as f:
         ans = hashlib.md5(f.read().encode("utf-8")).hexdigest()
 
-    with open("tmp.pdb", "r") as f:
+    with open("ic_frames.pdb", "r") as f:
         test = hashlib.md5(f.read().encode("utf-8")).hexdigest()
 
-    os.remove('tmp.pdb')
+    os.remove('ic_frames.pdb')
     assert ans == test
 
 

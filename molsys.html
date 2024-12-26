@@ -1,3 +1,5 @@
+
+
 <!DOCTYPE html>
 <html class="writer-html5" lang="en" data-content_root="./">
 <head>
@@ -6,20 +8,16 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Molecular Systems &mdash; chiLife  documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=80d5e7a1" />
-      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=19f00094" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
       <link rel="stylesheet" type="text/css" href="_static/sg_gallery.css?v=d2d258e8" />
 
   
-  <!--[if lt IE 9]>
-    <script src="_static/js/html5shiv.min.js"></script>
-  <![endif]-->
-  
-        <script src="_static/jquery.js?v=5d32c60e"></script>
-        <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-        <script src="_static/documentation_options.js?v=5929fcd5"></script>
-        <script src="_static/doctools.js?v=9a2dae69"></script>
-        <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
-        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="_static/doctools.js?v=9a2dae69"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
@@ -74,6 +72,7 @@
 <li class="toctree-l4"><a class="reference internal" href="#chilife.MolSys.MolSys.from_arrays"><code class="docutils literal notranslate"><span class="pre">MolSys.from_arrays()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#chilife.MolSys.MolSys.from_atomsel"><code class="docutils literal notranslate"><span class="pre">MolSys.from_atomsel()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#chilife.MolSys.MolSys.from_rdkit"><code class="docutils literal notranslate"><span class="pre">MolSys.from_rdkit()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#chilife.MolSys.MolSys.from_openMM"><code class="docutils literal notranslate"><span class="pre">MolSys.from_openMM()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#chilife.MolSys.MolSys.copy"><code class="docutils literal notranslate"><span class="pre">MolSys.copy()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#chilife.MolSys.MolSys.load_new"><code class="docutils literal notranslate"><span class="pre">MolSys.load_new()</span></code></a></li>
 </ul>
@@ -380,6 +379,23 @@ extract into a new <a class="reference internal" href="#chilife.MolSys.MolSys" t
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><p><strong>mol</strong></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="chilife.MolSys.MolSys.from_openMM">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">from_openMM</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">simulation</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#chilife.MolSys.MolSys.from_openMM" title="Link to this definition"></a></dt>
+<dd><p>Create a MolSys from an openMM Simulation object.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>simulation</strong> (<em>openmm.simulation.Simulation</em>) – The simulation object to create the MolSys object from.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>sys</strong> – chiLife molecular system as a clone from</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>chilife.MolSys</p>
 </dd>
 </dl>
 </dd></dl>

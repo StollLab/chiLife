@@ -1,3 +1,5 @@
+
+
 <!DOCTYPE html>
 <html class="writer-html5" lang="en" data-content_root="./">
 <head>
@@ -6,20 +8,16 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Side Chain Ensembles &mdash; chiLife  documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=80d5e7a1" />
-      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=19f00094" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
       <link rel="stylesheet" type="text/css" href="_static/sg_gallery.css?v=d2d258e8" />
 
   
-  <!--[if lt IE 9]>
-    <script src="_static/js/html5shiv.min.js"></script>
-  <![endif]-->
-  
-        <script src="_static/jquery.js?v=5d32c60e"></script>
-        <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-        <script src="_static/documentation_options.js?v=5929fcd5"></script>
-        <script src="_static/doctools.js?v=9a2dae69"></script>
-        <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
-        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="_static/doctools.js?v=9a2dae69"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
@@ -223,12 +221,9 @@ effect on each other.</p>
 <dt>forcefield: str</dt><dd><p>Name of the forcefield you wish to use to parameterize atoms for the energy function. Currently, supports
 <cite>charmm</cite> and <cite>uff</cite></p>
 </dd>
-<dt>energy_func<span class="classifier">callable</span></dt><dd><p>Python function or callable object that takes a protein and a RotamerEnsemble object as input and
+<dt>energy_func<span class="classifier">callable</span></dt><dd><p>Python function or callable object that takes a protein or a RotamerEnsemble object as input and
 returns an energy value (kcal/mol) for each atom of each rotamer in the ensemble. See also
-<code class="xref py py-mod docutils literal notranslate"><span class="pre">Scoring</span></code> . Defaults to <code class="xref py py-mod docutils literal notranslate"><span class="pre">chiLife.get_lj_rep</span></code> .</p>
-</dd>
-<dt>forgive<span class="classifier">float</span></dt><dd><p>Softening factor to be passed to <code class="docutils literal notranslate"><span class="pre">energy_func</span></code>. Only used if <code class="docutils literal notranslate"><span class="pre">energy_func</span></code> uses a softening factor.
-Defaults to 1.0. See <code class="xref py py-mod docutils literal notranslate"><span class="pre">Scoring</span></code> .</p>
+<code class="xref py py-mod docutils literal notranslate"><span class="pre">Scoring</span></code> . Defaults to a capped lennard-jones repulsive energy function.</p>
 </dd>
 <dt>temp<span class="classifier">float</span></dt><dd><p>Temperature to use when running <code class="docutils literal notranslate"><span class="pre">energy_func</span></code>. Only used if <code class="docutils literal notranslate"><span class="pre">energy_func</span></code> accepts a temperature
 argument  Defaults to 298 K.</p>
@@ -239,6 +234,9 @@ angstroms.</p>
 </dd>
 <dt>clash_ori<span class="classifier">str</span></dt><dd><p>Atom selection to use as the origin when finding atoms within the <code class="docutils literal notranslate"><span class="pre">clash_radius</span></code>. Defaults to ‘cen’,
 the centroid of the rotamer ensemble heavy atoms.</p>
+</dd>
+<dt>ignore_wateres<span class="classifier">bool</span></dt><dd><p>Determines whether water molecules (resnames HOH and OH2) are ignored during clash evaluation.
+Defaults to True.</p>
 </dd>
 <dt>protein_tree<span class="classifier">Scipy.spatial.cKDTree</span></dt><dd><p>KDTree of atom positions for fast distance calculations and neighbor detection. Defaults to None</p>
 </dd>
@@ -696,12 +694,9 @@ effect on each other.</p>
 <dt>forcefield: str</dt><dd><p>Name of the forcefield you wish to use to parameterize atoms for the energy function. Currently,
 supports <cite>charmm</cite> and <cite>uff</cite></p>
 </dd>
-<dt>energy_func<span class="classifier">callable</span></dt><dd><p>Python function or callable object that takes a protein and a RotamerEnsemble object as input and
-returns an energy value (kcal/mol) for each atom of each rotamer in the ensemble. See also
-<code class="xref py py-mod docutils literal notranslate"><span class="pre">Scoring</span></code> . Defaults to <code class="xref py py-mod docutils literal notranslate"><span class="pre">chiLife.get_lj_energy</span></code> .</p>
-</dd>
-<dt>forgive<span class="classifier">float</span></dt><dd><p>Softening factor to be passed to <code class="docutils literal notranslate"><span class="pre">energy_func</span></code>. Only used if <code class="docutils literal notranslate"><span class="pre">energy_func</span></code> uses a softening factor.
-Defaults to 0.95. See <code class="xref py py-mod docutils literal notranslate"><span class="pre">Scoring</span></code> .</p>
+<dt>energy_func<span class="classifier">callable</span></dt><dd><p>Python function or callable object that takes a protein or a RotamerEnsemble object as input and
+returns an energy value (kcal/mol) for each rotamer in the ensemble. See also
+<code class="xref py py-mod docutils literal notranslate"><span class="pre">Scoring</span></code>. Defaults to a capped lennard-jones potentail.</p>
 </dd>
 <dt>temp<span class="classifier">float</span></dt><dd><p>Temperature to use when running <code class="docutils literal notranslate"><span class="pre">energy_func</span></code>. Only used if <code class="docutils literal notranslate"><span class="pre">energy_func</span></code> accepts a temperature
 argument  Defaults to 298 K.</p>
@@ -1084,9 +1079,9 @@ IntrinsicLabels can be used with the <a class="reference internal" href="chilife
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>res</strong> (<em>str</em>) – 3-character identifier of desired residue, e.g. NC2 (Native Cu(II)).</p></li>
-<li><p><strong>atom_selection</strong> (<em>MDAnalysis.AtomGroup</em><em>, </em><em>chiLife.System</em>) – Group of atoms constituting the intrinsic label. These selections can consist of multiple residues, which
+<li><p><strong>atom_selection</strong> (<em>MDAnalysis.AtomGroup</em><em>, </em><em>chiLife.MolecularSystemBase</em>) – Group of atoms constituting the intrinsic label. These selections can consist of multiple residues, which
 can be useful in the case of ions with multiple coordinating residues</p></li>
-<li><p><strong>spin_atoms</strong> (<em>str</em><em>, </em><em>list</em><em>, </em><em>tuple</em><em>, </em><em>array</em><em>, </em><em>dict</em><em>, </em><em>MDAnalysis.AtomGroup</em>) – Atoms of the intrinsic label that host the unpaired electron density. Can be a single atom name, a
+<li><p><strong>spin_atoms</strong> (<em>str</em><em>, </em><em>list</em><em>, </em><em>tuple</em><em>, </em><em>array</em><em>, </em><em>dict</em><em>, </em><em>MDAnalysis.AtomGroup</em><em>, </em><em>chiLife MolecularSystemBase</em>) – Atoms of the intrinsic label that host the unpaired electron density. Can be a single atom name, a
 list/tuple/array of atom names or a dictionary mapping atom names to their relative populations.
 <code class="docutils literal notranslate"><span class="pre">spin_atoms</span> <span class="pre">``</span> <span class="pre">can</span> <span class="pre">also</span> <span class="pre">be</span> <span class="pre">an</span> <span class="pre">``MDAnalysis.AtomGroup</span></code> object derived from the same MDAnalysis.Universe
 as the <code class="docutils literal notranslate"><span class="pre">atom_selection</span></code> keyword argument. Use of an <code class="docutils literal notranslate"><span class="pre">AtomGroup</span></code> is particularly useful when there is

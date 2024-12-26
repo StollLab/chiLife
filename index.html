@@ -1,3 +1,5 @@
+
+
 <!DOCTYPE html>
 <html class="writer-html5" lang="en" data-content_root="./">
 <head>
@@ -6,22 +8,18 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>chiLife (χLife) &mdash; chiLife  documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=80d5e7a1" />
-      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=19f00094" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
       <link rel="stylesheet" type="text/css" href="_static/sg_gallery.css?v=d2d258e8" />
 
   
-  <!--[if lt IE 9]>
-    <script src="_static/js/html5shiv.min.js"></script>
-  <![endif]-->
-  
-        <script src="_static/jquery.js?v=5d32c60e"></script>
-        <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-        <script src="_static/documentation_options.js?v=5929fcd5"></script>
-        <script src="_static/doctools.js?v=9a2dae69"></script>
-        <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
-        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
-        <script>window.MathJax = {"tex": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true}, "options": {"ignoreHtmlClass": "tex2jax_ignore|mathjax_ignore|document", "processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
-        <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="_static/doctools.js?v=9a2dae69"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+      <script>window.MathJax = {"tex": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true}, "options": {"ignoreHtmlClass": "tex2jax_ignore|mathjax_ignore|document", "processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
@@ -98,13 +96,15 @@
 </tr>
 </thead>
 <tbody>
-<tr class="row-even"><td><p>2024.8.15 : chiLife 1.0 released!</p></td>
+<tr class="row-even"><td><p>2024.12.26 : Changes to the “energy funciton” backend. forcefield, forgive factors, etc should all be parts of the energy function now, and not parts of a rotamer library  Checkout <a class="reference external" href="https://stolllab.github.io/chiLife/gallery/07-Custom_Energy_Function.html">Example_07</a></p></td>
 </tr>
-<tr class="row-odd"><td><p>2024.8.15 : chiLife can now be used to create arbitrary peptides with natural and NCAAs. Checkout the <code class="docutils literal notranslate"><span class="pre">make_peptide</span></code> function.</p></td>
+<tr class="row-odd"><td><p>2024.08.15 : chiLife 1.0 released!</p></td>
 </tr>
-<tr class="row-even"><td><p>2024.8.15 : chiLife can make NCAA structures from smiles. Checkout <code class="docutils literal notranslate"><span class="pre">smiles2residue</span></code>. Note: Requires RDKit to be installed.</p></td>
+<tr class="row-even"><td><p>2024.08.15 : chiLife can now be used to create arbitrary peptides with natural and NCAAs. Checkout the <code class="docutils literal notranslate"><span class="pre">make_peptide</span></code> function.</p></td>
 </tr>
-<tr class="row-odd"><td><p>chiLife now supports arbitrary backbone attachments including DNA and RNA labels and more!</p></td>
+<tr class="row-odd"><td><p>2024.08.15 : chiLife can make NCAA structures from smiles. Checkout <code class="docutils literal notranslate"><span class="pre">smiles2residue</span></code>. Note: Requires RDKit to be installed.</p></td>
+</tr>
+<tr class="row-even"><td><p>chiLife now supports arbitrary backbone attachments including DNA and RNA labels and more!</p></td>
 </tr>
 </tbody>
 </table>
@@ -170,7 +170,8 @@ Attaching a <code class="docutils literal notranslate"><span class="pre">SpinLab
 <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
 </pre></div>
 </div>
-<a class="reference external image-reference" href="https://github.com/StollLab/chiLife/raw/main/img/L20R1_S238R1_Pr.png"><img alt="MBP L20R1 S238R1" src="https://github.com/StollLab/chiLife/raw/main/img/L20R1_S238R1_Pr.png" /></a>
+<a class="reference external image-reference" href="https://github.com/StollLab/chiLife/raw/main/img/L20R1_S238R1_Pr.png"><img alt="MBP L20R1 S238R1" src="https://github.com/StollLab/chiLife/raw/main/img/L20R1_S238R1_Pr.png" />
+</a>
 <p>The side chain ensembles can then be saved using a simple <code class="docutils literal notranslate"><span class="pre">save</span></code> function that accepts an arbitrary number of <span class="raw-html-md"><code class="docutils literal"><span class="pre"> RotamerEnsemble</span></code></span>, <code class="docutils literal notranslate"><span class="pre">SpinLabel</span></code>, <code class="docutils literal notranslate"><span class="pre">MDAnalyisis.Universe</span></code> and <code class="docutils literal notranslate"><span class="pre">MDAnalyiss.AtomGroup</span></code> objects. Because
 <code class="docutils literal notranslate"><span class="pre">RotamerEnsemble</span></code>/<code class="docutils literal notranslate"><span class="pre">SpinLabel</span></code> objects do not mutate the underlying protein, they are saved as separate multi-state
 objects and can be visualized with applications like PyMOL. If you do wish to permanently alter the underlying protein
@@ -179,7 +180,8 @@ structure, you can use the <span class="raw-html-md"><a href="#mutating-protein-
 <span class="n">xl</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="s1">&#39;MBP_L20R1_S238R1.pdb&#39;</span><span class="p">,</span> <span class="n">SL1</span><span class="p">,</span> <span class="n">SL2</span><span class="p">,</span> <span class="n">MBP</span><span class="p">)</span>
 </pre></div>
 </div>
-<a class="reference external image-reference" href="https://github.com/StollLab/chiLife/raw/main/img/L20R1_S238R1_Structure.png"><img alt="MBP L20R1 S238R1 Structure" src="https://github.com/StollLab/chiLife/raw/main/img/L20R1_S238R1_Structure.png" /></a>
+<a class="reference external image-reference" href="https://github.com/StollLab/chiLife/raw/main/img/L20R1_S238R1_Structure.png"><img alt="MBP L20R1 S238R1 Structure" src="https://github.com/StollLab/chiLife/raw/main/img/L20R1_S238R1_Structure.png" />
+</a>
 </section>
 <section id="off-rotamer-sampling-and-local-repacking">
 <h3>Off-rotamer sampling and local repacking<a class="headerlink" href="#off-rotamer-sampling-and-local-repacking" title="Link to this heading"></a></h3>

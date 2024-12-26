@@ -1,3 +1,5 @@
+
+
 <!DOCTYPE html>
 <html class="writer-html5" lang="en" data-content_root="../">
 <head>
@@ -6,23 +8,19 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Custom Energy Function &mdash; chiLife  documentation</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=80d5e7a1" />
-      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=19f00094" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
       <link rel="stylesheet" type="text/css" href="../_static/sg_gallery.css?v=d2d258e8" />
       <link rel="stylesheet" type="text/css" href="../_static/nbsphinx-code-cells.css?v=2aa19091" />
 
   
-  <!--[if lt IE 9]>
-    <script src="../_static/js/html5shiv.min.js"></script>
-  <![endif]-->
-  
-        <script src="../_static/jquery.js?v=5d32c60e"></script>
-        <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-        <script src="../_static/documentation_options.js?v=5929fcd5"></script>
-        <script src="../_static/doctools.js?v=9a2dae69"></script>
-        <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
-        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
-        <script>window.MathJax = {"tex": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true}, "options": {"ignoreHtmlClass": "tex2jax_ignore|mathjax_ignore|document", "processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
-        <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+      <script>window.MathJax = {"tex": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true}, "options": {"ignoreHtmlClass": "tex2jax_ignore|mathjax_ignore|document", "processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
@@ -99,7 +97,7 @@
              
   <section id="Custom-Energy-Function">
 <h1>Custom Energy Function<a class="headerlink" href="#Custom-Energy-Function" title="Link to this heading"></a></h1>
-<div class="nbinput docutils container">
+<div class="nbinput nblast docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[1]:
 </pre></div>
 </div>
@@ -107,20 +105,12 @@
 <span class="kn">import</span> <span class="nn">pickle</span>
 <span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="kn">from</span> <span class="nn">chilife</span> <span class="kn">import</span> <span class="n">EnergyFunc</span>
+
 <span class="n">plt</span><span class="o">.</span><span class="n">style</span><span class="o">.</span><span class="n">use</span><span class="p">(</span><span class="s1">&#39;chiLife&#39;</span><span class="p">)</span>
 </pre></div>
 </div>
-</div>
-<div class="nboutput nblast docutils container">
-<div class="prompt empty docutils container">
-</div>
-<div class="output_area stderr docutils container">
-<div class="highlight"><pre>
-C:\Program Files\Python310\lib\site-packages\tqdm\auto.py:22: TqdmWarning: IProgress not found. Please update jupyter and ipywidgets. See https://ipywidgets.readthedocs.io/en/stable/user_install.html
-  from .autonotebook import tqdm as notebook_tqdm
-C:\Program Files\Python310\lib\site-packages\Bio\pairwise2.py:278: BiopythonDeprecationWarning: Bio.pairwise2 has been deprecated, and we intend to remove it in a future release of Biopython. As an alternative, please consider using Bio.Align.PairwiseAligner as a replacement, and contact the Biopython developers if you still need the Bio.pairwise2 module.
-  warnings.warn(
-</pre></div></div>
 </div>
 <div class="nbinput nblast docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
@@ -137,12 +127,21 @@ C:\Program Files\Python310\lib\site-packages\Bio\pairwise2.py:278: BiopythonDepr
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">my_sfxn</span><span class="p">(</span><span class="n">rotlib</span><span class="p">):</span>
-    <span class="n">weight</span> <span class="o">=</span> <span class="mf">0.078</span>
-    <span class="n">f</span> <span class="o">=</span> <span class="mf">0.94</span>
-    <span class="n">lj_E</span> <span class="o">=</span> <span class="n">xl</span><span class="o">.</span><span class="n">get_lj_energy</span><span class="p">(</span><span class="n">rotlib</span><span class="p">,</span> <span class="n">forgive</span><span class="o">=</span><span class="n">f</span><span class="p">)</span>
-    <span class="n">SASA</span> <span class="o">=</span> <span class="n">rotlib</span><span class="o">.</span><span class="n">get_sasa</span><span class="p">()</span>
-    <span class="k">return</span> <span class="n">lj_E</span> <span class="o">-</span> <span class="n">weight</span> <span class="o">*</span> <span class="n">SASA</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">class</span> <span class="nc">CustomEnergyFunc</span><span class="p">(</span><span class="n">xl</span><span class="o">.</span><span class="n">ljEnergyFunc</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ljFunc</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__call__</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sa_weight</span> <span class="o">=</span> <span class="mf">0.078</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">func_forgive</span> <span class="o">=</span> <span class="mf">0.94</span>
+
+    <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rotens</span><span class="p">):</span>
+        <span class="n">ljE</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ljFunc</span><span class="p">(</span><span class="n">rotens</span><span class="p">,</span> <span class="n">forgive</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">func_forgive</span><span class="p">)</span>
+        <span class="n">SASA</span> <span class="o">=</span> <span class="n">rotens</span><span class="o">.</span><span class="n">get_sasa</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">ljE</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">sa_weight</span> <span class="o">*</span> <span class="n">SASA</span>
+
+
+
+<span class="n">my_sfxn</span> <span class="o">=</span> <span class="n">CustomEnergyFunc</span><span class="p">(</span><span class="n">functional</span><span class="o">=</span><span class="n">xl</span><span class="o">.</span><span class="n">get_lj_energy</span><span class="p">)</span>
 
 <span class="n">SL1</span> <span class="o">=</span> <span class="n">xl</span><span class="o">.</span><span class="n">SpinLabel</span><span class="p">(</span><span class="s1">&#39;R1M&#39;</span><span class="p">,</span> <span class="mi">41</span><span class="p">,</span> <span class="n">anf</span><span class="p">,</span> <span class="n">energy_func</span><span class="o">=</span><span class="n">my_sfxn</span><span class="p">)</span>
 <span class="n">SL2</span> <span class="o">=</span> <span class="n">xl</span><span class="o">.</span><span class="n">SpinLabel</span><span class="p">(</span><span class="s1">&#39;R1M&#39;</span><span class="p">,</span> <span class="mi">238</span><span class="p">,</span> <span class="n">anf</span><span class="p">,</span> <span class="n">energy_func</span><span class="o">=</span><span class="n">my_sfxn</span><span class="p">)</span>
@@ -151,7 +150,7 @@ C:\Program Files\Python310\lib\site-packages\Bio\pairwise2.py:278: BiopythonDepr
 </div>
 </div>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">labels</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;Custom Score Function&#39;</span><span class="p">,</span> <span class="s1">&#39;Default Score Function&#39;</span><span class="p">)</span>
@@ -161,7 +160,7 @@ C:\Program Files\Python310\lib\site-packages\Bio\pairwise2.py:278: BiopythonDepr
     <span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">exp</span><span class="o">.</span><span class="n">r</span><span class="p">,</span> <span class="n">exp</span><span class="o">.</span><span class="n">P</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;k&#39;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;Exp&#39;</span><span class="p">)</span>
     <span class="n">ax</span><span class="o">.</span><span class="n">fill_between</span><span class="p">(</span><span class="n">exp</span><span class="o">.</span><span class="n">r</span><span class="p">,</span> <span class="o">*</span><span class="n">exp</span><span class="o">.</span><span class="n">P95</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;k&#39;</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;95% CI&#39;</span><span class="p">)</span>
 
-    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">efunc</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">((</span><span class="n">my_sfxn</span><span class="p">,</span> <span class="n">xl</span><span class="o">.</span><span class="n">get_lj_scwrl</span><span class="p">)):</span>
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">efunc</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">((</span><span class="n">my_sfxn</span><span class="p">,</span> <span class="n">xl</span><span class="o">.</span><span class="n">ljEnergyFunc</span><span class="p">(</span><span class="n">xl</span><span class="o">.</span><span class="n">get_lj_scwrl</span><span class="p">))):</span>
         <span class="n">SL1</span> <span class="o">=</span> <span class="n">xl</span><span class="o">.</span><span class="n">SpinLabel</span><span class="p">(</span><span class="s1">&#39;R1M&#39;</span><span class="p">,</span> <span class="n">cstruct</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">anf</span><span class="p">,</span> <span class="n">energy_func</span> <span class="o">=</span> <span class="n">efunc</span><span class="p">)</span>
         <span class="n">SL2</span> <span class="o">=</span> <span class="n">xl</span><span class="o">.</span><span class="n">SpinLabel</span><span class="p">(</span><span class="s1">&#39;R1M&#39;</span><span class="p">,</span> <span class="n">cstruct</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">anf</span><span class="p">,</span> <span class="n">energy_func</span> <span class="o">=</span> <span class="n">efunc</span><span class="p">)</span>
         <span class="n">dd</span> <span class="o">=</span> <span class="n">xl</span><span class="o">.</span><span class="n">distance_distribution</span><span class="p">(</span><span class="n">SL1</span><span class="p">,</span> <span class="n">SL2</span><span class="p">,</span> <span class="n">exp</span><span class="o">.</span><span class="n">r</span><span class="p">)</span>

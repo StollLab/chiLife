@@ -1,3 +1,5 @@
+
+
 <!DOCTYPE html>
 <html class="writer-html5" lang="en" data-content_root="./">
 <head>
@@ -6,20 +8,16 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Scoring &mdash; chiLife  documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=80d5e7a1" />
-      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=19f00094" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
       <link rel="stylesheet" type="text/css" href="_static/sg_gallery.css?v=d2d258e8" />
 
   
-  <!--[if lt IE 9]>
-    <script src="_static/js/html5shiv.min.js"></script>
-  <![endif]-->
-  
-        <script src="_static/jquery.js?v=5d32c60e"></script>
-        <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-        <script src="_static/documentation_options.js?v=5929fcd5"></script>
-        <script src="_static/doctools.js?v=9a2dae69"></script>
-        <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
-        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="_static/doctools.js?v=9a2dae69"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
@@ -57,13 +55,10 @@
 <li class="toctree-l2"><a class="reference internal" href="protein_utils.html">MolSys Utils</a></li>
 <li class="toctree-l2"><a class="reference internal" href="alignments.html">Alignment Methods</a></li>
 <li class="toctree-l2 current"><a class="current reference internal" href="#">Scoring</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#chilife.scoring.clash_only"><code class="docutils literal notranslate"><span class="pre">clash_only()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#chilife.scoring.get_lj_energy"><code class="docutils literal notranslate"><span class="pre">get_lj_energy()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#chilife.scoring.get_lj_scwrl"><code class="docutils literal notranslate"><span class="pre">get_lj_scwrl()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#chilife.scoring.get_lj_rep"><code class="docutils literal notranslate"><span class="pre">get_lj_rep()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#chilife.scoring.get_lj_attr"><code class="docutils literal notranslate"><span class="pre">get_lj_attr()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="#chilife.scoring.prep_external_clash"><code class="docutils literal notranslate"><span class="pre">prep_external_clash()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="#chilife.scoring.prep_internal_clash"><code class="docutils literal notranslate"><span class="pre">prep_internal_clash()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#chilife.scoring.reweight_rotamers"><code class="docutils literal notranslate"><span class="pre">reweight_rotamers()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#chilife.scoring.join_geom"><code class="docutils literal notranslate"><span class="pre">join_geom()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#chilife.scoring.join_arith"><code class="docutils literal notranslate"><span class="pre">join_arith()</span></code></a></li>
@@ -107,25 +102,6 @@ addition to the built in scoring functions, users can also define their own scor
 requirements are that the scoring function accepts a RotamerEnsemble or SpinLabel object and outputs an energy score
 for each rotamer in the ensemble. The energy score should be in kcal/mol.</p>
 <dl class="py function" id="module-chilife.scoring">
-<dt class="sig sig-object py" id="chilife.scoring.clash_only">
-<span class="sig-name descname"><span class="pre">clash_only</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">func</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#chilife.scoring.clash_only" title="Link to this definition"></a></dt>
-<dd><p>Decorator to convert a Lennard-Jones style clash evaluation function into a chiLife compatible energy func.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>func</strong> (<em>callable</em>) – Python function object that computes the (modified) Lennard-Jones potential given arrays of atom pair
-distances, <cite>r</cite>, rmin values <cite>rmin</cite>, energies, <cite>eps</cite>, and additional keyword arguments.</p>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p><strong>energy_func</strong> – The original input function now wrapped to accept a protein object and, optionally, a RotamerEnsemble/SpinLabel
-object.</p>
-</dd>
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>callable</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py function">
 <dt class="sig sig-object py" id="chilife.scoring.get_lj_energy">
 <span class="sig-name descname"><span class="pre">get_lj_energy</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">r</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rmin</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eps</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">forgive</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cap</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rmax</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#chilife.scoring.get_lj_energy" title="Link to this definition"></a></dt>
 <dd><p>Return a vector with the energy values for the flat bottom lenard-jones potential from a set of atom pairs with
@@ -235,46 +211,6 @@ the maximum allowed energy from a single atom pair interaction is the <cite>eps<
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>numpy.ndarray</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py function">
-<dt class="sig sig-object py" id="chilife.scoring.prep_external_clash">
-<span class="sig-name descname"><span class="pre">prep_external_clash</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ensemble</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">forcefield</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#chilife.scoring.prep_external_clash" title="Link to this definition"></a></dt>
-<dd><p>Helper function to prepare the lj parameters of a rotamer ensemble, presumably with an associated protein.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>ensemble</strong> (<a class="reference internal" href="rotamer_ensemble.html#chilife.RotamerEnsemble" title="chilife.RotamerEnsemble"><em>RotamerEnsemble</em></a>) – The RotamerEnsemble to prepare the clash parameters for. The RotamerEnsemble should have an associated protein.</p>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p><ul class="simple">
-<li><p><strong>dist</strong> (<em>numpy.ndarray</em>) – Array of pairwise distances between atoms in the RotamerEnsemble and atoms in the associated protein.</p></li>
-<li><p><strong>rmin_ij</strong> (<em>numpy.ndarray</em>) – <code class="docutils literal notranslate"><span class="pre">rmin</span></code> parameters of the lj potential associated with the atom <code class="docutils literal notranslate"><span class="pre">i</span></code> and atom <code class="docutils literal notranslate"><span class="pre">j</span></code> pair.</p></li>
-<li><p><strong>eps_ij</strong> (<em>numpy.ndarray</em>) – <code class="docutils literal notranslate"><span class="pre">eps</span></code> parameters of the lj potential associated with the atom <code class="docutils literal notranslate"><span class="pre">i</span></code> and atom <code class="docutils literal notranslate"><span class="pre">j</span></code> pair.</p></li>
-<li><p><strong>shape</strong> (<em>Tuple[int]</em>) – Shape the array should be so that the energy is evaluated for each rotamer of the ensemble separately.</p></li>
-</ul>
-</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py function">
-<dt class="sig sig-object py" id="chilife.scoring.prep_internal_clash">
-<span class="sig-name descname"><span class="pre">prep_internal_clash</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ensemble</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#chilife.scoring.prep_internal_clash" title="Link to this definition"></a></dt>
-<dd><p>Helper function to prepare the lj parameters of a rotamer ensemble to evaluate internal clashes.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>ensemble</strong> (<a class="reference internal" href="rotamer_ensemble.html#chilife.RotamerEnsemble" title="chilife.RotamerEnsemble"><em>RotamerEnsemble</em></a>) – The RotamerEnsemble to prepare the clash parameters for.</p>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p><ul class="simple">
-<li><p><strong>dist</strong> (<em>numpy.ndarray</em>) – Array of pairwise distances between atoms in the RotamerEnsemble and atoms in the associated protein.</p></li>
-<li><p><strong>rmin_ij</strong> (<em>numpy.ndarray</em>) – <code class="docutils literal notranslate"><span class="pre">rmin</span></code> parameters of the lj potential associated with the atom <code class="docutils literal notranslate"><span class="pre">i</span></code> and atom <code class="docutils literal notranslate"><span class="pre">j</span></code> pair.</p></li>
-<li><p><strong>eps_ij</strong> (<em>numpy.ndarray</em>) – <code class="docutils literal notranslate"><span class="pre">eps</span></code> parameters of the lj potential associated with the atom <code class="docutils literal notranslate"><span class="pre">i</span></code> and atom <code class="docutils literal notranslate"><span class="pre">j</span></code> pair.</p></li>
-<li><p><strong>shape</strong> (<em>Tuple[int]</em>) – Shape the array should be so that the energy is evaluated for each rotamer of the ensemble separately.</p></li>
-</ul>
-</p>
 </dd>
 </dl>
 </dd></dl>

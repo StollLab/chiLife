@@ -26,6 +26,7 @@ from .pdb_utils import get_bb_candidates, get_backbone_atoms
 from .MolSys import MolSys, MolecularSystemBase
 from .MolSysIC import MolSysIC
 
+default_energy_func = scoring.ljEnergyFunc()
 
 class RotamerEnsemble:
     """Create new RotamerEnsemble object.
@@ -160,20 +161,12 @@ class RotamerEnsemble:
         if self.clash_radius is None:
             self.clash_radius = np.linalg.norm(self.clash_ori - self.coords, axis=-1).max() + 5
 
-        if isinstance(self.forcefield, str):
-            self.forcefield = scoring.ForceField(self.forcefield)
-
-        elif not isinstance(self.forcefield, scoring.ForceField):
-            raise RuntimeError('The kwarg `forcefield` must be a string or ForceField object.')
-
         # Parse important indices
         self.aln_idx = np.squeeze(np.argwhere(np.isin(self.atom_names, self.aln_atoms)))
         self.backbone_idx = np.squeeze(np.argwhere(np.isin(self.atom_names, self.backbone_atoms)))
         self.side_chain_idx = np.argwhere(np.isin(self.atom_names, self.backbone_atoms, invert=True)).flatten()
 
         self._graph = ig.Graph(edges=self.bonds)
-
-        _, self.irmin_ij, self.ieps_ij, _ = scoring.prep_internal_clash(self)
         self.aidx, self.bidx = [list(x) for x in zip(*self.non_bonded)]
 
         # Allocate variables for clash evaluations
@@ -187,11 +180,6 @@ class RotamerEnsemble:
             self.name = self.nataa + str(self.site) + self.rotlib
         if self.chain not in ('A', None):
             self.name += f"_{self.chain}"
-
-        # Create arrays of LJ potential params
-        if len(self.side_chain_idx) > 0:
-            self.rmin2 = self.forcefield.get_lj_rmin(self.atom_types[self.side_chain_idx])
-            self.eps = self.forcefield.get_lj_eps(self.atom_types[self.side_chain_idx])
 
         self.update(no_lib=True)
 
@@ -449,6 +437,9 @@ class RotamerEnsemble:
         self.clash_ignore_idx = np.argwhere(np.isin(self.protein.ix, clash_ignore_idx)).flatten()
         protein_clash_idx = self.protein_tree.query_ball_point(self.clash_ori, self.clash_radius)
         self.protein_clash_idx = [idx for idx in protein_clash_idx if idx not in self.clash_ignore_idx]
+
+        if hasattr(self.energy_func, 'prepare_system'):
+            self.energy_func.prepare_system(self)
 
         if self._coords.shape[1] == len(self.clash_ignore_idx):
             RMSDs = np.linalg.norm(
@@ -1320,10 +1311,10 @@ class RotamerEnsemble:
     def get_sasa(self):
         """Calculate the solvent accessible surface area (SASA) of each rotamer in the protein environment."""
 
-        atom_radii = self.forcefield.get_lj_rmin(self.atom_types)
+        atom_radii = self.energy_func.get_lj_rmin(self.atom_types)
         if self.protein is not None:
             environment_coords = self.protein.atoms[self.protein_clash_idx].positions
-            environment_radii = self.forcefield.get_lj_rmin(self.protein.atoms[self.protein_clash_idx].types)
+            environment_radii = self.energy_func.get_lj_rmin(self.protein.atoms[self.protein_clash_idx].types)
         else:
             environment_coords = np.empty((0, 3))
             environment_radii = np.empty(0)
@@ -1380,20 +1371,18 @@ def assign_defaults(kwargs):
     # Default parameters
     defaults = {
         "protein_tree": None,
-        "forgive": 1.0,
         "temp": 298,
         "clash_radius": None,
         "_clash_ori_inp": kwargs.pop("clash_ori", "cen"),
         "alignment_method": "bisect",
         "dihedral_sigmas": 35,
         "weighted_sampling": False,
-        "forcefield": 'charmm',
         "eval_clash": True if not kwargs.get('minimize', False) else False,
         "use_H": False,
         '_match_backbone': True,
         "_exclude_nb_interactions": kwargs.pop('exclude_nb_interactions', 3),
         "_sample_size": kwargs.pop("sample", False),
-        "energy_func": get_lj_rep,
+        "energy_func": default_energy_func,
         "_minimize": kwargs.pop('minimize', False),
         "min_method": 'L-BFGS-B',
         "_do_trim": kwargs.pop('trim', True),

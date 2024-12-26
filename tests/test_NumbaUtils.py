@@ -111,7 +111,7 @@ def test_get_sasa1():
     ubq = mda.Universe('test_data/1ubq.pdb').select_atoms('protein')
     SL = xl.SpinLabel('R1M', 28, ubq)
     atom_coords = SL.coords[0]
-    ff = xl.ForceField('charmm')
+    ff = xl.ljEnergyFunc()
     atom_radii = ff.get_lj_rmin(SL.atom_types)
 
     environment_coords = SL.protein.atoms[SL.protein_clash_idx].positions
@@ -126,18 +126,14 @@ def test_get_sasa2():
     ubq = mda.Universe('test_data/1ubq.pdb').select_atoms('protein')
 
     atom_coords = ubq.atoms.positions
-    ff = xl.ForceField('charmm')
+    ff = xl.ljEnergyFunc()
     atom_radii = ff.get_lj_rmin(ubq.atoms.types)
 
     area = nu.get_sasa(atom_coords, atom_radii, by_atom=True)
-
-
-
-    assert area.sum() == 4832.089121458064
-
     ans = np.array([2.83037863, 27.47825921, 0., 0., 0.,
                     0., 0., 0.14186254, 0., 30.89830006])
 
+    assert area.sum() == 4832.089121458064
     np.testing.assert_allclose(area[0, 300:310], ans)
 
 

@@ -12,9 +12,10 @@ from scipy.spatial import cKDTree
 import scipy.optimize as opt
 import MDAnalysis as mda
 
-import chilife.scoring as scoring
 import chilife.io as io
 import chilife.RotamerEnsemble as re
+import chilife.scoring as scoring
+
 from chilife.protein_utils import make_mda_uni
 from .MolSysIC import MolSysIC
 
@@ -135,9 +136,6 @@ class dRotamerEnsemble:
         self.input_kwargs = kwargs
         self.__dict__.update(dassign_defaults(kwargs))
 
-        if isinstance(self.forcefield, str):
-            self.forcefield = scoring.ForceField(self.forcefield)
-
         self.get_lib(rotlib)
         self.create_ensembles()
 
@@ -173,9 +171,6 @@ class dRotamerEnsemble:
         if self.clash_radius is None:
             self.clash_radius = np.linalg.norm(self.clash_ori - self.coords, axis=-1).max() + 5
 
-        self.rmin2 = self.forcefield.get_lj_rmin(self.atom_types[self.side_chain_idx])
-        self.eps = self.forcefield.get_lj_eps(self.atom_types[self.side_chain_idx])
-
         self.protein_setup()
         self.sub_labels = (self.RE1, self.RE2)
 
@@ -190,7 +185,6 @@ class dRotamerEnsemble:
         self.RE2.weights = value
 
     @property
-
     def coords(self):
         """The 3D cartesian coordinates of each atom of each rotamer in the library."""
         ovlp = (self.RE1.coords[:, self.cst_idx1] + self.RE2.coords[:, self.cst_idx2]) / 2
@@ -377,10 +371,9 @@ class dRotamerEnsemble:
             idx for idx in protein_clash_idx if idx not in self.clash_ignore_idx
         ]
 
-        _, self.irmin_ij, self.ieps_ij, _ = scoring.prep_internal_clash(self)
-        _, self.ermin_ij, self.eeps_ij = scoring.prep_external_clash(self)
-
         self.aidx, self.bidx = [list(x) for x in zip(*self.non_bonded)]
+        if hasattr(self.energy_func, 'prepare_system'):
+            self.energy_func.prepare_system(self)
 
         if self._minimize:
             self.minimize()
@@ -753,8 +746,6 @@ def dassign_defaults(kwargs):
     # Default parameters
     defaults = {
         "eval_clash": True,
-        "forcefield": 'charmm',
-        "forgive": 0.95,
         "temp": 298,
         "clash_radius": None,
         "protein_tree": None,
@@ -766,7 +757,8 @@ def dassign_defaults(kwargs):
         "use_H": False,
         "_exclude_nb_interactions": kwargs.pop('exclude_nb_interactions', 3),
 
-        "energy_func": scoring.get_lj_energy,
+        "energy_func": scoring.ljEnergyFunc(scoring.get_lj_energy, 'charmm', forgive=0.95)
+,
         "_minimize": kwargs.pop('minimize', True),
         "min_method": 'L-BFGS-B',
         "_do_trim": kwargs.pop('trim', True),

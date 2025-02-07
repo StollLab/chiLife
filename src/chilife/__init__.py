@@ -26,4 +26,4 @@ from .scoring import *
 # SpinLabel = SpinLabel.SpinLabel
 # dSpinLabel = dSpinLabel.dSpinLabel
 
-__version__ = '1.0.2'
+__version__ = '1.1.0'

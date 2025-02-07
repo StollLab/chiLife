@@ -425,3 +425,10 @@ def test_ResidueSelection_iter():
         assert np.all(res.atoms.chains == 'B')
         
 
+def test_ResidueSelection_iter2():
+    protein = chilife.MolSys.from_pdb("test_data/1ubq.pdb").select_atoms("protein")
+    ids = [res.resid for res in protein.residues]
+    np.testing.assert_equal(ids, np.arange(1,77))
+
+
+

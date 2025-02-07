@@ -549,11 +549,11 @@ class MolSys(MolecularSystemBase):
         atypes = atomsel.types
         resnames = atomsel.resnames
         resnums = atomsel.resnums
-        ridx_map = {num: i for i, num in enumerate(np.unique(atomsel.resixs))}
-        resindices = np.array([ridx_map[num] for num in atomsel.resixs ])
+        ridx_map = {num: i for i, num in enumerate(np.unique(atomsel.resindices))}
+        resindices = np.array([ridx_map[num] for num in atomsel.resindices ])
         segids = atomsel.segids
-        sidx_map = {num: i for i, num in enumerate(np.unique(atomsel.segixs))}
-        segindices = np.array([sidx_map[num] for num in atomsel.segixs])
+        sidx_map = {num: i for i, num in enumerate(np.unique(atomsel.segindices))}
+        segindices = np.array([sidx_map[num] for num in atomsel.segindices])
 
         if hasattr(U.trajectory, 'coordinate_array'):
             trajectory = U.trajectory.coordinate_array[frames][:, atomsel.ix, :]
@@ -1067,6 +1067,7 @@ class ResidueSelection(MolecularSystemBase):
 
         _, self.first_ix = np.unique(molsys.resixs[self.mask], return_index=True)
 
+        self.resixs = self.resixs[self.first_ix].flatten()
         self.resnames = self.resnames[self.first_ix].flatten()
         self.resnums = self.resnums[self.first_ix].flatten()
         self.segids = self.segids[self.first_ix].flatten()

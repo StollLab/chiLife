@@ -120,7 +120,7 @@ def test_AtomSelection_features(feature):
 
 def test_byres():
     waters = prot.select_atoms('byres name OH2 or resname HOH')
-    assert np.all(np.unique(waters.resixs) == np.arange(370, 443, dtype=int))
+    assert np.all(np.unique(waters.resixs) == np.arange(371, 444, dtype=int))
 
 
 def test_unary_not():

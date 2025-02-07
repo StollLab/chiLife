@@ -191,6 +191,13 @@ def test_mutate8():
                 np.testing.assert_allclose(label_atoms.positions, SL.coords[i])
 
 
+def test_mutate9():
+
+    prot = chilife.load_protein("test_data/ubq_ccap.pdb")
+    K = chilife.RotamerEnsemble("LYS", site=76, protein=prot, use_H=True)
+    mut = chilife.mutate(prot, K)
+
+
 def test_add_missing_atoms():
     protein = mda.Universe("test_data/1omp.pdb", in_memory=True).select_atoms("protein")
     new_prot = chilife.mutate(protein)
@@ -353,6 +360,15 @@ def test_make_pep_w_cap():
     ans = np.load('test_data/ACE_AR1A_NME.npy')
     np.testing.assert_almost_equal(pep.positions, ans, decimal=4)
 
+def test_make_pep_w_cap2():
+    phi = np.array([-61, -63])
+    psi = np.array([-40, -42])
+    omega = np.array([-176, 176])
+    pep = chilife.make_peptide("A[R1M]A", phi=phi, psi=psi, omega=omega)
+    ans = np.load('test_data/mkpep2.npy')
+    np.testing.assert_almost_equal(pep.positions, ans, decimal=4)
+
+
 def test_make_pep_w_cap3():
     phi = np.array([-60, -62, -64])
     psi = np.array([-39, -41, -43])
@@ -363,13 +379,7 @@ def test_make_pep_w_cap3():
     np.testing.assert_almost_equal(pep.positions, ans, decimal=4)
 
 
-def test_make_pep_w_cap2():
-    phi = np.array([-61, -63])
-    psi = np.array([-40, -42])
-    omega = np.array([-176, 176])
-    pep = chilife.make_peptide("A[R1M]A", phi=phi, psi=psi, omega=omega)
-    ans = np.load('test_data/mkpep2.npy')
-    np.testing.assert_almost_equal(pep.positions, ans, decimal=4)
+
 
 
 def test_mkpep_template():

@@ -235,7 +235,7 @@ def parse_backbone(rotamer_ensemble, kind):
         N1, CA1, C1 = rotamer_ensemble.aln
         N2, CA2, C2 = rotamer_ensemble.protein.select_atoms(
             f"segid {rotamer_ensemble.chain} and "
-            f"resnum {rotamer_ensemble.site} "
+            f"resid {rotamer_ensemble.site} "
             f"and name {aln_atoms} and not altloc B"
         ).positions
         return np.array([[N1, N2], [CA1, CA2], [C1, C2]])
@@ -246,7 +246,7 @@ def parse_backbone(rotamer_ensemble, kind):
     elif kind == "global":
         return rotamer_ensemble.protein.select_atoms(
             f"segid {rotamer_ensemble.chain} and "
-            f"resnum {rotamer_ensemble.site} "
+            f"resid {rotamer_ensemble.site} "
             f"and name {aln_atoms} and not altloc B"
         ).positions
 

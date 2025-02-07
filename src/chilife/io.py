@@ -858,5 +858,5 @@ rotlib_formats[1.1] = *rotlib_formats[1.0], 'description', 'comment', 'reference
 rotlib_formats[1.2] = rotlib_formats[1.0]
 rotlib_formats[1.3] = rotlib_formats[1.2]
 rotlib_formats[1.4] = *rotlib_formats[1.3], 'backbone_atoms', 'aln_atoms'
-
+rotlib_formats[1.5] = rotlib_formats[1.4]
 

@@ -1,4 +1,5 @@
 import inspect
+import re
 import warnings
 from copy import deepcopy
 from functools import partial
@@ -114,8 +115,17 @@ class RotamerEnsemble:
                              'associated with a protein you must include the site you wish to model.')
         elif site is None:
             site = 1
+            icode = ""
+        elif isinstance(site, str):
+            site_split = re.split('(\D+)',site)
+            site = site_split[0]
+            icode = site_split[1] if len(site_split) > 1 else ""
+        else:
+            icode = ""
 
-        self.site = int(site)
+
+        self.site = site
+        self.icode = icode
         self.resnum = self.site
         self.chain = chain if chain is not None else guess_chain(protein, self.site)
         self.selstr = f"resid {self.site} and segid {self.chain} and not altloc B"
@@ -253,7 +263,7 @@ class RotamerEnsemble:
         """
 
         res = residue.resname
-        site = residue.resnum
+        site = residue.resid
         chain = residue.segid
         protein = residue.universe
         return cls(res, site, protein, chain, **kwargs)
@@ -301,7 +311,7 @@ class RotamerEnsemble:
             if not hasattr(traj.universe._topology, "altLocs"):
                 traj.add_TopologyAttr('altLocs', ["A"] * len(traj.atoms))
 
-        res = traj.select_atoms(f"segid {chain} and resnum {site} and not altloc B")
+        res = traj.select_atoms(f"segid {chain} and resid {site} and not altloc B")
 
         resname = res.residues[0].resname
         ddefs = kwargs.pop('dihedral_atoms', dihedral_defs.get(resname, ()))
@@ -643,7 +653,7 @@ class RotamerEnsemble:
                 idx = np.argwhere(self.internal_coords.atom_names == atom).flat[0]
                 dihe_def = self.internal_coords.z_matrix_names[idx]
                 p = self.protein.select_atoms(
-                    f"segid {self.chain} and resnum {self.site} and name {' '.join(dihe_def)} and not altloc B"
+                    f"segid {self.chain} and resid {self.site} and name {' '.join(dihe_def)} and not altloc B"
                 ).positions
 
                 if len(p) > 4:
@@ -662,7 +672,7 @@ class RotamerEnsemble:
                 bond = np.linalg.norm(p[-1] - p[-2])
                 idx = np.squeeze(np.argwhere(mask))
                 chain = self.internal_coords.chains[0]
-                resnum = self.internal_coords.atoms[0].resnum
+                resnum = self.internal_coords.atoms[0].resid
                 if atom == 'O' and (tag := (chain, resnum, 'C', 'CA')) in self.internal_coords.chain_res_name_map:
                     additional_idxs = self.internal_coords.chain_res_name_map[tag]
 
@@ -682,7 +692,7 @@ class RotamerEnsemble:
             if any(mask) and self.protein is not None:
 
                 pos = self.protein.select_atoms(
-                    f"segid {self.chain} and resnum {self.site} "
+                    f"segid {self.chain} and resid {self.site} "
                     f"and name {atom} and not altloc B"
                 ).positions
 
@@ -754,7 +764,7 @@ class RotamerEnsemble:
                     mask = self.atom_names == atom
                     if any(mask) and self.protein is not None:
                         pos = self.protein.select_atoms(
-                            f"segid {self.chain} and resnum {self.site} "
+                            f"segid {self.chain} and resid {self.site} "
                             f"and name {atom} and not altloc B"
                         ).positions
                         if len(pos) > 0:
@@ -1036,12 +1046,12 @@ class RotamerEnsemble:
         if self.protein is not None:
             # get site backbone information from protein structure
             PhiSel = (
-                self.protein.select_atoms(f"resnum {self.site} and segid {self.chain}")
+                self.protein.select_atoms(f"resid {self.site} and segid {self.chain}")
                 .residues[0]
                 .phi_selection()
             )
             PsiSel = (
-                self.protein.select_atoms(f"resnum {self.site} and segid {self.chain}")
+                self.protein.select_atoms(f"resid {self.site} and segid {self.chain}")
                 .residues[0]
                 .psi_selection()
             )
@@ -1417,11 +1427,12 @@ def guess_chain(protein, site):
         Best guess for the chain on which the selected residue resides.
 
     """
+    site = int(site)
     if protein is None:
         chain = "A"
     elif len(set(protein.segments.segids)) == 1:
         chain = protein.segments.segids[0]
-    elif np.isin(protein.residues.resnums, site).sum() == 0:
+    elif np.isin(protein.residues.resids, site).sum() == 0:
         raise ValueError(f"Residue {site} is not present on the provided protein")
     elif np.isin(protein.residues.resnums, site).sum() == 1:
         chain = protein.select_atoms(f"resid {site}").segids[0]

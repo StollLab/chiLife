@@ -20,6 +20,7 @@ except:
 
 import MDAnalysis
 import numpy as np
+from scipy.spatial.transform import Rotation
 
 from MDAnalysis.core.topologyattrs import Atomindices, Resindices, Segindices, Segids
 import MDAnalysis as mda
@@ -531,10 +532,10 @@ def mutate(
     label_sites = {}
     for spin_label in ensembles:
         if isinstance(spin_label, dre.dRotamerEnsemble):
-            label_sites[spin_label.site1, spin_label.chain] = spin_label
-            label_sites[spin_label.site2, spin_label.chain] = spin_label
+            label_sites[spin_label.site1, spin_label.icode1, spin_label.chain] = spin_label
+            label_sites[spin_label.site2, spin_label.icode2, spin_label.chain] = spin_label
         else:
-            label_sites[spin_label.site, spin_label.chain] = spin_label
+            label_sites[spin_label.site, spin_label.icode, spin_label.chain] = spin_label
 
     protein = protein.select_atoms(
         f'(not altloc B) and (not (byres name OH2 or resname HOH))'
@@ -543,7 +544,7 @@ def mutate(
     other_atoms = protein.select_atoms(f"not ({label_selstr})")
 
     resids = [res.resid for res in protein.residues]
-
+    icodes = [res.icode for res in protein.residues] if hasattr(protein, "icodes") else None
     # Allocate lists for universe information
     atom_info = []
     res_names = []
@@ -551,7 +552,7 @@ def mutate(
 
     # Loop over residues in old universe
     for i, res in enumerate(protein.residues):
-        resloc = (res.resnum, res.segid)
+        resloc = (res.resid, res.icode, res.segid)
 
         # If the residue is the spin labeled residue replace it with the highest probability spin label
         if resloc in label_sites:
@@ -608,9 +609,9 @@ def mutate(
     # Allocate a new universe with the appropriate information
 
     if isinstance(protein, (mda.Universe, mda.AtomGroup)):
-        U = make_mda_uni(atom_names, atom_types, res_names, residx, resids, segidx, segids)
+        U = make_mda_uni(atom_names, atom_types, res_names, residx, resids, segidx, segids, icodes=icodes)
     elif isinstance(protein, MolecularSystemBase):
-        U = MolSys.from_arrays(atom_names, atom_types, res_names, residx, resids, segidx, segids)
+        U = MolSys.from_arrays(atom_names, atom_types, res_names, residx, resids, segidx, segids=segids, icodes=icodes)
 
     # Apply old coordinates to non-spinlabel atoms
     new_other_atoms = U.select_atoms(f"not ({label_selstr})")
@@ -799,6 +800,7 @@ def make_mda_uni(anames: ArrayLike,
                  resnums: ArrayLike,
                  segindices: ArrayLike,
                  segids: ArrayLike = None,
+                 icodes: ArrayLike = None,
                  ) -> MDAnalysis.Universe:
     """
     Create an MDAnalysis universe from numpy arrays of atom information.
@@ -835,6 +837,9 @@ def make_mda_uni(anames: ArrayLike,
     elif len(segids) != len(np.unique(segindices)):
         pass
 
+    if icodes is None:
+        icodes = np.array(["" for _ in range(n_residues)])
+
     mda_uni = mda.Universe.empty(
         n_atoms,
         n_residues=n_residues,
@@ -846,6 +851,7 @@ def make_mda_uni(anames: ArrayLike,
     mda_uni.add_TopologyAttr("type", atypes)
     mda_uni.add_TopologyAttr("resnum", resnums)
     mda_uni.add_TopologyAttr("resids", resnums)
+    mda_uni.add_TopologyAttr("icodes", icodes)
     mda_uni.add_TopologyAttr("resname", resnames)
     mda_uni.add_TopologyAttr("name", anames)
     mda_uni.add_TopologyAttr("altLocs", [""] * len(atypes))
@@ -1092,7 +1098,8 @@ def make_peptide(sequence: str, phi=None, psi=None, omega=None, bond_angles=None
 
     trajectory = _ic_to_cart(zmat_idxs[:, 1:], zmat)
 
-    mol = MolSys.from_arrays(anames, atypes, resnames, resindices, resnums, segindices, segids, trajectory)
+    mol = MolSys.from_arrays(anames, atypes, resnames, resindices, resnums, segindices,
+                             segids=segids, trajectory=trajectory)
 
     if ncap is not None:
         d = phi[1] if phi[1] != -0.82030 else None
@@ -1264,7 +1271,7 @@ def smiles2residue(smiles : str, **kwargs) -> MolSys:
     return Msys
 
 
-def append_cap(mol : MolSys, cap : str, dihedral: float = None) -> MolSys:
+def append_cap(mol : MolSys, cap : str, resnum = None, dihedral: float = None) -> MolSys:
     """
     Append a peptide cap to a molecular system.
 
@@ -1284,16 +1291,21 @@ def append_cap(mol : MolSys, cap : str, dihedral: float = None) -> MolSys:
     cap_name = cap.upper()
     term = "N" if cap_name in xl.ncaps else "C" if cap_name in xl.ccaps else None
 
-    if term == "N":
+    if resnum is not None:
+        neighbor = mol.select_atoms(f'resnum {resnum}')
+    elif term == "N":
         neighbor = mol.residues[0]
+        resnum = neighbor.resnum
     elif term == "C":
-        neighbor = mol.residues[-1]
+        neighbor = mol.select_atoms('protein').residues[-1]
+        resnum = neighbor.resnum
     else:
         raise RuntimeError('`term` not found in neighboring residue. Note that `term` must be an `N` or a `C`.')
 
     nmx, nori = xl.global_mx(*neighbor.select_atoms('name N CA C').positions)
     cap_struct = xl.MolSys.from_pdb(xl.RL_DIR / f'cap_pdbs/{cap_name}.pdb')
     cap_struct.positions = cap_struct.positions @ nmx + nori
+    cap_struct.resnum = resnum + 1 if term == "C" else resnum - 1
 
     if dihedral is not None:
         # Identify nearst atom of cap as bonded atom
@@ -1314,6 +1326,17 @@ def append_cap(mol : MolSys, cap : str, dihedral: float = None) -> MolSys:
         v /= np.linalg.norm(v)
         mx = get_dihedral_rotation_matrix(theta, v)
         cap_struct.positions = (cap_struct.positions - dihedral_points[2]) @ mx.T + dihedral_points[2]
+    elif term=='C' and 'OXT' in neighbor.names:
+        C_pos = neighbor.select_atoms('name C').positions
+        vfrom =  cap_struct[0].position - C_pos
+        vfrom /= np.linalg.norm(vfrom)
+        vto = neighbor.select_atoms(f'name OXT').positions - C_pos
+        vto /= np.linalg.norm(vto)
+
+        R, _ = Rotation.align_vectors(vfrom, vto)
+        R = R.as_matrix()
+        cap_struct.positions = (cap_struct.positions - C_pos) @ R + C_pos
+        mol = mol.select_atoms(f'not (resid {resnum} and name OXT)')
 
     systems = [cap_struct, mol] if term == "N" else [mol, cap_struct]
 

@@ -17,12 +17,12 @@ import chilife
 # TODO:
 #   Behavior: AtomSelections should have orders to be enforced when indexing.
 
-masked_properties = ('atomids', 'names', 'altlocs', 'altLocs', 'resnames', 'resnums', 'resids', 'resis', 'chains',
-                     'occupancies', 'bs', 'segs', 'segids', 'atypes', 'types', 'charges', 'ix', 'resixs', 'segixs',
-                     '_Atoms', 'atoms')
+masked_properties = ('record_types', 'atomids', 'names', 'altlocs', 'altLocs', 'resnames', 'resnums', 'icodes', 'resids',
+                     'resis', 'chains', 'occupancies', 'bs', 'segs', 'segids', 'atypes', 'types', 'charges', 'ix',
+                     'resixs', 'segixs', '_Atoms', 'atoms')
 
-singles = ('name', 'altloc', 'altLoc', 'atype', 'type', 'resn', 'resname', 'resnum', 'resid' 'resi', 'chain',
-           'segid', 'charge')
+singles = ('record_type', 'name', 'altloc', 'altLoc', 'atype', 'type', 'resn', 'resname', 'resnum', 'resid', 'icode',
+           'resi', 'chain', 'segid', 'charge')
 
 
 class MolecularSystemBase:
@@ -144,7 +144,7 @@ class MolecularSystemBase:
     @property
     def n_residues(self):
         """Number of residues in the molecular system"""
-        return len(np.unique(self.resnums[self.mask]))
+        return len(np.unique(self.resixs[self.mask]))
 
     @property
     def n_chains(self):
@@ -234,11 +234,13 @@ class MolSys(MolecularSystemBase):
     """
     def __init__(
             self,
+            record_types: np.ndarray,
             atomids: np.ndarray,
             names: np.ndarray,
             altlocs: np.ndarray,
             resnames: np.ndarray,
             resnums: np.ndarray,
+            icodes: np.ndarray,
             chains: np.ndarray,
             trajectory: np.ndarray,
             occupancies: np.ndarray,
@@ -252,11 +254,13 @@ class MolSys(MolecularSystemBase):
     ):
 
         self.molsys = self
+        self.record_types = record_types.copy()
         self.atomids = atomids.copy()
         self.names = names.copy().astype('U4')
         self.altlocs = altlocs.copy()
         self.resnames = resnames.copy()
         self.resnums = resnums.copy()
+        self.icodes = icodes.copy()
         self.chains = chains.copy()
         self.trajectory = Trajectory(trajectory.copy(), self)
         self.occupancies = occupancies.copy()
@@ -269,14 +273,24 @@ class MolSys(MolecularSystemBase):
         self.ix = np.arange(len(self.atomids))
         self.mask = np.arange(len(self.atomids))
 
-        resix_borders = np.nonzero(np.r_[1, np.diff(self.resnums)[:-1]])
-        resix_borders = np.append(resix_borders, [self.n_atoms])
-        resixs = []
-        for i in range(len(resix_borders) - 1):
-            dif = resix_borders[i + 1] - resix_borders[i]
-            resixs.append(np.ones(dif, dtype=int) * i)
+        # resix_borders = np.nonzero(np.r_[1, np.diff(self.resnums)[:-1]])
+        # resix_borders = np.append(resix_borders, [self.n_atoms])
+        # resixs = []
+        # for i in range(len(resix_borders) - 1):
+        #     dif = resix_borders[i + 1] - resix_borders[i]
+        #     resixs.append(np.ones(dif, dtype=int) * i)
 
-        self.resixs = np.concatenate(resixs)
+        residues, resixs = [], []
+        i = 0
+        for aidx in range(self.n_atoms):
+            residue_id = self.resnums[aidx], self.icodes[aidx], self.chains[aidx]
+            if residue_id not in residues:
+                residues.append(residue_id)
+                i += 1
+
+            resixs.append(i)
+
+        self.resixs = np.array(resixs)
         self.resindices = self.resixs
         if np.all(self.chains == '') or np.all(self.chains == 'SYSTEM'):
             self.segixs = np.array([ord('A') - 65 for x in self.chains])
@@ -284,38 +298,36 @@ class MolSys(MolecularSystemBase):
             self.segixs = np.array([ord(x) - 65 for x in self.chains])
         self.segindices = self.segixs
 
-        uidx, uidxidx, nuidxs = np.unique(self.resixs, return_index=True, return_inverse=True)
-        resnames = self.resnames[uidx]
-        truth = np.array([res in chilife.SUPPORTED_RESIDUES for res in resnames])
-        self.is_protein = truth[nuidxs]
+        self.is_protein = np.array([res in chilife.SUPPORTED_RESIDUES for res in resnames])
 
         self._molsys_keywords = {'id': self.atomids,
-                                  'name': self.names,
-                                  'altloc': self.altlocs,
-                                  'resname': self.resnames,
-                                  'resnum': self.resnums,
-                                  'chain': self.chains,
-                                  'occupancies': self.occupancies,
-                                  'b': self.bs,
-                                  'segid': self.chains,
-                                  'type': self.atypes,
-                                  'charges': self.charges,
+                                 'record_type': self.record_types,
+                                 'name': self.names,
+                                 'altloc': self.altlocs,
+                                 'resname': self.resnames,
+                                 'resnum': self.resnums,
+                                 'icode': self.icodes,
+                                 'chain': self.chains,
+                                 'occupancies': self.occupancies,
+                                 'b': self.bs,
+                                 'segid': self.chains,
+                                 'type': self.atypes,
+                                 'charges': self.charges,
 
-                                  'resi': self.resnums,
-                                  'resid': self.resnums,
-                                  'i.': self.resnums,
-                                  's.': self.chains,
-                                  'c.': self.chains,
-                                  'r.': self.resnames,
-                                  'n.': self.names,
-                                  'resn': self.resnames,
-                                  'q': self.occupancies,
-                                  'elem': self.atypes,
-                                  'element': self.atypes,
+                                 'resi': self.resnums,
+                                 'resid': self.resnums,
+                                 'i.': self.resnums,
+                                 's.': self.chains,
+                                 'c.': self.chains,
+                                 'r.': self.resnames,
+                                 'n.': self.names,
+                                 'resn': self.resnames,
+                                 'q': self.occupancies,
+                                 'elem': self.atypes,
+                                 'element': self.atypes,
 
-                                  'protein': self.is_protein,
-                                  '_len': self.n_atoms,
-                                  }
+                                 'protein': self.is_protein,
+                                 '_len': self.n_atoms}
 
         self._logic_keywords = {'and': operator.mul,
                                 'or': operator.add,
@@ -363,8 +375,8 @@ class MolSys(MolecularSystemBase):
             Molecular system object of the PDB structure.
         """
 
-        keys = ["skip", "atomids", "names", "altlocs", "resnames", "chains", "resnums",
-                "skip", "coords", "occupancies", "bs", "segs", "atypes", "charges"]
+        keys = ["record_types", "atomids", "names", "altlocs", "resnames", "chains", "resnums",
+                "icodes", "coords", "occupancies", "bs", "segs", "atypes", "charges"]
         if sort_atoms:
             lines = sort_pdb(file_name)
         else:
@@ -391,7 +403,7 @@ class MolSys(MolecularSystemBase):
                      float(line[60:66]), line[72:73].strip(), line[76:78].strip(), line[78:80].strip())
                     for i, line in enumerate(lines[0])]
 
-        pdb_dict = {key: np.array(data) for key, data in zip(keys, zip(*PDB_data)) if key != "skip"}
+        pdb_dict = {key: np.array(data) for key, data in zip(keys, zip(*PDB_data))}
         trajectory = [pdb_dict.pop('coords')]
 
         if len(lines) > 1:
@@ -415,6 +427,9 @@ class MolSys(MolecularSystemBase):
                     resindices: ArrayLike,
                     resnums: ArrayLike,
                     segindices: ArrayLike,
+                    record_types: ArrayLike = None,
+                    altlocs: ArrayLike = None,
+                    icodes: ArrayLike = None,
                     segids: ArrayLike = None,
                     trajectory: ArrayLike = None,
                     **kwargs
@@ -453,7 +468,9 @@ class MolSys(MolecularSystemBase):
 
         n_atoms = len(anames)
         atomids = np.arange(n_atoms)
-        altlocs = np.array([''] * n_atoms)
+        altlocs = np.array([''] * n_atoms) if altlocs is None else np.array(altlocs)
+        icodes = np.array([''] * n_atoms) if icodes is None else np.array(icodes)
+
 
         if len(resnums) != n_atoms:
             resnums = np.array([resnums[residx] for residx in resindices])
@@ -464,6 +481,11 @@ class MolSys(MolecularSystemBase):
             resnames = np.array([resnames[residx] for residx in resindices])
         else:
             resnames = np.asarray(resnames)
+
+        if len(icodes) != n_atoms:
+            icodes = np.array([icodes[residx] for residx in resindices])
+        else:
+            icodes = np.asarray(icodes)
 
         if len(segindices) != n_atoms:
             segindices = np.array([segindices[x] for x in resindices])
@@ -482,11 +504,14 @@ class MolSys(MolecularSystemBase):
         elif len(trajectory.shape) == 2:
             trajectory = trajectory[None, ...]
 
+        if record_types is None:
+            record_types = np.array(['ATOM' if rnme in chilife.SUPPORTED_RESIDUES else 'HETATM' for rnme in resnames])
+
         occupancies = np.ones(n_atoms)
         bs = np.ones(n_atoms)
         charges = kwargs.pop('charges', np.zeros(n_atoms))
 
-        return cls(atomids, anames, altlocs, resnames, resnums, chains,
+        return cls(record_types, atomids, anames, altlocs, resnames, resnums, icodes, chains,
                    trajectory, occupancies, bs, segids, atypes, charges, **kwargs)
 
     @classmethod
@@ -518,14 +543,17 @@ class MolSys(MolecularSystemBase):
         if frames is None:
             frames = slice(0, len(U.trajectory))
 
+        record_types = atomsel.record_types if hasattr(atomsel, 'record_types') else None
+        icodes = atomsel.icodes if hasattr(atomsel, 'icodes') else None
         anames = atomsel.names
         atypes = atomsel.types
         resnames = atomsel.resnames
         resnums = atomsel.resnums
-        ridx_map = {num: i for i, num in enumerate(np.unique(resnums))}
-        resindices = np.array([ridx_map[num] for num in resnums ])
+        ridx_map = {num: i for i, num in enumerate(np.unique(atomsel.resindices))}
+        resindices = np.array([ridx_map[num] for num in atomsel.resindices ])
         segids = atomsel.segids
-        segindices = np.array([ridx_map[num] for num in resnums])
+        sidx_map = {num: i for i, num in enumerate(np.unique(atomsel.segindices))}
+        segindices = np.array([sidx_map[num] for num in atomsel.segindices])
 
         if hasattr(U.trajectory, 'coordinate_array'):
             trajectory = U.trajectory.coordinate_array[frames][:, atomsel.ix, :]
@@ -535,7 +563,9 @@ class MolSys(MolecularSystemBase):
                 trajectory.append(atomsel.positions)
             trajectory = np.array(trajectory)
 
-        return cls.from_arrays(anames, atypes, resnames, resindices, resnums, segindices, segids, trajectory)
+        return cls.from_arrays(anames, atypes, resnames, resindices, resnums, segindices,
+                               segids=segids, trajectory=trajectory, record_types=record_types,
+                               icodes=icodes)
 
 
     @classmethod
@@ -560,7 +590,8 @@ class MolSys(MolecularSystemBase):
         segids = np.array(["A"] * len(anames))
         trajectory = np.array([conf.GetPositions() for conf in mol.GetConformers()])
         bonds = np.array([[b.GetBeginAtomIdx(), b.GetEndAtomIdx()] for b in mol.GetBonds()])
-        return cls.from_arrays(anames, atypes, resnames, resindices, resnums, segindices, segids, trajectory, bonds=bonds)
+        return cls.from_arrays(anames, atypes, resnames, resindices, resnums, segindices,
+                               segids=segids, trajectory=trajectory, bonds=bonds)
 
     @classmethod
     def from_openMM(cls, simulation):
@@ -593,18 +624,20 @@ class MolSys(MolecularSystemBase):
         trajectory = simulation.context.getState(getPositions=True).getPositions(asNumpy=True).value_in_unit(angstrom)
         bonds = np.array([[bond.atom1.index, bond.atom2.index] for bond in top.bonds()])
         sys = cls.from_arrays(anames, atypes, resnames, resindices, resnums,
-                              segindices, segids, trajectory, bonds=bonds)
+                              segindices, segids=segids, trajectory=trajectory, bonds=bonds)
         return sys
 
     def copy(self):
         """Create a deep copy of the MolSys."""
 
         return MolSys(
+            record_types=self.record_types,
             atomids=self.atomids,
             names=self.names,
             altlocs=self.altlocs,
             resnames=self.resnames,
             resnums=self.resnums,
+            icodes=self.icodes,
             chains=self.chains,
             trajectory=self.trajectory.coords,
             occupancies=self.occupancies,
@@ -976,7 +1009,7 @@ class AtomSelection(MolecularSystemBase):
     def __init__(self, molsys, mask):
 
         self.molsys = molsys
-        self.mask = mask
+        self.mask = mask\
 
     def __getitem__(self, item):
 
@@ -1034,6 +1067,7 @@ class ResidueSelection(MolecularSystemBase):
 
         _, self.first_ix = np.unique(molsys.resixs[self.mask], return_index=True)
 
+        self.resixs = self.resixs[self.first_ix].flatten()
         self.resnames = self.resnames[self.first_ix].flatten()
         self.resnums = self.resnums[self.first_ix].flatten()
         self.segids = self.segids[self.first_ix].flatten()
@@ -1061,8 +1095,8 @@ class ResidueSelection(MolecularSystemBase):
         return len(self.first_ix)
 
     def __iter__(self):
-        for resnum, segid in zip(self.resnums, self.segids):
-            mask = (self.molsys.resnums == resnum) * (self.molsys.segids == segid)
+        for resix, segid in zip(self.resixs, self.segids):
+            mask = (self.molsys.resixs == resix) * (self.molsys.segids == segid)
             yield Residue(self.molsys, mask)
 
 
@@ -1199,8 +1233,11 @@ class Residue(MolecularSystemBase):
         self.molsys = molsys
 
         self.resname = molsys.resnames[self.mask][0]
+        self.resname = molsys.resnames[self.mask][0]
+
         self.resnum = molsys.resnums[self.mask][0]
         self.resid = self.resnum
+        self.icode = molsys.icodes[self.mask][0]
         self.resindex = molsys.resixs[self.mask][0]
         self.segid = molsys.segids[self.mask][0]
         self.segindex = molsys.segixs[self.mask][0]
@@ -1220,11 +1257,10 @@ class Residue(MolecularSystemBase):
             the selected residue.
         """
 
-        prev = self.atoms.resnums - 1
-        prev = np.unique(prev[prev > 0])
+        prev = self.atoms.resixs[0] - 1
 
         maskN_CA_C = self.mask[np.isin(self.names, ['N', 'CA', 'C'])]
-        maskC = np.argwhere(np.isin(self.molsys.resnums, prev)).flatten()
+        maskC = np.argwhere(np.isin(self.molsys.resixs, prev)).flatten()
         maskC = maskC[self.molsys.names[maskC] == 'C']
         mask_phi = np.concatenate((maskC, maskN_CA_C))
         sel = self.molsys.atoms[mask_phi]
@@ -1275,8 +1311,8 @@ class Segment(MolecularSystemBase):
 
 def byres(mask, molsys):
     """Advanced operator to select atoms by residue"""
-    residues = np.unique(molsys.resnums[mask])
-    mask = np.isin(molsys.resnums, residues)
+    residues = np.unique(molsys.resixs[mask])
+    mask = np.isin(molsys.resixs, residues)
     return mask
 
 
@@ -1334,47 +1370,43 @@ def concat_molsys(systems):
     mol : MolSys
         The concatenated `~MolSys` object.
     """
-
+    record_types = []
     anames = []
     atypes = []
     resnames = []
     resnums = []
     resindices = []
+    icodes = []
     trajectory = []
     segindices = []
     segids = []
 
-    last_res = 0
-    last_segid = None
     for sys in systems:
 
-        if last_segid is not None and last_segid != sys.segid:
-            # Reset resnum count
-            last_res = 0
-
-        resnum = sys.resnums + last_res
-        last_res = resnum.max()
-
         resind = sys.resindices + resindices[-1][-1] if len(resindices) > 0 else sys.resindices
-
+        record_types.append(sys.record_types)
         anames.append(sys.names)
         atypes.append(sys.atypes)
         resnames.append(sys.resnames)
-        resnums.append(resnum)
+        resnums.append(sys.resnums)
+        icodes.append(sys.icodes)
         resindices.append(resind)
         trajectory.append(sys.positions)
         segindices.append(sys.segindices)
         segids.append([segid if len(segid) == 1 else 'A' for segid in sys.segids])
 
+    record_types = np.concatenate(record_types)
     anames = np.concatenate(anames)
     atypes = np.concatenate(atypes)
     resnames = np.concatenate(resnames)
     resnums = np.concatenate(resnums)
     resindices = np.concatenate(resindices)
+    icodes = np.concatenate(icodes)
     segindices = np.concatenate(segindices)
     segids = np.concatenate(segids)
     trajectory = np.concatenate(trajectory)
 
-    mol = MolSys.from_arrays(anames, atypes, resnames, resindices, resnums, segindices, segids, trajectory)
+    mol = MolSys.from_arrays(anames, atypes, resnames, resindices, resnums, segindices,
+                             segids=segids, trajectory=trajectory, record_types=record_types, icodes=icodes)
 
     return mol

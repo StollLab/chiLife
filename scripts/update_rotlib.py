@@ -106,7 +106,17 @@ def get_data(filename, description = None, comment = None, reference = None):
         data['backbone_atoms'] = ["H", "N", "CA", "HA", "C", "O"]
         data['aln_atoms'] = ['N', 'CA', 'C']
 
-    data['format_version'] = 1.4
+    if not hasattr(data['internal_coords'].item().protein, 'icodes'):
+        resnames = data['internal_coords'].item().protein.resnames
+        icodes = np.array(["" for _ in resnames])
+        record_types = np.array(['ATOM' for _ in resnames])
+
+
+        data['internal_coords'].item().protein.__dict__['icodes'] = icodes
+        data['internal_coords'].item().protein.__dict__['record_types'] = record_types
+
+    data['format_version'] = 1.5
+
 
     return data
 

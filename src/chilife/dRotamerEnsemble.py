@@ -122,7 +122,8 @@ class dRotamerEnsemble:
 
     def __init__(self, res, sites, protein=None, chain=None, rotlib=None, **kwargs):
         self.res = res
-        self.site1, self.site2 = sorted(sites)
+        self.site1, self.icode1, self.site2, self.icode2 = proc_sites(sites)
+
         self.site = self.site1
         self.increment = self.site2 - self.site1
         self.kwargs = kwargs
@@ -718,6 +719,20 @@ class dRotamerEnsemble:
                 new_copy.__dict__[item] = deepcopy(self.__dict__[item])
         return new_copy
 
+def proc_sites(sites):
+    sites = sorted(sites)
+    new_sites = []
+    for site in sites:
+        if isinstance(site, str):
+            site_split = re.split('(\D+)',site)
+            site = site_split[0]
+            icode = site_split[1] if len(site_split) > 1 else ""
+        else:
+            icode = ""
+        new_sites.append(site)
+        new_sites.append(icode)
+
+    return new_sites
 
 def dassign_defaults(kwargs):
     """

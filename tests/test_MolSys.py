@@ -120,7 +120,7 @@ def test_AtomSelection_features(feature):
 
 def test_byres():
     waters = prot.select_atoms('byres name OH2 or resname HOH')
-    assert np.all(np.unique(waters.resixs) == np.arange(370, 443, dtype=int))
+    assert np.all(np.unique(waters.resixs) == np.arange(371, 444, dtype=int))
 
 
 def test_unary_not():
@@ -424,4 +424,11 @@ def test_ResidueSelection_iter():
         assert res.chain == 'B'
         assert np.all(res.atoms.chains == 'B')
         
+
+def test_ResidueSelection_iter2():
+    protein = chilife.MolSys.from_pdb("test_data/1ubq.pdb").select_atoms("protein")
+    ids = [res.resid for res in protein.residues]
+    np.testing.assert_equal(ids, np.arange(1,77))
+
+
 

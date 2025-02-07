@@ -19,7 +19,7 @@ def main():
         os.remove('file.pdb')
     rots = glob('*.pdb')
     rots = [rot[:-4] for rot in rots]
-
+    print(rots)
     data = []
     for rot in rots:
         make_rot_lib(rot)

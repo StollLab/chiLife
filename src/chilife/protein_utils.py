@@ -543,7 +543,7 @@ def mutate(
     if ignore_waters:
         protein = protein.select_atoms(f'(not altloc B) and (not (byres name OH2 or resname HOH))')
     else:
-        protein = protein.select_atoms(f'(not altloc B))
+        protein = protein.select_atoms(f'(not altloc B)')
         
     label_selstr = " or ".join([f"({label.selstr})" for label in ensembles])
     other_atoms = protein.select_atoms(f"not ({label_selstr})")

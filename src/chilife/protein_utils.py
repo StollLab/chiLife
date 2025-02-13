@@ -423,6 +423,7 @@ def get_missing_residues(
         protein: Union[MDAnalysis.Universe, MDAnalysis.AtomGroup],
         ignore: Set[int] = None,
         use_H: bool = False,
+        ignore_waters = True
 ) -> List:
     """Get a list of RotamerEnsemble objects corresponding to the residues of the provided protein that are missing
     heavy atoms.
@@ -467,6 +468,7 @@ def get_missing_residues(
                     protein=protein,
                     chain=res.segid,
                     use_H=use_H,
+                    ignore_waters=ignore_waters
                 )
             )
 
@@ -478,6 +480,7 @@ def mutate(
         *ensembles: 'RotamerEnsemble',
         add_missing_atoms: bool = True,
         rotamer_index: Union[int, str, None] = None,
+        ignore_waters = True
 ) -> MDAnalysis.Universe:
     """Create a new Universe where the native residue is replaced with the highest probability rotamer from a
     RotamerEnsemble or SpinLabel object.
@@ -494,7 +497,8 @@ def mutate(
         rotamer.
     add_missing_atoms : bool
         Model side chains missing atoms if they are not present in the provided structure.
-
+    ignore_waters : bool
+        ignore waters when selecting conforers for mutation.
     Returns
     -------
     U : MDAnalysis.Universe
@@ -524,9 +528,7 @@ def mutate(
         else:
             use_H = False
 
-        missing_residues = get_missing_residues(
-            protein, ignore={res.site for res in ensembles}, use_H=use_H
-        )
+        missing_residues = get_missing_residues(protein, ignore={res.site for res in ensembles}, use_H=use_H, ignore_waters=ignore_waters)
         ensembles = list(ensembles) + missing_residues
 
     label_sites = {}
@@ -537,9 +539,12 @@ def mutate(
         else:
             label_sites[spin_label.site, spin_label.icode, spin_label.chain] = spin_label
 
-    protein = protein.select_atoms(
-        f'(not altloc B) and (not (byres name OH2 or resname HOH))'
-    )
+    # Remove waters if they are being ignored. 
+    if ignore_waters:
+        protein = protein.select_atoms(f'(not altloc B) and (not (byres name OH2 or resname HOH))')
+    else:
+        protein = protein.select_atoms(f'(not altloc B))
+        
     label_selstr = " or ".join([f"({label.selstr})" for label in ensembles])
     other_atoms = protein.select_atoms(f"not ({label_selstr})")
 

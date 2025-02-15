@@ -1482,9 +1482,7 @@ def repack(
     if repack_radius is None:
         repack_radius = max([SL.clash_radius for SL in spin_labels])
     # Construct a new spin labeled protein and preallocate variables to retain monte carlo trajectory
-    spin_label_str = " or ".join(
-        f"( {spin_label.selstr} )" for spin_label in spin_labels
-    )
+    spin_label_str = " or ".join(f"( {spin_label.selstr} )" for spin_label in spin_labels)
     protein = mutate(protein, *spin_labels, **kwargs).atoms
 
     # Determine the residues near the spin label that will be repacked
@@ -1518,43 +1516,31 @@ def repack(
     traj = np.empty((repetitions, *protein.positions.shape))
     deltaEs = []
 
-    sample_freq = np.array(
-        [len(res.dihedral_atoms) for res in repack_residue_libraries], dtype=np.float64
-    )
+
+    sample_freq = np.array([len(res.dihedral_atoms) for res in repack_residue_libraries], dtype=np.float64)
     mean = sample_freq[sample_freq > 1].mean()
     sample_freq[sample_freq == 1] = mean
     sample_freq /= sample_freq.sum()
 
-    count = 0
-    acount = 0
-    bcount = 0
-    bidx = 0
+    count, acount, bcount, bidx = 0, 0, 0, 0
     schedule = repetitions / (len(temp) + 1)
     with tqdm(total=repetitions) as pbar:
         while count < repetitions:
 
             # Randomly select a residue from the repacked residues
-            SiteLibrary = repack_residue_libraries[
-                np.random.choice(len(repack_residue_libraries), p=sample_freq)
-            ]
+            SiteLibrary = repack_residue_libraries[np.random.choice(len(repack_residue_libraries), p=sample_freq)]
             if not hasattr(SiteLibrary, "dummy_label"):
                 SiteLibrary.dummy_label = SiteLibrary.copy()
                 SiteLibrary.dummy_label._protein = protein
-                SiteLibrary.dummy_label.mask = np.isin(
-                    protein.ix, SiteLibrary.clash_ignore_idx
-                )
-                SiteLibrary.dummy_label._coords = np.atleast_3d(
-                    [protein.atoms[SiteLibrary.dummy_label.mask].positions]
-                )
+                SiteLibrary.dummy_label.mask = np.isin(protein.ix, SiteLibrary.clash_ignore_idx)
+                SiteLibrary.dummy_label._coords = np.atleast_3d([protein.atoms[SiteLibrary.dummy_label.mask].positions])
 
                 with np.errstate(divide="ignore"):
                     SiteLibrary.dummy_label.E0 = energy_func(SiteLibrary.dummy_label) - \
                                                  KT[temp[bidx]] * np.log(SiteLibrary.current_weight)
 
             DummyLabel = SiteLibrary.dummy_label
-
             coords, weight = SiteLibrary.sample(off_rotamer=off_rotamer)
-
             with np.errstate(divide="ignore"):
                 DummyLabel._coords = np.atleast_3d([coords])
                 E1 = energy_func(DummyLabel) - KT[temp[bidx]] * np.log(weight)
@@ -1564,18 +1550,10 @@ def repack(
 
             acount += 1
             # Metropolis-Hastings criteria
-
             if (E1 < DummyLabel.E0 or np.exp(-deltaE / KT[temp[bidx]]) > np.random.rand()):
                 deltaEs.append(deltaE)
-                try:
-                    protein.atoms[DummyLabel.mask].positions = coords
-                    DummyLabel.E0 = E1
-
-                except ValueError as err:
-                    print(SiteLibrary.name)
-                    print(SiteLibrary.atom_names)
-
-                    raise ValueError(err)
+                protein.atoms[DummyLabel.mask].positions = coords
+                DummyLabel.E0 = E1
 
                 traj[count] = protein.atoms.positions
                 SiteLibrary.update_weight(weight)
@@ -1585,8 +1563,6 @@ def repack(
                 if bcount > schedule:
                     bcount = 0
                     bidx = np.minimum(bidx + 1, len(temp) - 1)
-            else:
-                continue
 
     logging.info(f"Total counts: {acount}")
 

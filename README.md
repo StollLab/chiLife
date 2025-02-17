@@ -11,13 +11,14 @@
 </p>
 
 
-| **UPDATES**                                                                                                                                                                                                                                                                  |
-|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| 2024.12.26 : Changes to the "energy funciton" backend. forcefield, forgive factors, etc should all be parts of the energy function now, and not parts of a rotamer library  Checkout [Example_07](https://stolllab.github.io/chiLife/gallery/07-Custom_Energy_Function.html) |                                                                               
-| 2024.08.15 : chiLife 1.0 released!                                                                                                                                                                                                                                           |
-| 2024.08.15 : chiLife can now be used to create arbitrary peptides with natural and NCAAs. Checkout the `make_peptide` function.                                                                                                                                              |
-| 2024.08.15 : chiLife can make NCAA structures from smiles. Checkout `smiles2residue`. Note: Requires RDKit to be installed.                                                                                                                                                  | 
-| chiLife now supports arbitrary backbone attachments including DNA and RNA labels and more!                                                                                                                                                                                   | 
+| **UPDATES**                                                                                                                                                                                                                                                                     |
+|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| 2025.02.17 : Check out our new examples for trajectory analysis [Example_12](https://stolllab.github.io/chiLife/gallery/12-Analyzing_MD_Simulations.html) and using OpenMM for repacking [Example_13](https://stolllab.github.io/chiLife/gallery/07-Custom_Energy_Function.html). |
+| 2024.12.26 : Changes to the "energy funciton" backend. forcefield, forgive factors, etc should all be parts of the energy function now, and not parts of a rotamer library  Checkout [Example_07](https://stolllab.github.io/chiLife/gallery/13-OpenMM_Score_Function.html)    |                                                                               
+| 2024.08.15 : chiLife 1.0 released!                                                                                                                                                                                                                                              |
+| 2024.08.15 : chiLife can now be used to create arbitrary peptides with natural and NCAAs. Checkout the `make_peptide` function.                                                                                                                                                 |
+| 2024.08.15 : chiLife can make NCAA structures from smiles. Checkout `smiles2residue`. Note: Requires RDKit to be installed.                                                                                                                                                     | 
+| chiLife now supports arbitrary backbone attachments including DNA and RNA labels and more!                                                                                                                                                                                      | 
 
 
 

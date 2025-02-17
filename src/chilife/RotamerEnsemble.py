@@ -4,7 +4,6 @@ import warnings
 from copy import deepcopy
 from functools import partial
 from pathlib import Path
-import logging
 import numpy as np
 from numpy.typing import ArrayLike
 from itertools import combinations
@@ -117,7 +116,7 @@ class RotamerEnsemble:
             site = 1
             icode = ""
         elif isinstance(site, str):
-            site_split = re.split('(\D+)',site)
+            site_split = re.split(r'(\D+)',site)
             site = site_split[0]
             icode = site_split[1] if len(site_split) > 1 else ""
         else:
@@ -132,6 +131,7 @@ class RotamerEnsemble:
         self.nataa = ""
         self.input_kwargs = kwargs
         self.__dict__.update(assign_defaults(kwargs))
+        self.input_kwargs.pop('energy_func', None)
         self.protein = protein
 
         # Convert string arguments for alignment_method to respective function
@@ -979,11 +979,6 @@ class RotamerEnsemble:
         # normalize weights
         self.weights /= self.weights.sum()
 
-        logging.info(
-            f"{len(self.weights)} of {len(self._weights)} {self.res} rotamers make up at least "
-            f"{100 * (1-self.trim_tol):.2f}% of rotamer density for site {self.site}"
-        )
-
     @property
     def centroid(self):
         """Get the centroid of the whole rotamer ensemble."""
@@ -997,7 +992,6 @@ class RotamerEnsemble:
 
         # Calculate total weights (combining internal and external)
         self.weights, self.partition = scoring.reweight_rotamers(energies, self.temp, self.weights)
-        logging.info(f"Relative partition function: {self.partition:.3}")
 
         # Remove low-weight rotamers from ensemble
         if self._do_trim:
@@ -1070,7 +1064,6 @@ class RotamerEnsemble:
         self.Phi, self.Psi = Phi, Psi
 
         # Get library
-        logging.info(f"Using backbone dependent library with Phi={Phi}, Psi={Psi}")
         cwd = Path().cwd()
 
         was_none = True if rotlib is None else False

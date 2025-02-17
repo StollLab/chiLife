@@ -480,8 +480,9 @@ def mutate(
         *ensembles: 'RotamerEnsemble',
         add_missing_atoms: bool = True,
         rotamer_index: Union[int, str, None] = None,
-        ignore_waters = True
-) -> MDAnalysis.Universe:
+        use_H: bool = None,
+        ignore_waters: bool = None
+        ) -> MDAnalysis.Universe:
     """Create a new Universe where the native residue is replaced with the highest probability rotamer from a
     RotamerEnsemble or SpinLabel object.
 
@@ -511,24 +512,19 @@ def mutate(
         if isinstance(lib, (re.RotamerEnsemble, dre.dRotamerEnsemble)):
             temp_ensemble.append(lib)
         else:
-            raise TypeError(
-                f"mutate only accepts RotamerEnsemble, SpinLabel and dSpinLabel objects, not {lib}."
-            )
+            raise TypeError(f"mutate only accepts (d)RotamerEnsemble and (d)SpinLabel objects, not {lib}.")
 
     ensembles = temp_ensemble
 
     if add_missing_atoms:
-        if len(ensembles) > 0 and all(not hasattr(lib, "H_mask") for lib in ensembles):
-            use_H = True
-        elif any(not hasattr(lib, "H_mask") for lib in ensembles):
-            raise AttributeError(
-                "User provided some ensembles with hydrogen atoms and some without. Make sure all "
-                "ensembles either do or do not use hydrogen"
-            )
-        else:
-            use_H = False
+        use_H = use_H if use_H is not None else param_from_rotlibs('use_H', ensembles)
+        ignore_waters = ignore_waters if ignore_waters is not None else param_from_rotlibs('ignore_waters', ensembles)
 
-        missing_residues = get_missing_residues(protein, ignore={res.site for res in ensembles}, use_H=use_H, ignore_waters=ignore_waters)
+        missing_residues = get_missing_residues(protein,
+                                                ignore={res.site for res in ensembles},
+                                                use_H=use_H,
+                                                ignore_waters=ignore_waters)
+
         ensembles = list(ensembles) + missing_residues
 
     label_sites = {}
@@ -669,6 +665,41 @@ def randomize_rotamers(
         coords, weight = rotamer.sample(off_rotamer=kwargs.get("off_rotamer", False))
         mask = ~np.isin(protein.ix, rotamer.clash_ignore_idx)
         protein.atoms[~mask].positions = coords
+
+
+def param_from_rotlibs(param: str, ensembles: List['RotamerEnsemble']):
+    """
+    Get the value of a parameter used across a set of rotamer ensembles if that parameter is consistent. If the
+    parameter is not the same value for all rotamer ensembles, an AttributeError will be thrown.
+    Parameters
+    ----------
+    param : str
+        The name of the parameter.
+    ensembles : List[RotamerEnsembles]
+        The rotamer ensembles to search for the parameter int
+
+    Returns
+    -------
+    param_value: Any
+        The value of the parameter across all the rotamer libarries.
+    """
+    # If there are no residues being mutated just return defaults
+    if len(ensembles) == 0:
+        defaults = {}
+        defaults.update(re.assign_defaults(defaults))
+        return defaults[param]
+
+    # Otherise check to make sure they are all the same
+    ensemble_params = [getattr(ensemble, param, None) for ensemble in ensembles]
+    if all(e == ensemble_params[0] for e in ensemble_params[1:]):
+        param_value = ensemble_params[0]
+        return param_value
+
+    # And return an error if they are not
+    else:
+        raise AttributeError(f"User provided ensembles with different {param} parameters. Make sure all "
+                             f"ensembles use the same value for {param}")
+
 
 
 def get_sas_res(

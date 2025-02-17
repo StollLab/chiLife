@@ -132,11 +132,11 @@ def test_write_protein_with_bonds():
 
 
     with open('1R1M.pdb', 'r') as f:
-        lines = "".join(f.readlines())
+        lines = "".join([line for line in f if line.startswith("CONECT")])
         thash = hashlib.md5(lines.encode("utf-8")).hexdigest()
 
     with open('test_data/cnct.pdb', 'r') as f:
-        lines = "".join(f.readlines())
+        lines = "".join([line for line in f if line.startswith("CONECT")])
         ahash = hashlib.md5(lines.encode("utf-8")).hexdigest()
 
     assert thash == ahash

@@ -1,0 +1,102 @@
+TITLE     MDANALYSIS FRAME 0: Created by PDBWriter
+CRYST1   32.118   32.118   32.118  90.00  90.00  90.00 P 1           1
+ATOM      1  N   ALA A   1      12.660  11.970  16.210  1.00  0.00      A    N  
+ATOM      2  H   ALA A   1      13.160  12.560  16.910  1.00  0.00      A    H  
+ATOM      3  H2  ALA A   1      12.630  10.980  16.530  1.00  0.00      A    H  
+ATOM      4  H3  ALA A   1      11.720  12.410  16.130  1.00  0.00      A    H  
+ATOM      5  CA  ALA A   1      13.400  12.080  14.860  1.00  0.00      A    C  
+ATOM      6  HA  ALA A   1      14.300  11.510  15.050  1.00  0.00      A    H  
+ATOM      7  CB  ALA A   1      12.420  11.430  13.770  1.00  0.00      A    C  
+ATOM      8  HB1 ALA A   1      11.480  11.990  13.610  1.00  0.00      A    H  
+ATOM      9  HB2 ALA A   1      12.270  10.410  14.180  1.00  0.00      A    H  
+ATOM     10  HB3 ALA A   1      12.960  11.400  12.800  1.00  0.00      A    H  
+ATOM     11  C   ALA A   1      13.560  13.620  14.580  1.00  0.00      A    C  
+ATOM     12  O   ALA A   1      13.070  14.460  15.340  1.00  0.00      A    O  
+HETATM   13  N   CYR A   2      14.410  13.960  13.600  1.00  0.00      A    N  
+HETATM   14  HN  CYR A   2      14.910  13.270  13.090  1.00  0.00      A    H  
+HETATM   15  CA  CYR A   2      14.520  15.410  13.230  1.00  0.00      A    C  
+HETATM   16  HA  CYR A   2      14.880  15.990  14.070  1.00  0.00      A    H  
+HETATM   17  CB  CYR A   2      15.780  15.450  12.490  1.00  0.00      A    C  
+HETATM   18  HB1 CYR A   2      15.660  14.740  11.640  1.00  0.00      A    H  
+HETATM   19  HB2 CYR A   2      15.980  16.410  11.970  1.00  0.00      A    H  
+HETATM   20  SG  CYR A   2      17.350  15.030  13.310  1.00  0.00      A    S  
+HETATM   21  S1L CYR A   2      17.420  15.990  15.120  1.00  0.00      A    S  
+HETATM   22  C1L CYR A   2      17.980  17.660  14.690  1.00  0.00      A    C  
+HETATM   23  H1L CYR A   2      18.360  17.790  13.650  1.00  0.00      A    H  
+HETATM   24  H1M CYR A   2      17.020  18.200  14.550  1.00  0.00      A    H  
+HETATM   25  C1R CYR A   2      18.750  18.380  15.800  1.00  0.00      A    C  
+HETATM   26  C2R CYR A   2      18.320  19.400  16.570  1.00  0.00      A    C  
+HETATM   27  H2R CYR A   2      17.280  19.750  16.590  1.00  0.00      A    H  
+HETATM   28  C1  CYR A   2      20.080  17.920  16.000  1.00  0.00      A    C  
+HETATM   29  C2  CYR A   2      19.430  19.890  17.350  1.00  0.00      A    C  
+HETATM   30  NN  CYR A   2      20.550  19.100  16.750  1.00  0.00      A    N  
+HETATM   31  ON  CYR A   2      21.750  19.170  17.220  1.00  0.00      A    O  
+HETATM   32  C2D CYR A   2      19.170  19.560  18.890  1.00  0.00      A    C  
+HETATM   33  H2D CYR A   2      19.250  18.470  19.120  1.00  0.00      A    H  
+HETATM   34  H2E CYR A   2      20.030  20.020  19.410  1.00  0.00      A    H  
+HETATM   35  H2F CYR A   2      18.180  20.020  19.110  1.00  0.00      A    H  
+HETATM   36  C1D CYR A   2      20.120  16.650  16.910  1.00  0.00      A    C  
+HETATM   37  H1D CYR A   2      21.110  16.480  17.380  1.00  0.00      A    H  
+HETATM   38  H1E CYR A   2      19.360  16.660  17.730  1.00  0.00      A    H  
+HETATM   39  H1F CYR A   2      19.950  15.780  16.240  1.00  0.00      A    H  
+HETATM   40  C2A CYR A   2      19.770  21.450  17.230  1.00  0.00      A    C  
+HETATM   41  H2A CYR A   2      19.410  21.810  16.240  1.00  0.00      A    H  
+HETATM   42  H2B CYR A   2      19.260  21.950  18.080  1.00  0.00      A    H  
+HETATM   43  H2C CYR A   2      20.840  21.630  17.430  1.00  0.00      A    H  
+HETATM   44  C1A CYR A   2      20.970  17.760  14.760  1.00  0.00      A    C  
+HETATM   45  H1A CYR A   2      20.440  17.220  13.950  1.00  0.00      A    H  
+HETATM   46  H1B CYR A   2      21.180  18.750  14.300  1.00  0.00      A    H  
+HETATM   47  H1C CYR A   2      21.880  17.210  15.100  1.00  0.00      A    H  
+HETATM   48  C   CYR A   2      13.310  16.140  12.590  1.00  0.00      A    C  
+HETATM   49  O   CYR A   2      12.710  15.700  11.660  1.00  0.00      A    O  
+ATOM     50  N   ALA A   3      13.010  17.380  13.110  1.00  0.00      A    N  
+ATOM     51  H   ALA A   3      13.460  17.770  13.900  1.00  0.00      A    H  
+ATOM     52  CA  ALA A   3      12.020  18.290  12.700  1.00  0.00      A    C  
+ATOM     53  HA  ALA A   3      11.030  17.860  12.550  1.00  0.00      A    H  
+ATOM     54  CB  ALA A   3      11.890  19.350  13.670  1.00  0.00      A    C  
+ATOM     55  HB1 ALA A   3      12.930  19.710  13.800  1.00  0.00      A    H  
+ATOM     56  HB2 ALA A   3      11.510  18.940  14.620  1.00  0.00      A    H  
+ATOM     57  HB3 ALA A   3      11.180  20.180  13.430  1.00  0.00      A    H  
+ATOM     58  C   ALA A   3      12.320  18.950  11.290  1.00  0.00      A    C  
+ATOM     59  O   ALA A   3      11.490  18.830  10.350  1.00  0.00      A    O  
+ATOM     60  OXT ALA A   3      13.330  19.750  11.160  1.00  0.00      A    O  
+CONECT   11   13
+CONECT   13   11   14   15
+CONECT   14   13
+CONECT   15   13   16   17   48
+CONECT   16   15
+CONECT   17   15   18   19   20
+CONECT   18   17
+CONECT   19   17
+CONECT   20   17   21
+CONECT   21   20   22
+CONECT   22   21   23   24   25
+CONECT   23   22
+CONECT   24   22
+CONECT   25   22   26   28
+CONECT   26   25   27   29
+CONECT   27   26
+CONECT   28   25   30   36   44
+CONECT   29   26   30   32   40
+CONECT   30   28   29   31
+CONECT   31   30
+CONECT   32   29   33   34   35
+CONECT   33   32
+CONECT   34   32
+CONECT   35   32
+CONECT   36   28   37   38   39
+CONECT   37   36
+CONECT   38   36
+CONECT   39   36
+CONECT   40   29   41   42   43
+CONECT   41   40
+CONECT   42   40
+CONECT   43   40
+CONECT   44   28   45   46   47
+CONECT   45   44
+CONECT   46   44
+CONECT   47   44
+CONECT   48   15   49   50
+CONECT   49   48
+CONECT   50   48
+END

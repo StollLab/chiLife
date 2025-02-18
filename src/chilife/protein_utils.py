@@ -553,7 +553,7 @@ def mutate(
 
     # Loop over residues in old universe
     for i, res in enumerate(protein.residues):
-        resloc = (res.resid, res.icode, res.segid)
+        resloc = (res.resid, res.icode if hasattr(res, 'icode') else "", res.segid)
 
         # If the residue is the spin labeled residue replace it with the highest probability spin label
         if resloc in label_sites:

@@ -1,6 +1,8 @@
 import pickle
 import pytest
 import MDAnalysis
+from setuptools.command.build_py import assert_relative
+
 import chilife as xl
 from chilife.Topology import *
 from MDAnalysis.topology.guessers import guess_angles, guess_dihedrals
@@ -20,6 +22,15 @@ def test_guess_bonds():
 
     np.testing.assert_equal(bonds, ans[sorted_args])
     np.testing.assert_allclose(dist, ans_dist[sorted_args])
+
+def test_non_bonded():
+    bonds = xl.guess_bonds(ubq.coords, ubq.atypes)
+    top = Topology(ubq, bonds)
+
+    non_bonded = set(top.non_bonded)
+
+    for bond in top.bonds:
+        assert tuple(bond) not in non_bonded
 
 
 @pytest.mark.parametrize('prot', [ubqu, mbp])

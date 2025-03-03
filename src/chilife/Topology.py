@@ -139,6 +139,24 @@ class Topology:
             c1 = self.atoms[c].segid
             self.dihedrals_by_resnum[c1, r1, n1, n2, n3, n4] = dihe
 
+    @property
+    def non_bonded(self):
+        """Set of atom indices corresponding to the atoms that are not covalently bonded. Also excludes atoms that
+        have 1-n non-bonded interactions where `n=self._exclude_nb_interactions` . By default, 1-3 interactions are
+        excluded"""
+
+        if not hasattr(self, "_non_bonded"):
+            bonded_pairs = []
+            for i in range(len(self.atom_names)):
+                neighbors = self.graph.neighborhood(i, 3, mode='all', mindist=1)
+                bonded_pairs.extend((i, x) for x in neighbors if i < x)
+            bonded_pairs = set(bonded_pairs)
+            all_pairs = set(combinations(range(len(self.atom_names)), 2))
+
+            self._non_bonded = all_pairs - bonded_pairs
+
+        return sorted(list(self._non_bonded))
+
 
 def get_angle_defs(graph: ig.Graph) -> Tuple[Tuple[int, int, int]]:
     """

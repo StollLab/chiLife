@@ -1143,14 +1143,17 @@ class RotamerEnsemble:
     @property
     def non_bonded(self):
         """Set of atom indices corresponding to the atoms that are not covalently bonded. Also excludes atoms that
-        have 1-n non-bonded interactions where `n=self._exclude_nb_interactions` . By default, 1-3 interactions are
-        excluded"""
+        have 1-n non-bonded interactions where `n=self._exclude_nb_interactions` . By default, 1-4 and shorter
+        interactions are excluded"""
         if not hasattr(self, "_non_bonded"):
-            pairs = {v.index: [path for path in self._graph.get_all_shortest_paths(v) if
-                           len(path) <= (self._exclude_nb_interactions)] for v in self._graph.vs}
-            pairs = {(a, c) for a in pairs for b in pairs[a] for c in b if a < c}
+            bonded_pairs = []
+            for i in range(len(self.atom_names)):
+                neighbors = self._graph.neighborhood(i, self._exclude_nb_interactions, mode='all', mindist=1)
+                bonded_pairs.extend((i, x) for x in neighbors if i < x)
+            bonded_pairs = set(bonded_pairs)
             all_pairs = set(combinations(range(len(self.atom_names)), 2))
-            self._non_bonded = all_pairs - pairs
+
+            self._non_bonded = all_pairs - bonded_pairs
 
         return sorted(list(self._non_bonded))
 

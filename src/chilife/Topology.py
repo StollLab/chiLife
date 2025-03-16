@@ -11,6 +11,8 @@ import igraph as ig
 from .globals import bond_hmax_dict
 from .math_utils import simple_cycle_vertices
 
+
+
 class Topology:
     """
     Topology class
@@ -142,8 +144,10 @@ class Topology:
     @property
     def non_bonded(self):
         """Set of atom indices corresponding to the atoms that are not covalently bonded. Also excludes atoms that
-        have 1-n non-bonded interactions where `n=self._exclude_nb_interactions` . By default, 1-3 interactions are
+        have 1-n non-bonded interactions where `n=self._exclude_nb_interactions` . By default, 1-4 interactions are
         excluded"""
+
+        #TODO: profile this vs cubing adjacency matrix
 
         if not hasattr(self, "_non_bonded"):
             bonded_pairs = []

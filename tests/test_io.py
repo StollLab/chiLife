@@ -24,8 +24,10 @@ def test_load_protein(args):
 
     
     if len(args) == 2:
-        os.remove('test_data/.traj_io.xtc_offsets.lock')
-        os.remove('test_data/.traj_io.xtc_offsets.npz')
+        if (p1 := Path('test_data/.traj_io.xtc_offsets.lock')).exists():
+            os.remove('test_data/.traj_io.xtc_offsets.lock')
+        if (p2 := Path('test_data/.traj_io.xtc_offsets.npz')).exists():
+            os.remove('test_data/.traj_io.xtc_offsets.npz')
 
 
 def test_save():

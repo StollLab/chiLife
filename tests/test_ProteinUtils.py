@@ -14,7 +14,7 @@ resis = [
     (key, -90, 160)
     for key in chilife.dihedral_defs
     if key
-    not in (("R1B", "R1C", "CYR1", "MTN", "ALA", "GLY") +
+    not in (("R1B", "R1C", "CYR1", "MTN", "ALA", "GLY", 'HID', 'HIE', 'ASH', 'GLH', 'CYM', 'LYN', 'HIP') +
             tuple(chilife.USER_LIBRARIES) +
             tuple(chilife.USER_dLIBRARIES))
 ]
@@ -207,7 +207,7 @@ def test_add_missing_atoms():
 
 @pytest.mark.parametrize(
     "res", set(chilife.dihedral_defs.keys()) -
-           {"CYR1", "MTN", "R1M", "R1C"} -
+           {"CYR1", "MTN", "R1M", "R1C", 'HID', 'HIE', 'ASH', 'GLH', 'CYM', 'LYN', 'HIP'} -
            chilife.USER_dLIBRARIES -
            chilife.USER_LIBRARIES
 )

@@ -20,7 +20,7 @@ import MDAnalysis as mda
 import chilife.RotamerEnsemble as re
 import chilife.SpinLabel as sl
 import chilife.dRotamerEnsemble as dre
-from .globals import dihedral_defs, rotlib_indexes, RL_DIR, SUPPORTED_BB_LABELS, USER_RL_DIR, rotlib_defaults
+from .globals import dihedral_defs, rotlib_indexes, RL_DIR, SUPPORTED_BB_LABELS, USER_RL_DIR, rotlib_defaults, alt_prot_states
 from .alignment_methods import local_mx
 from .IntrinsicLabel import IntrinsicLabel
 from .MolSys import MolecularSystemBase
@@ -239,6 +239,9 @@ def read_bbdep(res: str, Phi: int, Psi: int) -> Dict:
     lib: dict
         Dictionary of arrays containing rotamer library information in cartesian and dihedral space
     """
+
+    ic_res = alt_prot_states.get(res, res)
+
     lib = {}
     Phi, Psi = str(Phi), str(Psi)
 
@@ -254,7 +257,7 @@ def read_bbdep(res: str, Phi: int, Psi: int) -> Dict:
 
     if res not in ("ALA", "GLY"):
         library = "R1C.lib" if res in SUPPORTED_BB_LABELS else "ALL.bbdep.rotamers.lib"
-        start, length = rotlib_indexes[f"{res}  {Phi:>4}{Psi:>5}"]
+        start, length = rotlib_indexes[f"{ic_res}  {Phi:>4}{Psi:>5}"]
 
         with open(RL_DIR / library, "rb") as f:
             f.seek(start)

@@ -17,7 +17,7 @@ import MDAnalysis as mda
 import chilife.io as io
 import chilife.scoring as scoring
 
-from .globals import SUPPORTED_RESIDUES, nataa_codes, dihedral_defs
+from .globals import SUPPORTED_RESIDUES, nataa_codes, dihedral_defs, ralt_prot_states
 from .scoring import get_lj_rep, GAS_CONST
 from .numba_utils import get_sasa as nu_getsasa
 from .alignment_methods import alignment_methods, parse_backbone, local_mx, global_mx
@@ -263,6 +263,21 @@ class RotamerEnsemble:
         """
 
         res = residue.resname
+
+
+        if kwargs.get('use_H', False) and res in ralt_prot_states:
+            if res != 'HIS':
+                res = ralt_prot_states[res].get(len(residue.atoms), res)
+            elif len(residue.atoms) == 18:
+                res = 'HIP'
+            elif len([x for x in residue.atoms.names if 'HE' in x]) == 2:
+                res = 'HIE'
+            elif len([x for x in residue.atoms.names if 'HD' in x]) == 2:
+                res = 'HID'
+            else:
+                res = 'HIS'
+
+
         site = residue.resid
         chain = residue.segid
         protein = residue.universe

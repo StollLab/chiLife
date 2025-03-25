@@ -7,6 +7,11 @@ pdb_directory = Path('../residue_pdbs')
 residue_pdbs = pdb_directory.glob('*.pdb')
 
 for pdb in residue_pdbs:
+
+    new_path = Path(pdb.stem + '_ic.pkl')
+    if new_path.exists():
+        continue
+
     print(pdb.stem)
 
     srtd = chilife.sort_pdb(pdb)

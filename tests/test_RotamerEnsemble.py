@@ -543,3 +543,18 @@ def test_ignore_waters():
 
     ans = np.load('test_data/ignore_waters.npy')
     np.testing.assert_almost_equal(RL2.coords, ans, decimal=5)
+
+
+@pytest.mark.parametrize(('resn', 'ans'), (('HID', 17), ('HIP', 18), ('HIE', 17), ('ASH', 13),
+                                           ('GLH', 16), ('CYM', 10), ('LYN', 21)))
+def test_alt_prot(resn, ans):
+    RL = chilife.RotamerEnsemble(resn, 28, ubq, use_H=True)
+    assert len(RL.atom_names) == ans
+    assert RL.res == resn
+
+@pytest.mark.parametrize('res', ('HID', 'HIE', 'ASH', 'GLH', 'CYM', 'LYN', 'HIP'))
+def test_from_mda_alt_prot(res):
+    mda_residue = mda.Universe(f'test_data/{res.lower()}.pdb').residues[0]
+    assert mda_residue.resname != res
+    RL = chilife.RotamerEnsemble.from_mda(mda_residue, use_H=True)
+    assert RL.res == res

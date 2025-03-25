@@ -45,8 +45,10 @@ with open(DATA_DIR / 'BondDefs.pkl', 'rb') as f:
 atom_order = {"N": 0, "CA": 1, "C": 2, "O": 3, 'H': 5}
 
 nataa_codes = {'ALA': 'A', 'CYS': 'C', 'ASP': 'D', 'GLU': 'E', 'PHE': 'F', 'GLY': 'G', 'HIS': 'H', 'ILE': 'I',
-               'LYS': 'K', 'LEU': 'L', 'MET': 'M', 'MSE': 'M', 'ASN': 'N', 'PRO': 'P', 'GLN': 'Q', 'ARG': 'R',
-               'SER': 'S', 'THR': 'T', 'VAL': 'V', 'TRP': 'W', 'TYR': 'Y', 'CME': 'C'}
+               'LYS': 'K', 'LEU': 'L', 'MET': 'M', 'ASN': 'N', 'PRO': 'P', 'GLN': 'Q', 'ARG': 'R',
+               'SER': 'S', 'THR': 'T', 'VAL': 'V', 'TRP': 'W', 'TYR': 'Y'}
+
+
 
 natnu_codes = {'A', 'C', 'G', 'I', 'U', 'DA', 'DC', 'DG', 'DI', 'DT', 'DU'}
 
@@ -55,8 +57,20 @@ mm_backbones = {'aa': ['N', 'CA', 'C', 'O'],
                 'ACE': ['C', 'O', 'CH3']}
 
 
+alt_prot_states = {'ASH': 'ASP', 'GLH': 'GLU', 'LYN': 'LYS', 'HID': 'HIS', 'HIE': 'HIS', 'HIP': 'HIS', 'CYM': 'CYS'}
+ralt_prot_states = {
+    'ASP': {13: 'ASH', 12: 'ASP'},
+    'GLU': {16: 'GLH', 15: 'GLU'},
+    'LYS': {21: 'LYN', 22: 'LYS'},
+    'HIS': {17: 'HIS', 18: 'HIP'},
+    'CYS': {10: 'CYM', 11: 'CYS'}
+    }
+
+
 inataa = {val: key for key, val in nataa_codes.items() if key not in ('CME', 'MSE')}
 nataa_codes.update(inataa)
+natnu_codes.update({'MSE': 'M', 'CME': 'C', 'HID': 'H', 'HIP': 'H', 'HIE': 'H',
+                    'LYN': 'K', 'CYM': 'C', 'ASH': 'D', 'GLH': 'E'})
 del inataa
 
 

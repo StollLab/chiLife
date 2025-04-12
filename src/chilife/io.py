@@ -178,8 +178,8 @@ def read_rotlib(rotlib: Union[Path, BinaryIO] = None) -> Dict:
                                'new format.')
 
         lib = dict(files)
-
-    del lib["allow_pickle"]
+    if 'allow_pickle' in lib:
+        del lib["allow_pickle"]
 
     if "sigmas" not in lib:
         lib["sigmas"] = np.array([])

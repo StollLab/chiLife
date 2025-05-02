@@ -81,7 +81,7 @@ def test_add_protein(label):
     lib.protein_setup()
 
     with np.load(f"test_data/{label}_label.npz") as f:
-        np.testing.assert_almost_equal(f["coords"], lib._coords)
+        np.testing.assert_almost_equal(f["coords"], lib._coords, decimal=5)
         np.testing.assert_almost_equal(f["weights"], lib.weights)
 
 

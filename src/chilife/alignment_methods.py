@@ -63,9 +63,9 @@ def rosetta_alignment(N, CA, C):
 
 @alignment_method
 def bisect_alignment(N, CA, C):
-    """Calculates a rotation matrix and translation to transform an amino acid from the local coordinate frame to the
-    global coordinate frame for a given residue with backbone coordinates (N, C, CA). Principal axis bisects the
-    N->Ca->C angle.
+    """Calculates the rotation matrix and translation to transform an amino acid from the local coordinate frame to the
+    global coordinate frame for a given residue with backbone coordinates (N, C, CA). The principal z axis bisects the
+    N-CA-C angle, and y is in the N-CA-C plane perpendicular to z, approximately pointing from C to N.
 
     Parameters
     ----------
@@ -78,12 +78,12 @@ def bisect_alignment(N, CA, C):
 
     Returns
     -------
-    rotation_matrix : numpy ndarray (3x3)
-        Rotation  matrix to rotate spin label to achieve the correct orientation.
+    rotation_matrix : numpy .darray (3x3)
+        Rotation matrix to rotate spin label to achieve the correct orientation.
     origin : numpy.ndarray (1x3)
         New origin position in 3-dimensional space.
     """
-    # Define new Z axis that bisects N<--CA-->C angle
+    # Define new z axis: bisector of N-CA-C angle
     CA_N = N - CA
     CA_N /= np.linalg.norm(CA_N)
     CA_C = C - CA
@@ -91,18 +91,18 @@ def bisect_alignment(N, CA, C):
     zaxis = CA_N + CA_C
     zaxis = zaxis / np.linalg.norm(zaxis)
 
-    # Define new y-axis
-    yaxis_plane = N - C
-    z_comp = yaxis_plane.dot(zaxis)
-    yaxis = yaxis_plane - z_comp * zaxis
+    # Define new y axis: perpendicular to z in N-CA-C plane
+    yaxis = CA_N - CA_C
     yaxis = yaxis / np.linalg.norm(yaxis)
 
-    # Define new x axis
+    # Define new x axis: perpendicular to y and z
     xaxis = np.cross(yaxis, zaxis)
 
     # Create rotation matrix
     rotation_matrix = np.array([xaxis, yaxis, zaxis])
+    
     origin = CA
+    
     return rotation_matrix, origin
 
 

@@ -749,7 +749,6 @@ def write_labels(pdb_file: TextIO, *args: sl.SpinLabel,
         if not np.any(label.spin_centers):
             continue
 
-        pdb_file.write(f"HEADER {label.name}_density\n")
         spin_centers = np.atleast_2d(label.spin_centers)
 
         if KDE and len(spin_centers) > 5:
@@ -767,6 +766,7 @@ def write_labels(pdb_file: TextIO, *args: sl.SpinLabel,
             vals = label.weights
 
         if write_spin_centers:
+            pdb_file.write(f"HEADER {label.name}_density\n")
             norm_weights = vals / vals.max()
             [
                 pdb_file.write(
@@ -784,8 +784,8 @@ def write_labels(pdb_file: TextIO, *args: sl.SpinLabel,
                 )
                 for i in range(len(norm_weights))
             ]
+            pdb_file.write("TER\n")
 
-        pdb_file.write("TER\n")
 
 
 def write_atoms(file: TextIO,

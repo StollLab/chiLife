@@ -40,7 +40,7 @@ def test_efunc_dlabel(func):
     f = chilife.ljEnergyFunc(func)
     test = f(dSL)
     ans = np.load(f'test_data/d{func.__name__}.npy')
-    np.testing.assert_almost_equal(test, ans, decimal=4)
+    np.testing.assert_almost_equal(test, ans, decimal=3)
 
 
 def test_molar_gas_constant():

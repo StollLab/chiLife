@@ -813,8 +813,8 @@ class MolSysIC:
             for i, op in zip(idx, self._chain_operators[idx]):
                 for start, stop in self._chain_segs:
                     current_mx, current_ori = ic_mx(*cart_coords[i, start:start+3])
-                    mx = self.chain_operators[start]['mx']
-                    ori = self.chain_operators[start]['ori']
+                    mx = op[start]['mx']
+                    ori = op[start]['ori']
                     m2m3 = current_mx @ mx
                     cart_coords[i, start:stop] = (cart_coords[i, start:stop] - current_ori) @ m2m3 + ori
 

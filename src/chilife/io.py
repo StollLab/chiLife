@@ -1,4 +1,4 @@
-from typing import Tuple, Dict, Union, BinaryIO, TextIO, Protocol
+from typing import Tuple, Dict, Union, BinaryIO, TextIO
 import warnings
 import os
 import urllib
@@ -9,7 +9,7 @@ from hashlib import sha256
 from pathlib import Path
 import pickle
 import shutil
-from io import StringIO, BytesIO
+from io import StringIO
 import zipfile
 
 import numpy as np
@@ -507,8 +507,8 @@ def fetch(accession_number: str, save: bool = False) -> MDAnalysis.Universe:
     pdb_name = accession_number + '.pdb'
 
     if accession_number.startswith('AF-'):
-        print(f"https://alphafold.ebi.ac.uk/files/{accession_number}-F1-model_v3.pdb")
-        urllib.request.urlretrieve(f"https://alphafold.ebi.ac.uk/files/{accession_number}-F1-model_v3.pdb", pdb_name)
+        print(f"https://alphafold.ebi.ac.uk/files/{accession_number}-F1-model_v6.pdb")
+        urllib.request.urlretrieve(f"https://alphafold.ebi.ac.uk/files/{accession_number}-F1-model_v6.pdb", pdb_name)
     else:
         urllib.request.urlretrieve(f"http://files.rcsb.org/download/{pdb_name}", pdb_name)
 
@@ -631,7 +631,7 @@ def write_frame(pdb_file: TextIO, atoms, frame=None, coords=None):
     pdb_file.write("TER\n")
 
     if frame is not None:
-        pdb_file.write(f"ENDMDL\n")
+        pdb_file.write("ENDMDL\n")
 
 
 def write_ic(pdb_file: TextIO,

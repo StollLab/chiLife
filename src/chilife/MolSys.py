@@ -233,24 +233,24 @@ class MolSys(MolecularSystemBase):
         Name of molecular system
     """
     def __init__(
-            self,
-            record_types: np.ndarray,
-            atomids: np.ndarray,
-            names: np.ndarray,
-            altlocs: np.ndarray,
-            resnames: np.ndarray,
-            resnums: np.ndarray,
-            icodes: np.ndarray,
-            chains: np.ndarray,
-            trajectory: np.ndarray,
-            occupancies: np.ndarray,
-            bs: np.ndarray,
-            segs: np.ndarray,
-            atypes: np.ndarray,
-            charges: np.ndarray,
-            bonds: ArrayLike = None,
-            name: str = 'Noname_MolSys'
-
+        self,
+        record_types: np.ndarray,
+        atomids: np.ndarray,
+        names: np.ndarray,
+        altlocs: np.ndarray,
+        resnames: np.ndarray,
+        resnums: np.ndarray,
+        icodes: np.ndarray,
+        chains: np.ndarray,
+        trajectory: np.ndarray,
+        occupancies: np.ndarray,
+        bs: np.ndarray,
+        segs: np.ndarray,
+        atypes: np.ndarray,
+        charges: np.ndarray,
+        chiral: ArrayLike =None,
+        bonds: ArrayLike = None,
+        name: str = "Noname_MolSys",
     ):
 
         self.molsys = self
@@ -268,6 +268,7 @@ class MolSys(MolecularSystemBase):
         self.segs = segs.copy()
         self.atypes = atypes.copy()
         self.charges = charges.copy()
+        self.chiral = chiral.copy() if chiral is not None else None
         self._fname = name
 
         self.ix = np.arange(len(self.atomids))
@@ -310,6 +311,7 @@ class MolSys(MolecularSystemBase):
                                  'chain': self.chains,
                                  'occupancies': self.occupancies,
                                  'b': self.bs,
+                                 'chiral': self.chiral,
                                  'segid': self.chains,
                                  'type': self.atypes,
                                  'charges': self.charges,
@@ -341,7 +343,8 @@ class MolSys(MolecularSystemBase):
                                 '!=': operator.ne,
                                 'byres': partial(byres, molsys=self.molsys),
                                 'within': update_wrapper(partial(within, molsys=self.molsys), within),
-                                'around': update_wrapper(partial(within, molsys=self.molsys), within)}
+                                'around': update_wrapper(partial(within, molsys=self.molsys), within),
+                                'point': update_wrapper(partial(point, molsys=self.molsys), point),}
 
 
         # Aliases
@@ -783,6 +786,12 @@ def process_statement(statement, logickws, subjectkws):
             continue
 
         stat_split = stat.split()
+        if stat_split[0] not in logickws and stat_split[0] not in subjectkws:
+            raise ValueError(
+                f"Invalid selection keyword: {stat_split[0]}. All selections statements and substatements must start "
+                f"with a valid selection keyword"
+            )
+
         subject = None
         values = []
         while len(stat_split) > 0:
@@ -809,6 +818,9 @@ def process_statement(statement, logickws, subjectkws):
             tmp = process_sub_statement(subject, values)
             mask = operation(mask, tmp) if operation else tmp
             operation = None
+
+        elif not values and hasattr(operation, 'novals'):
+            mask = operation(mask, np.ones_like(mask, dtype=bool))
 
     return mask
 
@@ -879,7 +891,7 @@ def check_operation(operation, stat_split, logickws):
     operation : callable
         A simplified version of the provided operation now accounting for the user provided parameters.
     """
-    advanced_operators = (logickws['within'], logickws['around'], logickws['byres'])
+    advanced_operators = (logickws['within'], logickws['around'], logickws['byres'], logickws['point'])
     if operation in advanced_operators:
         outer_operation = logickws['and']
         args = [stat_split.pop(i) for i in range(1, 1 + operation.nargs)]
@@ -915,7 +927,7 @@ def build_operator(stat_split, logickws):
     operation = logickws['and']
     unary_operators = (logickws['not'], logickws['byres'])
     binary_operators = (logickws['and'], logickws['or'])
-    advanced_operators = (logickws['within'], logickws['around'])
+    advanced_operators = (logickws['within'], logickws['around'], logickws['point'])
 
     while _io := logickws.get(stat_split[0], False):
 
@@ -935,6 +947,9 @@ def build_operator(stat_split, logickws):
                 return operation(a, _io(b))
 
             operation = partial(toperation, operation=operation, _io=_io)
+
+            if hasattr(_io.func, 'novals'):
+                operation.novals = _io.func.novals
 
         elif _io in binary_operators:
             if operation != logickws['and']:
@@ -1323,7 +1338,7 @@ def unot(mask):
 
 def within(distance, mask, molsys):
     """
-    Advanced logic operator to identify atoms within a user defined distance.
+    Advanced logic operator to identify atoms within a user defined distance of another selection.
 
     Parameters
     ----------
@@ -1354,6 +1369,44 @@ def within(distance, mask, molsys):
 
 within.nargs = 1
 
+
+def point(x, y, z, distance, mask, molsys):
+    """
+    Advanced logic operator to identify atoms within a user defined distance of a point in cartesian space.
+
+    Parameters
+    ----------
+    x : float
+        The x coordinate of the point in cartesian space.
+    y : float
+        The y coordinate of the point in cartesian space.
+    z : float
+        The z coordinate of the point in cartesian space.
+    distance : float
+        The distance window defining which atoms will be included in the selection.
+    mask : np.ndarray
+        A boolean array defining a subset of  atoms of a :class:`~MolSys` from which the distance cutoff will be
+        measured by.
+    molsys : :class:`~MolSys`
+        A chiLife :class:`~MolSys` from which to select atoms from .
+
+    Returns
+    -------
+    out_mask : np.ndarray
+        A boolean array defining a subset of  atoms of a :class:`~MolSys` that are within the user defined distance
+        of the user defined selection.
+    """
+    
+    tree1 = cKDTree(molsys.coords[mask])
+    args = tree1.query_ball_point(np.array([x, y, z], dtype=float), distance)
+    out_mask = np.zeros_like(mask, dtype=bool)
+    out_mask[args] = True
+
+    return out_mask
+
+
+point.nargs = 4
+point.novals = True
 
 def concat_molsys(systems):
     """

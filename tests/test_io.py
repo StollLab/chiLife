@@ -71,8 +71,8 @@ def test_fetch_AF_CIF():
     np.testing.assert_allclose(U.atoms.positions[100:110], ans)
 
 
-IDs = ["1anf", "1omp.pdb", "3TU3"]
-fNames = ["1anf.pdb", "1omp.pdb", "3TU3.pdb"]
+IDs = ["1anf", "1omp.pdb", "3tu3"]
+fNames = ["1anf.pdb", "1omp.pdb", "3tu3.pdb"]
 
 
 @pytest.mark.parametrize("pdbid, names", zip(IDs, fNames))
@@ -330,11 +330,11 @@ def test_join_ccd_info():
     atom = out["chem_comp_atom"]
     bond = out["chem_comp_bond"]
 
-    with open('test_data/join_ccd_info.toml', 'r') as f:
+    with open("test_data/join_ccd_info.toml", "r") as f:
         data = rtoml.load(f)
 
-    for k, v in data['atom'].items():
+    for k, v in data["atom"].items():
         assert all(vi == ti for vi, ti in zip(v, atom[k]))
 
-    for k, v in data['bond'].items():
+    for k, v in data["bond"].items():
         assert all(vi == ti for vi, ti in zip(v, bond[k]))

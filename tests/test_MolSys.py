@@ -652,10 +652,16 @@ def test_write_cif():
     mysys.write_cif("test_cif.cif")
 
     with open("test_data/write_cif.cif", "r") as f:
-        ans = hashlib.md5(f.read().encode("utf-8")).hexdigest()
+        lines = [
+            line for line in f.readlines() if not line.startswith("_software.version")
+        ]
+        ans = hashlib.md5("".join(lines).encode("utf-8")).hexdigest()
 
     with open("test_cif.cif", "r") as f:
-        test = hashlib.md5(f.read().encode("utf-8")).hexdigest()
+        lines = [
+            line for line in f.readlines() if not line.startswith("_software.version")
+        ]
+        test = hashlib.md5("".join(lines).encode("utf-8")).hexdigest()
 
     assert ans == test
     os.remove("test_cif.cif")
@@ -666,10 +672,16 @@ def test_write_cif2():
     mysys.write_cif("test_cif.cif")
 
     with open("test_data/write_cif2.cif", "r") as f:
-        ans = hashlib.md5(f.read().encode("utf-8")).hexdigest()
+        lines = [
+            line for line in f.readlines() if not line.startswith("_software.version")
+        ]
+        ans = hashlib.md5("".join(lines).encode("utf-8")).hexdigest()
 
     with open("test_cif.cif", "r") as f:
-        test = hashlib.md5(f.read().encode("utf-8")).hexdigest()
+        lines = [
+            line for line in f.readlines() if not line.startswith("_software.version")
+        ]
+        test = hashlib.md5("".join(lines).encode("utf-8")).hexdigest()
 
     assert ans == test
     os.remove("test_cif.cif")

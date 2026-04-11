@@ -1,3 +1,0 @@
-{   
-"path": "../../../examples/04 - Adding custom spin labels/04 - Adding custom spin labels.ipynb"
-}

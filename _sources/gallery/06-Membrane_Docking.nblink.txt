@@ -1,3 +1,0 @@
-{   
-"path": "../../../examples/06 - Membrane Docking/06-Membrane Docking.ipynb"
-}

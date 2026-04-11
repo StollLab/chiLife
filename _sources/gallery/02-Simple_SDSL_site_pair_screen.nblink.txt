@@ -1,3 +1,0 @@
-{   
-"path": "../../../examples/02 - Simple SDSL site pair screen/02 - Simple SDSL site pair screen.ipynb"
-}

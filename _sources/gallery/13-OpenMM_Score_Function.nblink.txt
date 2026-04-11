@@ -1,3 +1,0 @@
-{   
-"path": "../../../examples/13 - OpenMM score function/13 - OpenMM Score Function.ipynb"
-}

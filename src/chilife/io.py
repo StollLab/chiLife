@@ -61,16 +61,16 @@ CHEM_COMP_BOND_KEYS = (
 )
 
 CIF_BOND_TO_XL = {
-    'arom': BondType.AROMATIC,
-    'delo': BondType.DELOCALIZED,
-    'doub': BondType.DOUBLE,
-    'pi':   BondType.PI,
-    'poly': BondType.POLYMERIC,
-    'quad': BondType.QUADRUPLE,
-    'sing': BondType.SINGLE,
-    'trip': BondType.TRIPLE,
-    'metalc': BondType.DATIVE,
-    'disulf': BondType.UNSPECIFIED,
+    "arom": BondType.AROMATIC,
+    "delo": BondType.DELOCALIZED,
+    "doub": BondType.DOUBLE,
+    "pi": BondType.PI,
+    "poly": BondType.POLYMERIC,
+    "quad": BondType.QUADRUPLE,
+    "sing": BondType.SINGLE,
+    "trip": BondType.TRIPLE,
+    "metalc": BondType.DATIVE,
+    "disulf": BondType.UNSPECIFIED,
 }
 
 XL_BOND_TO_CIF = {v: k for k, v in CIF_BOND_TO_XL.items()}
@@ -86,7 +86,7 @@ SDF_BOND_TO_XL = {
     8: BondType.UNSPECIFIED,
 }
 
-XL_BOND_TO_SDF = {v: k for k, v in SDF_BOND_TO_XL.items() if k not in (5, 6, 7) }
+XL_BOND_TO_SDF = {v: k for k, v in SDF_BOND_TO_XL.items() if k not in (5, 6, 7)}
 
 SDF_ATOM_CHARGE_TO_INT = {
     0: 0,
@@ -144,7 +144,7 @@ def hash_file(file: Union[Path, BinaryIO]):
         file hash
     """
     hash = sha256()
-    with open(file, 'rb') as f:
+    with open(file, "rb") as f:
         while True:
             block = f.read(hash.block_size)
             if not block:
@@ -154,11 +154,13 @@ def hash_file(file: Union[Path, BinaryIO]):
     return hash.hexdigest()
 
 
-def get_possible_rotlibs(rotlib: str,
-                         suffix: str,
-                         extension: str,
-                         return_all: bool = False,
-                         was_none: bool = False) -> Union[Path, None]:
+def get_possible_rotlibs(
+    rotlib: str,
+    suffix: str,
+    extension: str,
+    return_all: bool = False,
+    was_none: bool = False,
+) -> Union[Path, None]:
     """
     Search all known rotlib directories and the current working directory for rotlib(s) that match the provided
     information.
@@ -184,32 +186,34 @@ def get_possible_rotlibs(rotlib: str,
         no rotlibs are found.
     """
     cwd = Path.cwd()
-    sufplusex = '_' + suffix + extension
+    sufplusex = "_" + suffix + extension
     # Assemble a list of possible rotlib paths starting in the current directory
-    possible_rotlibs = [Path(rotlib),
-                        cwd / rotlib,
-                        cwd / (rotlib + extension),
-                        cwd / (rotlib + sufplusex)]
+    possible_rotlibs = [
+        Path(rotlib),
+        cwd / rotlib,
+        cwd / (rotlib + extension),
+        cwd / (rotlib + sufplusex),
+    ]
 
-    possible_rotlibs += list(cwd.glob(f'{rotlib}*{sufplusex}'))
+    possible_rotlibs += list(cwd.glob(f"{rotlib}*{sufplusex}"))
     # Then in the user defined rotamer library directory
     for pth in USER_RL_DIR:
-        possible_rotlibs += list(pth.glob(f'{rotlib}*{sufplusex}'))
+        possible_rotlibs += list(pth.glob(f"{rotlib}*{sufplusex}"))
 
     if not was_none:
-        possible_rotlibs += list((RL_DIR / 'user_rotlibs').glob(f'*{rotlib}*'))
+        possible_rotlibs += list((RL_DIR / "user_rotlibs").glob(f"*{rotlib}*"))
 
     if return_all:
         rotlib = []
     for possible_file in possible_rotlibs:
         if possible_file.exists() and return_all:
-                rotlib.append(possible_file)
+            rotlib.append(possible_file)
         elif possible_file.exists() and not possible_file.is_dir():
             rotlib = possible_file
             break
     else:
         if isinstance(rotlib, str) and was_none and rotlib in rotlib_defaults:
-            rotlib = RL_DIR / 'user_rotlibs' / (rotlib_defaults[rotlib][0] + sufplusex)
+            rotlib = RL_DIR / "user_rotlibs" / (rotlib_defaults[rotlib][0] + sufplusex)
 
         elif not isinstance(rotlib, list) or rotlib == []:
             rotlib = None
@@ -226,6 +230,8 @@ def get_possible_rotlibs(rotlib: str,
 
 
 suppress_warnings()
+
+
 @cached(custom_key_maker=hash_file)
 def read_rotlib(rotlib: Union[Path, BinaryIO] = None) -> Dict:
     """Reads RotamerEnsemble for stored spin labels.
@@ -241,24 +247,26 @@ def read_rotlib(rotlib: Union[Path, BinaryIO] = None) -> Dict:
 
     """
     with np.load(rotlib, allow_pickle=True) as files:
-        if files['format_version'] <= 1.1:
-            raise RuntimeError('The rotlib that was provided is an old version that is not compatible with your '
-                               'version of chiLife. You can either remake the rotlib, or use the update_rotlib.py '
-                               'script provided in the chilife scripts directory to update this rotamer library to the '
-                               'new format.')
+        if files["format_version"] <= 1.1:
+            raise RuntimeError(
+                "The rotlib that was provided is an old version that is not compatible with your "
+                "version of chiLife. You can either remake the rotlib, or use the update_rotlib.py "
+                "script provided in the chilife scripts directory to update this rotamer library to the "
+                "new format."
+            )
 
         lib = dict(files)
-    if 'allow_pickle' in lib:
+    if "allow_pickle" in lib:
         del lib["allow_pickle"]
 
     if "sigmas" not in lib:
         lib["sigmas"] = np.array([])
-    lib['internal_coords'] = lib['internal_coords'].item()
+    lib["internal_coords"] = lib["internal_coords"].item()
     lib["_rdihedrals"] = np.deg2rad(lib["dihedrals"])
     lib["_rsigmas"] = np.deg2rad(lib["sigmas"])
-    lib['rotlib'] = str(lib['rotlib'])
-    lib['type'] = str(lib['type'])
-    lib['format_version'] = float(lib['format_version'])
+    lib["rotlib"] = str(lib["rotlib"])
+    lib["type"] = str(lib["type"])
+    lib["format_version"] = float(lib["format_version"])
     return lib
 
 
@@ -266,25 +274,25 @@ def read_rotlib(rotlib: Union[Path, BinaryIO] = None) -> Dict:
 def read_drotlib(rotlib: Path) -> Tuple[dict]:
     """Reads RotamerEnsemble for stored spin labels.
 
-        Parameters
-        ----------
-        rotlib : Path
-            The Path to the rotamer library file.
-        Returns
-        -------
-        lib: Tuple[dict]
-            Dictionaries of rotamer library attributes including sub_residues .
-        """
+    Parameters
+    ----------
+    rotlib : Path
+        The Path to the rotamer library file.
+    Returns
+    -------
+    lib: Tuple[dict]
+        Dictionaries of rotamer library attributes including sub_residues .
+    """
 
-    with zipfile.ZipFile(rotlib, 'r') as archive:
+    with zipfile.ZipFile(rotlib, "r") as archive:
         for f in archive.namelist():
-            if 'csts' in f:
+            if "csts" in f:
                 with archive.open(f) as of:
                     csts = np.load(of)
-            elif f[-12] == 'A':
+            elif f[-12] == "A":
                 with archive.open(f) as of:
                     libA = read_rotlib.__wrapped__(of)
-            elif f[-12] == 'B':
+            elif f[-12] == "B":
                 with archive.open(f) as of:
                     libB = read_rotlib.__wrapped__(of)
 
@@ -337,12 +345,17 @@ def read_bbdep(res: str, Phi: int, Psi: int) -> Dict:
             data = np.genfromtxt(s, usecols=range(maxchi + 4, maxchi + 5 + 2 * maxchi))
 
         lib["weights"] = data[:, 0]
-        lib["dihedrals"] = data[:, 1: nchi + 1]
-        lib["sigmas"] = data[:, maxchi + 1: maxchi + nchi + 1]
+        lib["dihedrals"] = data[:, 1 : nchi + 1]
+        lib["sigmas"] = data[:, maxchi + 1 : maxchi + nchi + 1]
         dihedral_atoms = dihedral_defs[res][:nchi]
 
         # Calculate cartesian coordinates for each rotamer
-        z_matrix = ICs.batch_set_dihedrals(np.zeros(len(lib['dihedrals']), dtype=int), np.deg2rad(lib['dihedrals']), 1, dihedral_atoms)
+        z_matrix = ICs.batch_set_dihedrals(
+            np.zeros(len(lib["dihedrals"]), dtype=int),
+            np.deg2rad(lib["dihedrals"]),
+            1,
+            dihedral_atoms,
+        )
         ICs._chain_operators = ICs._chain_operators[0]
         ICs.load_new(np.array(z_matrix))
         internal_coords = ICs.copy()
@@ -355,27 +368,27 @@ def read_bbdep(res: str, Phi: int, Psi: int) -> Dict:
         internal_coords = ICs.copy()
 
     # Get origin and rotation matrix of local frame
-    mask = np.in1d(atom_names, ["N", "CA", "C"])
+    mask = np.isin(atom_names, ["N", "CA", "C"])
     ori, mx = local_mx(*coords[0, mask])
 
     # Set coords in local frame and prepare output
     coords -= ori
 
-    lib["coords"] = np.einsum('ijk,kl->ijl', coords, mx)
+    lib["coords"] = np.einsum("ijk,kl->ijl", coords, mx)
     lib["internal_coords"] = internal_coords
     lib["atom_types"] = np.asarray(atom_types, dtype=str)
     lib["atom_names"] = np.asarray(atom_names, dtype=str)
     lib["dihedral_atoms"] = np.asarray(dihedral_atoms, dtype=str)
     lib["_rdihedrals"] = np.deg2rad(lib["dihedrals"])
     lib["_rsigmas"] = np.deg2rad(lib["sigmas"])
-    lib['rotlib'] = res
-    lib['backbone_atoms'] = ["H", "N", "CA", "HA", "C", "O"]
-    lib['aln_atoms'] = ['N', 'CA', 'C']
+    lib["rotlib"] = res
+    lib["backbone_atoms"] = ["H", "N", "CA", "HA", "C", "O"]
+    lib["aln_atoms"] = ["N", "CA", "C"]
 
     # hacky solution to experimental backbone dependent rotlibs
-    if res == 'R1C':
-        lib['spin_atoms'] = np.array(['N1', 'O1'])
-        lib['spin_weights'] = np.array([0.5, 0.5])
+    if res == "R1C":
+        lib["spin_atoms"] = np.array(["N1", "O1"])
+        lib["spin_weights"] = np.array([0.5, 0.5])
 
     return lib
 
@@ -407,26 +420,28 @@ def read_library(rotlib: str, Phi: float = None, Psi: float = None) -> Dict:
         Phi, Psi = -60, -50
 
     if isinstance(rotlib, Path):
-        if rotlib.suffix == '.npz':
+        if rotlib.suffix == ".npz":
             return read_rotlib(rotlib)
-        elif rotlib.suffix == '.zip':
+        elif rotlib.suffix == ".zip":
             return read_drotlib(rotlib)
         else:
-            raise ValueError(f'{rotlib.name} is not a valid rotamer library file type')
+            raise ValueError(f"{rotlib.name} is not a valid rotamer library file type")
     elif isinstance(rotlib, str):
         return read_bbdep(rotlib, Phi, Psi)
     else:
-        raise ValueError(f'{rotlib} is not a valid rotamer library')
+        raise ValueError(f"{rotlib} is not a valid rotamer library")
 
 
 def save(
-        file_name: str,
-        *molecules: Union[re.RotamerEnsemble, MolecularSystemBase, mda.Universe, mda.AtomGroup, str],
-        protein_path: Union[str, Path] = None,
-        mode: str = 'w',
-        conect: bool = False,
-        frames: Union[int, str, ArrayLike, None] = 'all',
-        **kwargs,
+    file_name: str,
+    *molecules: Union[
+        re.RotamerEnsemble, MolecularSystemBase, mda.Universe, mda.AtomGroup, str
+    ],
+    protein_path: Union[str, Path] = None,
+    mode: str = "w",
+    conect: bool = False,
+    frames: Union[int, str, ArrayLike, None] = "all",
+    **kwargs,
 ) -> None:
     """Save a pdb file of the provided labels and proteins
 
@@ -466,10 +481,12 @@ def save(
     for mol in molecules:
         mcls = [val for key, val in molecule_class.items() if isinstance(mol, key)]
         if mcls == []:
-            raise TypeError(f'{type(mol)} is not a supported type for this function. '
-                            'chiLife can only save objects of the following types:\n'
-                            + ''.join(f'{key.__name__}\n' for key in molecule_class) +
-                            'Please check that your input is compatible')
+            raise TypeError(
+                f"{type(mol)} is not a supported type for this function. "
+                "chiLife can only save objects of the following types:\n"
+                + "".join(f"{key.__name__}\n" for key in molecule_class)
+                + "Please check that your input is compatible"
+            )
 
         tmolecules[mcls[0]].append(mol)
     molecules = tmolecules
@@ -477,7 +494,7 @@ def save(
     # Ensure only one protein path was provided (for now)
     protein_path = [] if protein_path is None else [protein_path]
     if len(protein_path) > 1:
-        raise ValueError('More than one protein path was provided. C')
+        raise ValueError("More than one protein path was provided. C")
     elif len(protein_path) == 1:
         protein_path = protein_path[0]
     else:
@@ -490,20 +507,20 @@ def save(
             file_name = f.name[:-4]
         else:
             file_name = ""
-            for protein in molecules['molcart']:
+            for protein in molecules["molcart"]:
                 if getattr(protein, "filename", None):
-                    file_name += ' ' + Path(protein.filename).name
+                    file_name += " " + Path(protein.filename).name
                     file_name = file_name[:-4]
 
-        if file_name == '' and len(molecules['molcart']) > 0:
+        if file_name == "" and len(molecules["molcart"]) > 0:
             file_name = "No_Name_Protein"
 
         # Add spin label information to file name
-        if 0 < len(molecules['rotens']) < 3:
-            naml = [file_name] + [rotens.name for rotens in molecules['rotens']]
+        if 0 < len(molecules["rotens"]) < 3:
+            naml = [file_name] + [rotens.name for rotens in molecules["rotens"]]
             file_name = "_".join(naml)
-            file_name = file_name.strip('_')
-        elif len(molecules['rotens']) >= 3:
+            file_name = file_name.strip("_")
+        elif len(molecules["rotens"]) >= 3:
             file_name += "_many_labels"
 
         file_name += ".pdb"
@@ -512,18 +529,21 @@ def save(
     if protein_path is not None:
         print(protein_path, file_name)
         shutil.copy(protein_path, file_name)
-        pdb_file = open(file_name, 'a+')
+        pdb_file = open(file_name, "a+")
     else:
         pdb_file = open(file_name, mode)
 
     used_names = {}
-    for protein in molecules['molcart']:
-
+    for protein in molecules["molcart"]:
         if isinstance(protein, (mda.AtomGroup, mda.Universe)):
-            name = Path(protein.universe.filename) if protein.universe.filename is not None else Path(pdb_file.name)
+            name = (
+                Path(protein.universe.filename)
+                if protein.universe.filename is not None
+                else Path(pdb_file.name)
+            )
             name = name.name
         else:
-            name = protein.fname if hasattr(protein, 'fname') else None
+            name = protein.fname if hasattr(protein, "fname") else None
 
         if name is None:
             name = Path(pdb_file.name).name
@@ -535,12 +555,16 @@ def save(
 
         write_protein(pdb_file, protein, name_, conect=conect, frames=frames)
 
-    for ic in molecules['molic']:
+    for ic in molecules["molic"]:
         if isinstance(ic.protein, (mda.AtomGroup, mda.Universe)):
-            name = Path(ic.protein.universe.filename) if ic.protein.universe.filename is not None else Path(pdb_file.name)
+            name = (
+                Path(ic.protein.universe.filename)
+                if ic.protein.universe.filename is not None
+                else Path(pdb_file.name)
+            )
             name = name.name
         else:
-            name = ic.protein.fname if hasattr(ic.protein, 'fname') else None
+            name = ic.protein.fname if hasattr(ic.protein, "fname") else None
 
         if name is None:
             name = Path(pdb_file.name).name
@@ -550,13 +574,15 @@ def save(
 
         write_ic(pdb_file, ic, name=name_, conect=conect, frames=frames)
 
-    if len(molecules['rotens']) > 0:
-        write_labels(pdb_file, *molecules['rotens'], conect=conect, **kwargs)
+    if len(molecules["rotens"]) > 0:
+        write_labels(pdb_file, *molecules["rotens"], conect=conect, **kwargs)
 
     pdb_file.close()
 
 
-def fetch(accession_number: str, save: bool = False, format : str | None = None) -> MDAnalysis.Universe:
+def fetch(
+    accession_number: str, save: bool = False, format: str | None = None
+) -> MDAnalysis.Universe:
     """Fetch pdb file from the protein data bank or the AlphaFold Database and optionally save to disk.
 
     Parameters
@@ -574,12 +600,12 @@ def fetch(accession_number: str, save: bool = False, format : str | None = None)
         MDAnalysis Universe object of the protein corresponding to the provided PDB ID or AlphaFold accession number
 
     """
-    if format is None and accession_number.lower().endswith('.pdb'):
-        format = 'pdb'
-    elif format is None and accession_number.lower().endswith('.cif'):
-        format = 'cif'
+    if format is None and accession_number.lower().endswith(".pdb"):
+        format = "pdb"
+    elif format is None and accession_number.lower().endswith(".cif"):
+        format = "cif"
     elif format is None:
-        format = 'pdb'
+        format = "pdb"
     elif format.lower().startswith("."):
         format = format[1:].lower()
     else:
@@ -588,30 +614,35 @@ def fetch(accession_number: str, save: bool = False, format : str | None = None)
     accession_number = accession_number.split(f".{format}")[0]
     pdb_name = accession_number + "." + format
 
-    if accession_number.startswith('AF-'):
-        print(f"https://alphafold.ebi.ac.uk/files/{accession_number}-F1-model_v6.{format}")
+    if accession_number.startswith("AF-"):
+        print(
+            f"https://alphafold.ebi.ac.uk/files/{accession_number}-F1-model_v6.{format}"
+        )
         urllib.request.urlretrieve(
             f"https://alphafold.ebi.ac.uk/files/{accession_number}-F1-model_v6.{format}",
             pdb_name,
         )
     else:
-        urllib.request.urlretrieve(f"http://files.rcsb.org/download/{pdb_name}", pdb_name)
+        urllib.request.urlretrieve(
+            f"http://files.rcsb.org/download/{pdb_name}", pdb_name
+        )
 
-    if format.lower() == 'pdb':
+    if format.lower() == "pdb":
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
             U = mda.Universe(pdb_name, in_memory=True)
-    elif format.lower() == 'cif':
+    elif format.lower() == "cif":
         U = MolSys.from_cif(pdb_name)
-        
+
     if not save:
         os.remove(pdb_name)
 
     return U
 
 
-def load_protein(struct_file: Union[str, Path],
-                 *traj_file: Union[str, Path]) -> MDAnalysis.AtomGroup:
+def load_protein(
+    struct_file: Union[str, Path], *traj_file: Union[str, Path]
+) -> MDAnalysis.AtomGroup:
     """
 
     Parameters
@@ -641,6 +672,7 @@ def load_protein(struct_file: Union[str, Path],
 
     return protein
 
+
 def read_pdb(pdb_file: Union[str, Path], sort_atoms=False):
     """
     Read A PDB file into a dictionary containing all standard pdb atom information and bonds if CONECT records are
@@ -656,8 +688,22 @@ def read_pdb(pdb_file: Union[str, Path], sort_atoms=False):
     pdb_data : dict
         Dictionary of PDB data.
     """
-    keys = ["record_types", "atomids", "names", "altlocs", "resnames", "chains", "resnums",
-                "icodes", "coords", "occupancies", "bs", "segs", "atypes", "charges"]
+    keys = [
+        "record_types",
+        "atomids",
+        "names",
+        "altlocs",
+        "resnames",
+        "chains",
+        "resnums",
+        "icodes",
+        "coords",
+        "occupancies",
+        "bs",
+        "segs",
+        "atypes",
+        "charges",
+    ]
     if sort_atoms:
         lines = sort_pdb(pdb_file)
     else:
@@ -684,7 +730,7 @@ def read_pdb(pdb_file: Union[str, Path], sort_atoms=False):
         lines = [atom_lines[start:end] for start, end in zip(start_idxs, end_idxs)]
     else:
         lines = [atom_lines]
-        
+
     PDB_data = [
         (
             line[:6].strip(),
@@ -709,10 +755,12 @@ def read_pdb(pdb_file: Union[str, Path], sort_atoms=False):
 
     # Parse connect data
     if len(connect) > 0:
-        c_bonds, h_bonds, i_bonds =  parse_connect(connect)
+        c_bonds, h_bonds, i_bonds = parse_connect(connect)
         bonds = np.array(list(c_bonds))
-        pdb_dict['bonds'] = bonds
-        pdb_dict["bond_types"] = np.array([BondType.UNSPECIFIED for _ in range(len(bonds))])
+        pdb_dict["bonds"] = bonds
+        pdb_dict["bond_types"] = np.array(
+            [BondType.UNSPECIFIED for _ in range(len(bonds))]
+        )
 
     trajectory = [pdb_dict.pop("coords")]
 
@@ -748,12 +796,12 @@ def read_sdf(file_name):
         List of dictionaries containing all the sdf data for each molecule in the sdf file.
     """
     # Read in mol blocks
-    with open(file_name, 'r') as f:
+    with open(file_name, "r") as f:
         blocks, block = [], []
         for line in f:
-            line = line.rstrip('\r\n')
+            line = line.rstrip("\r\n")
 
-            if not line == '$$$$':
+            if not line == "$$$$":
                 block.append(line)
             else:
                 blocks.append(block)
@@ -761,7 +809,11 @@ def read_sdf(file_name):
 
     mols = []
     for block in blocks:
-        mol_data = {'name': block[0], 'software': block[1].strip(), 'comment': block[2].strip() }
+        mol_data = {
+            "name": block[0],
+            "software": block[1].strip(),
+            "comment": block[2].strip(),
+        }
         n_atoms = block[3][:3].strip()
         n_bonds = block[3][3:6].strip()
         n_atom_lists = block[3][6:9].strip()
@@ -770,42 +822,41 @@ def read_sdf(file_name):
         properties_lines = block[3][30:33]
         format_version = block[3][33:].strip()
 
-        mol_data['n_atoms'] = int(n_atoms)
-        mol_data['n_bonds'] = int(n_bonds)
-        mol_data['chiral'] = bool(int(chiral))
-        mol_data['format'] = format_version
+        mol_data["n_atoms"] = int(n_atoms)
+        mol_data["n_bonds"] = int(n_bonds)
+        mol_data["chiral"] = bool(int(chiral))
+        mol_data["format"] = format_version
 
-        atom_end_idx = 4 + mol_data['n_atoms']
-        bond_end_idx = atom_end_idx + mol_data['n_bonds']
-        mol_data['atoms'] = []
+        atom_end_idx = 4 + mol_data["n_atoms"]
+        bond_end_idx = atom_end_idx + mol_data["n_bonds"]
+        mol_data["atoms"] = []
         for idx, line in enumerate(block[4:atom_end_idx]):
             atom = {}
-            atom['index'] = idx
+            atom["index"] = idx
             atom["xyz"] = [float(line[0:10]), float(line[10:20]), float(line[20:30])]
             atom["element"] = line[31:34].strip()
             atom["mass difference"] = int(float(line[34:36]))
             atom["charge"] = int(line[36:39])
             atom["stereo"] = int(line[39:42])
             atom["valence"] = int(line[48:51]) if len(line) >= 51 else 0
-            mol_data['atoms'].append(atom)
+            mol_data["atoms"].append(atom)
 
-        mol_data['bonds'] = []
+        mol_data["bonds"] = []
         for idx, line in enumerate(block[atom_end_idx:bond_end_idx]):
             bond = {}
-            bond["idx1"] = int(line[0:3]) - 1    # Coerce to 0 index
-            bond["idx2"] = int(line[3:6]) - 1    # Coerce to 0 index
+            bond["idx1"] = int(line[0:3]) - 1  # Coerce to 0 index
+            bond["idx2"] = int(line[3:6]) - 1  # Coerce to 0 index
             bond["type"] = int(line[6:9])
             bond["stereo"] = int(line[9:12])
 
-            mol_data['bonds'].append(bond)
+            mol_data["bonds"].append(bond)
 
         properties = {}
         for idx, line in enumerate(block[bond_end_idx:]):
-
-            if line == 'M  END':
+            if line == "M  END":
                 break
 
-            if line.startswith('M  '):
+            if line.startswith("M  "):
                 key = line[3:6]
                 lst = properties.setdefault(key, [])
                 lst.append(line[6:])
@@ -815,19 +866,18 @@ def read_sdf(file_name):
         for key, val in properties.items():
             properties[key] = parse_property_lines(key, val)
 
-
-        mol_data['properties'] = properties
+        mol_data["properties"] = properties
         data_end_idx = bond_end_idx + idx + 1
         data_iterator = iter(block[data_end_idx:])
         data_block = []
         for line in data_iterator:
-            opened = line.startswith('>')
+            opened = line.startswith(">")
 
             while opened:
                 data_block.append(line)
-                line = next(data_iterator, '')
+                line = next(data_iterator, "")
                 opened = bool(line)
-                
+
             if data_block:
                 header, data = parse_data_block(data_block)
                 mol_data[header] = data
@@ -854,9 +904,9 @@ def parse_data_block(data_block):
     data_string: str
         a string containing all data in the data block
     """
-    data_string = '\n'.join(data_block[1:])
+    data_string = "\n".join(data_block[1:])
     header_block = data_block[0][1:]
-    header = header_block[header_block.find("<")+1:header_block.find(">")]
+    header = header_block[header_block.find("<") + 1 : header_block.find(">")]
 
     return header, data_string
 
@@ -867,7 +917,7 @@ standard_property_vnames = {
     "ISO": "mass",
     "RBC": "ring bond count",
     "SUB": "substitution count",
-    "UNS": "unsaturated atom"
+    "UNS": "unsaturated atom",
 }
 
 
@@ -948,7 +998,7 @@ def standard_property_to_string(key, property):
 
     n = 1
     running_str = " "
-    for idx, val in zip(property['atom_ids'], property[data_col]):
+    for idx, val in zip(property["atom_ids"], property[data_col]):
         if n >= 8:
             running_str = f"M  {key}{n:>3d}" + running_str + "\n"
             strings.append(running_str)
@@ -986,38 +1036,51 @@ def write_sdf(sdf_data, file_name):
         lines.append(f"{mol['name']}\n")
         lines.append(f"\tchiLife {chilife.__version__}\n")
         lines.append(f"{mol['comment']}\n")
-        lines.append(f"{mol['n_atoms']:>3}{mol['n_bonds']:>3}{0:>3}{0:>3}{mol['chiral']:>3}"
-                     f"{0:>3}{0:>3}{0:>3}{0:>3}{0:>3}999 V2000\n")
+        lines.append(
+            f"{mol['n_atoms']:>3}{mol['n_bonds']:>3}{0:>3}{0:>3}{mol['chiral']:>3}"
+            f"{0:>3}{0:>3}{0:>3}{0:>3}{0:>3}999 V2000\n"
+        )
 
         # Coords
-        atoms = mol['atoms']
+        atoms = mol["atoms"]
         for atom in atoms:
-            x, y, z = atom['xyz']
+            x, y, z = atom["xyz"]
             lines.append(
                 f"{x:10.4f}{y:10.4f}{z:10.4f}{atom['element']:>2} {atom['mass difference']:>3}{atom['charge']:>3}"
-                f"{atom['stereo']:>3}{0:>3}{0:>3}{atom['valence']:>3}" + f"{0:>3}" * 6 + '\n'
+                f"{atom['stereo']:>3}{0:>3}{0:>3}{atom['valence']:>3}"
+                + f"{0:>3}" * 6
+                + "\n"
             )
 
         # Bonds
-        bonds = mol['bonds']
+        bonds = mol["bonds"]
         for bond in bonds:
-            lines.append(f"{bond['idx1'] + 1:>3}{bond['idx2'] + 1:>3}{bond['type']:>3}{bond['stereo']:>3}\n")
+            lines.append(
+                f"{bond['idx1'] + 1:>3}{bond['idx2'] + 1:>3}{bond['type']:>3}{bond['stereo']:>3}\n"
+            )
 
         # Write CHG RAD ISO Data
-        for key, property in mol['properties'].items():
+        for key, property in mol["properties"].items():
             if key in standard_property_vnames:
                 lines += standard_property_to_string(key, property)
 
             else:
                 lines += property
 
-        lines.append('M  END\n')
-
+        lines.append("M  END\n")
 
         # Write data blocks
         standard_keys = {
-            'name',   'software', 'comment', 'n_atoms', 'n_bonds', 'chiral',
-            'format', 'atoms',    'bonds',   "properties"
+            "name",
+            "software",
+            "comment",
+            "n_atoms",
+            "n_bonds",
+            "chiral",
+            "format",
+            "atoms",
+            "bonds",
+            "properties",
         }
         data_keys = [key for key in mol if key not in standard_keys]
         for key in data_keys:
@@ -1027,16 +1090,17 @@ def write_sdf(sdf_data, file_name):
 
         lines.append("$$$$\n")
 
-
-    with open(file_name, 'w') as f:
+    with open(file_name, "w") as f:
         f.writelines(lines)
 
 
-def write_protein(pdb_file: TextIO,
-                  protein: Union[mda.Universe, mda.AtomGroup, MolecularSystemBase],
-                  name: str = None,
-                  conect: bool = False,
-                  frames: Union[int, str, ArrayLike, None] = 'all') -> None:
+def write_protein(
+    pdb_file: TextIO,
+    protein: Union[mda.Universe, mda.AtomGroup, MolecularSystemBase],
+    name: str = None,
+    conect: bool = False,
+    frames: Union[int, str, ArrayLike, None] = "all",
+) -> None:
     """
     Helper function to write protein PDBs from MDAnalysis and MolSys objects.
 
@@ -1053,19 +1117,19 @@ def write_protein(pdb_file: TextIO,
     """
 
     # Change chain identifier if longer than 1
-    available_segids = iter('ABCDEFGHIJKLMNOPQRSTUVWXYZ')
+    available_segids = iter("ABCDEFGHIJKLMNOPQRSTUVWXYZ")
     for seg in protein.segments:
         if len(seg.segid) > 1:
             seg.segid = next(available_segids)
 
     traj = protein.universe.trajectory
-    pdb_file.write(f'HEADER {name}\n')
-    frames = None if frames == 'all' and len(traj) == 1 else frames
+    pdb_file.write(f"HEADER {name}\n")
+    frames = None if frames == "all" and len(traj) == 1 else frames
 
-    if frames == 'all':
+    if frames == "all":
         for mdl, ts in enumerate(traj):
-           write_frame(pdb_file, protein.atoms, mdl)
-    elif hasattr(frames, '__len__'):
+            write_frame(pdb_file, protein.atoms, mdl)
+    elif hasattr(frames, "__len__"):
         for mdl, frame in enumerate(frames):
             traj[frame]
             write_frame(pdb_file, protein.atoms, mdl)
@@ -1076,9 +1140,13 @@ def write_protein(pdb_file: TextIO,
         write_frame(pdb_file, protein.atoms)
 
     if conect:
-        bonds = (protein.bonds.indices if hasattr(protein, 'bonds') else
-                protein.topology.bonds if hasattr(protein.topology, 'bonds') else
-                None)
+        bonds = (
+            protein.bonds.indices
+            if hasattr(protein, "bonds")
+            else protein.topology.bonds
+            if hasattr(protein.topology, "bonds")
+            else None
+        )
 
         if bonds is not None:
             bonds_1 = bonds + 1
@@ -1106,25 +1174,30 @@ def write_frame(pdb_file: TextIO, atoms, frame=None, coords=None):
     if coords is None:
         coords = atoms.positions
 
-    if not hasattr(atoms.universe, 'occupancies'):
-        atoms.universe.add_TopologyAttr('occupancies', np.ones(len(atoms.universe.atoms)))
+    if not hasattr(atoms.universe, "occupancies"):
+        atoms.universe.add_TopologyAttr(
+            "occupancies", np.ones(len(atoms.universe.atoms))
+        )
 
-    if not hasattr(atoms.universe, 'bfactors'):
+    if not hasattr(atoms.universe, "bfactors"):
         atoms.universe.add_TopologyAttr("bfactors", np.ones(len(atoms.universe.atoms)))
 
-    [pdb_file.write(
-        fmt_str.format(
-            i + 1,
-            atom.name,
-            atom.resname[:3],
-            atom.segid,
-            atom.resnum,
-            *coord,
-            atom.occupancy,
-            atom.bfactor,
-            atom.type,
+    [
+        pdb_file.write(
+            fmt_str.format(
+                i + 1,
+                atom.name,
+                atom.resname[:3],
+                atom.segid,
+                atom.resnum,
+                *coord,
+                atom.occupancy,
+                atom.bfactor,
+                atom.type,
+            )
         )
-    ) for i, (atom, coord) in enumerate(zip(atoms, coords))]
+        for i, (atom, coord) in enumerate(zip(atoms, coords))
+    ]
 
     pdb_file.write("TER\n")
 
@@ -1132,11 +1205,13 @@ def write_frame(pdb_file: TextIO, atoms, frame=None, coords=None):
         pdb_file.write("ENDMDL\n")
 
 
-def write_ic(pdb_file: TextIO,
-             ic: MolSysIC,
-             name: str = None,
-             conect: bool = None,
-             frames: Union[int, str, ArrayLike, None] = 'all')-> None:
+def write_ic(
+    pdb_file: TextIO,
+    ic: MolSysIC,
+    name: str = None,
+    conect: bool = None,
+    frames: Union[int, str, ArrayLike, None] = "all",
+) -> None:
     """
     Write a :class:`~MolSysIC` internal coordinates object to a pdb file.
 
@@ -1153,13 +1228,13 @@ def write_ic(pdb_file: TextIO,
     frames : int, str, ArrayLike or None
         Frames of the trajectory/ensemble to save to file
     """
-    frames = None if frames == 'all' and len(ic.trajectory) == 1 else frames
-    pdb_file.write(f'HEADER {name}\n')
+    frames = None if frames == "all" and len(ic.trajectory) == 1 else frames
+    pdb_file.write(f"HEADER {name}\n")
     traj = ic.trajectory
-    if frames == 'all':
+    if frames == "all":
         for mdl, ts in enumerate(traj):
             write_frame(pdb_file, ic.atoms, mdl, ic.coords)
-    elif hasattr(frames, '__len__'):
+    elif hasattr(frames, "__len__"):
         for mdl, frame in enumerate(frames):
             traj[frame]
             write_frame(pdb_file, ic.atoms, mdl, ic.coords)
@@ -1174,11 +1249,14 @@ def write_ic(pdb_file: TextIO,
         write_bonds(pdb_file, bonds)
 
 
-def write_labels(pdb_file: TextIO, *args: sl.SpinLabel,
-                 KDE: bool = True,
-                 sorted: bool = True,
-                 write_spin_centers: bool = True,
-                 conect: bool = False) -> None:
+def write_labels(
+    pdb_file: TextIO,
+    *args: sl.SpinLabel,
+    KDE: bool = True,
+    sorted: bool = True,
+    write_spin_centers: bool = True,
+    conect: bool = False,
+) -> None:
     """Lower level helper function for saving SpinLabels and RotamerEnsembles. Loops over SpinLabel objects and appends
     atoms and electron coordinates to the provided file.
 
@@ -1207,15 +1285,21 @@ def write_labels(pdb_file: TextIO, *args: sl.SpinLabel,
 
         # Save models in order of weight
 
-        sorted_index = np.argsort(label.weights)[::-1] if sorted else np.arange(len(label.weights))
+        sorted_index = (
+            np.argsort(label.weights)[::-1] if sorted else np.arange(len(label.weights))
+        )
         norm_weights = label.weights / label.weights.max()
         if isinstance(label, dre.dRotamerEnsemble):
-            sites = np.concatenate([np.ones(len(label.RE1.atoms), dtype=int) * int(label.site1),
-                                    np.ones(len(label.RE2.atoms), dtype=int) * int(label.site2)])
+            sites = np.concatenate(
+                [
+                    np.ones(len(label.RE1.atoms), dtype=int) * int(label.site1),
+                    np.ones(len(label.RE2.atoms), dtype=int) * int(label.site2),
+                ]
+            )
         else:
             sites = [atom.resi for atom in label.atoms]
         for mdl, (conformer, weight) in enumerate(
-                zip(label.coords[sorted_index], norm_weights[sorted_index])
+            zip(label.coords[sorted_index], norm_weights[sorted_index])
         ):
             pdb_file.write(f"MODEL {mdl}\n")
 
@@ -1285,10 +1369,11 @@ def write_labels(pdb_file: TextIO, *args: sl.SpinLabel,
             pdb_file.write("TER\n")
 
 
-
-def write_atoms(file: TextIO,
-                atoms: Union[MDAnalysis.Universe, MDAnalysis.AtomGroup, MolecularSystemBase],
-                coords: ArrayLike = None) -> None:
+def write_atoms(
+    file: TextIO,
+    atoms: Union[MDAnalysis.Universe, MDAnalysis.AtomGroup, MolecularSystemBase],
+    coords: ArrayLike = None,
+) -> None:
     """
     Write a set of atoms to a file in PDB format without any prefix or suffix, i.e. Not wrapped in `MODEL` or `ENDMDL`
 
@@ -1333,43 +1418,47 @@ def write_bonds(pdb_file, bonds):
     lines = []
     for b in bonds:
         if b[0] != active_atom or len(line) > 30:
-            lines.append(line + '\n')
+            lines.append(line + "\n")
             active_atom = b[0]
             line = "CONECT" + f"{active_atom:>5d}"
 
         line += f"{b[1]:>5d}"
-    lines.append(line + '\n')
+    lines.append(line + "\n")
     pdb_file.writelines(lines)
 
 
-molecule_class = {re.RotamerEnsemble: 'rotens',
-                  dre.dRotamerEnsemble: 'rotens',
-                  IntrinsicLabel: 'rotens',
-                  le.LigandEnsemble: 'rotens',
-                  mda.Universe: 'molcart',
-                  mda.AtomGroup: 'molcart',
-                  MolecularSystemBase: 'molcart',
-                  MolSysIC: 'molic'}
+molecule_class = {
+    re.RotamerEnsemble: "rotens",
+    dre.dRotamerEnsemble: "rotens",
+    IntrinsicLabel: "rotens",
+    le.LigandEnsemble: "rotens",
+    mda.Universe: "molcart",
+    mda.AtomGroup: "molcart",
+    MolecularSystemBase: "molcart",
+    MolSysIC: "molic",
+}
 
 
-rotlib_formats = {1.0: (
-    'rotlib',  #
-    'resname',
-    'coords',
-    'internal_coords',
-    'weights',
-    'atom_types',
-    'atom_names',
-    'dihedrals',
-    'dihedral_atoms',
-    'type',
-    'format_version'
-)}
+rotlib_formats = {
+    1.0: (
+        "rotlib",  #
+        "resname",
+        "coords",
+        "internal_coords",
+        "weights",
+        "atom_types",
+        "atom_names",
+        "dihedrals",
+        "dihedral_atoms",
+        "type",
+        "format_version",
+    )
+}
 
-rotlib_formats[1.1] = *rotlib_formats[1.0], 'description', 'comment', 'reference'
+rotlib_formats[1.1] = *rotlib_formats[1.0], "description", "comment", "reference"
 rotlib_formats[1.2] = rotlib_formats[1.0]
 rotlib_formats[1.3] = rotlib_formats[1.2]
-rotlib_formats[1.4] = *rotlib_formats[1.3], 'backbone_atoms', 'aln_atoms'
+rotlib_formats[1.4] = *rotlib_formats[1.3], "backbone_atoms", "aln_atoms"
 rotlib_formats[1.5] = rotlib_formats[1.4]
 
 
@@ -1388,12 +1477,10 @@ def read_cif(file_name):
         All data contained in the cif file.
     """
     data_blocks = {}
-    with open(file_name, 'r') as f:
-
+    with open(file_name, "r") as f:
         for line in f:
-
-            if line.startswith('data'):
-                key = line.split('_')[1].strip()
+            if line.startswith("data"):
+                key = line.split("_")[1].strip()
                 current_block = data_blocks.setdefault(key, [])
                 current_block.append(line)
             elif "current_block" in locals():
@@ -1426,25 +1513,24 @@ def parse_cif_data_block(data_block: list[str]) -> dict:
     data_block_iterator = iter(data_block)
     in_loop = False
     for line in data_block_iterator:
-
-        if line.startswith('loop_'):
+        if line.startswith("loop_"):
             in_loop = True
             subject_keys = []
             subject_values = []
-        elif line.startswith('#') and in_loop:
+        elif line.startswith("#") and in_loop:
             for k, v in zip(subject_keys, zip(*subject_values)):
                 topic_dict[k] = v
             in_loop = False
 
         elif in_loop:
-            if line.startswith('_'):
-                topic_key, subject_key = line.strip().split('.')
+            if line.startswith("_"):
+                topic_key, subject_key = line.strip().split(".")
                 topic_dict = parsed_block.setdefault(topic_key[1:], {})
                 subject_keys.append(subject_key)
             else:
                 subject_values.append(split_with_quotes(line))
 
-        elif line.startswith('_'):
+        elif line.startswith("_"):
             kv = split_with_quotes(line)
 
             if len(kv) == 2:
@@ -1457,20 +1543,21 @@ def parse_cif_data_block(data_block: list[str]) -> dict:
                     value.strip("'")
 
             # check for multiline entry
-            if value[0] == ';':
+            if value[0] == ";":
                 value = value[1:]
                 while True:
                     line = next(data_block_iterator)
-                    if line.startswith(';'):
+                    if line.startswith(";"):
                         break
                     value += line.strip()
 
-            topic_key, subject_key = key.split('.')
+            topic_key, subject_key = key.split(".")
 
             topic_dict = parsed_block.setdefault(topic_key[1:], {})
             topic_dict[subject_key] = value
 
     return parsed_block
+
 
 def split_with_quotes(string):
     """
@@ -1489,7 +1576,7 @@ def split_with_quotes(string):
     """
     vals = string.split()
     myit = enumerate(vals)
-    replace =[]
+    replace = []
 
     for i, val in myit:
         if val[0] == '"' or val[0] == "'":
@@ -1513,6 +1600,7 @@ def split_with_quotes(string):
 
     return vals
 
+
 def create_ccd_dicts(cif_data):
     """
     Creates chemical composition dictionary (CCD) dictionaries from CCD entries in a cif file.
@@ -1528,18 +1616,18 @@ def create_ccd_dicts(cif_data):
         The dictionary containing the CCD data from a cif file in a chilife-readable format.
     """
     ccd_data = {}
-    atom_data = cif_data.get('chem_comp_atom', None)
+    atom_data = cif_data.get("chem_comp_atom", None)
     if atom_data is not None:
         for res, atom_id, atom_type, aromatic, stereo in zip(
-                atom_data['comp_id'],
-                atom_data['atom_id'],
-                atom_data['type_symbol'],
-                atom_data['pdbx_aromatic_flag'],
-                atom_data['pdbx_stereo_config']
+            atom_data["comp_id"],
+            atom_data["atom_id"],
+            atom_data["type_symbol"],
+            atom_data["pdbx_aromatic_flag"],
+            atom_data["pdbx_stereo_config"],
         ):
             res_dict = ccd_data.setdefault(res, {})
 
-            if 'chem_comp_atom' not in res_dict:
+            if "chem_comp_atom" not in res_dict:
                 res_dict["chem_comp_atom"] = {
                     "comp_id": [],
                     "atom_id": [],
@@ -1549,24 +1637,24 @@ def create_ccd_dicts(cif_data):
                 }
 
             atom_dict = res_dict["chem_comp_atom"]
-            atom_dict['comp_id'].append(res)
-            atom_dict['atom_id'].append(atom_id)
-            atom_dict['type_symbol'].append(atom_type)
-            atom_dict['pdbx_aromatic_flag'].append(aromatic)
-            atom_dict['pdbx_stereo_config'].append(stereo)
+            atom_dict["comp_id"].append(res)
+            atom_dict["atom_id"].append(atom_id)
+            atom_dict["type_symbol"].append(atom_type)
+            atom_dict["pdbx_aromatic_flag"].append(aromatic)
+            atom_dict["pdbx_stereo_config"].append(stereo)
 
-    bond_data = cif_data.get('chem_comp_bond', None)
+    bond_data = cif_data.get("chem_comp_bond", None)
     if bond_data is not None:
         for res, atom_id1, atom_id2, bond_order, aromatic, stereo in zip(
-            bond_data['comp_id'],
-            bond_data['atom_id_1'],
-            bond_data['atom_id_2'],
-            bond_data['value_order'],
-            bond_data['pdbx_aromatic_flag'],
-            bond_data['pdbx_stereo_config']
+            bond_data["comp_id"],
+            bond_data["atom_id_1"],
+            bond_data["atom_id_2"],
+            bond_data["value_order"],
+            bond_data["pdbx_aromatic_flag"],
+            bond_data["pdbx_stereo_config"],
         ):
             res_dict = ccd_data.setdefault(res, {})
-            if 'chem_comp_bond' not in res_dict:
+            if "chem_comp_bond" not in res_dict:
                 res_dict["chem_comp_bond"] = {
                     "comp_id": [],
                     "atom_id_1": [],
@@ -1577,15 +1665,14 @@ def create_ccd_dicts(cif_data):
                 }
 
             bond_dict = res_dict["chem_comp_bond"]
-            bond_dict['comp_id'].append(res)
-            bond_dict['atom_id_1'].append(atom_id1)
-            bond_dict['atom_id_2'].append(atom_id2)
-            bond_dict['value_order'].append(bond_order)
-            bond_dict['pdbx_aromatic_flag'].append(aromatic)
-            bond_dict['pdbx_stereo_config'].append(stereo)
+            bond_dict["comp_id"].append(res)
+            bond_dict["atom_id_1"].append(atom_id1)
+            bond_dict["atom_id_2"].append(atom_id2)
+            bond_dict["value_order"].append(bond_order)
+            bond_dict["pdbx_aromatic_flag"].append(aromatic)
+            bond_dict["pdbx_stereo_config"].append(stereo)
 
-
-    chem_comp_data= cif_data.get('chem_comp', None)
+    chem_comp_data = cif_data.get("chem_comp", None)
     if chem_comp_data is not None and all(
         key in chem_comp_data
         for key in [
@@ -1609,15 +1696,13 @@ def create_ccd_dicts(cif_data):
         ):
             res_dict = ccd_data.setdefault(res, {})
             res_dict["chem_comp"] = {
-                'link type': link_type,
-                'mon nsdt flag': mon_nsdt_flag,
-                'name': name,
-                'pdbx synonyms': pdbx_synonyms,
-                'formula': formula,
-                'weight': weight
+                "link type": link_type,
+                "mon nsdt flag": mon_nsdt_flag,
+                "name": name,
+                "pdbx synonyms": pdbx_synonyms,
+                "formula": formula,
+                "weight": weight,
             }
-
-
 
     return ccd_data
 
@@ -1653,21 +1738,24 @@ def write_cif(file_name, cif_data):
                         line += f" {value2} \n"
                         lines.append(line)
                     elif " " in value2:
-                        lines.append(line + '\n')
-                        lines.append(value2 + '\n')
+                        lines.append(line + "\n")
+                        lines.append(value2 + "\n")
                     else:
-                        lines.append(line + '\n')
+                        lines.append(line + "\n")
                         prelude = ";"
                         for string in textwrap.wrap(value2, 80):
-                            lines.append(prelude + string + '\n')
+                            lines.append(prelude + string + "\n")
                             prelude = ""
                         lines.append("; \n")
 
                 elif isinstance(value2, Sequence):
-                    loop_keys.append(line + '\n')
+                    loop_keys.append(line + "\n")
                     value2 = [v if "'" not in v else '"' + v + '"' for v in value2]
                     try:
-                        value2 = [v if (" " not in v) and (v[0] != "_") else "'" + v + "'" for v in value2]
+                        value2 = [
+                            v if (" " not in v) and (v[0] != "_") else "'" + v + "'"
+                            for v in value2
+                        ]
                     except IndexError:
                         breakpoint()
                     loop_values.append(value2)
@@ -1676,19 +1764,19 @@ def write_cif(file_name, cif_data):
                     except ValueError:
                         print(value2)
 
-
             if loop_values:
                 lines.append("loop_\n")
                 for key in loop_keys:
                     lines.append(key)
 
                 for row in zip(*loop_values):
-                    line = " ".join(x.ljust(n) for x,n in zip(row, max_val_lens))
-                    lines.append(line + '\n')
+                    line = " ".join(x.ljust(n) for x, n in zip(row, max_val_lens))
+                    lines.append(line + "\n")
 
             lines.append("# \n")
-    with open(file_name, 'w') as f:
+    with open(file_name, "w") as f:
         f.writelines(lines)
+
 
 def join_ccd_info(ccd_list, ccd_data=None):
     """
@@ -1721,7 +1809,7 @@ def join_ccd_info(ccd_list, ccd_data=None):
     return_ccd = {
         "chem_comp": {},
         "chem_comp_atom": {key: [] for key in CHEM_COMP_ATOM_KEYS},
-        'chem_comp_bond': {key: [] for key in CHEM_COMP_BOND_KEYS},
+        "chem_comp_bond": {key: [] for key in CHEM_COMP_BOND_KEYS},
     }
 
     return_ccd["chem_comp"]["id"] = tuple(
@@ -1748,28 +1836,30 @@ def join_ccd_info(ccd_list, ccd_data=None):
     )
 
     for ccd in individual_CCDs:
-
         # Add Atom information
         for key in CHEM_COMP_ATOM_KEYS:
-            return_ccd['chem_comp_atom'][key].extend(ccd['chem_comp_atom'][key])
+            return_ccd["chem_comp_atom"][key].extend(ccd["chem_comp_atom"][key])
 
-        if 'chem_comp_bond' not in ccd:
+        if "chem_comp_bond" not in ccd:
             continue
 
         # Ensure all fields are tuples/lists
-        ccd['chem_comp_bond'] = {
-            k: v if isinstance(v, (list, tuple)) else (v, )
-            for k, v in ccd['chem_comp_bond'].items()
+        ccd["chem_comp_bond"] = {
+            k: v if isinstance(v, (list, tuple)) else (v,)
+            for k, v in ccd["chem_comp_bond"].items()
         }
 
         # Add bond information
         for key in CHEM_COMP_BOND_KEYS:
-            return_ccd['chem_comp_bond'][key].extend(ccd['chem_comp_bond'][key])
-
+            return_ccd["chem_comp_bond"][key].extend(ccd["chem_comp_bond"][key])
 
     # Convert to tuples
-    return_ccd["chem_comp_atom"] = {k: tuple(v) for k, v in return_ccd["chem_comp_atom"].items()}
-    return_ccd['chem_comp_bond'] = {k : tuple(v) for k, v in return_ccd['chem_comp_bond'].items()}
+    return_ccd["chem_comp_atom"] = {
+        k: tuple(v) for k, v in return_ccd["chem_comp_atom"].items()
+    }
+    return_ccd["chem_comp_bond"] = {
+        k: tuple(v) for k, v in return_ccd["chem_comp_bond"].items()
+    }
 
     # Add PDBx Ordinal
     return_ccd["chem_comp_atom"]["pdbx_ordinal"] = tuple(

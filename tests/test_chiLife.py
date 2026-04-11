@@ -147,7 +147,7 @@ def test_spin_populations():
 #     P = chilife.distance_distribution(SL1, SL2, r=r, uq=500)
 #
 #     mean = P.mean(axis=0)
-#     # mean /= np.trapz(mean, r)
+#     # mean /= np.trapezoid(mean, r)
 #     std = P.std(axis=0)
 #     print(mean.shape, std.shape)
 #
@@ -169,7 +169,7 @@ def test_spin_populations():
 #     P = chilife.distance_distribution(SL1, SL2, r=r, uq=500)
 #
 #     mean = P.mean(axis=0)
-#     # mean /= np.trapz(mean, r)
+#     # mean /= np.trapezoid(mean, r)
 #     std = P.std(axis=0)
 #     print(mean.shape, std.shape)
 #
@@ -544,15 +544,15 @@ def test_uq():
 
     ub, lb = chilife.confidence_interval(Ps)
     adj = (ub - lb) / (2 * t.ppf(0.975, len(P) - 1))
-    diff = adj - 0.2*P
+    diff = adj - 0.2 * P
 
     assert diff @ diff < 1e-4
 
 
 def test_bb_misaln():
-    chilife.create_library('V1X', 'test_data/bbmisaln.pdb', spin_atoms=['NE', 'O1'])
+    chilife.create_library("V1X", "test_data/bbmisaln.pdb", spin_atoms=["NE", "O1"])
 
-    V1X = chilife.read_rotlib('V1X_rotlib.npz')
-    mxad = np.abs(V1X['coords'][:, :3] - V1X['coords'][0, :3]).max()
+    V1X = chilife.read_rotlib("V1X_rotlib.npz")
+    mxad = np.abs(V1X["coords"][:, :3] - V1X["coords"][0, :3]).max()
     assert mxad < 0.05
-    os.remove('V1X_rotlib.npz')
+    os.remove("V1X_rotlib.npz")

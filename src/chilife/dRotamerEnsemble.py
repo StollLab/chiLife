@@ -18,8 +18,9 @@ import chilife.scoring as scoring
 
 from chilife.protein_utils import make_mda_uni
 from .MolSysIC import MolSysIC
+from .base_classes import Ensemble
 
-class dRotamerEnsemble:
+class dRotamerEnsemble(Ensemble):
     """Create new dRotamerEnsemble object.
 
         Parameters
@@ -720,6 +721,20 @@ class dRotamerEnsemble:
         return new_copy
 
 def proc_sites(sites):
+    """
+    Processes site information provided by user into a format compatible with the dRotamerEnsemble object.
+
+    Parameters
+    ----------
+    sites: ArrayLike
+        Sites provided by user
+
+    Returns
+    -------
+    new_sites: ArrayLike
+        Sites compatible with dRotamerEnsemble.
+
+    """
     sites = sorted(sites)
     new_sites = []
     for site in sites:

@@ -170,8 +170,6 @@ def test_alignment_method(method):
         np.testing.assert_allclose(SL.backbone, methods[method])
 
 
-
-
 def test_catch_unused_kwargs():
     with pytest.raises(TypeError) as e_info:
         SL = chilife.SpinLabel("R1C", site=28, protein=ubq, fake_keyword="mmm")
@@ -276,8 +274,6 @@ def test_dihedral_setter_no_protein():
     assert np.max(np.abs(np.abs(ic_angles - R1M2.dihedrals[:, 0]) % 360  - 180)) < 1e-6
 
 
-
-
 def test_get_sasa():
     R1C = chilife.RotamerEnsemble("R1C")
     sasas = R1C.get_sasa()
@@ -320,6 +316,7 @@ def test_dihedral_sigmas_fail():
 def test_set_dihedral_sigmas():
     SL = chilife.SpinLabel('R1M')
     assert np.all(SL.sigmas == 35.)
+
     SL.set_dihedral_sampling_sigmas(25)
     assert np.all(SL.sigmas == 25.)
 

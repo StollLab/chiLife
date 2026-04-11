@@ -12,7 +12,6 @@
 #
 import os
 import sys
-from numpy.typing import ArrayLike
 sys.path.insert(0, os.path.abspath('.'))
 # sys.path.insert(0, os.path.abspath('../../../chilife'))
 
@@ -33,6 +32,7 @@ extensions = ['sphinx.ext.autodoc',
               'sphinx_mdinclude',
               'sphinx.ext.coverage',
               'sphinx.ext.napoleon',
+              'sphinx.ext.viewcode',
               'nbsphinx',
               'nbsphinx_link',
               'IPython.sphinxext.ipython_console_highlighting',
@@ -47,7 +47,8 @@ templates_path = ['_templates']
 # This pattern also affects html_static_path and html_extra_path.
 exclude_patterns = []
 autodoc_member_order = 'bysource'
-autodoc_type_aliases = {'ArrayLike': 'ArrayLike'}
+# autodoc_type_aliases = {'ArrayLike': 'ArrayLike'}
+autodoc_typehints_format = 'short'
 source_suffix = [".rst", ".md"]
 add_module_names = False
 python_use_unqualified_type_names = True
@@ -73,9 +74,28 @@ nbsphinx_thumbnails = {
     'gallery/04-Adding_custom_spin_labels':'_static/customlabels.png',
     'gallery/06-Membrane_Docking': '_static/memdock.png',
     'gallery/10-Nucleic_acid_labels' : '_static/TUMLabeled.png',
-    'gallery/11-Arbitrary_molecular_labels': '_static/CMP501NCA.png'
+    'gallery/11-Arbitrary_molecular_labels': '_static/CMP501NCA.png',
+    'gallery/14-LigandEnsemble': '_static/ligandens.png',
     }
 # Add any paths that contain custom static files (such as style sheets) here,
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
+
+rst_prolog = """
+:github_url: https://github.com/mtessmer/chilife
+"""
+
+html_context = {
+    "display_github": True,
+    "github_user": "mtessmer",
+    "github_repo": "chilife",
+    "github_version": "main",
+    "conf_py_path": "/docs/source/",
+    "github_url": "https://github.com/mtessmer/chilife",
+}
+#
+# html_theme_options = {
+#     'repository_url': 'https://github.com/mtessmer/chiLife',
+#     'repository_name': 'chiLife',
+# }

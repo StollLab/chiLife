@@ -18,3 +18,4 @@ Examples
     gallery/11-Arbitrary_molecular_labels.nblink
     gallery/12-Analyzing_MD_Simulations.nblink
     gallery/13-OpenMM_Score_Function.nblink
+    gallery/14-LigandEnsemble.nblink

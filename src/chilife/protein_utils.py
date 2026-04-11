@@ -1,11 +1,10 @@
 import os
-import pickle, math
-import warnings
+import pickle
+import math
 
 from pathlib import Path
 from typing import Set, List, Union, Tuple
 
-import chilife
 from numpy.typing import ArrayLike
 from scipy.spatial.distance import cdist
 from scipy.spatial import cKDTree
@@ -33,9 +32,9 @@ import chilife as xl
 
 import chilife.scoring as scoring
 import chilife.io as io
-
 import chilife.RotamerEnsemble as re
-import chilife.dRotamerEnsemble as dre
+
+from .base_classes import Ensemble
 
 import igraph as ig
 
@@ -119,6 +118,7 @@ def get_dihedral(p: ArrayLike) -> float:
 
     return dihedral
 
+
 def get_dihedrals(p1: ArrayLike, p2: ArrayLike, p3: ArrayLike, p4: ArrayLike) -> ArrayLike:
     """Vectorized version of get_dihedral
 
@@ -158,6 +158,7 @@ def get_dihedrals(p1: ArrayLike, p2: ArrayLike, p3: ArrayLike, p4: ArrayLike) ->
     dihedral = np.arctan2(y, x)
 
     return dihedral
+
 
 def get_angle(p: ArrayLike) -> float:
     r"""Calculate the angle created by 3 points.
@@ -254,7 +255,65 @@ def set_dihedral(p: ArrayLike, angle: float, mobile: ArrayLike) -> ArrayLike:
 
     return new_mobile
 
-def guess_mobile_dihedrals(ICs, aln_atoms=None):
+
+def guess_chain(protein, site):
+    """
+    Reads chain from protein or makes an educated guess on which chain a particular site resides on for a given
+    Protein/Universe/AtomGroup.
+
+    Parameters
+    ----------
+    protein : mda.Universe | mda.AtomGroup | chilife.MolSys
+        The protein being labeled.
+    site :  int
+        The residue being labeled.
+    Returns
+    -------
+    chain : str
+        Best guess for the chain on which the selected residue resides.
+
+    """
+    if protein is None:
+        chain = "A"
+    elif len(set(protein.segments.segids)) == 1:
+        chain = protein.segments.segids[0]
+    elif np.isin(protein.residues.resnums, site).sum() == 0:
+        raise ValueError(f"Residue {site} is not present on the provided protein")
+    elif np.isin(protein.residues.resnums, site).sum() == 1:
+        chain = protein.select_atoms(f"resid {site}").segids[0]
+    else:
+        raise ValueError(
+            f"Residue {site} is present on more than one chain. Please specify the desired chain"
+        )
+    return chain
+
+
+def new_chain(protein):
+    """Get the next unique chain identifier from a molecular system. Used for creating new chain IDs for
+    LigandEnsembles
+
+    Parameters
+    ----------
+    protein: Union[mda.Universe, mda.AtomGroup, chilife.MolSys]
+        The protein/molecular system with chain IDs that should not be used.
+
+    Returns
+    -------
+    chain : str
+        The next unique chain identifier.
+    """
+    if protein is None:
+        return "A"
+
+    segids = list("ABCDEFGHIJKLMNOPQRSTUVWXYZ")
+    for seg in protein.segments:
+        segids.remove(seg.segid)
+
+    chain = segids.pop(0)
+    return chain
+
+
+def guess_mobile_dihedrals(ICs, aln_atoms=None, mask=False):
     """
     Guess the flexible, uniqe, side chain dihedrals of a MolSysIC object.
 
@@ -266,6 +325,9 @@ def guess_mobile_dihedrals(ICs, aln_atoms=None):
     aln_atoms : List[str]
         List of atom names corresponding to the "alignment atoms" of the molecule. These are usually the core backbone
         atoms, e.g. N CA C for a protein.
+
+    mask : bool
+        Return a boolean array to mask the internal coordinates z-matrix.
 
     Returns
     -------
@@ -306,6 +368,14 @@ def guess_mobile_dihedrals(ICs, aln_atoms=None):
         if bond in rotatable_bonds:
             continue
 
+        # Skip bonds that define ic_mx
+        elif idx < 3:
+            continue
+
+        # Skip double bonds
+        elif ICs.bond_types[tuple(sorted(bond[::-1]))] > 1:
+            continue
+
         # Skip ring dihedrals
         elif any(all(a in ring for a in bond) for ring in cyverts):
             continue
@@ -317,7 +387,6 @@ def guess_mobile_dihedrals(ICs, aln_atoms=None):
     idxs = _idxs
     dihedral_defs = [ICs.z_matrix_names[idx][::-1] for idx in idxs]
     return dihedral_defs
-
 
 
 @dataclass
@@ -459,10 +528,10 @@ def get_missing_residues(
         heavy_atoms = res.atoms.types[res.atoms.types != "H"]
         resn = res.resname
 
-        a = cache.setdefault(resn, len(re.RotamerEnsemble(resn).atom_names))
+        a = cache.setdefault(resn, len(xl.RotamerEnsemble(resn).atom_names))
         if len(heavy_atoms) != a:
             missing_residues.append(
-                re.RotamerEnsemble(
+                xl.RotamerEnsemble(
                     res.resname,
                     res.resnum,
                     protein=protein,
@@ -509,7 +578,7 @@ def mutate(
     # Check for dRotamerEnsembles in ensembles
     temp_ensemble = []
     for lib in ensembles:
-        if isinstance(lib, (re.RotamerEnsemble, dre.dRotamerEnsemble)):
+        if isinstance(lib, Ensemble):
             temp_ensemble.append(lib)
         else:
             raise TypeError(f"mutate only accepts (d)RotamerEnsemble and (d)SpinLabel objects, not {lib}.")
@@ -529,7 +598,7 @@ def mutate(
 
     label_sites = {}
     for spin_label in ensembles:
-        if isinstance(spin_label, dre.dRotamerEnsemble):
+        if isinstance(spin_label, xl.dRotamerEnsemble):
             label_sites[spin_label.site1, spin_label.icode1, spin_label.chain] = spin_label
             label_sites[spin_label.site2, spin_label.icode2, spin_label.chain] = spin_label
         else:
@@ -537,9 +606,9 @@ def mutate(
 
     # Remove waters if they are being ignored. 
     if ignore_waters:
-        protein = protein.select_atoms(f'(not altloc B) and (not (byres name OH2 or resname HOH))')
+        protein = protein.select_atoms('(not altloc B) and (not (byres name OH2 or resname HOH))')
     else:
-        protein = protein.select_atoms(f'(not altloc B)')
+        protein = protein.select_atoms('(not altloc B)')
         
     label_selstr = " or ".join([f"({label.selstr})" for label in ensembles])
     other_atoms = protein.select_atoms(f"not ({label_selstr})")
@@ -550,6 +619,7 @@ def mutate(
     atom_info = []
     res_names = []
     segidx = []
+    bonds = []
 
     # Loop over residues in old universe
     for i, res in enumerate(protein.residues):
@@ -558,7 +628,7 @@ def mutate(
         # If the residue is the spin labeled residue replace it with the highest probability spin label
         if resloc in label_sites:
             rot_ens = label_sites[resloc]
-            if isinstance(rot_ens, dre.dRotamerEnsemble):
+            if isinstance(rot_ens, xl.dRotamerEnsemble):
                 r1l = len(rot_ens.rl1mask)
                 r2l = len(rot_ens.rl2mask)
                 both = r1l + r2l
@@ -588,6 +658,10 @@ def mutate(
                     for name, atype in zip(rot_ens.atom_names, rot_ens.atom_types)
                 ]
 
+            offset = len(atom_info) - len(rot_ens.atom_names)
+            _add_peptide_bond(atom_info, rot_ens, bonds)
+            bonds.extend([[b1+offset, b2 + offset] for b1, b2 in rot_ens.bonds])
+
             # Add missing Oxygen from rotamer ensemble
             res_names.append(rot_ens.res)
             segidx.append(rot_ens.segindex)
@@ -614,6 +688,7 @@ def mutate(
     elif isinstance(protein, MolecularSystemBase):
         U = MolSys.from_arrays(atom_names, atom_types, res_names, residx, resids, segidx, segids=segids, icodes=icodes)
 
+    U.add_bonds(bonds)
     # Apply old coordinates to non-spinlabel atoms
     new_other_atoms = U.select_atoms(f"not ({label_selstr})")
     new_other_atoms.atoms.positions = other_atoms.atoms.positions
@@ -644,6 +719,23 @@ def mutate(
 
     return U
 
+def _add_peptide_bond(atom_info, rot_ens, bonds):
+    res_num = atom_info[-1][0]
+    offset = len(atom_info) - len(rot_ens.atom_names)
+
+    if res_num > 1 and 'N' in rot_ens.atom_names:
+        C_idx = None
+        wback = 1
+        prev_res = atom_info[offset - wback][0]
+        while prev_res == res_num - 1:
+            if atom_info[offset - wback][1] == 'C':
+                C_idx = offset - wback
+                break
+            wback += 1
+
+        if C_idx is not None:
+            N_idx = np.argwhere(rot_ens.atom_names == 'N').flatten()[0] + offset
+            bonds.append([C_idx, N_idx])
 
 def randomize_rotamers(
         protein: Union[mda.Universe, mda.AtomGroup],
@@ -910,6 +1002,7 @@ def make_mda_uni(anames: ArrayLike,
 
     return mda_uni
 
+
 def template_ICs(template):
     """
     Get the internal coordinate parameters (bond angle and dihedral angle) of the protein backbone atoms of the
@@ -928,9 +1021,9 @@ def template_ICs(template):
     """
 
     if isinstance(template, (str, Path)):
-        template = chilife.MolSys.from_pdb(template)
+        template = xl.MolSys.from_pdb(template)
     elif isinstance(template, (mda.Universe, mda.AtomGroup)):
-        template = chilife.MolSys.from_atomsel(template)
+        template = xl.MolSys.from_atomsel(template)
     elif not isinstance(template, MolecularSystemBase):
         raise RuntimeError('Template must be a PDB file or a MDA.Universe, AtomGroup or chiLife.MolSys object.')
 
@@ -1063,7 +1156,7 @@ def make_peptide(sequence: str, phi=None, psi=None, omega=None, bond_angles=None
         if res in base_IC:
             msysIC = base_IC[res]
         elif res in xl.nataa_codes or res in xl.SUPPORTED_BB_LABELS:
-            with open(chilife.RL_DIR / f"residue_internal_coords/{res.lower()}_ic.pkl", 'rb') as f:
+            with open(xl.RL_DIR / f"residue_internal_coords/{res.lower()}_ic.pkl", 'rb') as f:
                 msysIC = pickle.load(f)
             base_IC[res] = msysIC
         elif res in xl.SUPPORTED_RESIDUES:
@@ -1166,8 +1259,8 @@ def parse_sequence(sequence: str) -> List[str]:
     parsed_sequence = []
     seqiter = iter(sequence)
     for aa in seqiter:
-        if aa.upper() in chilife.nataa_codes:
-            parsed_sequence.append(chilife.nataa_codes[aa.upper()])
+        if aa.upper() in xl.nataa_codes:
+            parsed_sequence.append(xl.nataa_codes[aa.upper()])
 
         # Parse chiLife compatible NCAAs
         elif aa == '[':
@@ -1366,7 +1459,7 @@ def append_cap(mol : MolSys, cap : str, resnum = None, dihedral: float = None) -
         C_pos = neighbor.select_atoms('name C').positions
         vfrom =  cap_struct[0].position - C_pos
         vfrom /= np.linalg.norm(vfrom)
-        vto = neighbor.select_atoms(f'name OXT').positions - C_pos
+        vto = neighbor.select_atoms('name OXT').positions - C_pos
         vto /= np.linalg.norm(vto)
 
         R, _ = Rotation.align_vectors(vfrom, vto)
@@ -1376,7 +1469,7 @@ def append_cap(mol : MolSys, cap : str, resnum = None, dihedral: float = None) -
 
     systems = [cap_struct, mol] if term == "N" else [mol, cap_struct]
 
-    mol = concat_molsys(systems)
+    mol = concat_molsys(*systems)
 
     return mol
 
@@ -1405,20 +1498,20 @@ def store_cap(name, mol, term):
     elif isinstance(mol, (mda.Universe, mda.AtomGroup)):
         mol = xl.MolSys.from_atomsel(mol)
 
-    bonds = chilife.guess_bonds(mol.positions, mol.types)
-    top = chilife.Topology(mol, bonds)
+    bonds = xl.guess_bonds(mol.positions, mol.types)
+    top = xl.Topology(mol, bonds)
     mol.topology = top
 
     if term == "N":
         cap = mol.residues[0]
         neighbor = mol.residues[1]
-        txt_file = xl.RL_DIR / f'ncaps.txt'
+        txt_file = xl.RL_DIR / 'ncaps.txt'
         resnum=0
 
     elif term == "C":
         cap = mol.residues[-1]
         neighbor = mol.residues[-2]
-        txt_file = xl.RL_DIR / f'ccaps.txt'
+        txt_file = xl.RL_DIR / 'ccaps.txt'
         resnum = 1
     else:
         raise RuntimeError('`term` not found in neighboring residue. Note that `term` must be an `N` or a `C`.')

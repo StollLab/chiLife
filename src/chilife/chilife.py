@@ -1,6 +1,12 @@
 from __future__ import annotations
-import tempfile, logging, os, rtoml, re, textwrap
-import zipfile, shutil
+import tempfile
+import logging
+import os
+import rtoml
+import re
+import textwrap
+import zipfile
+import shutil
 from copy import deepcopy
 from pathlib import Path
 from itertools import combinations, chain
@@ -12,7 +18,6 @@ import igraph as ig
 from tqdm import tqdm
 
 import numpy as np
-from numpy.typing import ArrayLike
 from scipy.spatial.distance import cdist
 from scipy.stats import t
 import MDAnalysis as mda
@@ -29,14 +34,15 @@ from .scoring import GAS_CONST, reweight_rotamers, ljEnergyFunc
 from .numba_utils import get_delta_r, normdist
 from .SpinLabel import SpinLabel
 from .RotamerEnsemble import RotamerEnsemble
+from .LigandEnsemble import LigandEnsemble
 from .SpinLabelTraj import SpinLabelTraj
 
 logging.captureWarnings(True)
 
 
 def distance_distribution(
-        *args: SpinLabel,
-        r: ArrayLike = None,
+        *args: "SpinLabel",
+        r: "ArrayLike" = None,
         sigma: float = 1.0,
         use_spin_centers: bool = True,
         dependent: bool = False,
@@ -44,7 +50,7 @@ def distance_distribution(
 ) -> np.ndarray:
     """Calculates total distribution of spin-spin distances among an arbitrary number of spin labels, using the
     distance range ``r`` (in angstrom). The distance distribution is obtained by summing over all label pair distance
-    distributions. These in turn are calculated by convolving a weighted histogram of pairwise distances between lables
+    distributions. These in turn are calculated by convolving a weighted histogram of pairwise distances between labels
     with a normal distribution. Distance between labels are calculated either between label ``spin_center`` if
     ``spin_populations=False``, or between all pairs of spn-bearing atoms if ``spin_populations=True``.
 
@@ -121,7 +127,7 @@ def distance_distribution(
         return P
 
 
-def pair_dd(*args, r: ArrayLike, sigma: float = 1.0, use_spin_centers: bool = True, dependent=False) -> np.ndarray:
+def pair_dd(*args, r: "ArrayLike", sigma: float = 1.0, use_spin_centers: bool = True, dependent: bool=False) -> np.ndarray:
     """Obtain the total pairwise spin-spin distance distribution over ``r`` for a list of spin labels.
     The distribution is calculated by convolving the weighted histogram of pairwise spin-spin
     distances with a normal distribution with standard deviation ``sigma``.
@@ -233,9 +239,9 @@ def pair_dd(*args, r: ArrayLike, sigma: float = 1.0, use_spin_centers: bool = Tr
 
 
 def traj_dd(
-        SL1: SpinLabelTraj,
-        SL2: SpinLabelTraj,
-        r: ArrayLike,
+        SL1: "SpinLabelTraj",
+        SL2: "SpinLabelTraj",
+        r: "ArrayLike",
         sigma: float,
         **kwargs,
 ) -> np.ndarray:
@@ -274,7 +280,7 @@ def traj_dd(
     return P
 
 
-def confidence_interval(data: ArrayLike, cutoff: float = 0.95, non_negative: bool = True) -> Tuple[np.array, np.array]:
+def confidence_interval(data: "ArrayLike", cutoff: float = 0.95, non_negative: bool = True) -> Tuple[np.array, np.array]:
     """
 
     Parameters
@@ -312,9 +318,9 @@ def create_library(
         dihedral_atoms: List[List[str]] = None,
         site: int = 1,
         resname: str = None,
-        dihedrals: ArrayLike = None,
-        weights: ArrayLike = None,
-        sigmas: ArrayLike = None,
+        dihedrals: "ArrayLike" = None,
+        weights: "ArrayLike" = None,
+        sigmas: "ArrayLike" = None,
         permanent: bool = False,
         default: bool = False,
         force: bool = False,
@@ -455,8 +461,8 @@ def create_dlibrary(
         sites: Tuple,
         dihedral_atoms: List[List[List[str]]],
         resname: str = None,
-        dihedrals: ArrayLike = None,
-        weights: ArrayLike = None,
+        dihedrals: "ArrayLike" = None,
+        weights: "ArrayLike" = None,
         sort_atoms: Union[List[str], Dict, str] = True,
         permanent: bool = False,
         default: bool = False,
@@ -817,11 +823,11 @@ def aln_sanity(internal_coords, resname, backbone_atoms=None, aln_atoms=None):
 def prep_restype_savedict(
         libname: str,
         resname: str,
-        internal_coords: MolSysIC,
-        weights: ArrayLike,
-        dihedrals: ArrayLike,
-        dihedral_atoms: ArrayLike,
-        sigmas: ArrayLike = None,
+        internal_coords: "MolSysIC",
+        weights: "ArrayLike",
+        dihedrals: "ArrayLike",
+        dihedral_atoms: "ArrayLike",
+        sigmas: "ArrayLike" = None,
         resi: int = 1,
         spin_atoms: List[str] = None,
         aln_atoms: List[str] = None,
@@ -971,7 +977,6 @@ def remove_rotlib_dir(directory: Union[Path, str]) -> None:
             f.write('\n')
 
 
-
 def add_library(filename: Union[str, Path], libname: str = None, default: bool = False, force: bool = False):
     """
     Add the provided rotamer library to the chilife rotamer library directory so that it does not need to be
@@ -994,7 +999,7 @@ def add_library(filename: Union[str, Path], libname: str = None, default: bool =
         If True, chilife will overwrite any existing rotamer library with the same name if it exists.
     """
 
-    store_loc = (RL_DIR / f"user_rotlibs/") / filename
+    store_loc = (RL_DIR / "user_rotlibs/") / filename
     filename = Path(filename)
     if libname is None:
         libname = re.sub("_d{0,1}rotlib.(npz|zip)", "", filename.name)
@@ -1021,7 +1026,7 @@ def add_library(filename: Union[str, Path], libname: str = None, default: bool =
                         "not store as a permanent rotamer library")
 
 
-def add_dihedral_def(name: str, dihedrals: ArrayLike, force: bool = False) -> None:
+def add_dihedral_def(name: str, dihedrals: "ArrayLike", force: bool = False) -> None:
     """Helper function to add the dihedral definitions of user defined labels and libraries to the chilife knowledge
     base.
 
@@ -1381,14 +1386,14 @@ def _print_rotlib_info(lib_file: Union[str, Path]):
                                      f"Description: {lib['description']}",
                                      f"Comment: {lib['comment']}\n",
                                      f"Length of library: {len(lib['weights'])}",
-                                     f"Dihedral definitions: ",
+                                     "Dihedral definitions: ",
                                      *[f'    {d}' for d in lib['dihedral_atoms']],
                                      f"Spin atoms: {lib.get('spin_atoms')}",
                                      f"Number of atoms: {atom_counts}",
                                      f"Number of heavy atoms: {np.sum(lib['atom_types'] != 'H')}",
                                      f"Reference: {lib['reference']}",
                                      f"chiLife rotlib format: {lib['format_version']}",
-                                     f"*"*80)]
+                                     "*"*80)]
 
     print("\n".join(list(chain.from_iterable(myl))))
 
@@ -1420,36 +1425,36 @@ def _print_drotlib_info(lib_file : Union[str, Path]):
                                      f"Description: {libA['description']}",
                                      f"Comment: {libA['comment']}\n",
                                      f"Length of library: {len(libA['weights'])}",
-                                     f"Dihedral definitions: ",
-                                     f"  site 1:",
+                                     "Dihedral definitions: ",
+                                     "  site 1:",
                                      *[f'    {d}' for d in libA['dihedral_atoms']],
-                                     f"  site 2:",
+                                     "  site 2:",
                                      *[f'    {d}' for d in libB['dihedral_atoms']],
                                      f"Spin atoms: {libA['spin_atoms']}",
                                      f"Number of atoms: {atom_counts}\n",
                                      f"Reference: {libA['reference']}",
                                      f"chiLife rotlib format: {libA['format_version']}",
-                                     f"*"*80)]
+                                     "*"*80)]
 
     print("\n".join(list(chain.from_iterable(myl))))
 
 
 def repack(
-        protein: Union[mda.Universe, mda.AtomGroup],
-        *spin_labels: RotamerEnsemble,
+        protein: Union["mda.Universe", "mda.AtomGroup"],
+        *ensembles: Union["RotamerEnsemble", "LigandEnsemble"],
         repetitions: int = 200,
         temp: float = 1,
         energy_func: Callable = None,
         off_rotamer=False,
         **kwargs,
-) -> Tuple[mda.Universe, ArrayLike]:
+) -> Tuple["mda.Universe", "ArrayLike"]:
     """Markov chain Monte Carlo repack a protein around any number of SpinLabel or RotamerEnsemble objects.
 
     Parameters
     ----------
     protein : MDAnalysis.Universe, MDAnalysis.AtomGroup
         MolSys to be repacked
-    spin_labels : RotamerEnsemble, SpinLabel
+    ensembles : RotamerEnsemble, SpinLabel
         RotamerEnsemble or SpinLabel object placed at site of interest
     repetitions : int
         Number of successful MC samples to perform before terminating the MC sampling loop
@@ -1469,9 +1474,13 @@ def repack(
     protein: MDAnalysis.Universe
         MCMC trajectory of local repack
     deltaEs: np.ndarray:
-        Change in energy_func score at each accept of MCMC trajectory
+        Change in energy_func score at each acceptance of MCMC trajectory
 
     """
+
+    residue_ensembles = [ens for ens in ensembles if isinstance(ens, RotamerEnsemble)]
+    ligand_ensembles = [ens for ens in ensembles if isinstance(ens, LigandEnsemble)]
+
     temp = np.atleast_1d(temp)
     KT = {t: GAS_CONST * t for t in temp}
 
@@ -1480,28 +1489,36 @@ def repack(
 
     repack_radius = kwargs.pop("repack_radius") if "repack_radius" in kwargs else None  # Angstroms
     if repack_radius is None:
-        repack_radius = max([SL.clash_radius for SL in spin_labels])
+        repack_radius = max([SL.clash_radius for SL in ensembles])
     # Construct a new spin labeled protein and preallocate variables to retain monte carlo trajectory
-    spin_label_str = " or ".join(f"( {spin_label.selstr} )" for spin_label in spin_labels)
-    protein = mutate(protein, *spin_labels, **kwargs).atoms
+    sites_str = " or ".join(f"( {ens.selstr} )" for ens in ensembles)
+    protein = mutate(protein, *ensembles, **kwargs).atoms
 
     # Determine the residues near the spin label that will be repacked
-    repack_residues = protein.select_atoms(f"around {repack_radius} {spin_label_str}").residues
+    repack_residues = protein.select_atoms(f"around {repack_radius} {sites_str}").residues
 
-    repack_res_kwargs = spin_labels[0].input_kwargs
+    # Get construction information for rotamers and ligands
+    repack_res_kwargs = residue_ensembles[0].input_kwargs if len(residue_ensembles) > 0 else {}
+    repack_lig_kwargs = ligand_ensembles[0].input_kwargs if len(ligand_ensembles) > 0 else {}
+
+    # If only a ligand is passed use ligand params for use_H
+    if repack_res_kwargs == {} and repack_lig_kwargs != {}:
+        repack_res_kwargs['use_H'] = ligand_ensembles[0].use_H
+
     repack_res_kwargs['eval_clash'] = False
+
     repack_residue_libraries = [
         RotamerEnsemble.from_mda(res, **repack_res_kwargs)
         for res in repack_residues
         if res.resname not in ["GLY", "ALA"]
            and res.resname in SUPPORTED_RESIDUES
     ]
-    repack_residue_libraries += list(spin_labels)
+    repack_residue_libraries += list(ensembles)
 
     # Create new labeled protein construct to fill in any missing atoms of repack residues
     protein = mutate(protein, *repack_residue_libraries, **kwargs).atoms
 
-    repack_residues = protein.select_atoms(f"around {repack_radius} {spin_label_str}").residues
+    repack_residues = protein.select_atoms(f"around {repack_radius} {sites_str}").residues
 
     repack_residue_libraries = [
         RotamerEnsemble.from_mda(res, **repack_res_kwargs)
@@ -1511,7 +1528,11 @@ def repack(
     ]
     repack_residue_libraries += [RotamerEnsemble(RL.res, RL.site, protein, chain=RL.chain, rotlib=RL._rotlib,
                                                  **repack_res_kwargs)
-                                    for RL in spin_labels]
+                                 for RL in residue_ensembles]
+
+    repack_residue_libraries += [LigandEnsemble(LE.res, LE.site, protein, chain=LE.chain, rotlib=LE._rotlib,
+                                                 **repack_lig_kwargs)
+                                 for LE in ligand_ensembles]
 
     traj = np.empty((repetitions, *protein.positions.shape))
     deltaEs = []
@@ -1540,7 +1561,7 @@ def repack(
                                                  KT[temp[bidx]] * np.log(SiteLibrary.current_weight)
 
             DummyLabel = SiteLibrary.dummy_label
-            coords, weight = SiteLibrary.sample(off_rotamer=off_rotamer)
+            coords, weight = SiteLibrary.sample(off_rotamer=off_rotamer, remove_clashing=False)
             with np.errstate(divide="ignore"):
                 DummyLabel._coords = np.atleast_3d([coords])
                 E1 = energy_func(DummyLabel) - KT[temp[bidx]] * np.log(weight)

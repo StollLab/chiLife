@@ -1,10 +1,12 @@
 from typing import Tuple, Dict, Union, BinaryIO, TextIO
+import textwrap
 import warnings
 import os
 import urllib
 import MDAnalysis
 from numpy.typing import ArrayLike
 from collections import defaultdict
+from collections.abc import Sequence
 from hashlib import sha256
 from pathlib import Path
 import pickle
@@ -20,14 +22,82 @@ import MDAnalysis as mda
 import chilife.RotamerEnsemble as re
 import chilife.SpinLabel as sl
 import chilife.dRotamerEnsemble as dre
-from .globals import dihedral_defs, rotlib_indexes, RL_DIR, SUPPORTED_BB_LABELS, USER_RL_DIR, rotlib_defaults, alt_prot_states
+import chilife.LigandEnsemble as le
+import chilife
+from .globals import (
+    dihedral_defs,
+    rotlib_indexes,
+    RL_DIR,
+    SUPPORTED_BB_LABELS,
+    USER_RL_DIR,
+    rotlib_defaults,
+    alt_prot_states,
+)
+
 from .alignment_methods import local_mx
 from .IntrinsicLabel import IntrinsicLabel
-from .MolSys import MolecularSystemBase
+from .MolSys import MolecularSystemBase, MolSys
+from .Topology import BondType
 from .MolSysIC import MolSysIC
+from .pdb_utils import parse_connect, sort_pdb
 
 #                 ID    name   res  chain resnum      X     Y      Z      q      b              elem
 fmt_str = "ATOM  {:5d} {:^4s} {:3s} {:1s}{:4d}    {:8.3f}{:8.3f}{:8.3f}{:6.2f}{:6.2f}          {:>2s}  \n"
+CHEM_COMP_ATOM_KEYS = (
+    "comp_id",
+    "atom_id",
+    "type_symbol",
+    "pdbx_aromatic_flag",
+    "pdbx_stereo_config",
+)
+
+CHEM_COMP_BOND_KEYS = (
+    "comp_id",
+    "atom_id_1",
+    "atom_id_2",
+    "value_order",
+    "pdbx_aromatic_flag",
+    "pdbx_stereo_config",
+)
+
+CIF_BOND_TO_XL = {
+    'arom': BondType.AROMATIC,
+    'delo': BondType.DELOCALIZED,
+    'doub': BondType.DOUBLE,
+    'pi':   BondType.PI,
+    'poly': BondType.POLYMERIC,
+    'quad': BondType.QUADRUPLE,
+    'sing': BondType.SINGLE,
+    'trip': BondType.TRIPLE,
+    'metalc': BondType.DATIVE,
+    'disulf': BondType.UNSPECIFIED,
+}
+
+XL_BOND_TO_CIF = {v: k for k, v in CIF_BOND_TO_XL.items()}
+
+SDF_BOND_TO_XL = {
+    1: BondType.SINGLE,
+    2: BondType.DOUBLE,
+    3: BondType.TRIPLE,
+    4: BondType.AROMATIC,
+    5: BondType.UNSPECIFIED,
+    6: BondType.SINGLE,
+    7: BondType.DOUBLE,
+    8: BondType.UNSPECIFIED,
+}
+
+XL_BOND_TO_SDF = {v: k for k, v in SDF_BOND_TO_XL.items() if k not in (5, 6, 7) }
+
+SDF_ATOM_CHARGE_TO_INT = {
+    0: 0,
+    1: 3,
+    2: 2,
+    3: 1,
+    4: 0,
+    5: -1,
+    6: -2,
+    7: -3,
+}
 
 
 def read_distance_distribution(file_name: str) -> Tuple[np.ndarray, np.ndarray]:
@@ -486,7 +556,7 @@ def save(
     pdb_file.close()
 
 
-def fetch(accession_number: str, save: bool = False) -> MDAnalysis.Universe:
+def fetch(accession_number: str, save: bool = False, format : str | None = None) -> MDAnalysis.Universe:
     """Fetch pdb file from the protein data bank or the AlphaFold Database and optionally save to disk.
 
     Parameters
@@ -496,26 +566,44 @@ def fetch(accession_number: str, save: bool = False) -> MDAnalysis.Universe:
         'AF-'.
     save : bool
         If true the fetched PDB will be saved to the disk.
-
+    format : str
+        Format of the structure file (pdb or cif).
     Returns
     -------
     U : MDAnalysis.Universe
         MDAnalysis Universe object of the protein corresponding to the provided PDB ID or AlphaFold accession number
 
     """
-    accession_number = accession_number.split('.pdb')[0]
-    pdb_name = accession_number + '.pdb'
+    if format is None and accession_number.lower().endswith('.pdb'):
+        format = 'pdb'
+    elif format is None and accession_number.lower().endswith('.cif'):
+        format = 'cif'
+    elif format is None:
+        format = 'pdb'
+    elif format.lower().startswith("."):
+        format = format[1:].lower()
+    else:
+        format = format.lower()
+
+    accession_number = accession_number.split(f".{format}")[0]
+    pdb_name = accession_number + "." + format
 
     if accession_number.startswith('AF-'):
-        print(f"https://alphafold.ebi.ac.uk/files/{accession_number}-F1-model_v6.pdb")
-        urllib.request.urlretrieve(f"https://alphafold.ebi.ac.uk/files/{accession_number}-F1-model_v6.pdb", pdb_name)
+        print(f"https://alphafold.ebi.ac.uk/files/{accession_number}-F1-model_v6.{format}")
+        urllib.request.urlretrieve(
+            f"https://alphafold.ebi.ac.uk/files/{accession_number}-F1-model_v6.{format}",
+            pdb_name,
+        )
     else:
         urllib.request.urlretrieve(f"http://files.rcsb.org/download/{pdb_name}", pdb_name)
 
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore")
-        U = mda.Universe(pdb_name, in_memory=True)
-
+    if format.lower() == 'pdb':
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            U = mda.Universe(pdb_name, in_memory=True)
+    elif format.lower() == 'cif':
+        U = MolSys.from_cif(pdb_name)
+        
     if not save:
         os.remove(pdb_name)
 
@@ -552,6 +640,396 @@ def load_protein(struct_file: Union[str, Path],
             protein = mda.Universe(struct_file, in_memory=True)
 
     return protein
+
+def read_pdb(pdb_file: Union[str, Path], sort_atoms=False):
+    """
+    Read A PDB file into a dictionary containing all standard pdb atom information and bonds if CONECT records are
+    present.
+
+    Parameters
+    ----------
+    pdb_file : str | Path
+        File name or ``Path`` to the PDB file to be read.
+
+    Returns
+    -------
+    pdb_data : dict
+        Dictionary of PDB data.
+    """
+    keys = ["record_types", "atomids", "names", "altlocs", "resnames", "chains", "resnums",
+                "icodes", "coords", "occupancies", "bs", "segs", "atypes", "charges"]
+    if sort_atoms:
+        lines = sort_pdb(pdb_file)
+    else:
+        with open(pdb_file, "r") as f:
+            lines = f.readlines()
+
+    connect = []
+    atom_lines = []
+    for line in lines:
+        if line.startswith(("MODEL", "ENDMDL", "ATOM", "HETATM")):
+            atom_lines.append(line)
+        elif line.startswith("CONECT"):
+            connect.append(line)
+
+    start_idxs = []
+    end_idxs = []
+    for i, line in enumerate(atom_lines):
+        if line.startswith("MODEL"):
+            start_idxs.append(i + 1)
+        elif line.startswith("ENDMDL"):
+            end_idxs.append(i)
+
+    if len(start_idxs) > 0:
+        lines = [atom_lines[start:end] for start, end in zip(start_idxs, end_idxs)]
+    else:
+        lines = [atom_lines]
+        
+    PDB_data = [
+        (
+            line[:6].strip(),
+            i,
+            line[12:16].strip(),
+            line[16:17].strip(),
+            line[17:20].strip(),
+            line[21:22].strip(),
+            int(line[22:26]),
+            line[26:27].strip(),
+            (float(line[30:38]), float(line[38:46]), float(line[46:54])),
+            float(line[54:60]),
+            float(line[60:66]),
+            line[72:73].strip(),
+            line[76:78].strip(),
+            line[78:80].strip(),
+        )
+        for i, line in enumerate(lines[0])
+    ]
+
+    pdb_dict = {key: np.array(data) for key, data in zip(keys, zip(*PDB_data))}
+
+    # Parse connect data
+    if len(connect) > 0:
+        c_bonds, h_bonds, i_bonds =  parse_connect(connect)
+        bonds = np.array(list(c_bonds))
+        pdb_dict['bonds'] = bonds
+        pdb_dict["bond_types"] = np.array([BondType.UNSPECIFIED for _ in range(len(bonds))])
+
+    trajectory = [pdb_dict.pop("coords")]
+
+    if len(lines) > 1:
+        for struct in lines[1:]:
+            frame_coords = [(line[30:38], line[38:46], line[46:54]) for line in struct]
+
+            if len(frame_coords) != len(PDB_data):
+                raise ValueError(
+                    "All models in a multistate PDB must have the same atoms"
+                )
+
+            trajectory.append(frame_coords)
+
+    pdb_dict["trajectory"] = np.array(trajectory, dtype=float)
+    pdb_dict["name"] = Path(pdb_file).name
+
+    return pdb_dict
+
+
+def read_sdf(file_name):
+    """
+    Reads SDF file into a dictionary structure.
+
+    Parameters
+    ----------
+    file_name: str, Path
+        string or Path object directing the function to the sdf file to read.
+
+    Returns
+    -------
+    mols: List[dict]
+        List of dictionaries containing all the sdf data for each molecule in the sdf file.
+    """
+    # Read in mol blocks
+    with open(file_name, 'r') as f:
+        blocks, block = [], []
+        for line in f:
+            line = line.rstrip('\r\n')
+
+            if not line == '$$$$':
+                block.append(line)
+            else:
+                blocks.append(block)
+                block = []
+
+    mols = []
+    for block in blocks:
+        mol_data = {'name': block[0], 'software': block[1].strip(), 'comment': block[2].strip() }
+        n_atoms = block[3][:3].strip()
+        n_bonds = block[3][3:6].strip()
+        n_atom_lists = block[3][6:9].strip()
+        chiral = block[3][12:15].strip()
+        n_stexts = block[3][15:18].strip()
+        properties_lines = block[3][30:33]
+        format_version = block[3][33:].strip()
+
+        mol_data['n_atoms'] = int(n_atoms)
+        mol_data['n_bonds'] = int(n_bonds)
+        mol_data['chiral'] = bool(int(chiral))
+        mol_data['format'] = format_version
+
+        atom_end_idx = 4 + mol_data['n_atoms']
+        bond_end_idx = atom_end_idx + mol_data['n_bonds']
+        mol_data['atoms'] = []
+        for idx, line in enumerate(block[4:atom_end_idx]):
+            atom = {}
+            atom['index'] = idx
+            atom["xyz"] = [float(line[0:10]), float(line[10:20]), float(line[20:30])]
+            atom["element"] = line[31:34].strip()
+            atom["mass difference"] = int(float(line[34:36]))
+            atom["charge"] = int(line[36:39])
+            atom["stereo"] = int(line[39:42])
+            atom["valence"] = int(line[48:51]) if len(line) >= 51 else 0
+            mol_data['atoms'].append(atom)
+
+        mol_data['bonds'] = []
+        for idx, line in enumerate(block[atom_end_idx:bond_end_idx]):
+            bond = {}
+            bond["idx1"] = int(line[0:3]) - 1    # Coerce to 0 index
+            bond["idx2"] = int(line[3:6]) - 1    # Coerce to 0 index
+            bond["type"] = int(line[6:9])
+            bond["stereo"] = int(line[9:12])
+
+            mol_data['bonds'].append(bond)
+
+        properties = {}
+        for idx, line in enumerate(block[bond_end_idx:]):
+
+            if line == 'M  END':
+                break
+
+            if line.startswith('M  '):
+                key = line[3:6]
+                lst = properties.setdefault(key, [])
+                lst.append(line[6:])
+            else:
+                break
+
+        for key, val in properties.items():
+            properties[key] = parse_property_lines(key, val)
+
+
+        mol_data['properties'] = properties
+        data_end_idx = bond_end_idx + idx + 1
+        data_iterator = iter(block[data_end_idx:])
+        data_block = []
+        for line in data_iterator:
+            opened = line.startswith('>')
+
+            while opened:
+                data_block.append(line)
+                line = next(data_iterator, '')
+                opened = bool(line)
+                
+            if data_block:
+                header, data = parse_data_block(data_block)
+                mol_data[header] = data
+                data_block = []
+
+        mols.append(mol_data)
+
+    return mols
+
+
+def parse_data_block(data_block):
+    """
+    Helper function to parse the data block of an SDF file. Only used internally.
+
+    Parameters
+    ----------
+    data_block: List[str]
+        The lines of the sdf file pertaining to the data block
+
+    Returns
+    -------
+    header: str
+        The header of the data block
+    data_string: str
+        a string containing all data in the data block
+    """
+    data_string = '\n'.join(data_block[1:])
+    header_block = data_block[0][1:]
+    header = header_block[header_block.find("<")+1:header_block.find(">")]
+
+    return header, data_string
+
+
+standard_property_vnames = {
+    "CHG": "charges",
+    "RAD": "multiplicities",
+    "ISO": "mass",
+    "RBC": "ring bond count",
+    "SUB": "substitution count",
+    "UNS": "unsaturated atom"
+}
+
+
+def parse_property_lines(property, lines):
+    """
+    Helper function to parse properties from sdf files.
+
+    Parameters
+    ----------
+    property: str
+        Property being parsed
+
+    lines: List[str]
+        The lines of the sdf file pertaining to the property block being parsed.
+
+    Returns
+    -------
+    dict | List[str]
+        dictionary of the atom ids mapping to the properties for each atom if `property` is known to chilife otherwise
+        the input lines as provided.
+
+    """
+    if property in standard_property_vnames:
+        vname = standard_property_vnames[property]
+        k, v = parse_standard_property(lines)
+        return {
+            "atom_ids": np.array(k, dtype=int) - 1,
+            vname: np.array(v, dtype=int),
+        }
+
+    else:
+        return lines
+
+
+def parse_standard_property(lines):
+    """
+    Helper function to parse standard properties from sdf files.
+
+    Parameters
+    ----------
+    lines: List[str]
+        The lines of the sdf file pertaining to the property block being parsed.
+
+    Returns
+    -------
+    k: List
+        Atom ids for which this property is relevant.
+    V: List
+        Quantitative value of the property.
+    """
+    k, v = [], []
+    for line in lines:
+        entries = textwrap.wrap(line, 4)
+        k.extend(entries[1::2])
+        v.extend(entries[2::2])
+
+    return k, v
+
+
+def standard_property_to_string(key, property):
+    """
+    Helper function to convert standard properties in a dictionary to a string format for writing sdf files.
+
+    Parameters
+    ----------
+    key: str
+        3 letter keycode of the property
+    property: dict
+        Property dict of a standard property as parsed by `parse_standard_property`.
+
+    Returns
+    -------
+    strings: List[str]
+        List of strings containing the property lines of an sdf file.
+    """
+    strings = []
+    data_col = standard_property_vnames[key]
+
+    n = 1
+    running_str = " "
+    for idx, val in zip(property['atom_ids'], property[data_col]):
+        if n >= 8:
+            running_str = f"M  {key}{n:>3d}" + running_str + "\n"
+            strings.append(running_str)
+            running_str = " "
+            n = 1
+
+        running_str = running_str + f"{str(idx + 1):>3s} {str(val):>3s}"
+        n += 1
+
+    if running_str != " ":
+        running_str = f"M  {key}{n:>3d}" + running_str + "\n"
+        strings.append(running_str)
+
+    return strings
+
+
+def write_sdf(sdf_data, file_name):
+    """
+    Function to write sdf file from sdf format in a dict as read by `read_sdf`.
+
+    Parameters
+    ----------
+    sdf_data: Dict | List[Dict]
+        The sdf data in chilife format
+    file_name: str
+        Name of the file to write the sdf data to.
+    """
+    if isinstance(sdf_data, dict):
+        sdf_data = [sdf_data]
+
+    lines = []
+
+    for mol in sdf_data:
+        # Headder
+        lines.append(f"{mol['name']}\n")
+        lines.append(f"\tchiLife {chilife.__version__}\n")
+        lines.append(f"{mol['comment']}\n")
+        lines.append(f"{mol['n_atoms']:>3}{mol['n_bonds']:>3}{0:>3}{0:>3}{mol['chiral']:>3}"
+                     f"{0:>3}{0:>3}{0:>3}{0:>3}{0:>3}999 V2000\n")
+
+        # Coords
+        atoms = mol['atoms']
+        for atom in atoms:
+            x, y, z = atom['xyz']
+            lines.append(
+                f"{x:10.4f}{y:10.4f}{z:10.4f}{atom['element']:>2} {atom['mass difference']:>3}{atom['charge']:>3}"
+                f"{atom['stereo']:>3}{0:>3}{0:>3}{atom['valence']:>3}" + f"{0:>3}" * 6 + '\n'
+            )
+
+        # Bonds
+        bonds = mol['bonds']
+        for bond in bonds:
+            lines.append(f"{bond['idx1'] + 1:>3}{bond['idx2'] + 1:>3}{bond['type']:>3}{bond['stereo']:>3}\n")
+
+        # Write CHG RAD ISO Data
+        for key, property in mol['properties'].items():
+            if key in standard_property_vnames:
+                lines += standard_property_to_string(key, property)
+
+            else:
+                lines += property
+
+        lines.append('M  END\n')
+
+
+        # Write data blocks
+        standard_keys = {
+            'name',   'software', 'comment', 'n_atoms', 'n_bonds', 'chiral',
+            'format', 'atoms',    'bonds',   "properties"
+        }
+        data_keys = [key for key in mol if key not in standard_keys]
+        for key in data_keys:
+            lines.append(f"> <{key}>\n")
+            lines.append(f"{mol[key]}")
+            lines.append("\n\n")
+
+        lines.append("$$$$\n")
+
+
+    with open(file_name, 'w') as f:
+        f.writelines(lines)
 
 
 def write_protein(pdb_file: TextIO,
@@ -603,16 +1081,36 @@ def write_protein(pdb_file: TextIO,
                 None)
 
         if bonds is not None:
-            write_bonds(pdb_file, bonds)
+            bonds_1 = bonds + 1
+            write_bonds(pdb_file, bonds_1)
 
 
 def write_frame(pdb_file: TextIO, atoms, frame=None, coords=None):
+    """
+    Helper function to write multiple conformational states of a protein to a PDB file.
 
+    Parameters
+    ----------
+    pdb_file : TextIO
+        IO object to write the frame to.
+    atoms: chilife.MolSys.AtomSelection | MDAnalysis.AtomGroup
+        Set of atoms to write to the pdb file.
+    frame: int | None
+        The frame number to write. Should be 0 indexed.
+    coords: ArrayLike | None
+        Coords to write to the pdb file. If None are provided the coords from `atoms` are used.
+    """
     if frame is not None:
         pdb_file.write(f"MODEL {frame + 1}\n")
 
     if coords is None:
         coords = atoms.positions
+
+    if not hasattr(atoms.universe, 'occupancies'):
+        atoms.universe.add_TopologyAttr('occupancies', np.ones(len(atoms.universe.atoms)))
+
+    if not hasattr(atoms.universe, 'bfactors'):
+        atoms.universe.add_TopologyAttr("bfactors", np.ones(len(atoms.universe.atoms)))
 
     [pdb_file.write(
         fmt_str.format(
@@ -622,8 +1120,8 @@ def write_frame(pdb_file: TextIO, atoms, frame=None, coords=None):
             atom.segid,
             atom.resnum,
             *coord,
-            1.00,
-            1.0,
+            atom.occupancy,
+            atom.bfactor,
             atom.type,
         )
     ) for i, (atom, coord) in enumerate(zip(atoms, coords))]
@@ -742,7 +1240,7 @@ def write_labels(pdb_file: TextIO, *args: sl.SpinLabel,
         if conect:
             write_bonds(pdb_file, label.bonds)
 
-    # Write electron density at electron coordinates
+    # Write spin density at electron coordinates
     for k, label in enumerate(args):
         if not hasattr(label, "spin_centers"):
             continue
@@ -773,7 +1271,7 @@ def write_labels(pdb_file: TextIO, *args: sl.SpinLabel,
                     fmt_str.format(
                         i,
                         "NEN",
-                        label.label[:3],
+                        label.res[:3],
                         label.chain,
                         int(label.site),
                         *spin_centers[i],
@@ -814,11 +1312,21 @@ def write_atoms(file: TextIO,
     for atom, coord in zip(atoms, coords):
         file.write(
             f"ATOM  {atom.index + 1:5d} {atom.name:^4s} {atom.resname:3s} {'A':1s}{atom.resnum:4d}    "
-            f"{coord[0]:8.3f}{coord[1]:8.3f}{coord[2]:8.3f}{1.0:6.2f}{1.0:6.2f}          {atom.type:>2s}  \n"
+            f"{coord[0]:8.3f}{coord[1]:8.3f}{coord[2]:8.3f}{atom.occupancy:6.2f}{atom.bfactor:6.2f}          {atom.type:>2s}  \n"
         )
 
 
 def write_bonds(pdb_file, bonds):
+    """
+    Write PDB CONECT information to ``pdb_file`` for the provided ``bonds``.
+
+    Parameters
+    ----------
+    pdb_file: TextIO
+        File to write bonds to.
+    bonds: ArrayLike
+        Array of the indices of atom pairs that make the bonds.
+    """
     active_atom = bonds[0][0]
     line = "CONECT" + f"{active_atom:>5d}"
 
@@ -837,6 +1345,7 @@ def write_bonds(pdb_file, bonds):
 molecule_class = {re.RotamerEnsemble: 'rotens',
                   dre.dRotamerEnsemble: 'rotens',
                   IntrinsicLabel: 'rotens',
+                  le.LigandEnsemble: 'rotens',
                   mda.Universe: 'molcart',
                   mda.AtomGroup: 'molcart',
                   MolecularSystemBase: 'molcart',
@@ -863,3 +1372,411 @@ rotlib_formats[1.3] = rotlib_formats[1.2]
 rotlib_formats[1.4] = *rotlib_formats[1.3], 'backbone_atoms', 'aln_atoms'
 rotlib_formats[1.5] = rotlib_formats[1.4]
 
+
+def read_cif(file_name):
+    """
+    Read a CIF file into a dictionary.
+
+    Parameters
+    ----------
+    file_name: str | Path
+        The cif file to read.
+
+    Returns
+    -------
+    cif_data: Dict
+        All data contained in the cif file.
+    """
+    data_blocks = {}
+    with open(file_name, 'r') as f:
+
+        for line in f:
+
+            if line.startswith('data'):
+                key = line.split('_')[1].strip()
+                current_block = data_blocks.setdefault(key, [])
+                current_block.append(line)
+            elif "current_block" in locals():
+                current_block.append(line)
+            else:
+                continue
+
+    cif_data = {}
+    for key, value in data_blocks.items():
+        cif_data[key] = parse_cif_data_block(value)
+
+    return cif_data
+
+
+def parse_cif_data_block(data_block: list[str]) -> dict:
+    """
+    Helper function to parse cif data from a cif file.
+
+    Parameters
+    ----------
+    data_block: list[str]
+        List of lines from a cif file corresponding to a singular data block as defined by cif specifications.
+
+    Returns
+    -------
+    parsed_block: dict
+        The provided data block parsed into a dictionary.
+    """
+    parsed_block = {}
+    data_block_iterator = iter(data_block)
+    in_loop = False
+    for line in data_block_iterator:
+
+        if line.startswith('loop_'):
+            in_loop = True
+            subject_keys = []
+            subject_values = []
+        elif line.startswith('#') and in_loop:
+            for k, v in zip(subject_keys, zip(*subject_values)):
+                topic_dict[k] = v
+            in_loop = False
+
+        elif in_loop:
+            if line.startswith('_'):
+                topic_key, subject_key = line.strip().split('.')
+                topic_dict = parsed_block.setdefault(topic_key[1:], {})
+                subject_keys.append(subject_key)
+            else:
+                subject_values.append(split_with_quotes(line))
+
+        elif line.startswith('_'):
+            kv = split_with_quotes(line)
+
+            if len(kv) == 2:
+                key, value = kv
+            else:
+                # Extract next line value
+                key = kv.pop(0)
+                value = next(data_block_iterator).strip()
+                if value[0] == "'":
+                    value.strip("'")
+
+            # check for multiline entry
+            if value[0] == ';':
+                value = value[1:]
+                while True:
+                    line = next(data_block_iterator)
+                    if line.startswith(';'):
+                        break
+                    value += line.strip()
+
+            topic_key, subject_key = key.split('.')
+
+            topic_dict = parsed_block.setdefault(topic_key[1:], {})
+            topic_dict[subject_key] = value
+
+    return parsed_block
+
+def split_with_quotes(string):
+    """
+    Helper function to split a string by it's whitespace into a list while respecting quotes.
+
+    Parameters
+    ----------
+    string:
+        The string to split
+
+    Returns
+    -------
+    vals: list[str]
+        List of substrings obtained from splitting the parnet string.
+
+    """
+    vals = string.split()
+    myit = enumerate(vals)
+    replace =[]
+
+    for i, val in myit:
+        if val[0] == '"' or val[0] == "'":
+            sym = val[0]
+            tvals = [val]
+            ends_with_quote = val[-1] == sym and len(val) > 1
+            j = i + 1
+            while not ends_with_quote:
+                _j, val = next(myit)
+                j = _j + 1
+                tvals.append(val)
+                ends_with_quote = val[-1] == sym
+
+            val = " ".join(tvals)
+            val = val.strip(sym)
+            replace.append((i, j, val))
+
+    if replace:
+        for i, j, val in reversed(replace):
+            vals[i:j] = [val]
+
+    return vals
+
+def create_ccd_dicts(cif_data):
+    """
+    Creates chemical composition dictionary (CCD) dictionaries from CCD entries in a cif file.
+
+    Parameters
+    ----------
+    cif_data: dict
+        cif file data as parsed from :func:`~read_cif`.
+
+    Returns
+    -------
+    ccd_data: dict
+        The dictionary containing the CCD data from a cif file in a chilife-readable format.
+    """
+    ccd_data = {}
+    atom_data = cif_data.get('chem_comp_atom', None)
+    if atom_data is not None:
+        for res, atom_id, atom_type, aromatic, stereo in zip(
+                atom_data['comp_id'],
+                atom_data['atom_id'],
+                atom_data['type_symbol'],
+                atom_data['pdbx_aromatic_flag'],
+                atom_data['pdbx_stereo_config']
+        ):
+            res_dict = ccd_data.setdefault(res, {})
+
+            if 'chem_comp_atom' not in res_dict:
+                res_dict["chem_comp_atom"] = {
+                    "comp_id": [],
+                    "atom_id": [],
+                    "type_symbol": [],
+                    "pdbx_aromatic_flag": [],
+                    "pdbx_stereo_config": [],
+                }
+
+            atom_dict = res_dict["chem_comp_atom"]
+            atom_dict['comp_id'].append(res)
+            atom_dict['atom_id'].append(atom_id)
+            atom_dict['type_symbol'].append(atom_type)
+            atom_dict['pdbx_aromatic_flag'].append(aromatic)
+            atom_dict['pdbx_stereo_config'].append(stereo)
+
+    bond_data = cif_data.get('chem_comp_bond', None)
+    if bond_data is not None:
+        for res, atom_id1, atom_id2, bond_order, aromatic, stereo in zip(
+            bond_data['comp_id'],
+            bond_data['atom_id_1'],
+            bond_data['atom_id_2'],
+            bond_data['value_order'],
+            bond_data['pdbx_aromatic_flag'],
+            bond_data['pdbx_stereo_config']
+        ):
+            res_dict = ccd_data.setdefault(res, {})
+            if 'chem_comp_bond' not in res_dict:
+                res_dict["chem_comp_bond"] = {
+                    "comp_id": [],
+                    "atom_id_1": [],
+                    "atom_id_2": [],
+                    "value_order": [],
+                    "pdbx_aromatic_flag": [],
+                    "pdbx_stereo_config": [],
+                }
+
+            bond_dict = res_dict["chem_comp_bond"]
+            bond_dict['comp_id'].append(res)
+            bond_dict['atom_id_1'].append(atom_id1)
+            bond_dict['atom_id_2'].append(atom_id2)
+            bond_dict['value_order'].append(bond_order)
+            bond_dict['pdbx_aromatic_flag'].append(aromatic)
+            bond_dict['pdbx_stereo_config'].append(stereo)
+
+
+    chem_comp_data= cif_data.get('chem_comp', None)
+    if chem_comp_data is not None and all(
+        key in chem_comp_data
+        for key in [
+            "id",
+            "type",
+            "mon_nstd_flag",
+            "name",
+            "pdbx_synonyms",
+            "formula",
+            "formula_weight",
+        ]
+    ):
+        for res, link_type, mon_nsdt_flag, name, pdbx_synonyms, formula, weight in zip(
+            chem_comp_data["id"],
+            chem_comp_data["type"],
+            chem_comp_data["mon_nstd_flag"],
+            chem_comp_data["name"],
+            chem_comp_data["pdbx_synonyms"],
+            chem_comp_data["formula"],
+            chem_comp_data["formula_weight"],
+        ):
+            res_dict = ccd_data.setdefault(res, {})
+            res_dict["chem_comp"] = {
+                'link type': link_type,
+                'mon nsdt flag': mon_nsdt_flag,
+                'name': name,
+                'pdbx synonyms': pdbx_synonyms,
+                'formula': formula,
+                'weight': weight
+            }
+
+
+
+    return ccd_data
+
+
+def write_cif(file_name, cif_data):
+    """
+    Function to write a CIF file from cif_data as read by :func:`~read_cif`
+
+    Parameters
+    ----------
+    file_name: str | Path
+        File to write the cif_data to.
+    cif_data: Dict
+        cif data to write to the file.
+    """
+    lines = []
+    for struct in cif_data:
+        lines.append(f"data_{struct}\n")
+        lines.append("# \n")
+        for key1, value1 in cif_data[struct].items():
+            max_subkey_len = max(len(k) for k in value1.keys())
+            key_length = len(key1) + 1 + max_subkey_len + 3
+            loop_keys = []
+            loop_values = []
+            max_val_lens = []
+            for key2, value2 in value1.items():
+                line = f"_{key1}.{key2}".ljust(key_length)
+                if isinstance(value2, str):
+                    if " " in value2 and value2[0] != "'":
+                        value2 = "'" + value2 + "'"
+
+                    if len(value2) < 80:
+                        line += f" {value2} \n"
+                        lines.append(line)
+                    elif " " in value2:
+                        lines.append(line + '\n')
+                        lines.append(value2 + '\n')
+                    else:
+                        lines.append(line + '\n')
+                        prelude = ";"
+                        for string in textwrap.wrap(value2, 80):
+                            lines.append(prelude + string + '\n')
+                            prelude = ""
+                        lines.append("; \n")
+
+                elif isinstance(value2, Sequence):
+                    loop_keys.append(line + '\n')
+                    value2 = [v if "'" not in v else '"' + v + '"' for v in value2]
+                    try:
+                        value2 = [v if (" " not in v) and (v[0] != "_") else "'" + v + "'" for v in value2]
+                    except IndexError:
+                        breakpoint()
+                    loop_values.append(value2)
+                    try:
+                        max_val_lens.append(max(len(x) for x in value2))
+                    except ValueError:
+                        print(value2)
+
+
+            if loop_values:
+                lines.append("loop_\n")
+                for key in loop_keys:
+                    lines.append(key)
+
+                for row in zip(*loop_values):
+                    line = " ".join(x.ljust(n) for x,n in zip(row, max_val_lens))
+                    lines.append(line + '\n')
+
+            lines.append("# \n")
+    with open(file_name, 'w') as f:
+        f.writelines(lines)
+
+def join_ccd_info(ccd_list, ccd_data=None):
+    """
+    Join CCD info from a list of CCD entries into a dictionary that can be used to write ccd info to a cif file.
+
+    Parameters
+    ----------
+    ccd_list: List[str]
+        List of CCD codes to extract from the ccd_data dictionary to be joined in a single ccd_info dict.
+    ccd_data: Dict
+        Superset dictionary of CCD entries that contain all the CCD info for the CCD codes specified in the ``ccd_list``
+        If ``ccd_data`` is not provided the default chilife ``bio_ccd`` will be used which contains all biomolecular CCD
+        entries from the PDB (as of mid 2025). If a CCD code in ``ccd_list`` is not in ``ccd_data`` it will be skipped.
+
+    Returns
+    -------
+    return_ccd: Dict
+        A dictionary containing all ccd data for the set of codes provided and ready to be written to a cif file.
+    """
+    # use default CCD if none is provided
+    if ccd_data is None:
+        ccd_data = chilife.bio_ccd
+    # Otherwise overwrite default CCD data with what was provided and add missing CCD data
+    else:
+        _ccd_data = {k: v for k, v in chilife.bio_ccd.items()}
+        _ccd_data.update(ccd_data)
+        ccd_data = _ccd_data
+
+    individual_CCDs = [ccd_data[ccd] for ccd in ccd_list if ccd in ccd_data]
+    return_ccd = {
+        "chem_comp": {},
+        "chem_comp_atom": {key: [] for key in CHEM_COMP_ATOM_KEYS},
+        'chem_comp_bond': {key: [] for key in CHEM_COMP_BOND_KEYS},
+    }
+
+    return_ccd["chem_comp"]["id"] = tuple(
+        ccd["chem_comp"]["id"] for ccd in individual_CCDs if "chem_comp" in ccd
+    )
+    return_ccd["chem_comp"]["type"] = tuple(
+        ccd["chem_comp"]["type"] for ccd in individual_CCDs if "chem_comp" in ccd
+    )
+    return_ccd["chem_comp"]["name"] = tuple(
+        ccd["chem_comp"]["name"] for ccd in individual_CCDs if "chem_comp" in ccd
+    )
+    return_ccd["chem_comp"]["pdbx_synonyms"] = tuple(
+        ccd["chem_comp"]["pdbx_synonyms"]
+        for ccd in individual_CCDs
+        if "chem_comp" in ccd
+    )
+    return_ccd["chem_comp"]["formula"] = tuple(
+        ccd["chem_comp"]["formula"] for ccd in individual_CCDs if "chem_comp" in ccd
+    )
+    return_ccd["chem_comp"]["formula_weight"] = tuple(
+        ccd["chem_comp"]["formula_weight"]
+        for ccd in individual_CCDs
+        if "chem_comp" in ccd
+    )
+
+    for ccd in individual_CCDs:
+
+        # Add Atom information
+        for key in CHEM_COMP_ATOM_KEYS:
+            return_ccd['chem_comp_atom'][key].extend(ccd['chem_comp_atom'][key])
+
+        if 'chem_comp_bond' not in ccd:
+            continue
+
+        # Ensure all fields are tuples/lists
+        ccd['chem_comp_bond'] = {
+            k: v if isinstance(v, (list, tuple)) else (v, )
+            for k, v in ccd['chem_comp_bond'].items()
+        }
+
+        # Add bond information
+        for key in CHEM_COMP_BOND_KEYS:
+            return_ccd['chem_comp_bond'][key].extend(ccd['chem_comp_bond'][key])
+
+
+    # Convert to tuples
+    return_ccd["chem_comp_atom"] = {k: tuple(v) for k, v in return_ccd["chem_comp_atom"].items()}
+    return_ccd['chem_comp_bond'] = {k : tuple(v) for k, v in return_ccd['chem_comp_bond'].items()}
+
+    # Add PDBx Ordinal
+    return_ccd["chem_comp_atom"]["pdbx_ordinal"] = tuple(
+        str(x) for x in range(1, len(return_ccd["chem_comp_atom"]["comp_id"]) + 1)
+    )
+    return_ccd["chem_comp_bond"]["pdbx_ordinal"] = tuple(
+        str(x) for x in range(1, len(return_ccd["chem_comp_bond"]["comp_id"]) + 1)
+    )
+
+    return return_ccd

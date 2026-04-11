@@ -93,23 +93,27 @@ def test_pairwise_dist():
 
 def test_fib_points():
     x = nu.fibonacci_points(10)
-    ans = np.array([[ 0.43588989,  0.        ,  0.9],
-                    [-0.52658671,  0.48239656,  0.7],
-                    [ 0.0757129 , -0.86270943,  0.5],
-                    [ 0.58041368,  0.75704687,  0.3],
-                    [-0.97977755, -0.17330885,  0.1],
-                    [ 0.83952592, -0.53403767, -0.1],
-                    [-0.24764672,  0.92123347, -0.3],
-                    [-0.39915719, -0.76855288, -0.5],
-                    [ 0.67080958,  0.24497858, -0.7],
-                    [-0.40291289,  0.16631658, -0.9]])
+    ans = np.array(
+        [
+            [0.43588989, 0.0, 0.9],
+            [-0.52658671, 0.48239656, 0.7],
+            [0.0757129, -0.86270943, 0.5],
+            [0.58041368, 0.75704687, 0.3],
+            [-0.97977755, -0.17330885, 0.1],
+            [0.83952592, -0.53403767, -0.1],
+            [-0.24764672, 0.92123347, -0.3],
+            [-0.39915719, -0.76855288, -0.5],
+            [0.67080958, 0.24497858, -0.7],
+            [-0.40291289, 0.16631658, -0.9],
+        ]
+    )
 
     np.testing.assert_allclose(x, ans)
 
 
 def test_get_sasa1():
-    ubq = mda.Universe('test_data/1ubq.pdb').select_atoms('protein')
-    SL = xl.SpinLabel('R1M', 28, ubq)
+    ubq = mda.Universe("test_data/1ubq.pdb").select_atoms("protein")
+    SL = xl.SpinLabel("R1M", 28, ubq)
     atom_coords = SL.coords[0]
     ff = xl.ljEnergyFunc()
     atom_radii = ff.get_lj_rmin(SL.atom_types)
@@ -123,17 +127,47 @@ def test_get_sasa1():
 
 
 def test_get_sasa2():
-    ubq = mda.Universe('test_data/1ubq.pdb').select_atoms('protein')
+    ubq = mda.Universe("test_data/1ubq.pdb").select_atoms("protein")
 
     atom_coords = ubq.atoms.positions
     ff = xl.ljEnergyFunc()
     atom_radii = ff.get_lj_rmin(ubq.atoms.types)
 
     area = nu.get_sasa(atom_coords, atom_radii, by_atom=True)
-    ans = np.array([2.83037863, 27.47825921, 0., 0., 0.,
-                    0., 0., 0.14186254, 0., 30.89830006])
+    ans = np.array(
+        [2.83037863, 27.47825921, 0.0, 0.0, 0.0, 0.0, 0.0, 0.14186254, 0.0, 30.89830006]
+    )
 
     assert area.sum() == 4832.089121458064
     np.testing.assert_allclose(area[0, 300:310], ans)
 
 
+def test_get_sasa3():
+    x = nu.get_sasa(np.array([[0, 0, 0]]), np.array([1.55]))
+    assert x == 4 * np.pi * (1.55 + 1.4) ** 2
+
+
+def test_ic_to_cart():
+    from time import perf_counter
+
+    idxs = np.array(
+        [[-1, -1, -1], [0, -1, -1], [0, 1, -1], [0, 1, 2], [1, 2, 3], [1, 2, 3]]
+    )
+
+    coords = np.array(
+        [
+            [np.nan, np.nan, np.nan],
+            [1.5, np.nan, np.nan],
+            [1.5, 2 * np.pi / 3, np.nan],
+            [1.5, 2 * np.pi / 3, np.pi],
+            [1.5, 2 * np.pi / 3, np.pi],
+            [1.5, 2 * np.pi / 3, np.pi / 3],
+        ]
+    )
+
+    t0 = perf_counter()
+    for i in range(100):
+        output = nu._ic_to_cart(idxs, coords)
+    print(f'Time: {(perf_counter() - t0) / 100}')
+
+    print(output)

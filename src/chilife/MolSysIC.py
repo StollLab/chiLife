@@ -9,9 +9,10 @@ import igraph as ig
 import numpy as np
 from numpy.typing import ArrayLike
 
+
 from .MolSys import MolecularSystemBase, Trajectory, MolSys
 from .Topology import Topology, guess_bonds
-from .protein_utils import get_angles, get_dihedrals
+from .protein_utils import get_angles, get_dihedrals, guess_mobile_dihedrals
 from .numba_utils import _ic_to_cart, batch_ic2cart
 from .globals import dihedral_defs
 
@@ -26,8 +27,28 @@ class MolSysIC:
         Array of z-matricies for all frames of the ensemble/trajectory
     z_matrix_idxs : np.ndarray
         Indices of the attoms that define the bond lengths, angles, and dihedrals of the z-matrix
-    protein :
-    kwargs
+    protein : MolecularSystemBase | MDAnalysis.AtomGroup | MDAnalysis.Universe
+
+    kwargs : dict
+        chain_operators : List[dict]
+            List of dictionaries containing the rotation matrix and translation vectors that compose the chain
+            operator. Chain operators are use to position the cartesian coordinates of the chain after buliding
+            the chain from internal coords.
+        chain_operator_idxs : ArrayLike
+            start and end atom indices for which to apply each chain operator. There should be a (start, end) for
+            each chain operator.
+        bonds : ArrayLike
+            Array of atom indices that are bonded.
+        bond_types : ArrayLike
+            Array of ``BondType`` enumerations assigning bond types to ``bonds``.
+        topology : Topology
+            A chilife Topology object that can be used to define bonds, angles, and torsions.
+        non_nan_idxs : ArrayLike
+            start and end atom indices of internal coordinates that do not contain NaNs. By definition the
+            first three atoms in chain have NaNs for bond distance, bond angle, and toriosn.
+        chain_res_name_map : dict
+            A dictionary mapping the chain ID, residue number, and atom indices of a bond to the atoms that will change
+            position if this bond is rotated.
 
     Attributes
     ----------
@@ -102,6 +123,8 @@ class MolSysIC:
         # Topology
         self.bonds = kwargs['bonds'] if 'bonds' in kwargs else \
             guess_bonds(self.protein.positions, self.protein.types)
+        bond_types = kwargs.get('bond_types', np.zeros(len(self.bonds)))
+        self.bond_types = {tuple(bond): i for bond, i in zip(self.bonds, bond_types)}
         self._nonbonded = kwargs.get('nonbonded', None)
         self.topology = kwargs['topology'] if 'topology' in kwargs else \
             Topology(self.protein, self.bonds)
@@ -538,6 +561,44 @@ class MolSysIC:
         dihedrals = get_dihedrals(*dihedral_values)
         return dihedrals[0] if len(dihedrals) == 1 else dihedrals
 
+    def sample(self, n_samples, dihedral_atoms=None, sigmas=20):
+
+
+        if len(self.resnums) > 1:
+            raise RuntimeError('sample is currently only supported for MolSysICs made from only a singe 1 residue')
+
+        resnum = self.resnums[0]
+
+        idxs = np.random.randint(len(self.trajectory), size=n_samples)
+
+        dihedral_atoms = guess_mobile_dihedrals(self) if dihedral_atoms is None else dihedral_atoms
+        rdihedrals = []
+        for idx in idxs:
+            self.trajectory[idx]
+            rdihedrals.append(self.get_dihedral(resnum, dihedral_atoms))
+
+        rdihedrals = np.array(rdihedrals)
+        value = np.asarray(sigmas)
+
+        if value.shape == ():
+            sigmas = np.ones((n_samples, len(dihedral_atoms))) * value
+        elif len(value) == len(dihedral_atoms) and len(value.shape) == 1:
+            sigmas = np.tile(value, (n_samples, 1))
+        elif value.shape == (n_samples, len(dihedral_atoms)):
+            sigmas = value.copy()
+        else:
+            raise ValueError('`dihedral_sigmas` must be a scalar, an array the length of the `self.dihedral atoms` or '
+                             'an array with the shape of (len(self.weights), len(self.dihedral_atoms))')
+
+        rkappas = 1 / np.deg2rad(sigmas)**2
+
+        new_dihedrals = np.random.vonmises(rdihedrals, rkappas)
+        z_matrix = self.batch_set_dihedrals(idxs, new_dihedrals, resnum, dihedral_atoms)
+        ICs = self.copy()
+        ICs.load_new(z_matrix)
+
+        return ICs
+
     def get_z_matrix_idxs(self, resi: int, atom_list: ArrayLike, chain: Union[int, str] = None):
         """Get the z-matrix indices of the dihedral angle(s) defined by ``atom_list`` and the specified residue and
         chain. Dihedral angles are returned in radians.
@@ -805,12 +866,12 @@ class MolSysIC:
             Frames or array of frames that should have the chain operators applied.
         """
 
-        idx = np.arange(len(self._chain_operators), dtype=int) if idx is None else idx
-        idx = np.atleast_1d(idx)
+        _chain_operators = [self._chain_operators[ix] for ix in idx] if idx is not None else self._chain_operators
+        idx = np.arange(len(_chain_operators)) if idx is None else idx
 
         cart_coords = self.protein.trajectory.coordinate_array
         if isinstance(self._chain_operators, list):
-            for i, op in zip(idx, self._chain_operators[idx]):
+            for i, op in zip(idx, _chain_operators):
                 for start, stop in self._chain_segs:
                     current_mx, current_ori = ic_mx(*cart_coords[i, start:start+3])
                     mx = op[start]['mx']
@@ -846,6 +907,9 @@ class MolSysIC:
         """
         self.trajectory.load_new(coordinates=self.trajectory.coordinate_array[idxs])
         self.protein.load_new(self.protein.trajectory.coordinate_array[idxs])
+
+        if isinstance(self._chain_operators, list):
+            self._chain_operators = [self._chain_operators[idx] for idx in idxs]
 
     def __iter__(self):
         for ts in self.trajectory:

@@ -6,5 +6,6 @@ Utils
 
     numba_utils
     protein_utils
+    ligand_utils
     alignments
     scoring

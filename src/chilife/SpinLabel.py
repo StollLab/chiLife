@@ -1,12 +1,11 @@
-from functools import partial
 import numpy as np
 from scipy.spatial.distance import cdist
 
 from .scoring import ljEnergyFunc, get_lj_energy
 from .RotamerEnsemble import RotamerEnsemble
+from .base_classes import FreeRadical
 
-
-class SpinLabel(RotamerEnsemble):
+class SpinLabel(RotamerEnsemble, FreeRadical):
     """
     A RotamerEnsemble made from a side chain with one or more unpaired electrons.
 
@@ -176,11 +175,6 @@ class SpinLabel(RotamerEnsemble):
         prelib.weights = np.ones(len(coords))
         prelib.weights /= prelib.weights.sum()
         return prelib
-
-    def __str__(self):
-        return (super().__str__() +
-                f"  spin atoms:\n    {self.spin_atoms}")
-
 
 
     def _base_copy(self, rotlib=None):

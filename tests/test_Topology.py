@@ -1,4 +1,6 @@
 import pickle
+
+import numpy as np
 import pytest
 import MDAnalysis
 import chilife as xl
@@ -27,7 +29,8 @@ def test_get_angle_defs(prot):
     bonds = xl.guess_bonds(prot.atoms.positions, prot.atoms.types)
     prot.add_bonds(bonds)
     graph1 = ig.Graph(n=len(prot.atoms), edges=bonds)
-    angles = set(get_angle_defs(graph1))
+    angle_defs = get_angle_defs(graph1)
+    angles = set(tuple(x) for x in angle_defs)
 
     angles2 = set(guess_angles(prot.bonds))
 
@@ -40,7 +43,8 @@ def test_get_dihedral_defs(prot):
     prot.add_bonds(bonds)
 
     graph1 = ig.Graph(n=len(prot.atoms), edges=bonds)
-    dihedrals = set(get_dihedral_defs(graph1))
+    ddefs = get_dihedral_defs(graph1)
+    dihedrals = set(tuple(x) for x in ddefs)
 
     prot.add_angles(guess_angles(prot.bonds))
     dihedrals2 = set(guess_dihedrals(prot.angles))
@@ -84,12 +88,13 @@ def test_dihedrals_by_atom():
     with open('test_data/mbp_dihedrals.pkl', 'rb') as f:
         ans = pickle.load(f)
 
-    assert top.dihedrals == ans
+    np.testing.assert_equal(top.dihedrals, np.array(ans))
 
     with open('test_data/dihedrals_by_atom.pkl', 'rb') as f:
         ans = pickle.load(f)
-
-    assert top.dihedrals_by_atoms == ans
+    test = {k:[tuple(x) for x in v] for k, v in top.dihedrals_by_atoms.items()}
+    
+    assert  test == ans
 
 
 def test_has_rings():

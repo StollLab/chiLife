@@ -1164,7 +1164,7 @@ def zmatrix_idxs_to_local(zmatrix_idxs):
     for d in zmatrix_idxs:
         d = [idxmap[di] for di in d]
         if (dl := len(d)) < 4:
-            d = [np.nan for i in range(4 - dl)] + d
+            d = [-1 for i in range(4 - dl)] + d
         new_zmatrix_idxs.append(d[::-1])
 
     with warnings.catch_warnings():

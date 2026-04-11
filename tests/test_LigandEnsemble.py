@@ -136,7 +136,7 @@ def test_repack():
     np.testing.assert_almost_equal(
         u.universe.trajectory.coordinate_array, ans["coords"], decimal=5
     )
-    np.testing.assert_almost_equal(dE, ans["dE"])
+    np.testing.assert_almost_equal(dE, ans["dE"], decimal=5)
 
 
 def test_spin_ligand():

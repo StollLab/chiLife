@@ -4,14 +4,28 @@ import pickle
 import numpy as np
 import pytest
 import chilife
-from chilife.MolSys import MolSys, parse_paren, Residue, ResidueSelection
+from chilife.MolSys import (
+    MolSys,
+    parse_paren,
+    Residue,
+    ResidueSelection,
+    res_to_ccd,
+    concat_molsys,
+)
 import MDAnalysis as mda
 
-prot = MolSys.from_pdb("test_data/1omp_H.pdb")
-mda_prot = mda.Universe("test_data/1omp_H.pdb")
+
+@pytest.fixture
+def prot(scope="module"):
+    return MolSys.from_pdb("test_data/1omp_H.pdb")
 
 
-def test_from_pdb():
+@pytest.fixture
+def mda_prot(scope="module"):
+    return mda.Universe("test_data/1omp_H.pdb")
+
+
+def test_from_pdb(prot):
     ans = np.array(
         [
             [-1.924, -20.646, -23.898],
@@ -56,7 +70,7 @@ def test_parse_paren5():
     assert len(P) == 3
 
 
-def test_select_or():
+def test_select_or(prot):
     m1 = prot.select_atoms("name CA or name CB")
     ans_mask = (prot.names == "CA") + (prot.names == "CB")
 
@@ -67,7 +81,7 @@ def test_select_or():
     assert not np.any(np.isin(prot.names[mm], ["CA", "CB"]))
 
 
-def test_select_and_or_and():
+def test_select_and_or_and(prot):
     m1 = prot.select_atoms("(resnum 32 and name CA) or (resnum 33 and name CB)")
     ans_mask = (prot.resnums == 32) * (prot.names == "CA") + (prot.resnums == 33) * (
         prot.names == "CB"
@@ -78,7 +92,7 @@ def test_select_and_or_and():
     assert np.all(np.isin(m1.resnums, [32, 33]))
 
 
-def test_select_and_not():
+def test_select_and_not(prot):
     m1 = prot.select_atoms("resnum 32 and not name CA")
     ans_mask = (prot.resnums == 32) * (prot.names != "CA")
 
@@ -87,7 +101,7 @@ def test_select_and_not():
     assert np.all(np.isin(m1.resnums, [32]))
 
 
-def test_select_name_and_resname():
+def test_select_name_and_resname(prot):
     m1 = prot.select_atoms("name CB and resname PRO")
     ans_mask = (prot.names == "CB") * (prot.resnames == "PRO")
 
@@ -96,7 +110,7 @@ def test_select_name_and_resname():
     assert np.all(np.isin(m1.resnames, ["PRO"]))
 
 
-def test_select_complex():
+def test_select_complex(prot):
     m1 = prot.select_atoms(
         "resname LYS ARG PRO and (name CA or (type C and resname PRO)) or resnum 5"
     )
@@ -112,7 +126,7 @@ def test_select_complex():
     assert not np.any(np.isin(prot.resnums[~m1.mask], 5))
 
 
-def test_select_range():
+def test_select_range(prot):
     m1 = prot.select_atoms("resnum 5-15")
     m2 = prot.select_atoms("resnum 5:15")
     ans_mask = np.isin(prot.resnums, list(range(5, 16)))
@@ -135,7 +149,7 @@ features = (
 
 
 @pytest.mark.parametrize("feature", features)
-def test_AtomSelection_features(feature):
+def test_AtomSelection_features(feature, prot):
     m1 = prot.select_atoms(
         "resname LYS ARG PRO and (name CA or (type C and resname PRO)) or resnum 5"
     )
@@ -145,18 +159,18 @@ def test_AtomSelection_features(feature):
     assert np.all(A == B)
 
 
-def test_byres():
+def test_byres(prot):
     waters = prot.select_atoms("byres name OH2 or resname HOH")
-    assert np.all(np.unique(waters.resixs) == np.arange(371, 444, dtype=int))
+    assert np.all(np.unique(waters.resixs) == np.arange(370, 443, dtype=int))
 
 
-def test_unary_not():
+def test_unary_not(prot):
     asel = prot.select_atoms("not resid 5")
     ans = prot.resnums != 5
     assert np.all(asel.mask == np.argwhere(ans).T[0])
 
 
-def test_around():
+def test_around(prot, mda_prot):
     asel = prot.select_atoms("around 5 resnum 5")
     mdasel = mda_prot.select_atoms("around 5 resnum 5")
 
@@ -164,7 +178,7 @@ def test_around():
     assert np.all(asel.atoms.residues.resnums == mdasel.atoms.residues.resnums)
 
 
-def test_point():
+def test_subsel(prot):
     asel = prot.select_atoms("point 0 0 0 5")
     mdasel = mda_prot.select_atoms("point 0 0 0 5")
 
@@ -172,12 +186,12 @@ def test_point():
     assert np.all(asel.atoms.residues.resnums == mdasel.atoms.residues.resnums)
 
 
-def test_invalid_selction():
+def test_invalid_selction(prot):
     with pytest.raises(ValueError):
         prot.select_atoms("pointx 0 0 0 5")
 
 
-def test_subsel():
+def test_subsel(prot):
     asel = prot.select_atoms("around 5 resnum 5")
     bsel = prot.select_atoms("resname LEU around 5 resnum 5")
     a2sel = asel.select_atoms("resname LEU")
@@ -232,6 +246,17 @@ def test_selection_traj():
     np.testing.assert_allclose(s.coords, [[16.195, -1.233, 11.306]])
 
 
+def test_AtomSelection():
+    p = chilife.MolSys.from_pdb("test_data/1omp.pdb")
+    atoms = []
+    for at in p:
+        assert isinstance(at, chilife.Atom)
+        atoms.append(at)
+
+    for at1, at2 in zip(p, atoms):
+        assert at1 is at2
+
+
 def test_ResidueSelection():
     p = chilife.MolSys.from_pdb("test_data/1omp.pdb")
     r = p.residues[10:12]
@@ -243,6 +268,17 @@ def test_ResidueSelection():
     assert isinstance(r2, Residue)
     assert r2.resname == "ILE"
     assert r2.resnum == 11
+
+
+def test_SegmentSelection():
+    p = chilife.MolSys.from_pdb("test_data/1omp.pdb")
+    segs = []
+    for seg in p.segments:
+        assert isinstance(seg, chilife.Segment)
+        segs.append(seg)
+
+    for seg1, seg2 in zip(p.segments, segs):
+        assert seg1 is seg2
 
 
 def test_save_Protein():
@@ -260,7 +296,7 @@ def test_save_Protein():
     assert test == ans
 
 
-def test_bool_index_atomsel():
+def test_bool_index_atomsel(prot):
     bindex = prot.resnames == "LYS"
     x = prot.atoms[bindex]
     assert len(x) == 769
@@ -314,7 +350,7 @@ def test_xl_protein_repack():
     np.testing.assert_almost_equal(t2coords, t2ans, decimal=4)
 
 
-def test_same_as_mda():
+def test_same_as_mda(prot, mda_prot):
     RE1 = chilife.RotamerEnsemble("ILE", 116, mda_prot)
     RE2 = chilife.RotamerEnsemble("ILE", 116, prot)
 
@@ -362,7 +398,7 @@ def test_re_form_xl_traj():
     np.testing.assert_almost_equal(SL.dihedrals, ans_dihedrals)
 
 
-def test_backbone_selection():
+def test_backbone_selection(prot):
     PhiSel = prot.residues[40].phi_selection()
     PsiSel = prot.residues[40].psi_selection()
     phi = np.rad2deg(chilife.get_dihedral(PhiSel.positions))
@@ -376,13 +412,13 @@ def test_backbone_selection():
 #     assert False
 
 
-def test_atom_sel_getitem():
+def test_atom_sel_getitem(prot):
     res = prot.residues[10].atoms[0:4]
     assert np.all(res.resnums == 11)
     np.testing.assert_equal(res.names, ["N", "CA", "C", "O"])
 
 
-def test_residue_sel_getitem():
+def test_residue_sel_getitem(prot):
     res = prot.residues[10:20]
     res10 = res.residues[0]
 
@@ -391,19 +427,19 @@ def test_residue_sel_getitem():
     assert np.all(res.residues[3:5].resnums == [14, 15])
 
 
-def test_copy():
+def test_copy(prot):
     prot2 = prot.copy()
     np.testing.assert_equal(prot2.coords, prot.coords)
     assert prot2.coords is not prot
 
 
-def test_setattr1():
+def test_setattr1(prot):
     prot2 = prot.copy()
     prot2.names = "test"
     assert np.all(prot2.names == "test")
 
 
-def test_setattr2():
+def test_setattr2(prot):
     prot2 = prot.copy()
 
     asel = prot2.select_atoms("resname ARG")
@@ -461,7 +497,7 @@ def test_pickle_selection():
     np.testing.assert_equal(mol.coords, ans.coords)
 
 
-def test_from_atomsel():
+def test_from_atomsel(mda_prot, prot):
     # MDAnalysis test
     atomsel = mda_prot.select_atoms("resnum 30-150")
     new_prot = MolSys.from_atomsel(atomsel)
@@ -481,16 +517,183 @@ def test_from_atomsel():
 
 def test_ResidueSelection_iter():
     prot = MolSys.from_pdb("test_data/1a2w.pdb")
-    chain_B = prot.select_atoms('chain B')
+    chain_B = prot.select_atoms("chain B")
     for res in chain_B.residues:
-        assert res.chain == 'B'
-        assert np.all(res.atoms.chains == 'B')
-        
+        assert res.chain == "B"
+        assert np.all(res.atoms.chains == "B")
+
 
 def test_ResidueSelection_iter2():
     protein = chilife.MolSys.from_pdb("test_data/1ubq.pdb").select_atoms("protein")
     ids = [res.resid for res in protein.residues]
-    np.testing.assert_equal(ids, np.arange(1,77))
+    np.testing.assert_equal(ids, np.arange(1, 77))
 
 
+@pytest.mark.parametrize(
+    ("molsys", "slice1", "slice2"),
+    (
+        ("prot", slice(0, 10), slice(10, 20)),
+        ("prot", slice(10, 20), slice(0, 10)),
+    ),
+)
+def test_add_molsys(molsys, slice1, slice2, request):
+    molsys = request.getfixturevalue(molsys)
 
+    tasel1 = molsys.atoms[:10]
+    tasel2 = molsys.atoms[10:20]
+
+    # combined = tasel1 + tasel2
+
+    combined = concat_molsys(tasel1, tasel2)
+
+    np.testing.assert_equal(
+        combined.positions, np.concatenate((tasel1.positions, tasel2.positions))
+    )
+
+    np.testing.assert_equal(
+        combined.names, np.concatenate((tasel1.names, tasel2.names))
+    )
+
+
+def test_add_molsys_bonds():
+    msys1 = MolSys.from_sdf("test_data/dAdo1.sdf")
+    msys1.chain = "X"
+    msys2 = MolSys.from_cif("test_data/7o1o.cif")
+    msys2 = msys2.select_atoms("not resname SAH")
+
+    molsys = msys2 + msys1
+
+    np.testing.assert_equal(
+        molsys.positions, np.concatenate((msys2.positions, msys1.positions))
+    )
+
+    np.testing.assert_equal(molsys.names, np.concatenate((msys2.names, msys1.names)))
+
+    ans = np.concatenate((msys2.bond_atom_names, msys1.bond_atom_names))
+    np.testing.assert_equal(molsys.bond_atom_names, ans)
+
+    ans = np.concatenate((msys2.bond_types, msys1.bond_types))
+    np.testing.assert_equal(molsys.bond_types, ans)
+
+
+def test_res_to_ccd():
+    prot = MolSys.from_cif("test_data/2jvc.cif")
+    res = prot.residues[2]
+
+    ccd = res_to_ccd(res)
+    official_ccd = chilife.bio_ccd["LEU"]
+
+    for k, v in ccd["chem_comp_atom"].items():
+        if k == "pdbx_aromatic_flag":
+            continue
+        ans = official_ccd["chem_comp_atom"][k]
+        assert all(vi in ans for vi in v)
+
+    for k, v in ccd["chem_comp_bond"].items():
+        if k == "pdbx_aromatic_flag":
+            continue
+
+        ans = official_ccd["chem_comp_bond"][k]
+        if k == "value_order":
+            ans = [a.lower() for a in ans]
+
+        assert all(vi in ans for vi in v)
+
+
+def test_add_bonds(prot):
+    bonds = chilife.guess_bonds(prot.coords, prot.atypes)
+    prot.add_bonds(bonds)
+
+    assert np.all(prot.bonds == bonds)
+
+
+def test_bonds_from_atomsel():
+    ans = chilife.bio_ccd["PRO"]["chem_comp_bond"]
+    ans = {(a, b) for a, b in zip(ans["atom_id_1"], ans["atom_id_2"])}
+
+    mol = MolSys.from_cif("test_data/2jvc.cif")
+    res = mol.residues[42]
+
+    ba_names = res.bond_atom_names
+    for a1, a2 in ba_names:
+        assert (a1, a2) in ans or (a2, a1) in ans
+
+
+def test_from_cif():
+    mol = MolSys.from_cif("test_data/2jvc.cif")
+
+    with np.load("test_data/from_cif_ans.npz") as f:
+        ans = dict(f)
+
+    np.testing.assert_almost_equal(mol.trajectory.coordinate_array, ans["coords"])
+    np.testing.assert_equal(mol.names, ans["anames"])
+    np.testing.assert_equal(mol.resnames, ans["resnames"])
+    np.testing.assert_equal(mol.segids, ans["segids"])
+    np.testing.assert_almost_equal(mol.charges, ans["charges"])
+    np.testing.assert_equal(mol.chiral, ans["chiral"])
+
+
+def test_from_sdf():
+    mol = MolSys.from_sdf("test_data/dAdo.sdf")
+
+    with np.load("test_data/from_sdf_ans.npz") as f:
+        ans = dict(f)
+
+    np.testing.assert_almost_equal(mol.trajectory.coordinate_array, ans["coords"])
+    np.testing.assert_equal(mol.names, ans["anames"])
+    np.testing.assert_equal(mol.resnames, ans["resnames"])
+    np.testing.assert_equal(mol.segids, ans["segids"])
+    np.testing.assert_almost_equal(mol.charges, ans["charges"])
+    np.testing.assert_equal(mol.chiral, ans["chiral"])
+
+
+def test_write_cif():
+    mysys = MolSys.from_cif("test_data/2jvc.cif")
+    mysys.write_cif("test_cif.cif")
+
+    with open("test_data/write_cif.cif", "r") as f:
+        ans = hashlib.md5(f.read().encode("utf-8")).hexdigest()
+
+    with open("test_cif.cif", "r") as f:
+        test = hashlib.md5(f.read().encode("utf-8")).hexdigest()
+
+    assert ans == test
+    os.remove("test_cif.cif")
+
+
+def test_write_cif2():
+    mysys = MolSys.from_cif("test_data/7o1o.cif")
+    mysys.write_cif("test_cif.cif")
+
+    with open("test_data/write_cif2.cif", "r") as f:
+        ans = hashlib.md5(f.read().encode("utf-8")).hexdigest()
+
+    with open("test_cif.cif", "r") as f:
+        test = hashlib.md5(f.read().encode("utf-8")).hexdigest()
+
+    assert ans == test
+    os.remove("test_cif.cif")
+
+
+def test_write_sdf():
+    mol = MolSys.from_sdf("test_data/dAdo.sdf")
+    mol.write_sdf("test_sdf.sdf")
+
+    with open("test_data/write_sdf.sdf", "r") as f:
+        ans_str = f.read()
+        ans_str = ans_str.replace("1.2.0dev1", "version")
+        ans = hashlib.md5(ans_str.encode("utf-8")).hexdigest()
+
+    with open("test_sdf.sdf", "r") as f:
+        test_str = f.read()
+        test_str = test_str.replace(chilife.__version__, "version")
+        test = hashlib.md5(test_str.encode("utf-8")).hexdigest()
+
+    assert ans == test
+    os.remove("test_sdf.sdf")
+
+
+def test_use_ccd():
+    mol = MolSys.from_pdb("test_data/7o1o.pdb", use_ccd=chilife.bio_ccd)
+    assert len(mol.bonds) == 5508
+    assert chilife.BondType.DOUBLE in mol.bond_types

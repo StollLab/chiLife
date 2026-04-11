@@ -291,6 +291,16 @@ def test_iter():
     np.testing.assert_equal(cdata, cans)
     np.testing.assert_equal(zdata, zans)
 
+def test_sample():
+    np.random.seed(0)
+    mol = xl.MolSys.from_pdb('test_data/R1M.pdb')
+    IC1 = xl.MolSysIC.from_atoms(mol)
+    ICX = IC1.sample(100)
+
+    ans = np.load('test_data/test_sample_msic.npy')
+    np.testing.assert_almost_equal(ICX.protein.trajectory.coordinate_array, ans, decimal=6)
+
+
 def test_load_new():
     pass
 

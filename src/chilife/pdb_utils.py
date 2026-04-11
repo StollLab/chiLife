@@ -10,11 +10,13 @@ from .globals import atom_order, nataa_codes, natnu_codes, mm_backbones
 from .Topology import get_min_topol, guess_bonds, modified_bfs_edges
 
 
-def sort_pdb(pdbfile: Union[str, List[str], List[List[str]]],
-             uniform_topology: bool = True,
-             index: bool = False,
-             bonds: Union[ArrayLike, Set] = set(),
-             **kwargs) -> Union[List[str], List[List[str]], List[int]]:
+def sort_pdb(
+    pdbfile: Union[str, List[str], List[List[str]]],
+    uniform_topology: bool = True,
+    index: bool = False,
+    bonds: Union[ArrayLike, Set] = None,
+    **kwargs,
+) -> Union[List[str], List[List[str]], List[int]]:
     """Read ATOM lines of a pdb and sort the atoms according to chain, residue index, backbone atoms and side chain atoms.
     Side chain atoms are sorted by distance to each other/backbone atoms with atoms closest to the backbone coming
     first and atoms furthest from the backbone coming last. This sorting is essential to making internal-coordinates
@@ -42,6 +44,8 @@ def sort_pdb(pdbfile: Union[str, List[str], List[List[str]]],
     lines : List[str], List[List[str]]
         Sorted list of strings corresponding to the ATOM entries of a PDB file.
     """
+    bonds = bonds or set()
+
     if isinstance(pdbfile, (str, Path)):
         with open(pdbfile, "r") as f:
             lines = f.readlines()
@@ -49,41 +53,58 @@ def sort_pdb(pdbfile: Union[str, List[str], List[List[str]]],
         start_idxs = []
         end_idxs = []
         connect = []
-        lines = [line for line in lines if line.startswith(('MODEL', 'ENDMDL', 'CONECT', 'ATOM', 'HETATM'))]
+        lines = [
+            line
+            for line in lines
+            if line.startswith(("MODEL", "ENDMDL", "CONECT", "ATOM", "HETATM"))
+        ]
         for i, line in enumerate(lines):
-            if line.startswith('MODEL'):
+            if line.startswith("MODEL"):
                 start_idxs.append(i + 1)
             elif line.startswith("ENDMDL"):
                 end_idxs.append(i)
-            elif line.startswith('CONECT'):
+            elif line.startswith("CONECT"):
                 connect.append(line)
 
         # Use connect information for bonds if present
         if connect != [] and bonds == set():
             connect, _, _ = parse_connect(connect)
-            kwargs['additional_bonds'] = kwargs.get('additional_bonds', set()) | connect
+            kwargs["additional_bonds"] = kwargs.get("additional_bonds", set()) | connect
 
         # If it's a multi-state pdb...
         if start_idxs != []:
-
             if uniform_topology:
                 # Assume that all states have the same topology as the first
-                idxs = _sort_pdb_lines(lines[start_idxs[0]:end_idxs[0]], bonds=bonds, index=True, **kwargs)
+                idxs = _sort_pdb_lines(
+                    lines[start_idxs[0] : end_idxs[0]],
+                    bonds=bonds,
+                    index=True,
+                    **kwargs,
+                )
 
             else:
                 # Calculate the shared topology and force it
                 atom_lines = [lines[s:e] for s, e in zip(start_idxs, end_idxs)]
                 min_bonds_list = get_min_topol(atom_lines, forced_bonds=bonds)
-                idxs = _sort_pdb_lines(lines[start_idxs[0]:end_idxs[0]], bonds=min_bonds_list, index=True, **kwargs)
+                idxs = _sort_pdb_lines(
+                    lines[start_idxs[0] : end_idxs[0]],
+                    bonds=min_bonds_list,
+                    index=True,
+                    **kwargs,
+                )
 
             if isinstance(idxs, tuple):
                 idxs, bonds = idxs
 
-            lines[:] = [[lines[idx + start][:6] + f"{i + 1:5d}" + lines[idx + start][11:]
-                         for i, idx in enumerate(idxs)]
-                        for start in start_idxs]
+            lines[:] = [
+                [
+                    lines[idx + start][:6] + f"{i + 1:5d}" + lines[idx + start][11:]
+                    for i, idx in enumerate(idxs)
+                ]
+                for start in start_idxs
+            ]
 
-            if kwargs.get('return_bonds', False):
+            if kwargs.get("return_bonds", False):
                 lines = lines, bonds
         else:
             lines = _sort_pdb_lines(lines, bonds=bonds, index=index, **kwargs)
@@ -94,8 +115,9 @@ def sort_pdb(pdbfile: Union[str, List[str], List[List[str]]],
     return lines
 
 
-def _sort_pdb_lines(lines, bonds=None, index=False, **kwargs) -> \
-        Union[List[str], List[int], Tuple[list[str], List[Tuple[int]]]]:
+def _sort_pdb_lines(
+    lines, bonds=None, index=False, **kwargs
+) -> Union[List[str], List[int], Tuple[list[str], List[Tuple[int]]]]:
     """
     Helper function to sort PDB ATOM and HETATM lines based off of the topology of the topology of the molecule.
 
@@ -128,9 +150,13 @@ def _sort_pdb_lines(lines, bonds=None, index=False, **kwargs) -> \
         A set of tuples containing pars of indices corresponding to the atoms bound to in lines.
     """
 
-    waters = [line for line in lines if line[17:20] in ('SOL', 'HOH')]
-    water_idx = [idx for idx, line in enumerate(lines) if line[17:20] in ('SOL', 'HOH')]
-    lines = [line for line in lines if line.startswith(("ATOM", "HETATM")) and line[17:20] not in ('SOL', 'HOH')]
+    waters = [line for line in lines if line[17:20] in ("SOL", "HOH")]
+    water_idx = [idx for idx, line in enumerate(lines) if line[17:20] in ("SOL", "HOH")]
+    lines = [
+        line
+        for line in lines
+        if line.startswith(("ATOM", "HETATM")) and line[17:20] not in ("SOL", "HOH")
+    ]
     n_atoms = len(lines)
     index_key = {line[6:11]: i for i, line in enumerate(lines)}
 
@@ -139,41 +165,60 @@ def _sort_pdb_lines(lines, bonds=None, index=False, **kwargs) -> \
     presort_idx_key = {line[6:11]: i for i, line in enumerate(lines)}
     presort_bond_key = {index_key[line[6:11]]: i for i, line in enumerate(lines)}
 
-    coords = np.array([[float(line[30:38]), float(line[38:46]), float(line[46:54])] for line in lines])
+    coords = np.array(
+        [[float(line[30:38]), float(line[38:46]), float(line[46:54])] for line in lines]
+    )
     atypes = np.array([line[76:78].strip() for line in lines])
     anames = np.array([line[12:17].strip() for line in lines])
 
     if bonds:
         input_bonds = {tuple(b) for b in bonds}
-        presort_bonds = set(tuple(sorted((presort_bond_key[b1], presort_bond_key[b2]))) for b1, b2 in bonds)
+        presort_bonds = set(
+            tuple(sorted((presort_bond_key[b1], presort_bond_key[b2])))
+            for b1, b2 in bonds
+        )
     else:
         bonds = guess_bonds(coords, atypes)
         presort_bonds = set(tuple(sorted((b1, b2))) for b1, b2 in bonds)
-        if kwargs.get('additional_bonds', set()) != set():
-            presort_bonds.union(kwargs['additional_bonds'])
+        if kwargs.get("additional_bonds", set()) != set():
+            presort_bonds.union(kwargs["additional_bonds"])
 
     # get residue groups
-    chain, resi, resn = lines[0][21], int(lines[0][22:26].strip()), lines[0][17:20].strip()
+    chain, resi, resn = (
+        lines[0][21],
+        int(lines[0][22:26].strip()),
+        lines[0][17:20].strip(),
+    )
     start = 0
     resdict = {}
     for curr, pdb_line in enumerate(lines):
-
         if chain != pdb_line[21] or resi != int(pdb_line[22:26].strip()):
             resdict[chain, resi] = start, curr, resn
             start = curr
-            chain, resi, resn = pdb_line[21], int(pdb_line[22:26].strip()), pdb_line[17:20].strip()
+            chain, resi, resn = (
+                pdb_line[21],
+                int(pdb_line[22:26].strip()),
+                pdb_line[17:20].strip(),
+            )
 
     resdict[chain, resi] = start, curr + 1, resn
     midsort_key = []
     for key in resdict:
         start, stop, resn = resdict[key]
-        midsort_key += sort_residue(coords, atypes[start:stop], anames[start:stop],
-                                    resn, presort_bonds, start, kwargs.get('aln_atoms', None))
+        midsort_key += sort_residue(
+            coords,
+            atypes[start:stop],
+            anames[start:stop],
+            resn,
+            presort_bonds,
+            start,
+            kwargs.get("aln_atoms", None),
+        )
 
     lines[:] = [lines[i] for i in midsort_key]
     lines.sort(key=atom_sort_key)
 
-    if 'input_bonds' not in locals():
+    if "input_bonds" not in locals():
         input_bonds = presort_bonds
         idxmap = {presort_idx_key[line[6:11]]: i for i, line in enumerate(lines)}
     else:
@@ -186,9 +231,11 @@ def _sort_pdb_lines(lines, bonds=None, index=False, **kwargs) -> \
 
     # Otherwise make new indices
     else:
-        lines = [line[:6] + f"{i + 1:5d}" + line[11:] for i, line in enumerate(lines)] + waters
+        lines = [
+            line[:6] + f"{i + 1:5d}" + line[11:] for i, line in enumerate(lines)
+        ] + waters
 
-    if kwargs.get('return_bonds', False):
+    if kwargs.get("return_bonds", False):
         bonds = {tuple(sorted((idxmap[a], idxmap[b]))) for a, b in input_bonds}
         return lines, bonds
 
@@ -212,7 +259,7 @@ def sort_residue(coords, atypes, anames, resname, presort_bonds, start, aln_atom
     presort_bonds : ArrayLike
         Array of index pairs corresponding to bonded atom pairs. Index is based on the indices of atoms before sorting.
     start : int
-        The index of the first atom of the residue in the greater protein environment.
+        The index of the first atom of the residue in the greater molecular environment.
     aln_atoms : List
         List of atom indices defining the "origin" of the residue. These will be used to define backbone and side chain
         atoms.
@@ -224,15 +271,22 @@ def sort_residue(coords, atypes, anames, resname, presort_bonds, start, aln_atom
     """
 
     stop = start + len(anames)
-    n_heavy = np.sum(atypes != 'H')
+    n_heavy = np.sum(atypes != "H")
     res_coords = coords[start:stop]
 
     # Adjust bond atom indices to reference local index
-    bonds = np.array([(a - start, b - start) for a, b in presort_bonds
-                      if (start <= a < stop) and (start <= b < stop)])
+    bonds = np.array(
+        [
+            (a - start, b - start)
+            for a, b in presort_bonds
+            if (start <= a < stop) and (start <= b < stop)
+        ]
+    )
 
     # Get all nearest neighbors and sort by distance for generating graph
-    distances = np.linalg.norm(res_coords[bonds[:, 0]] - res_coords[bonds[:, 1]], axis=1)
+    distances = np.linalg.norm(
+        res_coords[bonds[:, 0]] - res_coords[bonds[:, 1]], axis=1
+    )
     distances = np.around(distances, decimals=3)
 
     # Sort bonds by distance
@@ -245,7 +299,7 @@ def sort_residue(coords, atypes, anames, resname, presort_bonds, start, aln_atom
     # Determine if this residue fits aln_atoms criteria. aln_atoms must be defined, present, and adjacent in the graph
     if aln_atoms is not None:
         if len(aln_atoms) != 3:
-            raise ValueError('aln_atoms must have length 3')
+            raise ValueError("aln_atoms must have length 3")
 
         aln_cen = np.argwhere(aln_atoms[1] == anames).flat[0]
         neighbor_idx = np.argwhere(np.isin(anames, aln_atoms[::2])).flatten()
@@ -269,7 +323,9 @@ def sort_residue(coords, atypes, anames, resname, presort_bonds, start, aln_atom
         # Use candidates if they are defined
         if bb_candidates:
             aname_lst = anames.tolist()
-            sorted_args = [aname_lst.index(name) for name in bb_candidates if name in aname_lst]
+            sorted_args = [
+                aname_lst.index(name) for name in bb_candidates if name in aname_lst
+            ]
 
         # Otherwise, if there are no preceding residues start from the first atom
         elif start == 0:
@@ -279,7 +335,7 @@ def sort_residue(coords, atypes, anames, resname, presort_bonds, start, aln_atom
         else:
             for a, b in presort_bonds:
                 # Find the atom bonded to a previous residue
-                if a < start and start <= b < stop and atypes[b-start] != 'H':
+                if a < start and start <= b < stop and atypes[b - start] != "H":
                     sorted_args = [b - start]
                     break
             # Otherwise get the closest to any previous atom
@@ -302,28 +358,35 @@ def sort_residue(coords, atypes, anames, resname, presort_bonds, start, aln_atom
 
     # Skip BFS sorting if heavy atoms are sorted, i.e. the backbone is known and there is no side chain (e.g. GLY)
     if len(sorted_args) != n_heavy:
-
         graph = ig.Graph(edges=pairs)
 
         if root_idx not in graph.vs.indices:
-            raise RuntimeError(f'The connectivity of one or more residue is not valid')
+            raise RuntimeError("The connectivity of one or more residue is not valid")
 
         # Use dfs verts for backbone
         if use_aln:
-            sorted_args += get_backbone_atoms(graph, root_idx, neighbor_idx, sorted_args=sorted_args)
+            sorted_args += get_backbone_atoms(
+                graph, root_idx, neighbor_idx, sorted_args=sorted_args
+            )
 
         # Use bfs verts for
         # bfsv, si, bfse = graph.bfs(root_idx)
         # [v for v in bfsv if v not in sorted_args]
-        sidechain_nodes = [v[1] for v in modified_bfs_edges(pairs, root_idx, sorted_args) if v[1] not in sorted_args]
+        sidechain_nodes = [
+            v[1]
+            for v in modified_bfs_edges(pairs, root_idx, sorted_args)
+            if v[1] not in sorted_args
+        ]
 
         # Check for disconnected parts of residue
         if not graph.is_connected():
             for g in graph.connected_components():
                 if np.any([arg in g for arg in sorted_args]):
                     continue
-                free_nodes = [idx for idx in sidechain_nodes if atypes[start + idx] != 'H']
-                g_nodes = [idx for idx in g if atypes[start + idx] != 'H']
+                free_nodes = [
+                    idx for idx in sidechain_nodes if atypes[start + idx] != "H"
+                ]
+                g_nodes = [idx for idx in g if atypes[start + idx] != "H"]
                 near_root = cdist(res_coords[free_nodes], res_coords[g_nodes]).argmin()
 
                 yidx = near_root % len(g_nodes)
@@ -332,7 +395,9 @@ def sort_residue(coords, atypes, anames, resname, presort_bonds, start, aln_atom
 
     elif stop - start > n_heavy:
         # Assumes  non-heavy atoms come after the heavy atoms, which should be true because of the pre-sort
-        sidechain_nodes = list(range(n_heavy, n_heavy + (stop - start - len(sorted_args))))
+        sidechain_nodes = list(
+            range(n_heavy, n_heavy + (stop - start - len(sorted_args)))
+        )
     else:
         sidechain_nodes = []
 
@@ -364,13 +429,13 @@ def get_bb_candidates(anames, resname):
 
     """
     if resname in natnu_codes:
-        bb_candidates = mm_backbones['nu']
+        bb_candidates = mm_backbones["nu"]
     elif resname in nataa_codes:
-        bb_candidates = mm_backbones['aa']
-    elif np.isin(mm_backbones['aa'], anames).sum() >= 3:
-        bb_candidates = mm_backbones['aa']
-    elif np.isin(mm_backbones['nu'], anames).sum() >= 3:
-        bb_candidates = mm_backbones['nu']
+        bb_candidates = mm_backbones["aa"]
+    elif np.isin(mm_backbones["aa"], anames).sum() >= 3:
+        bb_candidates = mm_backbones["aa"]
+    elif np.isin(mm_backbones["nu"], anames).sum() >= 3:
+        bb_candidates = mm_backbones["nu"]
     elif resname in mm_backbones:
         bb_candidates = mm_backbones[resname]
     else:
@@ -405,7 +470,7 @@ def get_backbone_atoms(graph, root_idx, neighbor_idx, **kwargs):
 
     """
 
-    sorted_args = kwargs.get('sorted_args', [])
+    sorted_args = kwargs.get("sorted_args", [])
 
     # Start stemming from root atom
     neighbors = graph.neighbors(root_idx)
@@ -420,13 +485,12 @@ def get_backbone_atoms(graph, root_idx, neighbor_idx, **kwargs):
             bblist_order[idx] = len(backbone_vs)
             active_list = backbone_vs
         elif idx in neighbors:
-
             active_list = sidechain_vs
 
         if idx not in sorted_args:
             active_list.append(idx)
 
-    bblist_order['end'] = len(backbone_vs)
+    bblist_order["end"] = len(backbone_vs)
     bbidx_slices = {}
     items = iter(bblist_order)
     k1 = next(items)
@@ -457,15 +521,21 @@ def atom_sort_key(pdb_line: str) -> Tuple[str, int, int]:
     atom_name = pdb_line[12:17].strip()
     atom_type = pdb_line[76:79].strip()
     if res_name == "ACE":
-        if atom_type != 'H' and atom_name not in ('CH3', 'C', 'O'):
-            raise ValueError(f'"{atom_name}" is not canonical name of an ACE residue atom. \n'
-                             f'Please rename to "CH3", "C", or "O"')
+        if atom_type != "H" and atom_name not in ("CH3", "C", "O"):
+            raise ValueError(
+                f'"{atom_name}" is not canonical name of an ACE residue atom. \n'
+                f'Please rename to "CH3", "C", or "O"'
+            )
         name_order = (
             {"CH3": 0, "C": 1, "O": 2}.get(atom_name, 4) if atom_type != "H" else 5
         )
 
     else:
-        name_order = atom_order.get(atom_name, 4) if atom_type != "H" else atom_order.get(atom_name, 7)
+        name_order = (
+            atom_order.get(atom_name, 4)
+            if atom_type != "H"
+            else atom_order.get(atom_name, 7)
+        )
 
     return chain_id, resid, name_order
 

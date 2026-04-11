@@ -1,6 +1,6 @@
 chiLife Functions
 =================
-
+Some intro text
 General Functions
 -----------------
 
@@ -22,5 +22,15 @@ IO Functions
 .. automodule:: chilife.io
     :members: read_distance_distribution,
               read_library,
+              read_pdb,
+              read_cif,
+              read_sdf,
               save,
-              write_atoms
+              write_atoms,
+              write_cif,
+              write_sdf,
+              create_ccd_dicts,
+              join_ccd_info,
+
+
+

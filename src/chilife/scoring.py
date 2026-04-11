@@ -1,40 +1,41 @@
-from typing import Union
-from abc import ABC, abstractmethod
+from abc import abstractmethod
 import numpy as np
 from scipy.spatial import cKDTree
 from scipy.spatial.distance import cdist
 from numba import njit
 import MDAnalysis as mda
 
-import chilife.RotamerEnsemble as re
-import chilife.dRotamerEnsemble as dre
-from .MolSys import MolSys
+from .base_classes import Ensemble
+
+
+from .MolSys import MolSys, MolecularSystemBase
 
 
 @njit(cache=True)
 def get_lj_energy(r, rmin, eps, forgive=1, cap=10, rmax=10):
-    """Return a vector with the energy values for the flat bottom lenard-jones potential from a set of atom pairs with
-    distance `r`, rmin values of `rmin` and epsilon values of `eps`.
+    """Return a vector with the energy values for the flat bottom lennard-jones potential from a set of atom pairs with
+    distance ``r``, rmin values of ``rmin`` and epsilon values of ``eps``.
 
     Parameters
     ----------
     r : numpy.ndarray
         Vector of inter-atomic distances between non-bonded atoms of a system.
     rmin : numpy.ndarray
-        Vector of rmin parameters, in angstoms,  corresponding to atoms pairs of r.
+        Vector of rmin parameters, in angstroms, corresponding to atoms pairs of ``r``.
     eps : numpy.ndarray
-        Vector of epsilon parameters corresponding to atom pairs of r
+        Vector of epsilon parameters corresponding to atom pairs of ``r``
     forgive : numpy.ndarray
-        The `forgive` factor is a softening term to mitigate rigid body artifacts. It is set to a value between 0 1nd 1
-        and modifies the rmin parameter of all atom pairs in `r` to be the fraction, `forgive` of the thair original
-        value. This allows atoms to be closer than otherwise allowed to prevent explosion of the jennard-jones repulsion
-        in situations that would otherwise be resolved with minor atomic displacements.
-    cap : flaot
+        The ``forgive`` factor is a softening term to mitigate rigid body artifacts. It is set to a value between 0 and
+        1 and modifies the ``rmin`` parameter of all atom pairs in ``r`` to be the fraction, ``forgive`` of the
+        original value. This allows atoms to be closer than otherwise allowed to prevent explosion of the Lennard-jones
+        repulsion in situations that would otherwise be resolved with minor atomic displacements.
+    cap : float
         Maximum allowed energy factor. Sets a cap on the maximum energy contribution of one atom pair interaction as
-        another mechanism for softening. `cap` is sets the actual max value as a multiple of the `eps` parameter. i.e.
-        the maximum allowed energy from a single atom pair interaction is the `eps` parameter multiplied by `cap`.
+        another mechanism for softening. ``cap`` is sets the actual max value as a multiple of the ``eps`` parameter.
+        i.e. the maximum allowed energy from a single atom pair interaction is the ``eps`` parameter multiplied by
+        ``cap``.
     rmax : float
-        Maximum distance to consider for potential calculation. Any atom pairs with r > rmax will be set to 0.
+        Maximum distance to consider for potential calculation. Any atom pairs with ``r`` > ``rmax`` will be set to 0.
 
     Returns
     -------
@@ -68,22 +69,22 @@ def get_lj_energy(r, rmin, eps, forgive=1, cap=10, rmax=10):
 
 @njit(cache=True)
 def get_lj_scwrl(r, rmin, eps, forgive=1):
-    """Calculate a scwrl-like lenard-jones potential from a set of atom pairs with distance `r`, rmin values of `rmin`
-    and epsilon values of `eps`.
+    """Calculate a scwrl-like lennard-jones potential from a set of atom pairs with distance ``r``, rmin values of
+    ``rmin`` and epsilon values of ``eps``.
 
     Parameters
     ----------
     r : numpy.ndarray
         Vector of inter-atomic distances between non-bonded atoms of a system.
     rmin : numpy.ndarray
-        Vector of rmin parameters, in angstoms,  corresponding to atoms pairs of r.
+        Vector of rmin parameters, in angstroms, corresponding to atoms pairs of ``r``.
     eps : numpy.ndarray
-        Vector of epsilon parameters corresponding to atom pairs of r
+        Vector of epsilon parameters corresponding to atom pairs of ``r``.
     forgive : numpy.ndarray
-        The `forgive` factor is a softening term to mitigate rigid body artifacts. It is set to a value between 0 1nd 1
-        and modifies the rmin parameter of all atom pairs in `r` to be the fraction, `forgive` of the thair original
-        value. This allows atoms to be closer than otherwise allowed to prevent explosion of the jennard-jones repulsion
-        in situations that would otherwise be resolved with minor atomic displacements.
+        The ``forgive`` factor is a softening term to mitigate rigid body artifacts. It is set to a value between 0 and
+        1 and modifies the ``rmin`` parameter of all atom pairs in ``r`` to be the fraction, ``forgive`` of the
+        original value. This allows atoms to be closer than otherwise allowed to prevent explosion of the Lennard-jones
+        repulsion in situations that would otherwise be resolved with minor atomic displacements.
 
     Returns
     -------
@@ -113,26 +114,27 @@ def get_lj_scwrl(r, rmin, eps, forgive=1):
 
 @njit(cache=True)
 def get_lj_rep(r, rmin, eps, forgive=0.9, cap=10):
-    """Calculate only the repulsive terms of the lenard-jones potential from a set of atom pairs with distance `r`,
-    rmin values of `rmin` and epsilon values of `eps`.
+    """Calculate only the repulsive terms of the lennard-jones potential from a set of atom pairs with distance ``r``,
+    rmin values of ``rmin`` and epsilon values of ``eps``.
 
     Parameters
     ----------
     r : numpy.ndarray
         Vector of inter-atomic distances between non-bonded atoms of a system.
     rmin : numpy.ndarray
-        Vector of rmin parameters, in angstoms,  corresponding to atoms pairs of r.
+        Vector of ``rmin`` parameters, in angstroms, corresponding to atoms pairs of ``r``.
     eps : numpy.ndarray
-        Vector of epsilon parameters corresponding to atom pairs of r
+        Vector of epsilon parameters corresponding to atom pairs of ``r``.
     forgive : numpy.ndarray
-        The `forgive` factor is a softening term to mitigate rigid body artifacts. It is set to a value between 0 1nd 1
-        and modifies the rmin parameter of all atom pairs in `r` to be the fraction, `forgive` of the thair original
-        value. This allows atoms to be closer than otherwise allowed to prevent explosion of the jennard-jones repulsion
-        in situations that would otherwise be resolved with minor atomic displacements.
-    cap : flaot
+        The ``forgive`` factor is a softening term to mitigate rigid body artifacts. It is set to a value between 0 and
+        1 and modifies the ``rmin`` parameter of all atom pairs in ``r`` to be the fraction, ``forgive`` of the
+        original value. This allows atoms to be closer than otherwise allowed to prevent explosion of the Lennard-jones
+        repulsion in situations that would otherwise be resolved with minor atomic displacements.
+    cap : float
         Maximum allowed energy factor. Sets a cap on the maximum energy contribution of one atom pair interaction as
-        another mechanism for softening. `cap` is sets the actual max value as a multiple of the `eps` parameter. i.e.
-        the maximum allowed energy from a single atom pair interaction is the `eps` parameter multiplied by `cap`.
+        another mechanism for softening. ``cap`` is sets the actual max value as a multiple of the ``eps`` parameter.
+        i.e. the maximum allowed energy from a single atom pair interaction is the ``eps`` parameter multiplied by
+        ``cap``.
 
     Returns
     -------
@@ -155,26 +157,27 @@ def get_lj_rep(r, rmin, eps, forgive=0.9, cap=10):
 
 @njit(cache=True)
 def get_lj_attr(r, rmin, eps, forgive=0.9, floor=-2):
-    """Calculate only the attractive terms of the lenard-jones potential from a set of atom pairs with distance `r`,
-      rmin values of `rmin` and epsilon values of `eps`.
+    """Calculate only the attractive terms of the lennard-jones potential from a set of atom pairs with distance ``r``,
+      ``rmin`` values of `rmin` and epsilon values of `eps`.
 
       Parameters
       ----------
       r : numpy.ndarray
           Vector of inter-atomic distances between non-bonded atoms of a system.
       rmin : numpy.ndarray
-          Vector of rmin parameters, in angstoms,  corresponding to atoms pairs of r.
+          Vector of rmin parameters, in angstroms, corresponding to atoms pairs of ``r``.
       eps : numpy.ndarray
-          Vector of epsilon parameters corresponding to atom pairs of r
+          Vector of epsilon parameters corresponding to atom pairs of ``r``
       forgive : numpy.ndarray
-          The `forgive` factor is a softening term to mitigate rigid body artifacts. It is set to a value between 0 1nd 1
-          and modifies the rmin parameter of all atom pairs in `r` to be the fraction, `forgive` of the thair original
-          value. This allows atoms to be closer than otherwise allowed to prevent explosion of the jennard-jones repulsion
-          in situations that would otherwise be resolved with minor atomic displacements.
-      cap : flaot
+          The `forgive` factor is a softening term to mitigate rigid body artifacts. It is set to a value between 0 and
+          1 and modifies the ``rmin`` parameter of all atom pairs in ``r`` to be the fraction, ``forgive`` of the
+          original value. This allows atoms to be closer than otherwise allowed to prevent explosion of the
+          Lennard-jones repulsion in situations that would otherwise be resolved with minor atomic displacements.
+      cap : flaat
           Maximum allowed energy factor. Sets a cap on the maximum energy contribution of one atom pair interaction as
-          another mechanism for softening. `cap` is sets the actual max value as a multiple of the `eps` parameter. i.e.
-          the maximum allowed energy from a single atom pair interaction is the `eps` parameter multiplied by `cap`.
+          another mechanism for softening. ``cap`` is sets the actual max value as a multiple of the ``eps`` parameter.
+          i.e. the maximum allowed energy from a single atom pair interaction is the ``eps`` parameter multiplied by
+          ``cap``.
 
       Returns
       -------
@@ -278,7 +281,7 @@ def join_arith(a, b, flat=False):
 
 rmin_charmm = {
      "C": 2.0000,
-     "H": 1.27000,
+     "H": 1.2700,
      "N": 1.8500,
      "O": 1.7000,
      "S": 2.0000,
@@ -298,6 +301,7 @@ rmin_charmm = {
     'Zn': 1.0900,  # ion
     'Gd': 1.5050,  # ion 3+
     'Au': 0.6510,
+     'I': 2.5670,
     "join_protocol": join_arith,
 }  # Bromobenzene from Gutiérrez et al. 2016
 
@@ -323,6 +327,7 @@ eps_charmm = {
     'Zn': -0.250,
     'Gd': -0.1723,
     'Au': -0.1330,
+     'I': -0.7927,
     "join_protocol": join_geom,
 }  # Bromobenzene from Gutiérrez et al. 2016
 
@@ -430,7 +435,7 @@ class ljEnergyFunc(EnergyFunc):
 
     def prepare_system(self, system):
 
-        if isinstance(system, (re.RotamerEnsemble, dre.dRotamerEnsemble)):
+        if isinstance(system, Ensemble):
             # Prepare internal
             a, b = system.aidx, system.bidx
             a_eps = self.get_lj_eps(system.atom_types[a])
@@ -455,9 +460,13 @@ class ljEnergyFunc(EnergyFunc):
                 system.ermin_ij = self.join_rmin(system.rmin2 * self.forgive, protein_lj_radii * self.forgive).reshape(-1)
                 system.eeps_ij = self.join_eps(system.eps, protein_lj_eps).reshape((-1))
 
-        elif isinstance(system, (mda.Universe, mda.AtomGroup, MolSys)):
+        elif isinstance(system, (mda.Universe, mda.AtomGroup, MolecularSystemBase)):
 
-            bonds = {(a, b) for a, b in system.atoms.bonds.indices}
+            bonds = (
+                {(a, b) for a, b in system.atoms.bonds}
+                if isinstance(system, MolecularSystemBase)
+                else {(a, b) for a, b in system.atoms.bonds.indices}
+            )
             tree = cKDTree(system.atoms.positions)
             pairs = tree.query_pairs(self.rmax)
             pairs = pairs - bonds
@@ -480,7 +489,7 @@ class ljEnergyFunc(EnergyFunc):
                 self._system_hash[system] = rmin_ij, eps_ij, pairs
 
     def _get_functional_input(self, system, internal):
-        if isinstance(system, (re.RotamerEnsemble, dre.dRotamerEnsemble)):
+        if isinstance(system, Ensemble):
             if internal:
                 rmin, eps = system.irmin_ij, system.ieps_ij
                 r = np.linalg.norm(system.coords[:, system.aidx] - system.coords[:, system.bidx], axis=-1)
@@ -499,7 +508,7 @@ class ljEnergyFunc(EnergyFunc):
                 rmin, eps, pairs = system.rmin_ij, system.eps_ij, system.pairs
 
             r = np.linalg.norm(system.positions[pairs[:,0]] - system.positions[pairs[:,1]], axis=-1)
-            shape = len(system), len(pairs)
+            shape = (1, len(pairs))
 
         return r, rmin, eps, shape
 
@@ -510,7 +519,7 @@ class ljEnergyFunc(EnergyFunc):
         E = self.functional(r, rmin, eps, **tkwargs)
 
         E = E.reshape(*shape, -1)
-        if isinstance(system, (re.RotamerEnsemble, dre.dRotamerEnsemble)):
+        if isinstance(system, Ensemble):
             system.atom_energies = E.sum(axis=2)
 
         return E.sum(axis=(1, 2))

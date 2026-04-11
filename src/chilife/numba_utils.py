@@ -189,12 +189,12 @@ def normdist(delta_r: float, mu: float = 0.0, sigma: float = 1.0) -> Tuple[np.nd
 @njit(cache=True)
 def pairwise_dist(x: np.ndarray, y: np.ndarray) -> np.ndarray:
     """
-    Calculate the pairwise (euclidean) distance between the coordinate sets.
+    Calculate the pairwise (Euclidean) distance between the coordinate sets.
 
     Parameters
     ----------
     x, y : np.ndarray
-        Coordinate sets to calcualte the distance between
+        Coordinate sets to calculate the distance between
 
     Returns
     -------
@@ -297,6 +297,34 @@ def _ic_to_cart(IC_idx_Array: np.ndarray, ICArray: np.ndarray) -> np.ndarray:
 
 @njit(parallel=True, cache=True)
 def batch_ic2cart(IC_idx_Array: np.ndarray, ICArray: np.ndarray):
+    """
+    Vectorization of ic2cart along the ICArray argument to calculate cartesian coordinates for multiple conformations.
+
+    Parameters
+    ----------
+    IC_idx_Array : np.ndarray
+        Array of indexes corresponding to the atoms defining the internal coordinate.
+
+        IC_idx_Array[i, 0] # index of the atom that atom ``i`` is bonded to.
+        IC_idx_Array[i, 1] # index of the atom that atom ``i`` creates an angle with.
+        IC_idx_Array[i, 2] # index of the atom that atom ``i`` creates a dihedral angle with.
+
+        A value of -1 indicates that there is no precursor atom to define the bond, angle or dihedral and that atom
+        ``i`` is one of the coordinate system defining atoms.
+
+    ICArray :
+        Internal coordinate values for ``n`` conformers
+
+        IC_idx_Array[n, i, 0] # bond distance of the atom that atom ``i`` and one of its precursor atoms.
+        IC_idx_Array[n, i, 1] # bond angle between atom ``i`` two of its precursor atoms.
+        IC_idx_Array[n, i, 2] # index of the atom that atom ``i`` creates a dihedral angle with three of it's precursor
+        atoms.
+
+    Returns
+    -------
+    coords : np.ndarray
+        Array of cartesian coordinates corresponding to ICAtom list atoms
+    """
     coords = np.zeros_like(ICArray)
     for i in prange(len(ICArray)):
         coords[i] = _ic_to_cart(IC_idx_Array, ICArray[i])

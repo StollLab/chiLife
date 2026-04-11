@@ -12,11 +12,14 @@ from .dRotamerEnsemble import dRotamerEnsemble
 from .SpinLabel import SpinLabel
 from .dSpinLabel import dSpinLabel
 from .IntrinsicLabel import IntrinsicLabel
+from .LigandEnsemble import LigandEnsemble
+from .SpinLigand import SpinLigand
 from .SpinLabelTraj import *
 from .MolSys import *
 from .MolSysIC import *
 from .Topology import *
 from .protein_utils import *
+from .ligand_utils import *
 from .scoring import *
 
 
@@ -26,4 +29,4 @@ from .scoring import *
 # SpinLabel = SpinLabel.SpinLabel
 # dSpinLabel = dSpinLabel.dSpinLabel
 
-__version__ = '1.1.7'
+__version__ = '1.2.0'

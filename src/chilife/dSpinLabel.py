@@ -1,11 +1,10 @@
-import logging
 from copy import deepcopy
 import numpy as np
 import chilife
 from .dRotamerEnsemble import dRotamerEnsemble
+from .base_classes import FreeRadical
 
-
-class dSpinLabel(dRotamerEnsemble):
+class dSpinLabel(dRotamerEnsemble, FreeRadical):
     """
     The dSpinLabel constructor has all the same arguments and keyword arguments as the
     :class:`~dRotamerEnsemble` class in addition to a few attributes relating to the unpaired electron.
@@ -34,24 +33,9 @@ class dSpinLabel(dRotamerEnsemble):
         return np.argwhere(np.isin(self.atom_names, self.spin_atoms)).flatten()
 
     @property
-    def spin_coords(self):
-        """coordinates of the atoms where the unpaired electron density is localized for each rotamer."""
-        return self.coords[:, self.spin_idx]
-
-    @property
-    def spin_centers(self):
-        """Weighted average location of the unpaired electron density for each rotamer."""
-        return np.average(self.spin_coords, axis=1, weights=self.spin_weights)
-
-    @property
     def spin_weights(self):
         """Relative unpaired electron density of the :py:attr:`~spin_atoms`."""
         return self.SL1.spin_weights
-
-    @property
-    def spin_centroid(self):
-        """Weighted average location of the spin coordinates for reach rotamer of the ensemble."""
-        return np.average(self.spin_coords, weights=self.weights, axis=0)
 
 
     def create_ensembles(self):

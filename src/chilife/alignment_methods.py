@@ -1,12 +1,12 @@
-from typing import Union, List, Tuple
+from __future__ import annotations
+from typing import Union, Tuple
 
 import numpy as np
-from numpy.typing import ArrayLike
 alignment_methods = {}
-
+ligand_alignment_methods = {}
 
 def alignment_method(func):
-    """Decorator to add function to the superimpositions dictionary
+    """Decorator to add function to the alignment methods dictionary.
 
     Parameters
     ----------
@@ -218,15 +218,15 @@ def parse_backbone(rotamer_ensemble, kind):
     Parameters
     ----------
     rotamer_ensemble : RotamerEnsemble
-        The RotamerEnsemble object that the rotation matrix will operate on. If using the `fit` method, the rotamer
-        ensemble must have a `protein` feature.
+        The RotamerEnsemble object that the rotation matrix will operate on. If using the ``fit`` method, the rotamer
+        ensemble must have a ``protein`` feature.
     kind : str
         Specifies if the backbone is for the rotamer ensemble (local) or the protein (global)
 
     Returns
     -------
     N, CA, C: tuple
-        Numpy arrays of N, CA and C coordinates of the rotamer ensemble backbone. If using method `fit` arrays are 2x3
+        Numpy arrays of N, CA and C coordinates of the rotamer ensemble backbone. If using method ``fit`` arrays are 2x3
         with the first coordinate as the rotamer ensemble backbone and the second as the protein site backbone.
     """
     method = rotamer_ensemble.alignment_method
@@ -251,7 +251,7 @@ def parse_backbone(rotamer_ensemble, kind):
         ).positions
 
 
-def local_mx(*p, method: Union[str, callable] = "bisect") -> Tuple[ArrayLike, ArrayLike]:
+def local_mx(*p, method: Union[str, callable] = "bisect") -> Tuple["ArrayLike", "ArrayLike"]:
     """Calculates a translation vector and rotation matrix to transform a set of coordinates from the global
     coordinate frame to a local coordinate frame defined by ``p`` , using the specified method.
 
@@ -294,8 +294,8 @@ def local_mx(*p, method: Union[str, callable] = "bisect") -> Tuple[ArrayLike, Ar
     return origin, rotation_matrix
 
 
-def global_mx(*p: ArrayLike, method: Union[str, callable] = "bisect") -> Tuple[ArrayLike, ArrayLike]:
-    """Calculates a translation vector and rotation matrix to transform the a set of coordinates from the local
+def global_mx(*p: "ArrayLike", method: Union[str, callable] = "bisect") -> Tuple["ArrayLike", "ArrayLike"]:
+    """Calculates a translation vector and rotation matrix to transform a set of coordinates from the local
     coordinate frame to the global coordinate frame using the specified method.
 
     Parameters
@@ -322,3 +322,155 @@ def global_mx(*p: ArrayLike, method: Union[str, callable] = "bisect") -> Tuple[A
     rotation_matrix, origin = method(*p)
 
     return rotation_matrix, origin
+
+
+def ligand_alignment_method(func):
+    """Decorator to add function to the ligand alignment method dictionary
+
+    Parameters
+    ----------
+    func : callable
+        Function that performs a alignment_method.
+
+    Returns
+    -------
+        Unmodified original function.
+    """
+    ligand_alignment_methods[func.__name__.split("_")[0]] = func
+    return func
+
+
+@ligand_alignment_method
+def svd_alignment(target_points: "ArrayLike") -> Tuple["ArrayLike", "ArrayLike"]:
+    """
+    Obtain the rotation and translation operations to align the principal components of arbitrary point cloud.
+    This function is vectorized to obtain the rotation and translation operations for a set of point clouds.
+
+    Parameters
+    ----------
+    target_points : ArrayLike
+        Target point cloud to be aligned.
+
+    Returns
+    -------
+    rotations: np.ndarray
+        Array of rotation matrices (N x 3 x 3) where N is the number of point clouds in target points.
+
+    origins: np.ndarray
+        Array of translation vectors that constitute the origin of the point clouds. The dimension are (N x 3) where N
+        is the number of point clouds in target points.
+    """
+
+    # Add extra dimension if matrix is nxm
+    if len(target_points.shape) == 2:
+        target_points = target_points[None, :]
+
+    origins = []
+    rotations = []
+    for rot in target_points:
+        origin = np.mean(rot, axis=0)
+        centered = rot - origin
+        U, S, Vh = np.linalg.svd(centered)
+        rotation_matrix = np.squeeze(Vh)
+
+        origins.append(origin)
+        rotations.append(rotation_matrix)
+
+    origins = np.array(origins)
+    rotations = np.array(rotations)
+
+    return rotations, origins
+
+
+def linear_alignment(mobile_points, target_points):
+    """
+    Vectorized implementation of the Kabsch algorithm to determine rotation and translation operations to align one
+    point cloud to another. This algorithm assumes that the ``mobile_points`` and ``target_points`` are sorted. i.e. The
+    Nth point of ``mobile_points`` corresponds to the Nth point of ``target_points``.
+
+    Parameters
+    ----------
+    mobile_points : ArrayLike
+        Set of points to be moved to align to ``target_points``. Vectorized to allow for the alignment of multiple
+        sets of points.
+    target_points: ArrayLike
+        Target point cloud to be aligned.Not vectorized, only one set of points is allowed.
+
+    Returns
+    -------
+    rotations: np.ndarray
+        Array of rotation matrices (N x 3 x 3) where N is the number of point clouds in target points.
+
+    origins: np.ndarray
+        Array of translation vectors that constitute the origin of the point clouds. The dimension are (N x 3) where N
+        is the number of point clouds in target points.
+    """
+
+
+    multi_align = len(mobile_points.shape) == 3
+    origins = target_points.mean(axis=-2)
+    mcenter = mobile_points.mean(axis=-2)
+    if multi_align:
+        origins = origins[:, None, :]
+        mcenter = mcenter[:, None, :]
+
+
+    cmobile = mobile_points - mcenter
+    ctarget = target_points - origins
+    cmobilet = np.swapaxes(cmobile, -1, -2)
+
+    cov = cmobilet @ ctarget
+    U, S, Vt = np.linalg.svd(cov, )
+    Vtt = np.swapaxes(Vt, -1, -2)
+    Ut = np.swapaxes(U, -1, -2)
+
+    R = Vtt @ Ut
+
+    mask = np.linalg.det(R) < 0
+    if np.any(mask):
+        Vt[mask, -1, :] *= -1
+        Vtt = np.swapaxes(Vt, -1, -2)
+        R = Vtt @ Ut
+
+    rotations = np.swapaxes(R, -1, -2)
+    if not multi_align:
+        rotations, origins = np.squeeze(rotations), np.squeeze(origins)
+
+    return rotations, origins
+
+
+def align_points(mobile_points, target_points):
+    """
+    Non-vectorized Implementation of the Kabsch algorithm to align to sets of points. This algorithm assumes that the
+    ``mobile_points`` and ``target_points`` are sorted. i.e. The Nth point of ``mobile_points`` corresponds to the Nth
+    point of ``target_points``.
+
+    Parameters
+    ----------
+    mobile_points : ArrayLike
+        Set of points to be moved to align to ``target_points``.
+    target_points: ArrayLike
+        Target point cloud to be aligned to.
+
+    Returns
+    -------
+    new_points: ArrayLike
+        ``mobile_points`` translated and rotated to be aligned to ``target_points``.
+    """
+
+    tcenter = target_points.mean(axis=0)
+
+    cmobile = mobile_points - mobile_points.mean(axis=0)
+    ctarget = target_points - tcenter
+
+    cov = cmobile.T @ ctarget
+    U, S, Vt = np.linalg.svd(cov)
+    R = Vt.T @ U.T
+
+    if np.linalg.det(R) < 0:
+        Vt[-1, :] *= -1
+        R = Vt.T @ U.T
+
+    new_points = cmobile @ R + tcenter
+
+    return new_points

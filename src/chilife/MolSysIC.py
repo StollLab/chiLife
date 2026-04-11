@@ -20,7 +20,7 @@ from .globals import dihedral_defs
 class MolSysIC:
     """
     A class for protein internal coordinates.
-    
+
     Parameters
     ----------
     z_matrix : np.ndarray
@@ -85,11 +85,13 @@ class MolSysIC:
         List of major side chain and backbone dihedral definitions as defined by user defined and supported residues.
     """
 
-    def __init__(self,
-                 z_matrix: ArrayLike,
-                 z_matrix_idxs: ArrayLike,
-                 protein: Union[MolecularSystemBase, MDAnalysis.Universe, MDAnalysis.AtomGroup],
-                 **kwargs):
+    def __init__(
+        self,
+        z_matrix: ArrayLike,
+        z_matrix_idxs: ArrayLike,
+        protein: Union[MolecularSystemBase, MDAnalysis.Universe, MDAnalysis.AtomGroup],
+        **kwargs,
+    ):
         # Internal coords and atom info
         if isinstance(protein, MolSys):
             self.protein = protein.copy()
@@ -107,42 +109,57 @@ class MolSysIC:
         self.resnames = self.atom_resnames[uresidx]
         self.trajectory = Trajectory(z_matrix, self)
         self.z_matrix_idxs = z_matrix_idxs
-        self.chain_operator_idxs = kwargs.get('chain_operator_idxs', None)
-        self.has_chain_operators = bool(kwargs.get('chain_operators', None))
+        self.chain_operator_idxs = kwargs.get("chain_operator_idxs", None)
+        self.has_chain_operators = bool(kwargs.get("chain_operators", None))
 
         self.chains = np.unique(self.atom_chains)
-        self._chain_segs = [[a, b] for a, b in zip(self.chain_operator_idxs,
-                                                   self.chain_operator_idxs[1:] + [len(self.z_matrix_idxs)])]
+        self._chain_segs = [
+            [a, b]
+            for a, b in zip(
+                self.chain_operator_idxs,
+                self.chain_operator_idxs[1:] + [len(self.z_matrix_idxs)],
+            )
+        ]
 
         if not self.has_chain_operators:
             self.chain_operators = None
         else:
-            self._chain_operators = kwargs['chain_operators']
-
+            self._chain_operators = kwargs["chain_operators"]
 
         # Topology
-        self.bonds = kwargs['bonds'] if 'bonds' in kwargs else \
-            guess_bonds(self.protein.positions, self.protein.types)
-        bond_types = kwargs.get('bond_types', np.zeros(len(self.bonds)))
+        self.bonds = (
+            kwargs["bonds"]
+            if "bonds" in kwargs
+            else guess_bonds(self.protein.positions, self.protein.types)
+        )
+        bond_types = kwargs.get("bond_types", np.zeros(len(self.bonds)))
         self.bond_types = {tuple(bond): i for bond, i in zip(self.bonds, bond_types)}
-        self._nonbonded = kwargs.get('nonbonded', None)
-        self.topology = kwargs['topology'] if 'topology' in kwargs else \
-            Topology(self.protein, self.bonds)
+        self._nonbonded = kwargs.get("nonbonded", None)
+        self.topology = (
+            kwargs["topology"]
+            if "topology" in kwargs
+            else Topology(self.protein, self.bonds)
+        )
 
-        self.non_nan_idxs = kwargs.get('non_nan_idxs', None)
+        self.non_nan_idxs = kwargs.get("non_nan_idxs", None)
         if self.non_nan_idxs is None:
-            self.non_nan_idxs = np.argwhere(~np.any(self.z_matrix_idxs < 0, axis=1)).flatten()
+            self.non_nan_idxs = np.argwhere(
+                ~np.any(self.z_matrix_idxs < 0, axis=1)
+            ).flatten()
 
         self.nan_idxs = np.argwhere(np.any(self.z_matrix_idxs < 0, axis=1)).flatten()
 
-        self.chain_res_name_map = kwargs.get('chain_res_name_map', defaultdict(list))
+        self.chain_res_name_map = kwargs.get("chain_res_name_map", defaultdict(list))
         if self.chain_res_name_map == {}:
-            idxs, b2s, b1s,  _ = self.z_matrix_idxs[self.non_nan_idxs].T
+            idxs, b2s, b1s, _ = self.z_matrix_idxs[self.non_nan_idxs].T
             chains = self.atoms[b2s].segids
             resnums = self.atoms[b2s].resnums
-            [self.chain_res_name_map[(chain, res, b1, b2)].append(idx)
-             for chain, res, b1, b2, idx in
-             zip(chains, resnums, self.atom_names[b1s], self.atom_names[b2s], idxs)]
+            [
+                self.chain_res_name_map[(chain, res, b1, b2)].append(idx)
+                for chain, res, b1, b2, idx in zip(
+                    chains, resnums, self.atom_names[b1s], self.atom_names[b2s], idxs
+                )
+            ]
 
             self.chain_res_name_map = {k: v for k, v in self.chain_res_name_map.items()}
 
@@ -151,11 +168,13 @@ class MolSysIC:
         self._dihedral_defs = None
 
     @classmethod
-    def from_atoms(cls,
-                   atoms: Union[MDAnalysis.Universe, MDAnalysis.AtomGroup, MolecularSystemBase],
-                   preferred_dihedrals: List = None,
-                   bonds: ArrayLike = None,
-                   **kwargs: Dict):
+    def from_atoms(
+        cls,
+        atoms: Union[MDAnalysis.Universe, MDAnalysis.AtomGroup, MolecularSystemBase],
+        preferred_dihedrals: List = None,
+        bonds: ArrayLike = None,
+        **kwargs: Dict,
+    ):
         """
         Generate a MolSysIC object from a :class:`~chilife.AtomSelection` or `MDAnalysis.AtomGroup` object.
 
@@ -184,7 +203,7 @@ class MolSysIC:
         if isinstance(atoms, MDAnalysis.Universe):
             atoms = atoms.atoms
 
-        if kwargs.get('ignore_water', True):
+        if kwargs.get("ignore_water", True):
             water_atoms = atoms.select_atoms("byres (name OH2 or resname HOH)")
             atoms = atoms[~np.isin(atoms.ix, water_atoms.ix)]
 
@@ -217,11 +236,9 @@ class MolSysIC:
         if preferred_dihedrals is not None:
             present = False
             for dihe in preferred_dihedrals:
-
                 # Get the indices of the atom being defined by the preferred dihedral
                 idx_of_interest = np.argwhere(atoms.names == dihe[-1]).flatten()
                 for idx in idx_of_interest:
-
                     # Skip dihedral defs of chain terminal atoms
                     if len(z_matrix_dihedrals[idx]) != len(dihe):
                         continue
@@ -249,50 +266,71 @@ class MolSysIC:
                         z_matrix_dihedrals[idx] = dihedral
 
                         # also change any other dependent dihedrals
-                        for dihe_idxs in topology.dihedrals_by_bonds[tuple(dihedral[1:3])]:
+                        for dihe_idxs in topology.dihedrals_by_bonds[
+                            tuple(dihedral[1:3])
+                        ]:
                             zmidx = dihe_idxs[-1]
                             tmp = z_matrix_dihedrals[zmidx]
                             if all(a == b for a, b in zip(tmp[1:3], dihedral[1:3])):
                                 z_matrix_dihedrals[zmidx][0] = dihedral[0]
 
             if not present and preferred_dihedrals != []:
-                raise ValueError(f'There is no dihedral `{dihe}` in the provided protein. Perhaps there is typo or the '
-                                 f'atoms are not sorted correctly')
+                raise ValueError(
+                    f"There is no dihedral `{dihe}` in the provided protein. Perhaps there is typo or the "
+                    f"atoms are not sorted correctly"
+                )
 
-        z_matrix_coordinates = np.zeros((len(atoms.universe.trajectory), len(z_matrix_dihedrals), 3))
+        z_matrix_coordinates = np.zeros(
+            (len(atoms.universe.trajectory), len(z_matrix_dihedrals), 3)
+        )
         z_matrix_dihedrals = zmatrix_idxs_to_local(z_matrix_dihedrals)
 
         chain_operator_idxs = get_chainbreak_idxs(z_matrix_dihedrals)
 
         chain_operators = []
         for i, ts in enumerate(atoms.universe.trajectory):
-            z_matrix, chain_operator = get_z_matrix(atoms.positions, z_matrix_dihedrals, chain_operator_idxs)
+            z_matrix, chain_operator = get_z_matrix(
+                atoms.positions, z_matrix_dihedrals, chain_operator_idxs
+            )
             z_matrix_coordinates[i] = z_matrix
             chain_operators.append(chain_operator)
 
-        if not kwargs.get('use_chain_operators', True):
+        if not kwargs.get("use_chain_operators", True):
             chain_operators = None
 
-        return cls(z_matrix_coordinates, z_matrix_dihedrals, atoms,
-                   chain_operators=chain_operators, chain_operator_idxs=chain_operator_idxs)
+        return cls(
+            z_matrix_coordinates,
+            z_matrix_dihedrals,
+            atoms,
+            chain_operators=chain_operators,
+            chain_operator_idxs=chain_operator_idxs,
+        )
 
     def copy(self):
         """Create a deep copy of an MolSysIC instance"""
         z_matrix = self.trajectory.coordinate_array.copy()
         z_matrix_idxs = self.z_matrix_idxs.copy()
         if isinstance(self._chain_operators, list):
-            chain_operators = [{k: {k2: v2.copy() for k2, v2 in v.items()} for k, v in co.items()} for co in self._chain_operators]
+            chain_operators = [
+                {k: {k2: v2.copy() for k2, v2 in v.items()} for k, v in co.items()}
+                for co in self._chain_operators
+            ]
         else:
-            chain_operators = {k: {k2: v2.copy() for k2, v2 in v.items()} for k, v in self._chain_operators.items()}
+            chain_operators = {
+                k: {k2: v2.copy() for k2, v2 in v.items()}
+                for k, v in self._chain_operators.items()
+            }
 
-        kwargs = {'chain_operators': chain_operators,
-                  'chain_operator_idxs': self._chain_operator_idxs,
-                  'bonds': self.bonds,
-                  'nonbonded': self._nonbonded,
-                  'topology': self.topology,
-                  'protein': self.protein,
-                  'non_nan_idxs': self.non_nan_idxs,
-                  'chain_res_name_map': self.chain_res_name_map}
+        kwargs = {
+            "chain_operators": chain_operators,
+            "chain_operator_idxs": self._chain_operator_idxs,
+            "bonds": self.bonds,
+            "nonbonded": self._nonbonded,
+            "topology": self.topology,
+            "protein": self.protein,
+            "non_nan_idxs": self.non_nan_idxs,
+            "chain_res_name_map": self.chain_res_name_map,
+        }
 
         return MolSysIC(z_matrix, z_matrix_idxs, **kwargs)
 
@@ -304,7 +342,7 @@ class MolSysIC:
     @chain_operator_idxs.setter
     def chain_operator_idxs(self, val):
         if val is None:
-            self._chain_operator_idxs  = get_chainbreak_idxs(self.z_matrix_idxs)
+            self._chain_operator_idxs = get_chainbreak_idxs(self.z_matrix_idxs)
         else:
             self._chain_operator_idxs = val
 
@@ -332,21 +370,28 @@ class MolSysIC:
             rotation matrix, 'mx' and translation vector 'ori'.
         """
 
-        error_message = 'chain operators must be set to \n' \
-                        '    1) a dict to set the chain operators for a single frame \n' \
-                        '    2) a list of dicts the same length of the trajectory to set chain operators' \
-                        'for each frame\n' \
-                        '    3) a list with one dict to set all all frames to the same chain operator.'
+        error_message = (
+            "chain operators must be set to \n"
+            "    1) a dict to set the chain operators for a single frame \n"
+            "    2) a list of dicts the same length of the trajectory to set chain operators"
+            "for each frame\n"
+            "    3) a list with one dict to set all all frames to the same chain operator."
+        )
 
         if op is None:
-            if hasattr(self, '_chain_operators'):
+            if hasattr(self, "_chain_operators"):
                 from_list = True if isinstance(self._chain_operators, list) else False
             else:
-                from_list=False
+                from_list = False
 
-            logging.info("No protein chain origins have been provided. All chains will start at [0, 0, 0]")
+            logging.info(
+                "No protein chain origins have been provided. All chains will start at [0, 0, 0]"
+            )
 
-            op = {idx: {"ori": np.array([0, 0, 0]), "mx": np.identity(3)}for idx in self._chain_operator_idxs}
+            op = {
+                idx: {"ori": np.array([0, 0, 0]), "mx": np.identity(3)}
+                for idx in self._chain_operator_idxs
+            }
             self.has_chain_operators = False
             self._chain_operators = op
             self.apply_chain_operators(from_list=from_list)
@@ -385,7 +430,9 @@ class MolSysIC:
     def coords(self, val):
         self.protein.trajectory[self.trajectory.frame]
         self.protein.positions = val
-        z_matrix, chain_operator = get_z_matrix(val, self.z_matrix_idxs, self.chain_operator_idxs)
+        z_matrix, chain_operator = get_z_matrix(
+            val, self.z_matrix_idxs, self.chain_operator_idxs
+        )
 
         self.trajectory.coordinate_array[self.trajectory.frame] = z_matrix
         self.chain_operators[self.trajectory.frame] = chain_operator
@@ -393,12 +440,17 @@ class MolSysIC:
     @property
     def nonbonded(self):
         """np.ndarray: Array of atom index pairs of atoms that are not bonded"""
-        if self._nonbonded is None and not (self.bonds is None or self.bonds.any() is None):
+        if self._nonbonded is None and not (
+            self.bonds is None or self.bonds.any() is None
+        ):
             bonded_pairs = {(a, b) for a, b in self.bonds}
             possible_bonds = itertools.combinations(range(len(self.atoms)), 2)
             self._nonbonded = np.fromiter(
                 itertools.chain.from_iterable(
-                    nb for nb in possible_bonds if nb not in bonded_pairs), dtype=int)
+                    nb for nb in possible_bonds if nb not in bonded_pairs
+                ),
+                dtype=int,
+            )
 
             self._nonbonded.shape = (-1, 2)
 
@@ -417,11 +469,11 @@ class MolSysIC:
         return cart_coords
 
     def set_dihedral(
-            self,
-            dihedrals: Union[float, ArrayLike],
-            resi: int,
-            atom_list: ArrayLike,
-            chain: Union[int, str] = None
+        self,
+        dihedrals: Union[float, ArrayLike],
+        resi: int,
+        atom_list: ArrayLike,
+        chain: Union[int, str] = None,
     ):
         """Set one or more dihedral angles of a single residue in internal coordinates for the atoms defined in atom
         list.
@@ -451,30 +503,36 @@ class MolSysIC:
         dihedrals = np.atleast_1d(dihedrals)
         atom_list = np.atleast_2d(atom_list)
         for i, (dihedral, atoms) in enumerate(zip(dihedrals, atom_list)):
-            if (tag := (chain, resi, atoms[1], atoms[2])) not in self.chain_res_name_map:
-                raise RuntimeError(f'{atoms} is not a recognized dihedrals of residue {resi}. Please make sure you '
-                                   f'have the correct residue number and atom names.')
+            if (
+                tag := (chain, resi, atoms[1], atoms[2])
+            ) not in self.chain_res_name_map:
+                raise RuntimeError(
+                    f"{atoms} is not a recognized dihedrals of residue {resi}. Please make sure you "
+                    f"have the correct residue number and atom names."
+                )
 
-            pert_idxs = self.chain_res_name_map[tag]  + self.chain_res_name_map.get((chain, resi, atoms[2], atoms[1]), [])
+            pert_idxs = self.chain_res_name_map[tag] + self.chain_res_name_map.get(
+                (chain, resi, atoms[2], atoms[1]), []
+            )
             for idx in pert_idxs:
                 protein_atom_names = self.z_matrix_names[idx][::-1]
                 if tuple(protein_atom_names) == tuple(atoms):
                     delta = self.z_matrix[idx, 2] - dihedral
                     break
             else:
-                raise RuntimeError('')
+                raise RuntimeError("")
 
             self.trajectory.coords[self.trajectory.frame, pert_idxs, 2] -= delta
 
         return self
 
     def batch_set_dihedrals(
-            self,
-            idxs: ArrayLike,
-            dihedrals: ArrayLike,
-            resi: int,
-            atom_list: ArrayLike,
-            chain: Union[int, str] = None
+        self,
+        idxs: ArrayLike,
+        dihedrals: ArrayLike,
+        resi: int,
+        atom_list: ArrayLike,
+        chain: Union[int, str] = None,
     ):
         """Sets dihedral angles of a single residue in internal coordinates for the atoms defined in atom
         list and in trajectory indices in idxs.
@@ -506,24 +564,32 @@ class MolSysIC:
         z_matrix = self.trajectory.coordinate_array[idxs]
 
         for i, (values, atoms) in enumerate(zip(dihedrals, atom_list)):
-            if (tag := (chain, resi, atoms[1], atoms[2])) not in self.chain_res_name_map:
-                raise RuntimeError(f'{atoms} is not a recognized dihedrals of residue {resi}. Please make sure you '
-                                   f'have the correct residue number and atom names.')
+            if (
+                tag := (chain, resi, atoms[1], atoms[2])
+            ) not in self.chain_res_name_map:
+                raise RuntimeError(
+                    f"{atoms} is not a recognized dihedrals of residue {resi}. Please make sure you "
+                    f"have the correct residue number and atom names."
+                )
 
-            pert_idxs = self.chain_res_name_map[tag] + self.chain_res_name_map.get((chain, resi, atoms[2], atoms[1]), [])
+            pert_idxs = self.chain_res_name_map[tag] + self.chain_res_name_map.get(
+                (chain, resi, atoms[2], atoms[1]), []
+            )
             for idx in pert_idxs:
                 protein_atom_names = self.z_matrix_names[idx][::-1]
                 if tuple(protein_atom_names) == tuple(atoms):
                     deltas = z_matrix[:, idx, 2] - values
                     break
             else:
-                raise RuntimeError('')
+                raise RuntimeError("")
 
             z_matrix[:, pert_idxs, 2] -= deltas[:, None]
 
         return z_matrix
 
-    def get_dihedral(self, resi: int, atom_list: ArrayLike, chain: Union[int, str] = None):
+    def get_dihedral(
+        self, resi: int, atom_list: ArrayLike, chain: Union[int, str] = None
+    ):
         """Get the dihedral angle(s) of one or more atom sets at the specified residue. Dihedral angles are returned in
         radians
 
@@ -550,9 +616,11 @@ class MolSysIC:
         dihedral_idxs = []
         for atoms in atom_list:
             if (tag := (chain, resi, *atoms)) not in self.topology.dihedrals_by_resnum:
-                raise RuntimeError(f'{atoms} is not a recognized dihedral of chain {chain} and residue {resi}. Please '
-                                   f'make sure you have the correct residue number and atom names. Note that chilife '
-                                   f'considers dihedrals as directional so you may want to try the reverse dihedral.')
+                raise RuntimeError(
+                    f"{atoms} is not a recognized dihedral of chain {chain} and residue {resi}. Please "
+                    f"make sure you have the correct residue number and atom names. Note that chilife "
+                    f"considers dihedrals as directional so you may want to try the reverse dihedral."
+                )
 
             dihedral_idxs.append(list(self.topology.dihedrals_by_resnum[tag]))
 
@@ -562,16 +630,18 @@ class MolSysIC:
         return dihedrals[0] if len(dihedrals) == 1 else dihedrals
 
     def sample(self, n_samples, dihedral_atoms=None, sigmas=20):
-
-
         if len(self.resnums) > 1:
-            raise RuntimeError('sample is currently only supported for MolSysICs made from only a singe 1 residue')
+            raise RuntimeError(
+                "sample is currently only supported for MolSysICs made from only a singe 1 residue"
+            )
 
         resnum = self.resnums[0]
 
         idxs = np.random.randint(len(self.trajectory), size=n_samples)
 
-        dihedral_atoms = guess_mobile_dihedrals(self) if dihedral_atoms is None else dihedral_atoms
+        dihedral_atoms = (
+            guess_mobile_dihedrals(self) if dihedral_atoms is None else dihedral_atoms
+        )
         rdihedrals = []
         for idx in idxs:
             self.trajectory[idx]
@@ -587,10 +657,12 @@ class MolSysIC:
         elif value.shape == (n_samples, len(dihedral_atoms)):
             sigmas = value.copy()
         else:
-            raise ValueError('`dihedral_sigmas` must be a scalar, an array the length of the `self.dihedral atoms` or '
-                             'an array with the shape of (len(self.weights), len(self.dihedral_atoms))')
+            raise ValueError(
+                "`dihedral_sigmas` must be a scalar, an array the length of the `self.dihedral atoms` or "
+                "an array with the shape of (len(self.weights), len(self.dihedral_atoms))"
+            )
 
-        rkappas = 1 / np.deg2rad(sigmas)**2
+        rkappas = 1 / np.deg2rad(sigmas) ** 2
 
         new_dihedrals = np.random.vonmises(rdihedrals, rkappas)
         z_matrix = self.batch_set_dihedrals(idxs, new_dihedrals, resnum, dihedral_atoms)
@@ -599,7 +671,9 @@ class MolSysIC:
 
         return ICs
 
-    def get_z_matrix_idxs(self, resi: int, atom_list: ArrayLike, chain: Union[int, str] = None):
+    def get_z_matrix_idxs(
+        self, resi: int, atom_list: ArrayLike, chain: Union[int, str] = None
+    ):
         """Get the z-matrix indices of the dihedral angle(s) defined by ``atom_list`` and the specified residue and
         chain. Dihedral angles are returned in radians.
 
@@ -626,10 +700,14 @@ class MolSysIC:
         atom_list = np.atleast_2d(atom_list)
         idxs = []
         for atoms in atom_list:
-            if (tag := (chain, resi, atoms[1], atoms[2])) not in self.chain_res_name_map:
-                raise RuntimeError(f'{atoms} is not a recognized dihedral of chain {chain} and residue {resi}. Please '
-                                   f'make sure you have the correct residue number and atom names. Note that chilife '
-                                   f'considers dihedrals as directional so you may want to try the reverse dihedral.')
+            if (
+                tag := (chain, resi, atoms[1], atoms[2])
+            ) not in self.chain_res_name_map:
+                raise RuntimeError(
+                    f"{atoms} is not a recognized dihedral of chain {chain} and residue {resi}. Please "
+                    f"make sure you have the correct residue number and atom names. Note that chilife "
+                    f"considers dihedrals as directional so you may want to try the reverse dihedral."
+                )
 
             pert_idxs = self.chain_res_name_map[tag]
             for idx in pert_idxs:
@@ -638,7 +716,7 @@ class MolSysIC:
                     idxs.append(idx)
                     break
             else:
-                raise RuntimeError('')
+                raise RuntimeError("")
 
         return idxs[0] if len(idxs) == 1 else np.array(idxs)
 
@@ -687,7 +765,7 @@ class MolSysIC:
             Array of indices corresponding to the phi dihedral angles of the selected residues on the chain
         """
         chain = self._check_chain(chain)
-        mask = (self.atom_names == 'C') * (self.atom_chains == chain)
+        mask = (self.atom_names == "C") * (self.atom_chains == chain)
         if resnums is not None:
             resnums = np.atleast_1d(resnums)
             mask *= np.isin(self.atom_resnums, resnums)
@@ -713,7 +791,7 @@ class MolSysIC:
             Array of indices corresponding to the Psi dihedral angles of the selected residues on the chain
         """
         chain = self._check_chain(chain)
-        mask = (self.atom_names == 'N') * (self.atom_chains == chain)
+        mask = (self.atom_names == "N") * (self.atom_chains == chain)
         if resnums is not None:
             resnums = np.atleast_1d(resnums) + 1
             mask *= np.isin(self.atom_resnums, resnums)
@@ -741,7 +819,7 @@ class MolSysIC:
         """
 
         chain = self._check_chain(chain)
-        mask = (self.atom_names == 'CA') * (self.atom_chains == chain)
+        mask = (self.atom_names == "CA") * (self.atom_chains == chain)
         if resnums is not None:
             resnums = np.atleast_1d(resnums) + 1
             mask *= np.isin(self.atom_resnums, resnums)
@@ -774,7 +852,9 @@ class MolSysIC:
         """
         chain = self._check_chain(chain)
         mask = self.atom_chains == chain
-        mask *= ~np.isin(self.atom_names,['N', 'CA', 'C', 'O']) * (self.atom_types != 'H')
+        mask *= ~np.isin(self.atom_names, ["N", "CA", "C", "O"]) * (
+            self.atom_types != "H"
+        )
 
         if resnums is not None:
             resnums = np.atleast_1d(resnums)
@@ -784,11 +864,13 @@ class MolSysIC:
 
         chi_idxs = []
         for resnum in resnums:
-            tmask = (self.atom_resnums == resnum)
-            resname = self.atom_names[tmask][0]
+            tmask = self.atom_resnums == resnum
+            resname = self.atom_resnames[tmask][0]
             if resname in dihedral_defs:
                 atom_names = [x[-1] for x in dihedral_defs[resname]]
-                res_chi_idxs = np.argwhere(tmask * np.isin(self.atom_names, atom_names)).flatten()
+                res_chi_idxs = np.argwhere(
+                    tmask * np.isin(self.atom_names, atom_names)
+                ).flatten()
             else:
                 tmask *= mask
                 res_chi_idxs = []
@@ -796,8 +878,19 @@ class MolSysIC:
                 for idx in np.argwhere(tmask).flat:
                     ddef_names = self.z_matrix_names[idx]
                     ddef_idxs = self.z_matrix_idxs[idx]
-                    not_cycle = len(self.topology.graph.get_all_simple_paths(ddef_idxs[1], ddef_idxs[2], 8)) < 2
-                    if (ddef_names[1] != 'CA') and (ddef_idxs[1] not in taken) and not_cycle:
+                    not_cycle = (
+                        len(
+                            self.topology.graph.get_all_simple_paths(
+                                ddef_idxs[1], ddef_idxs[2], 8
+                            )
+                        )
+                        < 2
+                    )
+                    if (
+                        (ddef_names[1] != "CA")
+                        and (ddef_idxs[1] not in taken)
+                        and not_cycle
+                    ):
                         res_chi_idxs.append(idx)
                         taken.append(ddef_idxs[1])
 
@@ -826,16 +919,20 @@ class MolSysIC:
         cart_coords = batch_ic2cart(self.z_matrix_idxs[:, 1:], z_matrix)
         self.protein.trajectory.load_new(cart_coords)
 
-        if 'op' in kwargs:
-            op = kwargs['op']
+        if "op" in kwargs:
+            op = kwargs["op"]
             self.has_chain_operators = True
 
             if isinstance(op, list):
                 # check if all chain operators are virtually the same
                 OP0 = op[0]
                 for iop in op:
-                    scores = [np.abs(OP0[chain][key] - iop[chain][key]).max() for chain in iop for key in iop[chain]]
-                    if any( x > 1e-3 for x in scores):
+                    scores = [
+                        np.abs(OP0[chain][key] - iop[chain][key]).max()
+                        for chain in iop
+                        for key in iop[chain]
+                    ]
+                    if any(x > 1e-3 for x in scores):
                         break
                 else:
                     # if they are we only need the first copy of op
@@ -844,10 +941,12 @@ class MolSysIC:
                 self.chain_operators = op
 
         elif isinstance(self._chain_operators, list):
-            warnings.warn('You are loading in a new internal coordinate trajectory for an internal coordinates object '
-                          'that has unique translations and rotations for each frame. These translations and rotations '
-                          'will be lost, which can be particularly detrimental for systems with multiple chains. New '
-                          'translations & rotations can be applied using the `co` keyword argument.')
+            warnings.warn(
+                "You are loading in a new internal coordinate trajectory for an internal coordinates object "
+                "that has unique translations and rotations for each frame. These translations and rotations "
+                "will be lost, which can be particularly detrimental for systems with multiple chains. New "
+                "translations & rotations can be applied using the `co` keyword argument."
+            )
             self.chain_operators = None
             self.has_chain_operators = False
         else:
@@ -866,36 +965,48 @@ class MolSysIC:
             Frames or array of frames that should have the chain operators applied.
         """
 
-        _chain_operators = [self._chain_operators[ix] for ix in idx] if idx is not None else self._chain_operators
+        _chain_operators = (
+            [self._chain_operators[ix] for ix in idx]
+            if idx is not None
+            else self._chain_operators
+        )
         idx = np.arange(len(_chain_operators)) if idx is None else idx
 
         cart_coords = self.protein.trajectory.coordinate_array
         if isinstance(self._chain_operators, list):
             for i, op in zip(idx, _chain_operators):
                 for start, stop in self._chain_segs:
-                    current_mx, current_ori = ic_mx(*cart_coords[i, start:start+3])
-                    mx = op[start]['mx']
-                    ori = op[start]['ori']
+                    current_mx, current_ori = ic_mx(*cart_coords[i, start : start + 3])
+                    mx = op[start]["mx"]
+                    ori = op[start]["ori"]
                     m2m3 = current_mx @ mx
-                    cart_coords[i, start:stop] = (cart_coords[i, start:stop] - current_ori) @ m2m3 + ori
+                    cart_coords[i, start:stop] = (
+                        cart_coords[i, start:stop] - current_ori
+                    ) @ m2m3 + ori
 
         elif from_list:
             for i in idx:
                 for start, stop in self._chain_segs:
-                    current_mx, current_ori = ic_mx(*cart_coords[i, start:start+3])
-                    mx = self.chain_operators[start]['mx']
-                    ori = self.chain_operators[start]['ori']
+                    current_mx, current_ori = ic_mx(*cart_coords[i, start : start + 3])
+                    mx = self.chain_operators[start]["mx"]
+                    ori = self.chain_operators[start]["ori"]
                     m2m3 = current_mx @ mx
-                    cart_coords[i, start:stop] = (cart_coords[i, start:stop] - current_ori) @ m2m3 + ori
+                    cart_coords[i, start:stop] = (
+                        cart_coords[i, start:stop] - current_ori
+                    ) @ m2m3 + ori
 
         elif isinstance(self._chain_operators, dict):
             for start, end in self._chain_segs:
-                current_mx, current_ori = ic_mx(*cart_coords[0, start:start + 3])
-                mx = self.chain_operators[start]['mx']
-                ori = self.chain_operators[start]['ori']
+                current_mx, current_ori = ic_mx(*cart_coords[0, start : start + 3])
+                mx = self.chain_operators[start]["mx"]
+                ori = self.chain_operators[start]["ori"]
                 m2m3 = current_mx.T @ mx
-                cart_coords[:, start:end] = np.einsum('ijk,kl->ijl', cart_coords[:, start:end] - current_ori, m2m3) + ori
-
+                cart_coords[:, start:end] = (
+                    np.einsum(
+                        "ijk,kl->ijl", cart_coords[:, start:end] - current_ori, m2m3
+                    )
+                    + ori
+                )
 
     def use_frames(self, idxs):
         """
@@ -961,9 +1072,12 @@ class MolSysIC:
         idxs, b2s, b1s, _ = self.z_matrix_idxs[self.non_nan_idxs].T
         chains = self.atoms[b2s].segids
         resnums = self.atoms[b2s].resnums
-        [self.chain_res_name_map[(chain, res, b1, b2)].append(idx)
-         for chain, res, b1, b2, idx in
-         zip(chains, resnums, self.atom_names[b1s], self.atom_names[b2s], idxs)]
+        [
+            self.chain_res_name_map[(chain, res, b1, b2)].append(idx)
+            for chain, res, b1, b2, idx in zip(
+                chains, resnums, self.atom_names[b1s], self.atom_names[b2s], idxs
+            )
+        ]
 
         self.chain_res_name_map = {k: v for k, v in self.chain_res_name_map.items()}
 
@@ -971,11 +1085,17 @@ class MolSysIC:
 
     @property
     def z_matrix_names(self):
-        if not hasattr(self, '_z_matrix_names'):
-            self._z_matrix_names = np.array([self.atom_names[[x for x in y if x >= 0]].tolist()
-                                             for y in self.z_matrix_idxs], dtype=object)
+        if not hasattr(self, "_z_matrix_names"):
+            self._z_matrix_names = np.array(
+                [
+                    self.atom_names[[x for x in y if x >= 0]].tolist()
+                    for y in self.z_matrix_idxs
+                ],
+                dtype=object,
+            )
 
         return self._z_matrix_names
+
 
 def reconfigure_cap(cap, atom_idxs, bonds):
     """
@@ -1002,8 +1122,10 @@ def reconfigure_cap(cap, atom_idxs, bonds):
     sub_bonds = [tuple(bond) for bond in bonds if np.any(np.isin(bond, cap))]
 
     # Identify bound atoms outside the cap and use the first atom as root
-    root = min([bnd[0] for bnd in sub_bonds if bnd[0] not in cap] +
-               [bnd[1] for bnd in sub_bonds if bnd[1] not in cap])
+    root = min(
+        [bnd[0] for bnd in sub_bonds if bnd[0] not in cap]
+        + [bnd[1] for bnd in sub_bonds if bnd[1] not in cap]
+    )
 
     G = ig.Graph(edges=bonds)
     nodes, _, parents = G.bfs(root)
@@ -1133,7 +1255,9 @@ def get_z_matrix(coords, z_matrix_idxs, chain_operator_idxs=None):
     """
     z_matrix = np.zeros((len(z_matrix_idxs), 3))
     bond_mask = ~(z_matrix_idxs[:, 1] < 0)
-    bond_values = coords[z_matrix_idxs[bond_mask, 1]] - coords[z_matrix_idxs[bond_mask, 0]]
+    bond_values = (
+        coords[z_matrix_idxs[bond_mask, 1]] - coords[z_matrix_idxs[bond_mask, 0]]
+    )
     bond_values = np.linalg.norm(bond_values, axis=1)
 
     angle_mask = ~(z_matrix_idxs[:, 2] < 0)
@@ -1158,6 +1282,6 @@ def get_z_matrix(coords, z_matrix_idxs, chain_operator_idxs=None):
             mx, ori = ic_mx(*pos)
         else:
             mx, ori = np.eye(3), coords[cidx].copy()
-        chain_operator[cidx] = {'mx': mx, 'ori': ori}
+        chain_operator[cidx] = {"mx": mx, "ori": ori}
 
     return z_matrix, chain_operator

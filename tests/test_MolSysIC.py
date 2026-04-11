@@ -253,8 +253,6 @@ def test_chi_idxs():
         )
     )
     idxs = list(chain.from_iterable(idxs))
-    print(idxs)
-    print([ubqIC.atom_names[a] for a in idxs])
     np.testing.assert_equal(idxs, [30, 31, 41, 48, 49, 50, 51, 57, 64, 65, 72])
 
 

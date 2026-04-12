@@ -1,3 +1,4 @@
+from __future__ import annotations
 from typing import Tuple, Dict, Union, BinaryIO, TextIO
 import textwrap
 import warnings

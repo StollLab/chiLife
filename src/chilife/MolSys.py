@@ -1002,7 +1002,9 @@ class MolSys(MolecularSystemBase):
 
         # Atoms creation is required to be last
         self.atoms = AtomSelection(self, self.mask, self._bond_mask)
-        self.topology = Topology(self, bonds, bond_types) if bonds is not None else None
+        self.topology = (
+            Topology(self, self._bonds, self._bond_types) if bonds is not None else None
+        )
 
     @classmethod
     def from_pdb(cls, file_name, sort_atoms=False, **kwargs):

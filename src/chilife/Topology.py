@@ -422,10 +422,8 @@ def bonds_from_ccd_data(molsys, ccd_data):
 
         if "chem_comp" in ccd_data[res.resname]:
             res_ccd_data = ccd_data[res.resname]["chem_comp"]
-            if (
-                pres := res.previous_residue()
-            ) is not None and "link type" in res_ccd_data:
-                link_type = res_ccd_data["link type"]
+            if (pres := res.previous_residue()) is not None and "type" in res_ccd_data:
+                link_type = res_ccd_data["type"].lower()
                 if link_type in POLYMER_LINKAGE_TYPES:
                     a1, a2, btype, bchiral = POLYMER_LINKAGE_TYPES[link_type]
                     i1 = pres.ix[pres.names == a1].flat[0]
@@ -477,4 +475,8 @@ def numpyify_ccd(ccd_data):
 
 
 # Linkage data is atom name of the previous residue followed by atom name of the current residue followed by bond type
-POLYMER_LINKAGE_TYPES = {"L-peptide linking": ["C", "N", BondType.SINGLE, "N"]}
+POLYMER_LINKAGE_TYPES = {
+    "l-peptide linking": ["C", "N", BondType.SINGLE, "N"],
+    "peptide linking": ["C", "N", BondType.SINGLE, "N"],
+    "d-peptide linking": ["C", "N", BondType.SINGLE, "N"],
+}

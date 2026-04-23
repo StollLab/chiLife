@@ -707,5 +707,5 @@ def test_write_sdf():
 
 def test_use_ccd():
     mol = MolSys.from_pdb("test_data/7o1o.pdb", use_ccd=chilife.bio_ccd)
-    assert len(mol.bonds) == 5508
+    assert len(mol.bonds) == 5863
     assert chilife.BondType.DOUBLE in mol.bond_types

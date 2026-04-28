@@ -709,3 +709,98 @@ def test_use_ccd():
     mol = MolSys.from_pdb("test_data/7o1o.pdb", use_ccd=chilife.bio_ccd)
     assert len(mol.bonds) == 5863
     assert chilife.BondType.DOUBLE in mol.bond_types
+
+
+def test_from_cif_struct_conn():
+    """Inter-residue bonds recorded in `_struct_conn` (metalc in 7o1o) should land on MolSys."""
+    mol = MolSys.from_cif("test_data/7o1o.cif")
+
+    def _atom_idx(chain, resnum, atom_name):
+        matches = np.argwhere(
+            (mol.chains == chain)
+            & (mol.resnums == resnum)
+            & (np.char.strip(mol.names.astype(str)) == atom_name)
+        ).flatten()
+        assert len(matches) == 1, f"ambiguous/missing atom {chain} {resnum} {atom_name}"
+        return int(matches[0])
+
+    # Expected metalc bonds from tests/test_data/7o1o.cif (ptnr1 -> ptnr2).
+    expected = [
+        (_atom_idx("A", 63, "SG"), _atom_idx("A", 415, "FE2")),
+        (_atom_idx("A", 67, "SG"), _atom_idx("A", 415, "FE3")),
+        (_atom_idx("A", 70, "SG"), _atom_idx("A", 415, "FE1")),
+        (_atom_idx("A", 401, "N"), _atom_idx("A", 402, "FE")),
+        (_atom_idx("A", 401, "SG"), _atom_idx("A", 402, "FE")),
+        (_atom_idx("A", 401, "OXT"), _atom_idx("A", 402, "FE")),
+        (_atom_idx("A", 408, "N"), _atom_idx("A", 415, "FE4")),
+        (_atom_idx("A", 408, "OXT"), _atom_idx("A", 415, "FE4")),
+    ]
+
+    bond_set = {tuple(b) for b in mol.bonds.tolist()}
+    for i1, i2 in expected:
+        assert tuple((i1, i2)) in bond_set
+
+
+def test_write_cif_emits_struct_conn():
+    """An explicit cross-residue bond added to a MolSys shows up in the written _struct_conn loop."""
+    mol = MolSys.from_cif("test_data/2jvc.cif")
+
+    i1 = int(np.argwhere(mol.names == "N").flatten()[0])
+    i2 = int(np.argwhere(mol.names == "C").flatten()[-1])
+    expected_conn = "covale"
+
+    assert mol.resindices[i1] != mol.resindices[i2]
+    mol.add_bond([i1, i2], bond_type=chilife.BondType.SINGLE)
+
+    mol.write_cif("test_cif_sc.cif")
+
+    with open("test_cif_sc.cif", "r") as f:
+        content = f.read()
+
+    assert "_struct_conn.id" in content
+    # Verify the expected conn_type_id shows up on a data line (not a key line).
+    data_lines = [
+        ln
+        for ln in content.splitlines()
+        if ln.startswith(expected_conn) and "_struct_conn" not in ln
+    ]
+    assert len(data_lines) == 1
+    assert data_lines[0] == "covale1 covale ? ? A GLY 1 N ? ? ? 1_555 A GLY 1 A VAL 82 C ? ? 1_555 A VAL 82 ? ? ? ? ? ? ? ? sing ?"
+    os.remove("test_cif_sc.cif")
+
+
+def test_struct_conn_skips_polymer_link():
+    """The auto-inferred polymer peptide C-N bond must not be emitted into _struct_conn."""
+    mol = MolSys.from_cif("test_data/2jvc.cif")
+    mol.write_cif("test_cif_poly.cif")
+    try:
+        with open("test_cif_poly.cif", "r") as f:
+            content = f.read()
+        # If there are no struct_conn rows at all, the loop should be absent entirely (the
+        # write_cif `del_list` path drops empty entries).
+        if "_struct_conn.id" in content:
+            data_lines = [
+                ln
+                for ln in content.splitlines()
+                if (
+                    ln.startswith("covale")
+                    or ln.startswith("disulf")
+                    or ln.startswith("metalc")
+                )
+                and "_struct_conn" not in ln
+            ]
+            # Each data line must not be a simple backbone C-N pair between consecutive residues.
+            for ln in data_lines:
+                parts = ln.split()
+                # columns: id conn_type flag pdbxid asym1 comp1 seq1 atom1 alt1 icode1 std sym1
+                #          asym2 comp2 seq2 atom2 alt2 icode2 auth_a1 auth_c1 auth_s1
+                #          auth_a2 auth_c2 auth_s2 sym2 ...
+                atom1, atom2 = parts[7], parts[15]
+                auth_s1, auth_s2 = int(parts[20]), int(parts[23])
+                is_backbone = {atom1, atom2} == {"C", "N"}
+                is_consecutive = abs(auth_s1 - auth_s2) == 1
+                assert not (is_backbone and is_consecutive), (
+                    f"polymer peptide link leaked into struct_conn: {ln}"
+                )
+    finally:
+        os.remove("test_cif_poly.cif")

@@ -422,12 +422,21 @@ def bonds_from_ccd_data(molsys, ccd_data):
 
         if "chem_comp" in ccd_data[res.resname]:
             res_ccd_data = ccd_data[res.resname]["chem_comp"]
-            if (pres := res.previous_residue()) is not None and "type" in res_ccd_data:
+            linkage_key = (
+                "type"
+                if "type" in res_ccd_data
+                else "link type"
+                if "link_type" in res_ccd_data
+                else None
+            )
+            if (pres := res.previous_residue()) is not None and linkage_key:
                 link_type = res_ccd_data["type"].lower()
                 if link_type in POLYMER_LINKAGE_TYPES:
                     a1, a2, btype, bchiral = POLYMER_LINKAGE_TYPES[link_type]
                     i1 = pres.ix[pres.names == a1].flat[0]
                     i2 = res.ix[res.names == a2].flat[0]
+                    if i1 == 0 and i2 == 1255:
+                        print("break")
                     bonds.append([i1, i2])
                     bond_types.append(btype)
                     bond_chiral.append(bchiral)

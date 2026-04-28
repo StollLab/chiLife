@@ -7,7 +7,6 @@ import operator
 from functools import partial, update_wrapper
 
 import MDAnalysis
-from pymol.chempy.champ.assign import formal_charges
 
 from .ligand_utils import assign_atom_names
 from .Topology import Topology, BondType, bonds_from_ccd_data

@@ -569,8 +569,13 @@ class MolecularSystemBase:
             else:
                 local_ccd[res.resname] = res_to_ccd(res)
 
+        # Keep the per-residue CCD view for polymer-link detection in struct_conn emission before
+        # join_ccd_info flattens it into the CIF table form.
+        per_res_ccd = local_ccd
         ccd_list = sorted(local_ccd.keys())
         local_ccd = chilife.io.join_ccd_info(ccd_list, local_ccd)
+
+        struct_conn_data = chilife.io.struct_conn_from_bonds(self, ccd_data=per_res_ccd)
 
         cif_data = {
             self.name: {
@@ -658,6 +663,9 @@ class MolecularSystemBase:
                 **local_ccd,
             }
         }
+
+        if struct_conn_data is not None:
+            cif_data[self.name]["struct_conn"] = struct_conn_data
 
         # Delete empty entries
         del_list = []
@@ -929,6 +937,14 @@ class MolSys(MolecularSystemBase):
         self.elements = self.atypes
         self.bfactors = self.bs
 
+        # Map to atom index by chain, residue, insertion code, atom name, and altloc code.
+        self.crina = {
+            (str(c), str(r), str(i), str(n), str(a)): ii
+            for ii, (c, r, i, n, a) in enumerate(
+                zip(self.chains, self.resnums, self.icodes, self.names, self.altLocs)
+            )
+        }
+
         self._bonds = None
         self._bond_types = None
         self._bond_mask = np.array([], dtype=bool)
@@ -1135,6 +1151,14 @@ class MolSys(MolecularSystemBase):
             name=name,
             use_ccd=ccd_data,
         )
+
+        # Parse inter-residue bonds from the _struct_conn loop (covale, disulf, metalc).
+        struct_conn = cif_data.get("struct_conn")
+        if struct_conn is not None:
+            sc_bonds, sc_types = chilife.io.parse_struct_conn_bonds(msys, struct_conn)
+            if len(sc_bonds) > 0:
+                msys.add_bonds(sc_bonds, bond_type=sc_types)
+
         msys._cif_data = cif_data
 
         return msys
@@ -2627,6 +2651,11 @@ def struct_to_cif_atom_site(struct):
     ).tolist()
     occupancy = np.tile(struct.occupancies.astype(str), n_frames).tolist()
     B_iso_or_equiv = np.tile(struct.bs.astype(str), n_frames).tolist()
+    formal_charge = np.tile(
+        [f"{charge:.0f}" if not np.isnan(charge) else "?" for charge in struct.charges],
+        n_frames,
+    ).tolist()
+
     auth_seq_id = np.tile(struct.resnums.astype(str), n_frames).tolist()
     auth_asym_id = np.tile(struct.chains, n_frames).tolist()
     pdbx_PDB_model_num = np.concatenate(
@@ -2651,11 +2680,12 @@ def struct_to_cif_atom_site(struct):
         "label_entity_id": label_entity_id,
         "label_seq_id": label_seq_id,
         "pdbx_PDB_ins_code": pdbx_PDB_ins_code,
-        "cartn_x": cartn_x,
-        "cartn_y": cartn_y,
-        "cartn_z": cartn_z,
+        "Cartn_x": cartn_x,
+        "Cartn_y": cartn_y,
+        "Cartn_z": cartn_z,
         "occupancy": occupancy,
         "B_iso_or_equiv": B_iso_or_equiv,
+        "pdbx_formal_charge": formal_charge,
         "auth_seq_id": auth_seq_id,
         "auth_asym_id": auth_asym_id,
         "pdbx_PDB_model_num": pdbx_PDB_model_num,

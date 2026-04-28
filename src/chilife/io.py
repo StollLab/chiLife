@@ -38,7 +38,7 @@ from .globals import (
 from .alignment_methods import local_mx
 from .IntrinsicLabel import IntrinsicLabel
 from .MolSys import MolecularSystemBase, MolSys
-from .Topology import BondType
+from .Topology import BondType, POLYMER_LINKAGE_TYPES
 from .MolSysIC import MolSysIC
 from .pdb_utils import parse_connect, sort_pdb
 
@@ -59,6 +59,74 @@ CHEM_COMP_BOND_KEYS = (
     "value_order",
     "pdbx_aromatic_flag",
     "pdbx_stereo_config",
+)
+
+STRUCT_CONN_KEYS = (
+    "id",
+    "conn_type_id",
+    "pdbx_leaving_atom_flag",
+    "pdbx_PDB_id",
+    "ptnr1_label_asym_id",
+    "ptnr1_label_comp_id",
+    "ptnr1_label_seq_id",
+    "ptnr1_label_atom_id",
+    "pdbx_ptnr1_label_alt_id",
+    "pdbx_ptnr1_PDB_ins_code",
+    "pdbx_ptnr1_standard_comp_id",
+    "ptnr1_symmetry",
+    "ptnr2_label_asym_id",
+    "ptnr2_label_comp_id",
+    "ptnr2_label_seq_id",
+    "ptnr2_label_atom_id",
+    "pdbx_ptnr2_label_alt_id",
+    "pdbx_ptnr2_PDB_ins_code",
+    "ptnr1_auth_asym_id",
+    "ptnr1_auth_comp_id",
+    "ptnr1_auth_seq_id",
+    "ptnr2_auth_asym_id",
+    "ptnr2_auth_comp_id",
+    "ptnr2_auth_seq_id",
+    "ptnr2_symmetry",
+    "pdbx_ptnr3_label_atom_id",
+    "pdbx_ptnr3_label_seq_id",
+    "pdbx_ptnr3_label_comp_id",
+    "pdbx_ptnr3_label_asym_id",
+    "pdbx_ptnr3_label_alt_id",
+    "pdbx_ptnr3_PDB_ins_code",
+    "details",
+    "pdbx_dist_value",
+    "pdbx_value_order",
+    "pdbx_role",
+)
+
+# CIF `_struct_conn.conn_type_id` values that are treated as bonds in chiLife.
+STRUCT_CONN_BOND_TYPES = ("covale", "disulf", "metalc")
+
+# Element symbols treated as "non-metals" for picking the `covale` vs `metalc`
+# conn_type_id on write. Everything else resolves to `metalc`.
+NONMETAL_ELEMENTS = frozenset(
+    {
+        "H",
+        "D",
+        "C",
+        "N",
+        "O",
+        "P",
+        "S",
+        "SE",
+        "F",
+        "CL",
+        "BR",
+        "I",
+        "B",
+        "AT",
+        "HE",
+        "NE",
+        "AR",
+        "KR",
+        "XE",
+        "RN",
+    }
 )
 
 CIF_BOND_TO_XL = {
@@ -1706,6 +1774,191 @@ def create_ccd_dicts(cif_data):
             }
 
     return ccd_data
+
+
+def parse_struct_conn_bonds(molsys, struct_conn):
+    """
+    Parse the ``_struct_conn`` loop of a cif file into inter-residue bonds on a ``MolSys``.
+
+    Only rows whose ``conn_type_id`` is in :data:`STRUCT_CONN_BOND_TYPES` (``covale``, ``disulf``,
+    ``metalc``) are kept. Rows whose ``ptnr*_symmetry`` is anything other than ``1_555`` / ``.`` /
+    ``?`` are skipped (inter-molecular symmetry-mate contacts are not real bonds inside this
+    asymmetric unit). Rows whose partners cannot be resolved to an atom in ``molsys`` are also
+    skipped.
+
+    Partners are resolved using the ``auth`` chain/resnum fields (matching
+    :attr:`MolSys.chains` / :attr:`MolSys.resnums`) together with the insertion code, atom name,
+    and alternate-location fields (matching :attr:`MolSys.icodes`, :attr:`MolSys.names`, and
+    :attr:`MolSys.altlocs`).
+
+    Parameters
+    ----------
+    molsys : MolSys
+        The molecular system the bonds should be resolved against.
+    struct_conn : dict
+        ``struct_conn`` sub-dictionary from :func:`~read_cif` (keys map to tuples/lists of values,
+        or to scalars when the CIF loop only has a single row).
+
+    Returns
+    -------
+    bonds : np.ndarray
+        ``(N, 2)`` array of atom indices into ``molsys``. Empty when no rows resolve.
+    bond_types : np.ndarray
+        ``(N,)`` array of :class:`~chilife.Topology.BondType` values, one per bond.
+    """
+
+    conn_types = struct_conn.get("conn_type_id", ())
+    n_rows = len(conn_types)
+    if n_rows == 0:
+        return np.empty((0, 2), dtype=int), np.empty((0,), dtype=object)
+
+    bonds, bond_types = [], []
+    for row in range(n_rows):
+        ctype = str(conn_types[row]).lower()
+        if ctype not in STRUCT_CONN_BOND_TYPES:
+            continue
+
+        collapse_values = (None, ".", "?")
+        c = struct_conn["ptnr1_auth_asym_id"][row]
+        r = struct_conn["ptnr1_auth_seq_id"][row]
+        i = struct_conn["pdbx_ptnr1_PDB_ins_code"][row]
+        n = struct_conn["ptnr1_label_atom_id"][row]
+        a = struct_conn["pdbx_ptnr1_label_alt_id"][row]
+        crina1 = tuple(x if x not in collapse_values else "" for x in (c, r, i, n, a))
+
+        c = struct_conn["ptnr2_auth_asym_id"][row]
+        r = struct_conn["ptnr2_auth_seq_id"][row]
+        i = struct_conn["pdbx_ptnr2_PDB_ins_code"][row]
+        n = struct_conn["ptnr2_label_atom_id"][row]
+        a = struct_conn["pdbx_ptnr2_label_alt_id"][row]
+        crina2 = tuple(x if x not in collapse_values else "" for x in (c, r, i, n, a))
+
+        i1, i2 = molsys.crina.get(crina1, None), molsys.crina.get(crina2, None)
+
+        if i1 is None or i2 is None:
+            continue
+
+        order_key = struct_conn["pdbx_value_order"][row]
+        btype = CIF_BOND_TO_XL.get(order_key, BondType.UNSPECIFIED)
+        bonds.append(sorted([i1, i2]))
+        bond_types.append(btype)
+
+    return np.array(bonds, dtype=int), np.array(bond_types, dtype=object)
+
+
+def struct_conn_from_bonds(molsys, ccd_data=None):
+    """
+    Build a cif ``_struct_conn`` loop dict from the inter-residue bonds on a ``MolSys``.
+
+    Only bonds whose two atoms belong to different residues are emitted, and the auto-inferred
+    polymer peptide link (``C`` -> ``N`` between consecutive residues whose previous residue has a
+    ``chem_comp.type`` in :data:`chilife.Topology.POLYMER_LINKAGE_TYPES`) is excluded so that a
+    round-trip through :meth:`MolSys.from_cif` / :meth:`MolSys.write_cif` stays idempotent (the
+    peptide link is re-inferred on read from the polymer sequence via
+    :func:`~chilife.Topology.bonds_from_ccd_data`).
+
+    Parameters
+    ----------
+    molsys : MolSys
+        The molecular system to read bonds from.
+    ccd_data : dict | None
+        Per-residue CCD dict keyed by residue name (as consumed by
+        :func:`~chilife.Topology.bonds_from_ccd_data`) used to look up ``chem_comp.type`` when
+        deciding whether a bond is an implicit polymer peptide link. Falls back to
+        ``chilife.bio_ccd`` when not provided.
+
+    Returns
+    -------
+    struct_conn : dict | None
+        Dict keyed by :data:`STRUCT_CONN_KEYS`, mapping each column name to a list of string values
+        (one per bond). Returns ``None`` when no inter-residue bonds are present.
+    """
+    if molsys.bonds is None or len(molsys.bonds) == 0:
+        return None
+
+    counters = {}
+    rows = defaultdict(list)
+    for (b1, b2), btype in zip(molsys.bonds, molsys.bond_types):
+        if molsys.resindices[b1] == molsys.resindices[b2]:
+            continue
+
+        elif molsys.segindices[b1] == molsys.segindices[b2] and abs(molsys.resnums[b1] - molsys.resnums[b2]) == 1:
+            continue
+
+        else:
+            conn_type = _classify_struct_conn(molsys, b1, b2)
+            counters[conn_type] = counters.get(conn_type, 0) + 1
+            bond_id = f"{conn_type}{counters[conn_type]}"
+            value_order = XL_BOND_TO_CIF.get(btype, "?")
+
+            if value_order in ("metalc", "disulf"):
+                value_order = "?"
+
+            rows["id"].append(bond_id)
+            rows["conn_type_id"].append(conn_type)
+            rows["pdbx_leaving_atom_flag"].append("?")
+            rows["pdbx_PDB_id"].append("?")
+            _append_partner(rows, molsys, b1, which=1)
+            _append_partner(rows, molsys, b2, which=2)
+            rows["pdbx_ptnr3_label_atom_id"].append("?")
+            rows["pdbx_ptnr3_label_seq_id"].append("?")
+            rows["pdbx_ptnr3_label_comp_id"].append("?")
+            rows["pdbx_ptnr3_label_asym_id"].append("?")
+            rows["pdbx_ptnr3_label_alt_id"].append("?")
+            rows["pdbx_ptnr3_PDB_ins_code"].append("?")
+            rows["details"].append("?")
+            rows["pdbx_dist_value"].append("?")
+            rows["pdbx_value_order"].append(value_order)
+            rows["pdbx_role"].append("?")
+
+
+    if not rows["id"]:
+        return None
+
+    return rows
+
+
+def _classify_struct_conn(molsys, i1, i2):
+    """Pick the CIF ``conn_type_id`` for the bond between atoms ``i1`` and ``i2``."""
+    n1 = str(molsys.names[i1]).strip()
+    n2 = str(molsys.names[i2]).strip()
+    r1 = str(molsys.resnames[i1]).strip()
+    r2 = str(molsys.resnames[i2]).strip()
+    if r1 == "CYS" and r2 == "CYS" and n1 == "SG" and n2 == "SG":
+        return "disulf"
+
+    e1 = str(molsys.atypes[i1]).strip().upper()
+    e2 = str(molsys.atypes[i2]).strip().upper()
+    if e1 not in NONMETAL_ELEMENTS or e2 not in NONMETAL_ELEMENTS:
+        return "metalc"
+    return "covale"
+
+
+def _append_partner(rows, molsys, idx, which):
+    """Append a single partner's struct_conn fields to ``rows`` for atom index ``idx``."""
+    seg = str(molsys.segids[idx])
+    chain = str(molsys.chains[idx])
+    resname = str(molsys.resnames[idx])
+    resnum = str(int(molsys.resnums[idx]))
+    label_seq = str(int(molsys.resindices[idx]) + 1)
+    name = str(molsys.names[idx]).strip()
+    altloc_raw = str(molsys.altlocs[idx]).strip()
+    altloc = altloc_raw if altloc_raw else "?"
+    icode_raw = str(molsys.icodes[idx]).strip()
+    icode = icode_raw if icode_raw else "?"
+
+    rows[f"ptnr{which}_label_asym_id"].append(chain)
+    rows[f"ptnr{which}_label_comp_id"].append(resname)
+    rows[f"ptnr{which}_label_seq_id"].append(label_seq)
+    rows[f"ptnr{which}_label_atom_id"].append(name)
+    rows[f"pdbx_ptnr{which}_label_alt_id"].append(altloc)
+    rows[f"pdbx_ptnr{which}_PDB_ins_code"].append(icode)
+    if which == 1:
+        rows["pdbx_ptnr1_standard_comp_id"].append("?")
+    rows[f"ptnr{which}_symmetry"].append("1_555")
+    rows[f"ptnr{which}_auth_asym_id"].append(chain)
+    rows[f"ptnr{which}_auth_comp_id"].append(resname)
+    rows[f"ptnr{which}_auth_seq_id"].append(resnum)
 
 
 def write_cif(file_name, cif_data):

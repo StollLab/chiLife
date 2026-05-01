@@ -1081,7 +1081,12 @@ class MolSys(MolecularSystemBase):
         cif_data = cif_data[name]
         atom_site_data = cif_data["atom_site"]
 
-        model_id = np.array([atom_site_data["pdbx_PDB_model_num"]]).flatten()
+        # Some CIFs don't use model numbers
+        if "pdbx_PDB_model_num" in atom_site_data:
+            model_id = np.array([atom_site_data["pdbx_PDB_model_num"]]).flatten()
+        else:
+            model_id = np.ones_like(atom_site_data["label_atom_id"])
+
         model_ids = np.unique(model_id)
         n_models = len(model_ids)
         n_atoms = np.sum(model_id == model_ids[0])

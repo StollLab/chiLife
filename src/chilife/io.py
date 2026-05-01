@@ -1586,7 +1586,7 @@ def parse_cif_data_block(data_block: list[str]) -> dict:
             in_loop = True
             subject_keys = []
             subject_values = []
-        elif line.startswith("#") and in_loop:
+        elif (line.startswith("#") or line.strip() == "") and in_loop:
             for k, v in zip(subject_keys, zip(*subject_values)):
                 topic_dict[k] = v
             in_loop = False

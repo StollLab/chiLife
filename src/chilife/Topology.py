@@ -435,8 +435,6 @@ def bonds_from_ccd_data(molsys, ccd_data):
                     a1, a2, btype, bchiral = POLYMER_LINKAGE_TYPES[link_type]
                     i1 = pres.ix[pres.names == a1].flat[0]
                     i2 = res.ix[res.names == a2].flat[0]
-                    if i1 == 0 and i2 == 1255:
-                        print("break")
                     bonds.append([i1, i2])
                     bond_types.append(btype)
                     bond_chiral.append(bchiral)

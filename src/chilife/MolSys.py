@@ -397,6 +397,10 @@ class MolecularSystemBase:
                 new_bond_types.append(btype)
                 new_bond_chiral.append(chiral)
 
+        # If all bonds are accounted for we don't have to change anything
+        if len(new_bonds) == 0:
+            return
+
         # Convert to numpy arrays
         new_bonds = np.array(new_bonds)
         new_bond_types = np.array(new_bond_types)
@@ -687,7 +691,14 @@ class MolecularSystemBase:
 
         properties = {}
 
-        if len(chg_mask := np.argwhere(self.charges != 0).flatten().tolist()) > 0:
+        if (
+            len(
+                chg_mask := np.argwhere((self.charges != 0) * (~np.isnan(self.charges)))
+                .flatten()
+                .tolist()
+            )
+            > 0
+        ):
             properties["CHG"] = {
                 "atom_ids": chg_mask,
                 "charges": self.charges[chg_mask].tolist(),
@@ -2486,7 +2497,7 @@ def concat_molsys(*systems):
             bond_types = None
             bond_chiral = None
         elif sys.bonds is None:
-            bonds.append(np.array([[]]))
+            bonds.append(np.empty((0, 2)))
             bond_types.append(np.array([]))
             bond_chiral.append(np.array([]))
         else:

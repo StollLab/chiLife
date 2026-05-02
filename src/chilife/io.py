@@ -38,7 +38,7 @@ from .globals import (
 from .alignment_methods import local_mx
 from .IntrinsicLabel import IntrinsicLabel
 from .MolSys import MolecularSystemBase, MolSys
-from .Topology import BondType, POLYMER_LINKAGE_TYPES
+from .Topology import BondType
 from .MolSysIC import MolSysIC
 from .pdb_utils import parse_connect, sort_pdb
 
@@ -1587,6 +1587,8 @@ def parse_cif_data_block(data_block: list[str]) -> dict:
             subject_keys = []
             subject_values = []
         elif (line.startswith("#") or line.strip() == "") and in_loop:
+            if topic_key == "chem_comp":
+                breakpoint()
             for k, v in zip(subject_keys, zip(*subject_values)):
                 topic_dict[k] = v
             in_loop = False
@@ -1597,7 +1599,25 @@ def parse_cif_data_block(data_block: list[str]) -> dict:
                 topic_dict = parsed_block.setdefault(topic_key[1:], {})
                 subject_keys.append(subject_key)
             else:
-                subject_values.append(split_with_quotes(line))
+                svals = split_with_quotes(line)
+
+                # Some lines are too long and wrap multiple lines.
+                while len(svals) < len(subject_keys):
+                    line = next(data_block_iterator)
+
+                    # Consider a multiline field within a multiline loop item
+                    if line[0] == ";":
+                        value = line[1:]
+                        while True:
+                            line = next(data_block_iterator)
+                            if line.startswith(";"):
+                                break
+                            value += line.strip()
+                        line = value
+
+                    svals += split_with_quotes(line)
+
+                subject_values.append(svals)
 
         elif line.startswith("_"):
             kv = split_with_quotes(line)
@@ -1742,35 +1762,12 @@ def create_ccd_dicts(cif_data):
             bond_dict["pdbx_stereo_config"].append(stereo)
 
     chem_comp_data = cif_data.get("chem_comp", None)
-    if chem_comp_data is not None and all(
-        key in chem_comp_data
-        for key in [
-            "id",
-            "type",
-            "mon_nstd_flag",
-            "name",
-            "pdbx_synonyms",
-            "formula",
-            "formula_weight",
-        ]
-    ):
-        for res, link_type, mon_nsdt_flag, name, pdbx_synonyms, formula, weight in zip(
-            chem_comp_data["id"],
-            chem_comp_data["type"],
-            chem_comp_data["mon_nstd_flag"],
-            chem_comp_data["name"],
-            chem_comp_data["pdbx_synonyms"],
-            chem_comp_data["formula"],
-            chem_comp_data["formula_weight"],
-        ):
+
+    if chem_comp_data is not None:
+        for i, res in enumerate(chem_comp_data["id"]):
             res_dict = ccd_data.setdefault(res, {})
             res_dict["chem_comp"] = {
-                "link type": link_type,
-                "mon nsdt flag": mon_nsdt_flag,
-                "name": name,
-                "pdbx synonyms": pdbx_synonyms,
-                "formula": formula,
-                "weight": weight,
+                key: chem_comp_data[key][i] for key in chem_comp_data.keys()
             }
 
     return ccd_data
@@ -1882,7 +1879,10 @@ def struct_conn_from_bonds(molsys, ccd_data=None):
         if molsys.resindices[b1] == molsys.resindices[b2]:
             continue
 
-        elif molsys.segindices[b1] == molsys.segindices[b2] and abs(molsys.resnums[b1] - molsys.resnums[b2]) == 1:
+        elif (
+            molsys.segindices[b1] == molsys.segindices[b2]
+            and abs(molsys.resnums[b1] - molsys.resnums[b2]) == 1
+        ):
             continue
 
         else:
@@ -1910,7 +1910,6 @@ def struct_conn_from_bonds(molsys, ccd_data=None):
             rows["pdbx_dist_value"].append("?")
             rows["pdbx_value_order"].append(value_order)
             rows["pdbx_role"].append("?")
-
 
     if not rows["id"]:
         return None
@@ -2005,13 +2004,12 @@ def write_cif(file_name, cif_data):
                 elif isinstance(value2, Sequence):
                     loop_keys.append(line + "\n")
                     value2 = [v if "'" not in v else '"' + v + '"' for v in value2]
-                    try:
-                        value2 = [
-                            v if (" " not in v) and (v[0] != "_") else "'" + v + "'"
-                            for v in value2
-                        ]
-                    except IndexError:
-                        breakpoint()
+
+                    value2 = [
+                        v if (" " not in v) and (v[0] != "_") else "'" + v + "'"
+                        for v in value2
+                    ]
+
                     loop_values.append(value2)
                     try:
                         max_val_lens.append(max(len(x) for x in value2))

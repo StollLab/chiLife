@@ -804,3 +804,10 @@ def test_struct_conn_skips_polymer_link():
                 )
     finally:
         os.remove("test_cif_poly.cif")
+
+
+def test_thing():
+    thing = chilife.fetch("1hvr", format="cif", save=True)
+    thing = MolSys.from_cif("1hvr.cif")
+    thing.write_cif('1hvr_pass.cif')
+    other_thing = MolSys.from_cif("1hvr_pass.cif")

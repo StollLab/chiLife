@@ -338,3 +338,8 @@ def test_join_ccd_info():
 
     for k, v in data["bond"].items():
         assert all(vi == ti for vi, ti in zip(v, bond[k]))
+
+
+def test_totsdf():
+    cif_data = xl.io.read_cif("../1hvr.cif")
+    print(cif_data)

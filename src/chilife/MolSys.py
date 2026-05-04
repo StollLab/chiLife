@@ -533,7 +533,7 @@ class MolecularSystemBase:
                     poly_type.append("unknown")
 
                 poly_ids.append(str(i + 1))
-                strand_ids.append(str(seg.segid))
+                strand_ids.append(str(seg.chain))
 
                 poly_seq_num.extend([str(x) for x in range(1, len(seg.residues) + 1)])
                 poly_seq_mon_id.extend([res.resname for res in seg.residues])
@@ -544,7 +544,7 @@ class MolecularSystemBase:
                     ]
                 )
                 poly_seq_eids.extend([poly_ids[-1]] * len(seg.residues))
-                poly_asym.extend([str(res.segid) for res in seg.residues])
+                poly_asym.extend([str(res.chain) for res in seg.residues])
                 poly_auth_num.extend([str(res.resnum) for res in seg.residues])
                 poly_icodes.extend(
                     [res.icode if res.icode.strip() else "." for res in seg.residues]
@@ -553,12 +553,12 @@ class MolecularSystemBase:
             else:
                 res = seg.residues[0]
                 nonpoly_eid.append(str(i + 1))
-                nonpoly_asym_id.append(str(seg.segid))
+                nonpoly_asym_id.append(str(seg.chain))
                 nonpoly_auth_seq.append(str(res.resnum))
                 nonpoly_mon_id.append(res.resname)
                 nonpoly_icode.append(res.icode if res.icode != "" else ".")
                 nonpoly_seq_num.append(str(1))
-                nonpoly_sid.append(str(seg.segid))
+                nonpoly_sid.append(str(seg.chain))
                 stype.append("non-polymer")
 
         entites = self.segindices
@@ -1616,9 +1616,10 @@ class MolSys(MolecularSystemBase):
     @property
     def _atoms(self):
         if not hasattr(self, "_Atoms"):
-            self._Atoms = np.array(
-                [Atom(weakref.proxy(self), i) for i in range(self.n_atoms)]
-            )
+            proxy = weakref.proxy(self)
+            self._Atoms = np.empty(self.n_atoms, dtype=object)
+            for i in range(self.n_atoms):
+                self._Atoms[i] = Atom(proxy, i)
         return self._Atoms
 
     @property
@@ -2211,6 +2212,9 @@ class Atom(MolecularSystemBase):
         all_idxs = np.array([idx for idx in all_idxs if idx != self.mask])
         return AtomSelection(self.molsys, all_idxs)
 
+    def __len__(self):
+        return 1
+
 
 class Residue(MolecularSystemBase):
     """
@@ -2659,7 +2663,7 @@ def struct_to_cif_atom_site(struct):
         [x if x.strip() else "." for x in struct.altlocs], n_frames
     ).tolist()
     label_comp_id = np.tile(struct.resnames, n_frames).tolist()
-    label_asym_id = np.tile(struct.segids, n_frames).tolist()
+    label_asym_id = np.tile(struct.chains, n_frames).tolist()
     label_entity_id = np.tile((struct.segindices + 1).astype(str), n_frames).tolist()
     label_seq_id = np.tile((struct.resindices + 1).astype(str), n_frames).tolist()
     pdbx_PDB_ins_code = np.tile(

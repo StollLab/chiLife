@@ -1837,7 +1837,18 @@ def parse_struct_conn_bonds(molsys, struct_conn):
 
         order_key = struct_conn["pdbx_value_order"][row]
         btype = CIF_BOND_TO_XL.get(order_key, BondType.UNSPECIFIED)
-        bonds.append(sorted([i1, i2]))
+        bond = sorted([i1, i2])
+
+        # Do not overwrite existing bonds with BondType.UNSPECIFIED if the existing bond is specified.
+        if btype == BondType.UNSPECIFIED:
+            exists = np.argwhere(np.all(molsys._bonds == bond, axis=1)).flatten()
+            if (
+                len(exists) > 0
+                and molsys._bond_types[exists[0]] != BondType.UNSPECIFIED
+            ):
+                continue
+
+        bonds.append(bond)
         bond_types.append(btype)
 
     return np.array(bonds, dtype=int), np.array(bond_types, dtype=object)

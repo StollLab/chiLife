@@ -765,7 +765,10 @@ def test_write_cif_emits_struct_conn():
         if ln.startswith(expected_conn) and "_struct_conn" not in ln
     ]
     assert len(data_lines) == 1
-    assert data_lines[0] == "covale1 covale ? ? A GLY 1 N ? ? ? 1_555 A GLY 1 A VAL 82 C ? ? 1_555 A VAL 82 ? ? ? ? ? ? ? ? sing ?"
+    assert (
+        data_lines[0]
+        == "covale1 covale ? ? A GLY 1 N ? ? ? 1_555 A GLY 1 A VAL 82 C ? ? 1_555 A VAL 82 ? ? ? ? ? ? ? ? sing ?"
+    )
     os.remove("test_cif_sc.cif")
 
 
@@ -806,8 +809,19 @@ def test_struct_conn_skips_polymer_link():
         os.remove("test_cif_poly.cif")
 
 
-def test_thing():
-    thing = chilife.fetch("1hvr", format="cif", save=True)
-    thing = MolSys.from_cif("1hvr.cif")
-    thing.write_cif('1hvr_pass.cif')
-    other_thing = MolSys.from_cif("1hvr_pass.cif")
+def test_roundtrip():
+    struct = MolSys.from_cif("test_data/1hvr.cif")
+    struct.write_cif("1hvr_xl.cif")
+    xl_struct = MolSys.from_cif("1hvr_xl.cif")
+
+    assert len(xl_struct.atoms) == len(struct.atoms)
+    for a1, a2 in zip(struct.atoms, xl_struct.atoms):
+        assert a1.name == a2.name
+        assert a1.atype == a2.atype
+        assert a1.resnum == a2.resnum
+        assert a1.resname == a2.resname
+        assert a1.chain == a2.chain
+        assert a1.segid == a2.segid
+        np.testing.assert_almost_equal(a1.coords, a2.coords)
+
+    os.remove("1hvr_xl.cif")

@@ -1115,9 +1115,9 @@ def write_sdf(sdf_data, file_name):
         for atom in atoms:
             x, y, z = atom["xyz"]
             lines.append(
-                f"{x:10.4f}{y:10.4f}{z:10.4f}{atom['element']:>2} {atom['mass difference']:>3}{atom['charge']:>3}"
-                f"{atom['stereo']:>3}{0:>3}{0:>3}{atom['valence']:>3}"
-                + f"{0:>3}" * 6
+                f"{x:10.4f}{y:10.4f}{z:10.4f} {atom['element']:<3} {atom['mass difference']:<2} {atom['charge']:<3}"
+                f"{atom['stereo']:<3}{0:<3}{0:<3}{atom['valence']:<3}"
+                + f"{0:<3}" * 6
                 + "\n"
             )
 
@@ -1614,8 +1614,12 @@ def parse_cif_data_block(data_block: list[str]) -> dict:
                                 break
                             value += line.strip()
                         line = value
+                        svals += [line.strip("'\"")]
+                    else:
+                        svals += split_with_quotes(line)
 
-                    svals += split_with_quotes(line)
+                if len(svals) > len(subject_keys):
+                    breakpoint()
 
                 subject_values.append(svals)
 
@@ -1887,12 +1891,14 @@ def struct_conn_from_bonds(molsys, ccd_data=None):
     counters = {}
     rows = defaultdict(list)
     for (b1, b2), btype in zip(molsys.bonds, molsys.bond_types):
-        if molsys.resindices[b1] == molsys.resindices[b2]:
+        delta = molsys.resindices[b1] - molsys.resindices[b2]
+        if delta == 0:
             continue
 
         elif (
             molsys.segindices[b1] == molsys.segindices[b2]
-            and abs(molsys.resnums[b1] - molsys.resnums[b2]) == 1
+            and abs(delta) == 1
+            and ("HETATM" not in molsys.record_types[[b1, b2]])
         ):
             continue
 

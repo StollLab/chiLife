@@ -145,6 +145,7 @@ features = (
     "bs",
     "atypes",
     "charges",
+    "entity_ids",
 )
 
 
@@ -629,6 +630,7 @@ def test_from_cif():
     np.testing.assert_equal(mol.names, ans["anames"])
     np.testing.assert_equal(mol.resnames, ans["resnames"])
     np.testing.assert_equal(mol.segids, ans["segids"])
+    np.testing.assert_equal(mol.entity_ids, ans["entity_ids"])
     np.testing.assert_almost_equal(mol.charges, ans["charges"])
     np.testing.assert_equal(mol.chiral, ans["chiral"])
 
@@ -643,6 +645,7 @@ def test_from_sdf():
     np.testing.assert_equal(mol.names, ans["anames"])
     np.testing.assert_equal(mol.resnames, ans["resnames"])
     np.testing.assert_equal(mol.segids, ans["segids"])
+    np.testing.assert_equal(mol.entity_ids, ans["entity_ids"])
     np.testing.assert_almost_equal(mol.charges, ans["charges"])
     np.testing.assert_equal(mol.chiral, ans["chiral"])
 
@@ -815,13 +818,18 @@ def test_roundtrip():
     xl_struct = MolSys.from_cif("1hvr_xl.cif")
 
     assert len(xl_struct.atoms) == len(struct.atoms)
-    for a1, a2 in zip(struct.atoms, xl_struct.atoms):
-        assert a1.name == a2.name
-        assert a1.atype == a2.atype
-        assert a1.resnum == a2.resnum
-        assert a1.resname == a2.resname
-        assert a1.chain == a2.chain
-        assert a1.segid == a2.segid
-        np.testing.assert_almost_equal(a1.coords, a2.coords)
+
+    np.testing.assert_equal(struct.names, xl_struct.names)
+    np.testing.assert_equal(struct.atypes, xl_struct.atypes)
+    np.testing.assert_equal(struct.resnums, xl_struct.resnums)
+    np.testing.assert_equal(struct.resnames, xl_struct.resnames)
+    np.testing.assert_equal(struct.chains, xl_struct.chains)
+    np.testing.assert_equal(struct.segids, xl_struct.segids)
+    np.testing.assert_almost_equal(struct.coords, xl_struct.coords)
+
+    assert len(xl_struct.bonds) == len(struct.bonds)
+    np.testing.assert_equal(xl_struct.bonds, struct.bonds)
+    np.testing.assert_equal(xl_struct.bond_types, struct.bond_types)
 
     os.remove("1hvr_xl.cif")
+    

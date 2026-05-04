@@ -45,6 +45,8 @@ masked_properties = (
     "resindices",
     "segixs",
     "segindices",
+    "entity_ids",
+    "entities",
     "_Atoms",
     "_Residues",
     "atoms",
@@ -72,6 +74,7 @@ singles = {
     "occupancy": "occupancies",
     "segix": "segixs",
     "resix": "resixs",
+    "entity": "entity_ids",
 }
 
 
@@ -522,8 +525,35 @@ class MolecularSystemBase:
         nonpoly_mon_id, nonpoly_icode, nonpoly_seq_num, nonpoly_sid = [], [], [], []
 
         for i, seg in enumerate(self.segments):
-            segids.append(str(i + 1))
-            if len(seg.residues) > 1:
+            ix0 = int(np.min(seg.mask))
+            entity_eid = str(self.entity_ids[ix0])
+            segids.append(entity_eid)
+
+            # Determine if this segment is a polymer
+            if len(seg.residues) == 1:
+                is_polymer = False
+            # inter-residue bonds implies a polymer
+            elif seg.bonds is not None and ~np.all(
+                (
+                    self.molsys.resindices[seg.bonds[:, 0]]
+                    == self.molsys.resindices[seg.bonds[:, 1]]
+                )
+            ):
+                is_polymer = True
+
+            # being a known amino acid or nucleotide implies a polymer
+            elif np.any(
+                np.isin(
+                    seg.resnames,
+                    tuple(chilife.nataa_codes) + tuple(chilife.natnu_codes),
+                )
+            ):
+                is_polymer = True
+
+            else:
+                is_polymer = False
+
+            if is_polymer:
                 stype.append("polymer")
                 if any(x.resname in chilife.nataa_codes for x in seg.residues):
                     poly_type.append("polypeptide")
@@ -532,7 +562,7 @@ class MolecularSystemBase:
                 else:
                     poly_type.append("unknown")
 
-                poly_ids.append(str(i + 1))
+                poly_ids.append(entity_eid)
                 strand_ids.append(str(seg.chain))
 
                 poly_seq_num.extend([str(x) for x in range(1, len(seg.residues) + 1)])
@@ -551,17 +581,16 @@ class MolecularSystemBase:
                 )
 
             else:
-                res = seg.residues[0]
-                nonpoly_eid.append(str(i + 1))
-                nonpoly_asym_id.append(str(seg.chain))
-                nonpoly_auth_seq.append(str(res.resnum))
-                nonpoly_mon_id.append(res.resname)
-                nonpoly_icode.append(res.icode if res.icode != "" else ".")
-                nonpoly_seq_num.append(str(1))
-                nonpoly_sid.append(str(seg.chain))
-                stype.append("non-polymer")
+                for res in seg.residues:
+                    nonpoly_eid.append(entity_eid)
+                    nonpoly_asym_id.append(str(seg.segid))
+                    nonpoly_auth_seq.append(str(res.resnum))
+                    nonpoly_mon_id.append(res.resname)
+                    nonpoly_icode.append(res.icode if res.icode != "" else ".")
+                    nonpoly_seq_num.append(str(1))
+                    nonpoly_sid.append(str(seg.chain))
+                    stype.append("non-polymer")
 
-        entites = self.segindices
         atom_site_data = struct_to_cif_atom_site(self)
 
         local_ccd = {}
@@ -791,6 +820,8 @@ class MolSys(MolecularSystemBase):
         Array of the residue indices each atom belongs to. resindices are 0-indexed.
     segindices: np.ndarray | None
         Array of the segment index each atom belongs to. segindices are 0-indexed.
+    entity_ids : np.ndarray | None
+        Per-atom mmCIF ``label_entity_id`` strings. If omitted, inferred from ``segs`` (first-appearance order).
     bonds : ArrayLike | None
         Array of atom ID pairs corresponding to all atom bonds in the system.
     bond_types : ArrayLike | None
@@ -828,6 +859,7 @@ class MolSys(MolecularSystemBase):
         bond_chiral: np.ndarray | None = None,
         name: str = "Noname_MolSys",
         use_ccd: dict | None = None,
+        entity_ids: np.ndarray | None = None,
     ):
         # self.molsys = weakref.proxy(self)
         self.record_types = record_types.copy()
@@ -883,6 +915,13 @@ class MolSys(MolecularSystemBase):
             self.segixs = segindices
         self.segindices = self.segixs
 
+        if entity_ids is None:
+            self.entity_ids = np.array(self.segindices + 1, dtype=str)
+        else:
+            self.entity_ids = np.asarray(entity_ids, dtype=str).copy()
+
+        self.entity = self.entity_ids
+
         self.is_protein = np.array(
             [res in chilife.SUPPORTED_RESIDUES for res in resnames]
         )
@@ -917,6 +956,8 @@ class MolSys(MolecularSystemBase):
             "q": self.occupancies,
             "elem": self.atypes,
             "element": self.atypes,
+            "entities": self.entity_ids,
+            "entity_ids": self.entity_ids,
             "protein": self.is_protein,
             "_len": self.n_atoms,
         }
@@ -1127,8 +1168,15 @@ class MolSys(MolecularSystemBase):
         icodes = np.array(atom_site_data["pdbx_PDB_ins_code"][:n_atoms])
         icodes[icodes == "?"] = ""
 
-        segs = np.char.array(atom_site_data["label_asym_id"][:n_atoms]) + np.char.array(
-            atom_site_data["label_entity_id"][:n_atoms]
+        segs = np.char.array(atom_site_data["label_asym_id"][:n_atoms])
+
+        raw_eid = atom_site_data["label_entity_id"][:n_atoms]
+        parsed_eid = np.array(
+            [
+                "" if str(x).strip() in (".", "?", "") else str(x).strip()
+                for x in raw_eid
+            ],
+            dtype=str,
         )
 
         occupancies = np.array(atom_site_data["occupancy"][:n_atoms], dtype=float)
@@ -1166,6 +1214,7 @@ class MolSys(MolecularSystemBase):
             charges,
             name=name,
             use_ccd=ccd_data,
+            entity_ids=parsed_eid,
         )
 
         # Parse inter-residue bonds from the _struct_conn loop (covale, disulf, metalc).
@@ -1582,6 +1631,8 @@ class MolSys(MolecularSystemBase):
             bonds = None
             bond_types = None
 
+        entity_ids = self.entity_ids if hasattr(self, "entity_ids") else None
+
         return MolSys(
             record_types=self.record_types,
             atomids=self.atomids,
@@ -1600,6 +1651,7 @@ class MolSys(MolecularSystemBase):
             bonds=bonds,
             bond_types=bond_types,
             name=self.names,
+            entity_ids=entity_ids,
         )
 
     def load_new(self, coordinates):
@@ -2100,7 +2152,7 @@ class ResidueSelection(MolecularSystemBase):
         return len(self.first_ix)
 
     def __iter__(self):
-        for resix in self.resixs:
+        for resix in np.atleast_1d(self.resixs):
             yield self.molsys._residues[resix]
 
 
@@ -2329,13 +2381,13 @@ class Segment(MolecularSystemBase):
         An array of atom indices that defines the atoms of the segment.
     """
 
-    def __init__(self, molsys, mask):
+    def __init__(self, molsys, mask, bond_mask=None):
         segix = np.unique(molsys.segixs[mask])[0]
         self.mask = np.where(molsys.segixs == segix)[0]
         self.molsys = molsys
         self.segindex = segix
 
-        self._update_bond_mask(mask)
+        self._update_bond_mask(bond_mask)
 
 
 def byres(mask, molsys):
@@ -2463,6 +2515,7 @@ def concat_molsys(*systems):
     bonds = []
     bond_types = []
     bond_chiral = []
+    entity_ids_parts = []
     names = []
     n_atoms = 0
     n_residues = 0
@@ -2487,6 +2540,7 @@ def concat_molsys(*systems):
         atypes.append(sys.atypes)
         charges.append(sys.charges)
         chiral.append(sys.chiral)
+        entity_ids_parts.append(sys.entity_ids)
 
         if len(sys.trajectory) != traj_len:
             raise AttributeError(
@@ -2551,6 +2605,7 @@ def concat_molsys(*systems):
     chiral = np.concatenate(chiral) if np.any([x is not None for x in chiral]) else None
     resindices = np.concatenate(resindices)
     segindices = np.concatenate(segindices)
+    entity_ids_cat = np.concatenate(entity_ids_parts)
 
     if has_bonds:
         bonds = np.concatenate(bonds)
@@ -2584,6 +2639,7 @@ def concat_molsys(*systems):
         bond_types,
         bond_chiral,
         name,
+        entity_ids=entity_ids_cat,
     )
 
 
@@ -2663,8 +2719,10 @@ def struct_to_cif_atom_site(struct):
         [x if x.strip() else "." for x in struct.altlocs], n_frames
     ).tolist()
     label_comp_id = np.tile(struct.resnames, n_frames).tolist()
-    label_asym_id = np.tile(struct.chains, n_frames).tolist()
-    label_entity_id = np.tile((struct.segindices + 1).astype(str), n_frames).tolist()
+    label_asym_id = np.tile(np.array(struct.segids, dtype=str), n_frames).tolist()
+    label_entity_id = np.tile(
+        np.asarray(struct.entity_ids, dtype=str), n_frames
+    ).tolist()
     label_seq_id = np.tile((struct.resindices + 1).astype(str), n_frames).tolist()
     pdbx_PDB_ins_code = np.tile(
         [x if x.strip() else "?" for x in struct.icodes], n_frames

@@ -832,4 +832,3 @@ def test_roundtrip():
     np.testing.assert_equal(xl_struct.bond_types, struct.bond_types)
 
     os.remove("1hvr_xl.cif")
-    

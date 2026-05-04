@@ -696,7 +696,7 @@ def test_write_sdf():
 
     with open("test_data/write_sdf.sdf", "r") as f:
         ans_str = f.read()
-        ans_str = ans_str.replace("1.2.0dev1", "version")
+        ans_str = ans_str.replace("1.2.2", "version")
         ans = hashlib.md5(ans_str.encode("utf-8")).hexdigest()
 
     with open("test_sdf.sdf", "r") as f:

@@ -1169,7 +1169,7 @@ end_auth_asym_id = ["A", "A", "A", "A"]
 end_auth_seq_id = ["46", "129", "189", "401"]
 end_PDB_ins_code = ["?", "?", "?", "?"]
 selection = ["?", "?", "?", "?"]
-selection_details = ["chain", "chain", "chain", "chain"]
+selection_details = ["chain 'A' and (resid -9 through 46 )", "chain 'A' and (resid 47 through 129 )", "chain 'A' and (resid 130 through 189 )", "chain 'A' and (resid 190 through 401 )"]
 
 [7O1O.pdbx_entry_details]
 entry_id = "7O1O"

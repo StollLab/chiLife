@@ -1587,8 +1587,6 @@ def parse_cif_data_block(data_block: list[str]) -> dict:
             subject_keys = []
             subject_values = []
         elif (line.startswith("#") or line.strip() == "") and in_loop:
-            if topic_key == "chem_comp":
-                breakpoint()
             for k, v in zip(subject_keys, zip(*subject_values)):
                 topic_dict[k] = v
             in_loop = False
@@ -1614,12 +1612,9 @@ def parse_cif_data_block(data_block: list[str]) -> dict:
                                 break
                             value += line.strip()
                         line = value
-                        svals += [line.strip("'\"")]
+                        svals += [line.strip().strip("'\"")]
                     else:
                         svals += split_with_quotes(line)
-
-                if len(svals) > len(subject_keys):
-                    breakpoint()
 
                 subject_values.append(svals)
 
@@ -2001,8 +1996,9 @@ def write_cif(file_name, cif_data):
             for key2, value2 in value1.items():
                 line = f"_{key1}.{key2}".ljust(key_length)
                 if isinstance(value2, str):
-                    if " " in value2 and value2[0] != "'":
-                        value2 = "'" + value2 + "'"
+                    if " " in value2 and value2[0] not in ("'", '"'):
+                        quote = '"' if "'" in value2 else "'"
+                        value2 = quote + value2 + quote
 
                     if len(value2) < 80:
                         line += f" {value2} \n"
@@ -2020,18 +2016,20 @@ def write_cif(file_name, cif_data):
 
                 elif isinstance(value2, Sequence):
                     loop_keys.append(line + "\n")
-                    value2 = [v if "'" not in v else '"' + v + '"' for v in value2]
 
                     value2 = [
-                        v if (" " not in v) and (v[0] != "_") else "'" + v + "'"
+                        v
+                        if " " not in v
+                        else "'" + v + "'"
+                        if "'" not in v
+                        else '"' + v + '"'
+                        if '"' not in v
+                        else "\n;" + v + ";\n"
                         for v in value2
                     ]
 
                     loop_values.append(value2)
-                    try:
-                        max_val_lens.append(max(len(x) for x in value2))
-                    except ValueError:
-                        print(value2)
+                    max_val_lens.append(max(len(x) for x in value2))
 
             if loop_values:
                 lines.append("loop_\n")

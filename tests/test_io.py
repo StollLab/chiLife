@@ -253,11 +253,13 @@ def test_write_sdf():
     xl.write_sdf(data, "temp.sdf")
 
     with open(file_name, "r") as f:
-        ans = "".join([line for line in f.readlines() if "RDKit" not in line])
+        ans = "".join([line.rstrip() for line in f.readlines() if "RDKit" not in line])
         ans = hashlib.md5(ans.encode("utf8")).hexdigest()
 
     with open("temp.sdf", "r") as f:
-        test = "".join([line for line in f.readlines() if "chiLife" not in line])
+        test = "".join(
+            [line.rstrip() for line in f.readlines() if "chiLife" not in line]
+        )
         test = hashlib.md5(test.encode("utf8")).hexdigest()
 
     os.remove("temp.sdf")

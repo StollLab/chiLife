@@ -38,7 +38,7 @@ from .globals import (
 from .alignment_methods import local_mx
 from .IntrinsicLabel import IntrinsicLabel
 from .MolSys import MolecularSystemBase, MolSys
-from .Topology import BondType, POLYMER_LINKAGE_TYPES
+from .Topology import BondType
 from .MolSysIC import MolSysIC
 from .pdb_utils import parse_connect, sort_pdb
 
@@ -1115,9 +1115,9 @@ def write_sdf(sdf_data, file_name):
         for atom in atoms:
             x, y, z = atom["xyz"]
             lines.append(
-                f"{x:10.4f}{y:10.4f}{z:10.4f}{atom['element']:>2} {atom['mass difference']:>3}{atom['charge']:>3}"
-                f"{atom['stereo']:>3}{0:>3}{0:>3}{atom['valence']:>3}"
-                + f"{0:>3}" * 6
+                f"{x:10.4f}{y:10.4f}{z:10.4f} {atom['element']:<3} {atom['mass difference']:<2} {atom['charge']:<3}"
+                f"{atom['stereo']:<3}{0:<3}{0:<3}{atom['valence']:<3}"
+                + f"{0:<3}" * 6
                 + "\n"
             )
 
@@ -1586,7 +1586,7 @@ def parse_cif_data_block(data_block: list[str]) -> dict:
             in_loop = True
             subject_keys = []
             subject_values = []
-        elif line.startswith("#") and in_loop:
+        elif (line.startswith("#") or line.strip() == "") and in_loop:
             for k, v in zip(subject_keys, zip(*subject_values)):
                 topic_dict[k] = v
             in_loop = False
@@ -1597,7 +1597,26 @@ def parse_cif_data_block(data_block: list[str]) -> dict:
                 topic_dict = parsed_block.setdefault(topic_key[1:], {})
                 subject_keys.append(subject_key)
             else:
-                subject_values.append(split_with_quotes(line))
+                svals = split_with_quotes(line)
+
+                # Some lines are too long and wrap multiple lines.
+                while len(svals) < len(subject_keys):
+                    line = next(data_block_iterator)
+
+                    # Consider a multiline field within a multiline loop item
+                    if line[0] == ";":
+                        value = line[1:]
+                        while True:
+                            line = next(data_block_iterator)
+                            if line.startswith(";"):
+                                break
+                            value += line.strip()
+                        line = value
+                        svals += [line.strip().strip("'\"")]
+                    else:
+                        svals += split_with_quotes(line)
+
+                subject_values.append(svals)
 
         elif line.startswith("_"):
             kv = split_with_quotes(line)
@@ -1742,35 +1761,12 @@ def create_ccd_dicts(cif_data):
             bond_dict["pdbx_stereo_config"].append(stereo)
 
     chem_comp_data = cif_data.get("chem_comp", None)
-    if chem_comp_data is not None and all(
-        key in chem_comp_data
-        for key in [
-            "id",
-            "type",
-            "mon_nstd_flag",
-            "name",
-            "pdbx_synonyms",
-            "formula",
-            "formula_weight",
-        ]
-    ):
-        for res, link_type, mon_nsdt_flag, name, pdbx_synonyms, formula, weight in zip(
-            chem_comp_data["id"],
-            chem_comp_data["type"],
-            chem_comp_data["mon_nstd_flag"],
-            chem_comp_data["name"],
-            chem_comp_data["pdbx_synonyms"],
-            chem_comp_data["formula"],
-            chem_comp_data["formula_weight"],
-        ):
+
+    if chem_comp_data is not None:
+        for i, res in enumerate(chem_comp_data["id"]):
             res_dict = ccd_data.setdefault(res, {})
             res_dict["chem_comp"] = {
-                "link type": link_type,
-                "mon nsdt flag": mon_nsdt_flag,
-                "name": name,
-                "pdbx synonyms": pdbx_synonyms,
-                "formula": formula,
-                "weight": weight,
+                key: chem_comp_data[key][i] for key in chem_comp_data.keys()
             }
 
     return ccd_data
@@ -1840,7 +1836,18 @@ def parse_struct_conn_bonds(molsys, struct_conn):
 
         order_key = struct_conn["pdbx_value_order"][row]
         btype = CIF_BOND_TO_XL.get(order_key, BondType.UNSPECIFIED)
-        bonds.append(sorted([i1, i2]))
+        bond = sorted([i1, i2])
+
+        # Do not overwrite existing bonds with BondType.UNSPECIFIED if the existing bond is specified.
+        if btype == BondType.UNSPECIFIED:
+            exists = np.argwhere(np.all(molsys._bonds == bond, axis=1)).flatten()
+            if (
+                len(exists) > 0
+                and molsys._bond_types[exists[0]] != BondType.UNSPECIFIED
+            ):
+                continue
+
+        bonds.append(bond)
         bond_types.append(btype)
 
     return np.array(bonds, dtype=int), np.array(bond_types, dtype=object)
@@ -1879,10 +1886,15 @@ def struct_conn_from_bonds(molsys, ccd_data=None):
     counters = {}
     rows = defaultdict(list)
     for (b1, b2), btype in zip(molsys.bonds, molsys.bond_types):
-        if molsys.resindices[b1] == molsys.resindices[b2]:
+        delta = molsys.resindices[b1] - molsys.resindices[b2]
+        if delta == 0:
             continue
 
-        elif molsys.segindices[b1] == molsys.segindices[b2] and abs(molsys.resnums[b1] - molsys.resnums[b2]) == 1:
+        elif (
+            molsys.segindices[b1] == molsys.segindices[b2]
+            and abs(delta) == 1
+            and ("HETATM" not in molsys.record_types[[b1, b2]])
+        ):
             continue
 
         else:
@@ -1910,7 +1922,6 @@ def struct_conn_from_bonds(molsys, ccd_data=None):
             rows["pdbx_dist_value"].append("?")
             rows["pdbx_value_order"].append(value_order)
             rows["pdbx_role"].append("?")
-
 
     if not rows["id"]:
         return None
@@ -1985,8 +1996,9 @@ def write_cif(file_name, cif_data):
             for key2, value2 in value1.items():
                 line = f"_{key1}.{key2}".ljust(key_length)
                 if isinstance(value2, str):
-                    if " " in value2 and value2[0] != "'":
-                        value2 = "'" + value2 + "'"
+                    if " " in value2 and value2[0] not in ("'", '"'):
+                        quote = '"' if "'" in value2 else "'"
+                        value2 = quote + value2 + quote
 
                     if len(value2) < 80:
                         line += f" {value2} \n"
@@ -2004,19 +2016,20 @@ def write_cif(file_name, cif_data):
 
                 elif isinstance(value2, Sequence):
                     loop_keys.append(line + "\n")
-                    value2 = [v if "'" not in v else '"' + v + '"' for v in value2]
-                    try:
-                        value2 = [
-                            v if (" " not in v) and (v[0] != "_") else "'" + v + "'"
-                            for v in value2
-                        ]
-                    except IndexError:
-                        breakpoint()
+
+                    value2 = [
+                        v
+                        if " " not in v
+                        else "'" + v + "'"
+                        if "'" not in v
+                        else '"' + v + '"'
+                        if '"' not in v
+                        else "\n;" + v + ";\n"
+                        for v in value2
+                    ]
+
                     loop_values.append(value2)
-                    try:
-                        max_val_lens.append(max(len(x) for x in value2))
-                    except ValueError:
-                        print(value2)
+                    max_val_lens.append(max(len(x) for x in value2))
 
             if loop_values:
                 lines.append("loop_\n")

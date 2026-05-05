@@ -145,6 +145,7 @@ features = (
     "bs",
     "atypes",
     "charges",
+    "entity_ids",
 )
 
 
@@ -629,6 +630,7 @@ def test_from_cif():
     np.testing.assert_equal(mol.names, ans["anames"])
     np.testing.assert_equal(mol.resnames, ans["resnames"])
     np.testing.assert_equal(mol.segids, ans["segids"])
+    np.testing.assert_equal(mol.entity_ids, ans["entity_ids"])
     np.testing.assert_almost_equal(mol.charges, ans["charges"])
     np.testing.assert_equal(mol.chiral, ans["chiral"])
 
@@ -643,6 +645,7 @@ def test_from_sdf():
     np.testing.assert_equal(mol.names, ans["anames"])
     np.testing.assert_equal(mol.resnames, ans["resnames"])
     np.testing.assert_equal(mol.segids, ans["segids"])
+    np.testing.assert_equal(mol.entity_ids, ans["entity_ids"])
     np.testing.assert_almost_equal(mol.charges, ans["charges"])
     np.testing.assert_equal(mol.chiral, ans["chiral"])
 
@@ -693,7 +696,7 @@ def test_write_sdf():
 
     with open("test_data/write_sdf.sdf", "r") as f:
         ans_str = f.read()
-        ans_str = ans_str.replace("1.2.0dev1", "version")
+        ans_str = ans_str.replace("1.2.2", "version")
         ans = hashlib.md5(ans_str.encode("utf-8")).hexdigest()
 
     with open("test_sdf.sdf", "r") as f:
@@ -765,7 +768,10 @@ def test_write_cif_emits_struct_conn():
         if ln.startswith(expected_conn) and "_struct_conn" not in ln
     ]
     assert len(data_lines) == 1
-    assert data_lines[0] == "covale1 covale ? ? A GLY 1 N ? ? ? 1_555 A GLY 1 A VAL 82 C ? ? 1_555 A VAL 82 ? ? ? ? ? ? ? ? sing ?"
+    assert (
+        data_lines[0]
+        == "covale1 covale ? ? A GLY 1 N ? ? ? 1_555 A GLY 1 A VAL 82 C ? ? 1_555 A VAL 82 ? ? ? ? ? ? ? ? sing ?"
+    )
     os.remove("test_cif_sc.cif")
 
 
@@ -804,3 +810,25 @@ def test_struct_conn_skips_polymer_link():
                 )
     finally:
         os.remove("test_cif_poly.cif")
+
+
+def test_roundtrip():
+    struct = MolSys.from_cif("test_data/1hvr.cif")
+    struct.write_cif("1hvr_xl.cif")
+    xl_struct = MolSys.from_cif("1hvr_xl.cif")
+
+    assert len(xl_struct.atoms) == len(struct.atoms)
+
+    np.testing.assert_equal(struct.names, xl_struct.names)
+    np.testing.assert_equal(struct.atypes, xl_struct.atypes)
+    np.testing.assert_equal(struct.resnums, xl_struct.resnums)
+    np.testing.assert_equal(struct.resnames, xl_struct.resnames)
+    np.testing.assert_equal(struct.chains, xl_struct.chains)
+    np.testing.assert_equal(struct.segids, xl_struct.segids)
+    np.testing.assert_almost_equal(struct.coords, xl_struct.coords)
+
+    assert len(xl_struct.bonds) == len(struct.bonds)
+    np.testing.assert_equal(xl_struct.bonds, struct.bonds)
+    np.testing.assert_equal(xl_struct.bond_types, struct.bond_types)
+
+    os.remove("1hvr_xl.cif")

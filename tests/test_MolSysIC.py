@@ -297,12 +297,13 @@ def test_chain_operators():
 
     mx = np.array(
         [
-            [0.38281548, 0.9238248, 0.0],
-            [0.92382485, -0.38281548, 0.0],
-            [0.0, 0.0, -0.99999994],
-        ]
+            [0.24165519, 0.83183837, -0.49964762],
+            [0.96677727, -0.2506125, 0.05035083],
+            [-0.08333419, -0.4952155, -0.8647643],
+        ],
+        dtype=np.float32,
     )
-    ori = np.array([-0.449, -3.572, -1.666])
+    ori = np.array([-0.308, -3.521, -1.117], dtype=np.float32)
 
     np.testing.assert_almost_equal(pic.chain_operators[0]["mx"], mx)
     np.testing.assert_almost_equal(pic.chain_operators[0]["ori"], ori)

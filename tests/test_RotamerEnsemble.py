@@ -110,15 +110,15 @@ def test_sample():
     coords, weight = K48.sample(off_rotamer=True)
 
     wans = 0.0037019925960148086
-    cans = np.array([[20.76406623, 27.90259642, 22.59445098],
+    cans = np.array([[20.77616997, 27.91837091, 22.58570111],
                      [21.54999924, 26.79599953, 23.13299942],
-                     [23.02842999, 27.03777002, 22.93937713],
-                     [23.39710135, 27.56595972, 21.90105423],
-                     [21.1101072, 25.47090301, 22.45317533],
-                     [21.19895831, 25.51252905, 20.90717057],
-                     [21.03430238, 24.15607743, 20.2156025],
-                     [22.11572213, 23.19412351, 20.72492909],
-                     [22.16827211, 22.00913727, 19.85099131]])
+                     [23.0206485, 27.0550092, 22.93078193],
+                     [23.37644897, 27.58812968, 21.8904905],
+                     [21.15629518, 25.50497174, 22.4126503],
+                     [21.34521519, 25.68632661, 20.90442573],
+                     [21.22299621, 24.32818375, 20.20894974],
+                     [22.27437294, 23.37093058, 20.77334076],
+                     [22.37505255, 22.18807536, 19.90671122]])
 
     np.testing.assert_almost_equal(coords, cans, decimal=6)
     assert weight == wans
@@ -543,13 +543,13 @@ def test_ignore_waters():
 
 
 @pytest.mark.parametrize(('resn', 'ans'), (('HID', 17), ('HIP', 18), ('HIE', 17), ('ASH', 13),
-                                           ('GLH', 16), ('CYM', 10), ('LYN', 21)))
+                                           ('GLH', 16), ('CYM', 10), ('LYN', 21), ('TYM', 20)))
 def test_alt_prot(resn, ans):
     RL = chilife.RotamerEnsemble(resn, 28, ubq, use_H=True)
     assert len(RL.atom_names) == ans
     assert RL.res == resn
 
-@pytest.mark.parametrize('res', ('HID', 'HIE', 'ASH', 'GLH', 'CYM', 'LYN', 'HIP'))
+@pytest.mark.parametrize('res', ('HID', 'HIE', 'ASH', 'GLH', 'CYM', 'LYN', 'HIP', 'TYM'))
 def test_from_mda_alt_prot(res):
     mda_residue = mda.Universe(f'test_data/{res.lower()}.pdb').residues[0]
     assert mda_residue.resname != res

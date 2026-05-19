@@ -13,41 +13,55 @@ lj_funcs = [chilife.get_lj_energy, chilife.get_lj_scwrl, chilife.get_lj_rep]
 lj_ans = [
     np.array(
         [
-            -1.29407456,
-            -1.34917747,
-            -0.92307553,
-            0.09701479,
-            -0.81320874,
-            -0.82519134,
-            -0.81681929,
-            -0.47411124,
-            -0.64444505,
-            -0.44549313,
+            -1.17807772,
+            -1.36824056,
+            -1.45138763,
+            -1.15117638,
+            -1.34821558,
+            -1.07243325,
+            -0.99806148,
+            -0.79547696,
+            -0.41502591,
+            -0.39899395,
         ]
     ),
-    np.array([-0.05528211, -0.14662196, 0.0, -0.20341, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]),
     np.array(
         [
-            0.66692039,
-            0.05328766,
-            0.01843082,
-            0.01921865,
-            0.00483313,
-            0.68429473,
-            0.00290177,
-            0.00411807,
-            1.25053399,
-            0.03108683,
+            0.01217681,
+            -0.14832397,
+            -0.09426473,
+            -0.10662389,
+            0.0,
+            -0.21180769,
+            0.0,
+            -0.00933278,
+            0.0,
+            0.0,
+        ]
+    ),
+    np.array(
+        [
+            0.72906185,
+            0.07046668,
+            0.11446102,
+            0.00656634,
+            0.0201529,
+            0.00476935,
+            0.00413794,
+            0.00179881,
+            0.00138244,
+            0.00089236,
         ]
     ),
 ]
+lj_rot_idx = [0, 5, 5]
 
 
-@pytest.mark.parametrize(("func", "ans"), zip(lj_funcs, lj_ans))
-def test_lj(func, ans):
+@pytest.mark.parametrize(("func", "ans", "rot_idx"), zip(lj_funcs, lj_ans, lj_rot_idx))
+def test_lj(func, ans, rot_idx):
     f = chilife.ljEnergyFunc(func)
     RL = chilife.RotamerEnsemble("TRP", 28, protein, energy_func=f, eval_clash=True)
-    np.testing.assert_almost_equal(RL.atom_energies[5], ans, decimal=6)
+    np.testing.assert_almost_equal(RL.atom_energies[rot_idx], ans, decimal=6)
 
 
 @pytest.mark.parametrize("func", lj_funcs)

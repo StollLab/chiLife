@@ -24,7 +24,7 @@ from scipy.spatial.transform import Rotation
 from MDAnalysis.core.topologyattrs import Atomindices, Resindices, Segindices, Segids
 import MDAnalysis as mda
 
-from .globals import SUPPORTED_RESIDUES
+from .globals import SUPPORTED_RESIDUES, alt_prot_states, ralt_prot_states
 from .MolSys import MolecularSystemBase, MolSys, concat_molsys
 from .numba_utils import get_sasa, _ic_to_cart
 from .pdb_utils import get_backbone_atoms, get_bb_candidates
@@ -488,14 +488,253 @@ def save_pdb(name: Union[str, Path], atoms: ArrayLike, coords: ArrayLike, mode: 
         f.write('ENDMDL\n')
 
 
+def _mutation_ignore_sites(ensembles) -> Set[int]:
+    """Residue numbers to skip when auto-filling missing atoms."""
+    ignore = set()
+    for ens in ensembles:
+        if isinstance(ens, xl.dRotamerEnsemble):
+            ignore.update({ens.site1, ens.site2})
+        else:
+            ignore.add(ens.site)
+    return ignore
+
+
+def _residue_is_protonated(residue, use_H: bool) -> bool:
+    """True when the input residue should keep an alternate protonation library."""
+    if residue.resname in alt_prot_states:
+        return True
+    if not use_H or not any(residue.atoms.types == "H"):
+        return False
+    return _detect_alt_resname(residue, use_H) != residue.resname
+
+
+def _detect_alt_resname(residue, use_H: bool) -> str:
+    """Resolve library resname from an MDAnalysis residue (mirrors RotamerEnsemble.from_mda)."""
+    res = residue.resname
+    if not use_H or res not in ralt_prot_states:
+        return res
+    if res == "TYR" and "HH" not in residue.atoms.names:
+        return ralt_prot_states[res].get(len(residue.atoms), res)
+    if res != "HIS":
+        return ralt_prot_states[res].get(len(residue.atoms), res)
+    if len(residue.atoms) == 18:
+        return "HIP"
+    if len([x for x in residue.atoms.names if "HE" in x]) == 2:
+        return "HIE"
+    if len([x for x in residue.atoms.names if "HD" in x]) == 2:
+        return "HID"
+    return "HIS"
+
+
+def _residue_library_name(residue, use_H: bool) -> str:
+    if _residue_is_protonated(residue, use_H):
+        return _detect_alt_resname(residue, use_H)
+    return residue.resname
+
+
+def _expected_residue_ensemble(residue, protein, use_H: bool, ignore_waters: bool, **kwargs):
+    """Build a RotamerEnsemble for fill operations with correct protonation library."""
+    lib_res = _residue_library_name(residue, use_H)
+    ens = xl.RotamerEnsemble(
+        lib_res,
+        residue.resnum,
+        protein=protein,
+        chain=residue.segid,
+        use_H=use_H,
+        ignore_waters=ignore_waters,
+        eval_clash=False,
+        **kwargs,
+    )
+    ens._fill_missing = True
+    ens._output_resname = (
+        lib_res if _residue_is_protonated(residue, use_H) else residue.resname
+    )
+    return ens
+
+
+def _closest_rotamer_index(ensemble, residue) -> int:
+    """Index of the rotamer closest to atoms present in ``residue``."""
+    res_atoms = residue.atoms.select_atoms("not altloc B")
+    name_to_pos = {a.name: a.position for a in res_atoms}
+    common = np.isin(ensemble.atom_names, list(name_to_pos.keys()))
+    if not np.any(common):
+        return int(np.argmax(ensemble.weights))
+    idxs = np.argwhere(common).flatten()
+    target = np.array([name_to_pos[n] for n in ensemble.atom_names[idxs]])
+    rmsds = np.linalg.norm(ensemble._coords[:, idxs] - target[None, :, :], axis=(1, 2))
+    return int(np.argmin(rmsds))
+
+
+def _place_atom_from_ic(
+        i: int,
+        z_matrix_idxs: np.ndarray,
+        z_matrix: np.ndarray,
+        coords: np.ndarray,
+) -> None:
+    """Place atom ``i`` from internal coordinates and already-set reference atoms."""
+    bond_idx = z_matrix_idxs[i, 1]
+    if bond_idx < 0:
+        return
+
+    r, theta, phi = z_matrix[i]
+    angle_idx = z_matrix_idxs[i, 2]
+    if angle_idx < 0:
+        coords[i, 0] = coords[bond_idx, 0] + r
+        return
+
+    dihedral_idx = z_matrix_idxs[i, 3]
+    if dihedral_idx < 0:
+        x = r * np.cos(np.pi - theta)
+        y = r * np.sin(np.pi - theta)
+        coords[i, 0] = coords[bond_idx, 0] + x
+        coords[i, 1] = y
+        return
+
+    sin_angle, sin_dihedral = np.sin(theta), np.sin(phi)
+    cos_angle, cos_dihedral = np.cos(theta), np.cos(phi)
+    x = r * cos_angle
+    y = r * cos_dihedral * sin_angle
+    z = r * sin_dihedral * sin_angle
+
+    a = coords[dihedral_idx]
+    b = coords[angle_idx]
+    c = coords[bond_idx]
+    ab = b - a
+    bc = c - b
+    bc /= np.linalg.norm(bc)
+    n = np.cross(ab, bc)
+    n /= np.linalg.norm(n)
+    ncbc = np.cross(n, bc)
+    m = np.vstack([bc, ncbc, n])
+    coords[i] = m.T @ np.array([-x, y, z]) + coords[bond_idx]
+
+
+def _only_hydrogens_missing(ensemble, present: dict) -> bool:
+    """True when every missing library atom is a hydrogen."""
+    missing = set(ensemble.atom_names) - set(present)
+    if not missing:
+        return False
+    return all(ensemble.atom_types[ensemble.atom_names == name][0] == "H" for name in missing)
+
+
+def _sync_sidechain_dihedrals_from_present(ic_work, present: dict, dihedral_atoms) -> None:
+    """Update side-chain chi dihedrals in ``ic_work`` to match anchored heavy-atom positions."""
+    ddefs = np.atleast_2d(dihedral_atoms)
+    if ddefs.size == 0:
+        return
+
+    measured = []
+    for atoms in ddefs:
+        if not all(atom in present for atom in atoms):
+            return
+        measured.append(get_dihedral([present[atom] for atom in atoms]))
+
+    ic_work.set_dihedral(
+        measured,
+        ic_work.resnums[0],
+        ddefs,
+        chain=ic_work.chains[0],
+    )
+
+
+def _fill_missing_atoms_coords(residue, ensemble, rotamer_idx: int):
+    """
+    Keep existing atom positions; add missing atoms using the closest aligned rotamer ICs.
+
+    The closest rotamer provides bond lengths, angles, and dihedrals. Atoms already in the
+    input structure are anchored to their PDB coordinates. Missing atoms are placed by a
+    forward internal-coordinate walk from those anchors so X-H geometry stays consistent
+    with the crystal heavy-atom framework.
+
+    When only protons are missing, side-chain chi dihedrals are set from the anchored
+    heavy-atom framework before hydrogens are placed (needed for aromatics such as TRP).
+    """
+    atom_names = ensemble.atom_names
+    atom_types = ensemble.atom_types
+
+    ensemble_heavy = set(atom_names[atom_types != "H"])
+    present = {
+        a.name: a.position.copy()
+        for a in residue.atoms
+        if a.name in ensemble_heavy and getattr(a, "altLoc", "") != "B"
+    }
+
+    ic_work = ensemble.internal_coords.copy()
+    ic_work.trajectory.frame = rotamer_idx
+    z_idxs = ic_work.z_matrix_idxs
+    z_mat = ic_work.z_matrix
+
+    if _only_hydrogens_missing(ensemble, present):
+        from .MolSysIC import get_z_matrix
+
+        lib_cart = ic_work.to_cartesian().copy()
+        z_lib = ic_work.z_matrix.copy()
+        _sync_sidechain_dihedrals_from_present(
+            ic_work, present, getattr(ensemble, "dihedral_atoms", [])
+        )
+        lib_cart = ic_work.to_cartesian().copy()
+        coords_full = lib_cart.copy()
+        for i, name in enumerate(ic_work.atom_names):
+            if name in present:
+                coords_full[i] = present[name]
+
+        missing_ic = [
+            i for i, name in enumerate(ic_work.atom_names) if name not in present
+        ]
+        for i in missing_ic:
+            parent = z_idxs[i, 1]
+            if parent < 0:
+                continue
+            bond_vec = lib_cart[i] - lib_cart[parent]
+            bond_len = np.linalg.norm(bond_vec)
+            if bond_len > 1e-8:
+                coords_full[i] = coords_full[parent] + z_lib[i, 0] * (bond_vec / bond_len)
+
+        z_matrix, chain_operator = get_z_matrix(
+            coords_full.copy(), ic_work.z_matrix_idxs, ic_work.chain_operator_idxs
+        )
+        ic_work.trajectory.coordinate_array[rotamer_idx] = z_matrix
+        if ic_work.has_chain_operators:
+            ic_work._chain_operators = chain_operator
+
+        for i, name in enumerate(ic_work.atom_names):
+            if name in present:
+                coords_full[i] = present[name]
+        for i in missing_ic:
+            _place_atom_from_ic(i, z_idxs, ic_work.z_matrix, coords_full)
+    else:
+        coords_full = ic_work.to_cartesian().copy()
+        for i, name in enumerate(ic_work.atom_names):
+            if name in present:
+                coords_full[i] = present[name]
+            else:
+                _place_atom_from_ic(i, z_idxs, z_mat, coords_full)
+
+    coords = coords_full[ensemble.ic_mask]
+    return atom_names, atom_types, coords
+
+
+def _select_rotamer_index(
+        ensemble,
+        rotamer_index: Union[int, str, None],
+        residue=None,
+) -> int:
+    if rotamer_index == "closest" and residue is not None:
+        return _closest_rotamer_index(ensemble, residue)
+    if rotamer_index == "random":
+        return int(np.random.choice(len(ensemble.coords), p=ensemble.weights))
+    if isinstance(rotamer_index, int):
+        return rotamer_index
+    return int(np.argmax(ensemble.weights))
+
+
 def get_missing_residues(
         protein: Union[MDAnalysis.Universe, MDAnalysis.AtomGroup],
         ignore: Set[int] = None,
         use_H: bool = False,
         ignore_waters = True
 ) -> List:
-    """Get a list of RotamerEnsemble objects corresponding to the residues of the provided protein that are missing
-    heavy atoms.
+    """Get RotamerEnsemble objects for residues missing expected atoms (heavy and/or H).
 
     Parameters
     ----------
@@ -509,14 +748,13 @@ def get_missing_residues(
     Returns
     -------
     missing_residues : list
-        A list of RotamerEnsemble objects corresponding to residues with missing heavy atoms.
+        RotamerEnsemble objects tagged with ``_fill_missing`` for coordinate fill only.
     """
     ignore = set() if ignore is None else ignore
     missing_residues = []
-    cache = {}
+    expected_cache = {}
 
     for res in protein.residues:
-        # Only consider supported residues because otherwise chiLife wouldn't know what's missing
         if (
                 res.resname not in SUPPORTED_RESIDUES
                 or res.resnum in ignore
@@ -524,20 +762,24 @@ def get_missing_residues(
         ):
             continue
 
-        # Check if there are any missing heavy atoms
-        heavy_atoms = res.atoms.types[res.atoms.types != "H"]
-        resn = res.resname
-
-        a = cache.setdefault(resn, len(xl.RotamerEnsemble(resn).atom_names))
-        if len(heavy_atoms) != a:
-            missing_residues.append(
+        lib_res = _residue_library_name(res, use_H)
+        cache_key = (lib_res, use_H)
+        if cache_key not in expected_cache:
+            expected_cache[cache_key] = set(
                 xl.RotamerEnsemble(
-                    res.resname,
-                    res.resnum,
-                    protein=protein,
-                    chain=res.segid,
-                    use_H=use_H,
-                    ignore_waters=ignore_waters
+                    lib_res, res.resnum, protein=protein, chain=res.segid,
+                    use_H=use_H, ignore_waters=ignore_waters, eval_clash=False,
+                ).atom_names
+            )
+
+        present = {
+            a.name for a in res.atoms
+            if getattr(a, "altLoc", "") != "B"
+        }
+        if expected_cache[cache_key] - present:
+            missing_residues.append(
+                _expected_residue_ensemble(
+                    res, protein, use_H, ignore_waters,
                 )
             )
 
@@ -564,9 +806,9 @@ def mutate(
     rotamer_index : int, str, None
         Index of the rotamer to be used for the mutation. If None, the most probable rotamer will be used. If 'all',
         mutate will return an ensemble with each rotamer, if random, mutate will return an ensemble with a random
-        rotamer.
+        rotamer. If 'closest', use the rotamer closest to the existing residue coordinates.
     add_missing_atoms : bool
-        Model side chains missing atoms if they are not present in the provided structure.
+        Model missing atoms (heavy or H) without moving atoms already present in the structure.
     ignore_waters : bool
         ignore waters when selecting conforers for mutation.
     Returns
@@ -589,10 +831,12 @@ def mutate(
         use_H = use_H if use_H is not None else param_from_rotlibs('use_H', ensembles)
         ignore_waters = ignore_waters if ignore_waters is not None else param_from_rotlibs('ignore_waters', ensembles)
 
-        missing_residues = get_missing_residues(protein,
-                                                ignore={res.site for res in ensembles},
-                                                use_H=use_H,
-                                                ignore_waters=ignore_waters)
+        missing_residues = get_missing_residues(
+            protein,
+            ignore=_mutation_ignore_sites(ensembles),
+            use_H=use_H,
+            ignore_waters=ignore_waters,
+        )
 
         ensembles = list(ensembles) + missing_residues
 
@@ -611,7 +855,10 @@ def mutate(
         protein = protein.select_atoms('(not altloc B)')
         
     label_selstr = " or ".join([f"({label.selstr})" for label in ensembles])
-    other_atoms = protein.select_atoms(f"not ({label_selstr})")
+    if label_selstr:
+        other_atoms = protein.select_atoms(f"not ({label_selstr})")
+    else:
+        other_atoms = protein.atoms
 
     resids = [res.resid for res in protein.residues]
     icodes = [res.icode for res in protein.residues] if hasattr(protein, "icodes") else None
@@ -628,7 +875,19 @@ def mutate(
         # If the residue is the spin labeled residue replace it with the highest probability spin label
         if resloc in label_sites:
             rot_ens = label_sites[resloc]
-            if isinstance(rot_ens, xl.dRotamerEnsemble):
+            fill_missing = getattr(rot_ens, "_fill_missing", False)
+            if fill_missing:
+                src_res = res
+                r_idx = _select_rotamer_index(rot_ens, "closest", src_res)
+                names, types, positions = _fill_missing_atoms_coords(src_res, rot_ens, r_idx)
+                atom_info += [(i, name, atype) for name, atype in zip(names, types)]
+                res_names.append(getattr(rot_ens, "_output_resname", rot_ens.res))
+                segidx.append(res.segindex)
+                offset = len(atom_info) - len(names)
+                _add_peptide_bond(atom_info, rot_ens, bonds)
+                bonds.extend([[b1 + offset, b2 + offset] for b1, b2 in rot_ens.bonds])
+                rot_ens._fill_positions = positions
+            elif isinstance(rot_ens, xl.dRotamerEnsemble):
                 r1l = len(rot_ens.rl1mask)
                 r2l = len(rot_ens.rl2mask)
                 both = r1l + r2l
@@ -652,19 +911,21 @@ def mutate(
                     ]
                 else:
                     raise RuntimeError("The residue specified is not part of the dRotamerEnsemble being constructed")
+                offset = len(atom_info) - len(rot_ens.atom_names)
+                _add_peptide_bond(atom_info, rot_ens, bonds)
+                bonds.extend([[b1 + offset, b2 + offset] for b1, b2 in rot_ens.bonds])
+                res_names.append(rot_ens.res)
+                segidx.append(rot_ens.segindex)
             else:
                 atom_info += [
                     (i, name, atype)
                     for name, atype in zip(rot_ens.atom_names, rot_ens.atom_types)
                 ]
-
-            offset = len(atom_info) - len(rot_ens.atom_names)
-            _add_peptide_bond(atom_info, rot_ens, bonds)
-            bonds.extend([[b1+offset, b2 + offset] for b1, b2 in rot_ens.bonds])
-
-            # Add missing Oxygen from rotamer ensemble
-            res_names.append(rot_ens.res)
-            segidx.append(rot_ens.segindex)
+                offset = len(atom_info) - len(rot_ens.atom_names)
+                _add_peptide_bond(atom_info, rot_ens, bonds)
+                bonds.extend([[b1 + offset, b2 + offset] for b1, b2 in rot_ens.bonds])
+                res_names.append(rot_ens.res)
+                segidx.append(rot_ens.segindex)
 
         # Else retain the atom information from the parent universe
         else:
@@ -709,13 +970,12 @@ def mutate(
     else:
         for spin_label in label_sites.values():
             sl_atoms = U.select_atoms(spin_label.selstr)
-            if rotamer_index == 'random':
-                rand_idx = np.random.choice(len(spin_label.coords), p=spin_label.weights)
-                sl_atoms.atoms.positions = spin_label.coords[rand_idx]
-            elif isinstance(rotamer_index, int):
-                sl_atoms.atoms.positions = spin_label.coords[rotamer_index]
-            else:
-                sl_atoms.atoms.positions = spin_label.coords[np.argmax(spin_label.weights)]
+            if getattr(spin_label, "_fill_positions", None) is not None:
+                sl_atoms.atoms.positions = spin_label._fill_positions
+                continue
+            src_res = protein.select_atoms(spin_label.selstr).residues[0]
+            r_idx = _select_rotamer_index(spin_label, rotamer_index, src_res)
+            sl_atoms.atoms.positions = spin_label.coords[r_idx]
 
     return U
 

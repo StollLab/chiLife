@@ -44,4 +44,4 @@ from .scoring import *
 # SpinLabel = SpinLabel.SpinLabel
 # dSpinLabel = dSpinLabel.dSpinLabel
 
-__version__ = "1.2.3"
+__version__ = "1.2.4"

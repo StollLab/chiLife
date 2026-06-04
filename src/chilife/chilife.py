@@ -36,7 +36,7 @@ from .globals import (
 from .alignment_methods import local_mx
 from .Topology import get_min_topol, guess_bonds
 from .pdb_utils import sort_pdb, get_backbone_atoms, get_bb_candidates
-from .protein_utils import mutate, guess_mobile_dihedrals
+from .protein_utils import mutate, guess_mobile_dihedrals, get_missing_residues, _mutation_ignore_sites
 from .MolSysIC import MolSysIC
 from .scoring import GAS_CONST, reweight_rotamers, ljEnergyFunc
 from .numba_utils import get_delta_r, normdist
@@ -1705,15 +1705,15 @@ def repack(
 
     repack_res_kwargs["eval_clash"] = False
 
-    repack_residue_libraries = [
-        RotamerEnsemble.from_mda(res, **repack_res_kwargs)
-        for res in repack_residues
-        if res.resname not in ["GLY", "ALA"] and res.resname in SUPPORTED_RESIDUES
-    ]
-    repack_residue_libraries += list(ensembles)
-
-    # Create new labeled protein construct to fill in any missing atoms of repack residues
-    protein = mutate(protein, *repack_residue_libraries, **kwargs).atoms
+    fill_kwargs = {**kwargs, "add_missing_atoms": False, "rotamer_index": "closest"}
+    missing = get_missing_residues(
+        protein,
+        ignore=_mutation_ignore_sites(ensembles),
+        use_H=repack_res_kwargs.get("use_H", False),
+        ignore_waters=repack_res_kwargs.get("ignore_waters", True),
+    )
+    if missing:
+        protein = mutate(protein, *missing, **fill_kwargs).atoms
 
     repack_residues = protein.select_atoms(
         f"around {repack_radius} {sites_str}"

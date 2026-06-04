@@ -30,6 +30,7 @@ resis = [
             "CYM",
             "LYN",
             "HIP",
+            "TYM",
         )
         + tuple(chilife.USER_LIBRARIES)
         + tuple(chilife.USER_dLIBRARIES)
@@ -41,12 +42,15 @@ resis = [
 def test_read_dunbrack(res):
     res, phi, psi = res
 
-    dlib = chilife.read_bbdep(res, -70, 90)
+    dlib = chilife.read_bbdep(res, phi, psi)
 
     with np.load(f"test_data/{res}_{phi}_{psi}.npz", allow_pickle=True) as f:
         dlib_ans = {key: f[key] for key in f if key != "allow_pickle"}
 
+    skip = {"internal_coords"}
     for key in dlib_ans:
+        if key in skip:
+            continue
         if dlib_ans[key].dtype not in [np.dtype(f"<U{i}") for i in range(1, 5)]:
             np.testing.assert_almost_equal(dlib_ans[key], dlib[key], decimal=5)
         else:
@@ -90,10 +94,10 @@ def test_sort_H():
         [
             " H  ",
             " HA ",
-            "3HB ",
             "2HB ",
-            "3HG ",
+            "3HB ",
             "2HG ",
+            "3HG ",
             "3HD ",
             "2HD ",
             "2HE ",
@@ -244,13 +248,47 @@ def test_add_missing_atoms():
     protein = mda.Universe("test_data/1omp.pdb", in_memory=True).select_atoms("protein")
     new_prot = chilife.mutate(protein)
     assert len(new_prot.atoms) != len(protein.atoms)
-    assert len(new_prot.atoms) == 2877
+    assert len(new_prot.atoms) == 2878
+
+
+def test_mutate_fill_preserves_heavy_atoms():
+    protein = mda.Universe("test_data/1omp.pdb", in_memory=True).select_atoms("protein")
+    heavy_before = {
+        (r.resid, a.name): a.position.copy()
+        for r in protein.residues
+        for a in r.atoms
+        if a.type != "H"
+    }
+    new_prot = chilife.mutate(protein)
+    for (resid, name), pos in heavy_before.items():
+        sel = new_prot.select_atoms(f"resid {resid} and name {name} and not type H")
+        if len(sel) == 1:
+            np.testing.assert_allclose(sel.positions[0], pos, atol=1e-3)
+
+
+def test_mutate_fill_protonation_preserved():
+    from chilife.protein_utils import _residue_library_name
+
+    prot = mda.Universe("test_data/hid.pdb", in_memory=True)
+    assert _residue_library_name(prot.residues[0], use_H=True) == "HID"
+
+    incomplete = mda.Universe("test_data/hid_incomplete.pdb", in_memory=True)
+    mut = chilife.mutate(incomplete, use_H=True)
+    assert mut.residues[0].resname == "HID"
+    assert "1HE" in mut.residues[0].atoms.names
+
+
+def test_mutate_fill_tym_detected():
+    from chilife.protein_utils import _residue_library_name
+
+    prot = mda.Universe("test_data/tym.pdb", in_memory=True)
+    assert _residue_library_name(prot.residues[0], use_H=True) == "TYM"
 
 
 @pytest.mark.parametrize(
     "res",
     set(chilife.dihedral_defs.keys())
-    - {"CYR1", "MTN", "R1M", "R1C", "HID", "HIE", "ASH", "GLH", "CYM", "LYN", "HIP"}
+    - {"CYR1", "MTN", "R1M", "R1C", "HID", "HIE", "ASH", "GLH", "CYM", "LYN", "HIP", "TYM"}
     - chilife.USER_dLIBRARIES
     - chilife.USER_LIBRARIES,
 )

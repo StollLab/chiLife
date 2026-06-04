@@ -102,6 +102,7 @@ alt_prot_states = {
     "HIE": "HIS",
     "HIP": "HIS",
     "CYM": "CYS",
+    "TYM": "TYR",
 }
 ralt_prot_states = {
     "ASP": {13: "ASH", 12: "ASP"},
@@ -109,6 +110,7 @@ ralt_prot_states = {
     "LYS": {21: "LYN", 22: "LYS"},
     "HIS": {17: "HIS", 18: "HIP"},
     "CYS": {10: "CYM", 11: "CYS"},
+    "TYR": {20: "TYM", 21: "TYR"},
 }
 
 
@@ -125,6 +127,7 @@ natnu_codes.update(
         "CYM": "C",
         "ASH": "D",
         "GLH": "E",
+        "TYM": "Y",
     }
 )
 del inataa

@@ -253,7 +253,9 @@ class RotamerEnsemble(Ensemble):
 
 
         if kwargs.get('use_H', False) and res in ralt_prot_states:
-            if res != 'HIS':
+            if res == 'TYR' and 'HH' not in residue.atoms.names:
+                res = ralt_prot_states[res].get(len(residue.atoms), res)
+            elif res != 'HIS':
                 res = ralt_prot_states[res].get(len(residue.atoms), res)
             elif len(residue.atoms) == 18:
                 res = 'HIP'

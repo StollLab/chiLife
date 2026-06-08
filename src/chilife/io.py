@@ -432,7 +432,9 @@ def read_bbdep(res: str, Phi: int, Psi: int) -> Dict:
 
     else:
         lib["weights"] = np.array([1])
-        lib["dihedrals"], lib["sigmas"], dihedral_atoms = [], [], []
+        lib["dihedrals"] = np.zeros((1, 0))
+        lib["sigmas"] = np.zeros((1, 0))
+        dihedral_atoms = []
         coords = ICs.to_cartesian()[None, ...]
         internal_coords = ICs.copy()
 

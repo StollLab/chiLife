@@ -179,6 +179,15 @@ def test_mutate3():
     assert len(labeled_protein.atoms) != len(protein.atoms)
 
 
+def test_mutate_ala_gly_eval_clash():
+    protein = mda.Universe("test_data/1omp_H.pdb").select_atoms("protein")
+    D41G = chilife.RotamerEnsemble("GLY", 41, protein=protein)
+    S238A = chilife.RotamerEnsemble("ALA", 238, protein=protein)
+    mPro = chilife.mutate(protein, D41G, S238A, add_missing_atoms=False)
+    assert mPro.select_atoms("resnum 41").residues[0].resname == "GLY"
+    assert mPro.select_atoms("resnum 238").residues[0].resname == "ALA"
+
+
 def test_mutate4():
     protein = mda.Universe("test_data/1omp_H.pdb").select_atoms("protein")
     D41G = chilife.RotamerEnsemble("GLY", 41, protein=protein, eval_clash=False)

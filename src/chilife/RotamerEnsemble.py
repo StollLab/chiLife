@@ -462,7 +462,7 @@ class RotamerEnsemble(Ensemble):
             raise RuntimeError('Both `minimize` and `eval_clash` options have been selected, but they are incompatible.'
                                'Please select only one. Also note that minimize performs its own clash evaluations so '
                                'eval_clash is not necessary.')
-        elif self.eval_clash:
+        elif self.eval_clash and len(self.side_chain_idx):
             self.evaluate()
 
         elif self._minimize:

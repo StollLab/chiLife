@@ -1362,6 +1362,15 @@ class RotamerEnsemble:
             raise ValueError('`dihedral_sigmas` must be a scalar, an array the length of the `self.dihedral atoms` or '
                              'an array with the shape of (len(self.weights), len(self.dihedral_atoms))')
 
+    @property
+    def partition_function(self):
+        """The partition function of the rotamer ensemble after reweighting."""
+        # Calculate external energies
+        energies = self.energy_func(self)
+        self.rot_clash_energy = energies
+        # Calculate total weights (combining internal and external)
+        self.weights, self.partition = scoring.reweight_rotamers(energies, self.temp, self.weights)
+        return self.partition
 
 def assign_defaults(kwargs):
     """

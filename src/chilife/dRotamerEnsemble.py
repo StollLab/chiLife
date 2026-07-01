@@ -718,6 +718,16 @@ class dRotamerEnsemble:
             else:
                 new_copy.__dict__[item] = deepcopy(self.__dict__[item])
         return new_copy
+    
+    @property
+    def partition_function(self):
+        """The partition function of the rotamer ensemble after reweighting."""
+        # Calculate external energies
+        energies = self.energy_func(self)
+        self.rot_clash_energy = energies
+        # Calculate total weights (combining internal and external)
+        self.weights, self.partition = scoring.reweight_rotamers(energies, self.temp, self.weights)
+        return self.partition
 
 def proc_sites(sites):
     sites = sorted(sites)

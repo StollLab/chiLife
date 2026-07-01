@@ -719,6 +719,13 @@ class dRotamerEnsemble(Ensemble):
             else:
                 new_copy.__dict__[item] = deepcopy(self.__dict__[item])
         return new_copy
+    
+    @property
+    def partition_function(self):
+        """The partition function of the rotamer ensemble after reweighting."""
+        if self.partition == 1 and self.protein is not None:
+            self.evaluate()
+        return self.partition
 
 def proc_sites(sites):
     """

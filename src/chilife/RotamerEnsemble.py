@@ -1350,6 +1350,12 @@ class RotamerEnsemble(Ensemble):
             raise ValueError('`dihedral_sigmas` must be a scalar, an array the length of the `self.dihedral atoms` or '
                              'an array with the shape of (len(self.weights), len(self.dihedral_atoms))')
 
+    @property
+    def partition_function(self):
+        """The partition function of the rotamer ensemble after reweighting."""
+        if self.partition == 1 and self.protein is not None:
+            self.evaluate ()
+        return self.partition
 
 def assign_defaults(kwargs):
     """
